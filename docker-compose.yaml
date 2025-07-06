@@ -1,43 +1,42 @@
 # docker-compose.yml
-# This file defines the local development environment using Docker.
-# It sets up the Go API, a PostgreSQL database, and a LocalStack container
-# to simulate AWS S3 for file storage.
+# This file is the master recipe for our local development environment.
+# It defines three services: our Go API, a PostgreSQL database, and a
+# local S3-compatible service (LocalStack) for file uploads.
 #
 # To run: docker-compose up --build
 #
 version: '3.8'
 
 services:
-  # Go API Service
+  # The Go API Service
   api:
     build:
-      context: ./api
+      context: ./api # Tells Docker to look for a Dockerfile in the 'api' directory
       dockerfile: Dockerfile
     container_name: caf_api
     ports:
-      - "8080:8080" # Expose API port
+      - "8080:8080" # Maps port 8080 on our machine to port 8080 in the container
     depends_on:
-      - db
+      - db          # Ensures the database is started before the API starts
     env_file:
-      - ./api/.env # Load environment variables
-    volumes:
-      - ./api:/app # Mount source code for live-reloading (if using a tool like Air)
+      - ./api/.env  # Loads environment variables from the .env file
     networks:
       - caf_network
 
-  # PostgreSQL Database Service
+  # The PostgreSQL Database Service
   db:
-    image: postgres:15-alpine
+    image: postgres:15-alpine # Uses an official, lightweight PostgreSQL image
     container_name: caf_postgres
     environment:
-      POSTGRES_USER: ${DB_USER:-user}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-password}
-      POSTGRES_DB: ${DB_NAME:-caf_db}
+      # These values are pulled from the .env file in the 'api' directory
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
     ports:
-      - "5432:5432" # Expose Postgres port
+      - "5432:5432" # Exposes the standard Postgres port
     volumes:
-      - postgres_data:/var/lib/postgresql/data # Persist data
-      - ./api/db/migrations:/docker-entrypoint-initdb.d # Run migrations on init
+      # This ensures that our database data persists even if the container is removed
+      - postgres_data:/var/lib/postgresql/data
     networks:
       - caf_network
 
@@ -46,172 +45,23 @@ services:
     image: localstack/localstack:latest
     container_name: caf_localstack
     environment:
-      - SERVICES=s3
+      - SERVICES=s3 # Only activates the S3 service to save resources
       - EDGE_PORT=4566
       - AWS_DEFAULT_REGION=us-east-1
-      - AWS_ACCESS_KEY_ID=test
+      - AWS_ACCESS_KEY_ID=test # Dummy credentials for local use
       - AWS_SECRET_ACCESS_KEY=test
     ports:
-      - "4566:4566" # Expose LocalStack edge port
+      - "4566:4566" # The port to access the local S3 service
     networks:
       - caf_network
 
+# Defines the shared network for all services
 networks:
   caf_network:
     driver: bridge
 
+# Defines the named volume for persisting database data
 volumes:
   postgres_data:
     driver: local
-```yaml
-# .github/workflows/go-api.yml
-# GitHub Actions workflow for the Go API.
-# This pipeline runs on every push/pull_request to the 'main' branch.
-# It sets up Go, caches dependencies, and runs unit tests.
-name: Go API CI
 
-on:
-  push:
-    branches: [ "main" ]
-    paths:
-      - 'api/**'
-  pull_request:
-    branches: [ "main" ]
-    paths:
-      - 'api/**'
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v4
-
-    - name: Set up Go
-      uses: actions/setup-go@v5
-      with:
-        go-version: '1.21'
-
-    - name: Build
-      run: |
-        cd api
-        go build -v ./...
-
-    - name: Test
-      run: |
-        cd api
-        go test -v ./...
-```yaml
-# .github/workflows/nextjs.yml
-# GitHub Actions workflow for the Next.js Admin Portal.
-# This pipeline runs on every push/pull_request to the 'main' branch.
-# It installs dependencies, caches them, and runs the build command.
-name: Admin Portal CI (Next.js)
-
-on:
-  push:
-    branches: [ "main" ]
-    paths:
-      - 'admin-portal/**'
-  pull_request:
-    branches: [ "main" ]
-    paths:
-      - 'admin-portal/**'
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./admin-portal
-    steps:
-    - uses: actions/checkout@v4
-
-    - name: Use Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20.x'
-        cache: 'npm'
-        cache-dependency-path: admin-portal/package-lock.json
-
-    - name: Install dependencies
-      run: npm install
-
-    - name: Build
-      run: npm run build
-```yaml
-# .github/workflows/sveltekit.yml
-# GitHub Actions workflow for the SvelteKit Marketing Site.
-# This pipeline runs on every push/pull_request to the 'main' branch.
-# It installs dependencies, caches them, and runs the build command.
-name: Marketing Site CI (SvelteKit)
-
-on:
-  push:
-    branches: [ "main" ]
-    paths:
-      - 'marketing/**'
-  pull_request:
-    branches: [ "main" ]
-    paths:
-      - 'marketing/**'
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./marketing
-    steps:
-    - uses: actions/checkout@v4
-
-    - name: Use Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20.x'
-        cache: 'npm'
-        cache-dependency-path: marketing/package-lock.json
-
-    - name: Install dependencies
-      run: npm install
-
-    - name: Build
-      run: npm run build
-```yaml
-# .github/workflows/flutter.yml
-# GitHub Actions workflow for the Flutter Client App.
-# This pipeline runs on every push/pull_request to the 'main' branch.
-# It sets up Flutter and runs widget tests.
-name: Client App CI (Flutter)
-
-on:
-  push:
-    branches: [ "main" ]
-    paths:
-      - 'client-app/**'
-  pull_request:
-    branches: [ "main" ]
-    paths:
-      - 'client-app/**'
-
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./client-app
-    steps:
-    - uses: actions/checkout@v4
-
-    - name: Set up Flutter
-      uses: subosito/flutter-action@v2
-      with:
-        channel: 'stable'
-
-    - name: Install dependencies
-      run: flutter pub get
-
-    - name: Analyze project
-      run: flutter analyze
-
-    - name: Run tests
-      run: flutter test
