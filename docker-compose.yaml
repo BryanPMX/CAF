@@ -1,0 +1,217 @@
+# docker-compose.yml
+# This file defines the local development environment using Docker.
+# It sets up the Go API, a PostgreSQL database, and a LocalStack container
+# to simulate AWS S3 for file storage.
+#
+# To run: docker-compose up --build
+#
+version: '3.8'
+
+services:
+  # Go API Service
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: caf_api
+    ports:
+      - "8080:8080" # Expose API port
+    depends_on:
+      - db
+    env_file:
+      - ./api/.env # Load environment variables
+    volumes:
+      - ./api:/app # Mount source code for live-reloading (if using a tool like Air)
+    networks:
+      - caf_network
+
+  # PostgreSQL Database Service
+  db:
+    image: postgres:15-alpine
+    container_name: caf_postgres
+    environment:
+      POSTGRES_USER: ${DB_USER:-user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-password}
+      POSTGRES_DB: ${DB_NAME:-caf_db}
+    ports:
+      - "5432:5432" # Expose Postgres port
+    volumes:
+      - postgres_data:/var/lib/postgresql/data # Persist data
+      - ./api/db/migrations:/docker-entrypoint-initdb.d # Run migrations on init
+    networks:
+      - caf_network
+
+  # LocalStack for S3 Simulation
+  localstack:
+    image: localstack/localstack:latest
+    container_name: caf_localstack
+    environment:
+      - SERVICES=s3
+      - EDGE_PORT=4566
+      - AWS_DEFAULT_REGION=us-east-1
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+    ports:
+      - "4566:4566" # Expose LocalStack edge port
+    networks:
+      - caf_network
+
+networks:
+  caf_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
+```yaml
+# .github/workflows/go-api.yml
+# GitHub Actions workflow for the Go API.
+# This pipeline runs on every push/pull_request to the 'main' branch.
+# It sets up Go, caches dependencies, and runs unit tests.
+name: Go API CI
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'api/**'
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - 'api/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.21'
+
+    - name: Build
+      run: |
+        cd api
+        go build -v ./...
+
+    - name: Test
+      run: |
+        cd api
+        go test -v ./...
+```yaml
+# .github/workflows/nextjs.yml
+# GitHub Actions workflow for the Next.js Admin Portal.
+# This pipeline runs on every push/pull_request to the 'main' branch.
+# It installs dependencies, caches them, and runs the build command.
+name: Admin Portal CI (Next.js)
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'admin-portal/**'
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - 'admin-portal/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./admin-portal
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Use Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+        cache-dependency-path: admin-portal/package-lock.json
+
+    - name: Install dependencies
+      run: npm install
+
+    - name: Build
+      run: npm run build
+```yaml
+# .github/workflows/sveltekit.yml
+# GitHub Actions workflow for the SvelteKit Marketing Site.
+# This pipeline runs on every push/pull_request to the 'main' branch.
+# It installs dependencies, caches them, and runs the build command.
+name: Marketing Site CI (SvelteKit)
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'marketing/**'
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - 'marketing/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./marketing
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Use Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+        cache-dependency-path: marketing/package-lock.json
+
+    - name: Install dependencies
+      run: npm install
+
+    - name: Build
+      run: npm run build
+```yaml
+# .github/workflows/flutter.yml
+# GitHub Actions workflow for the Flutter Client App.
+# This pipeline runs on every push/pull_request to the 'main' branch.
+# It sets up Flutter and runs widget tests.
+name: Client App CI (Flutter)
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'client-app/**'
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - 'client-app/**'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./client-app
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        channel: 'stable'
+
+    - name: Install dependencies
+      run: flutter pub get
+
+    - name: Analyze project
+      run: flutter analyze
+
+    - name: Run tests
+      run: flutter test
