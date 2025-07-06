@@ -8,7 +8,7 @@ import (
 	"time"
 
 	// Import your models package
-	"github.com/YOUR_USERNAME/centro-de-apoyo/api/models"
+	"github.com/BryanPMX/CAF/api/models"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"

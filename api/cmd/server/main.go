@@ -7,8 +7,8 @@ import (
 	"github.com/gin-gonic/gin"
 
 	// Import our internal packages
-	"github.com/YOUR_USERNAME/centro-de-apoyo/api/config"
-	"github.com/YOUR_USERNAME/centro-de-apoyo/api/db"
+	"github.com/BryanPMX/CAF/api/config"
+	"github.com/BryanPMX/CAF/api/db"
 )
 
 func main() {

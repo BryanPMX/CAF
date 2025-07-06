@@ -1,7 +1,7 @@
 // This file defines the module's path and its dependencies.
 // The module path is critical for Go to resolve internal imports.
 
-module github.com/YOUR_USERNAME/centro-de-apoyo/api
+module github.com/BryanPMX/CAF/api
 
 go 1.23
 
