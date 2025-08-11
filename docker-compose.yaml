@@ -1,67 +1,64 @@
 # docker-compose.yml
-# This file is the master recipe for our local development environment.
-# It defines three services: our Go API, a PostgreSQL database, and a
-# local S3-compatible service (LocalStack) for file uploads.
-#
-# To run: docker-compose up --build
-#
-version: '3.8'
-
+# Final, corrected version.
 services:
-  # The Go API Service
   api:
     build:
-      context: ./api # Tells Docker to look for a Dockerfile in the 'api' directory
+      context: ./api
       dockerfile: Dockerfile
     container_name: caf_api
     ports:
-      - "8080:8080" # Maps port 8080 on our machine to port 8080 in the container
+      - "8080:8080"
     depends_on:
-      - db          # Ensures the database is started before the API starts
+      db:
+        condition: service_healthy
+      localstack:
+        condition: service_started
     env_file:
-      - ./api/.env  # Loads environment variables from the .env file
+      - ./.env
     networks:
       - caf_network
 
-  # The PostgreSQL Database Service
   db:
-    image: postgres:15-alpine # Uses an official, lightweight PostgreSQL image
+    image: postgres:15-alpine
     container_name: caf_postgres
     environment:
-      # These values are pulled from the .env file in the 'api' directory
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: ${DB_NAME}
     ports:
-      - "5432:5432" # Exposes the standard Postgres port
+      - "5432:5432"
     volumes:
-      # This ensures that our database data persists even if the container is removed
       - postgres_data:/var/lib/postgresql/data
     networks:
       - caf_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
-  # LocalStack for S3 Simulation
   localstack:
     image: localstack/localstack:latest
     container_name: caf_localstack
     environment:
-      - SERVICES=s3 # Only activates the S3 service to save resources
+      - SERVICES=s3
       - EDGE_PORT=4566
-      - AWS_DEFAULT_REGION=us-east-1
-      - AWS_ACCESS_KEY_ID=test # Dummy credentials for local use
-      - AWS_SECRET_ACCESS_KEY=test
+      - AWS_DEFAULT_REGION=${AWS_REGION}
+      - S3_BUCKET=${S3_BUCKET}
     ports:
-      - "4566:4566" # The port to access the local S3 service
+      - "4566:4566"
     networks:
       - caf_network
+    # REMOVED: The problematic volumes section has been deleted.
 
-# Defines the shared network for all services
 networks:
   caf_network:
     driver: bridge
 
-# Defines the named volume for persisting database data
 volumes:
   postgres_data:
     driver: local
+
+
+
 

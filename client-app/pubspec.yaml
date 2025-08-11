@@ -1,0 +1,35 @@
+# client-app/pubspec.yaml
+name: client_app
+description: "Client-facing app for Centro de Apoyo para la Familia."
+publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.3.0 <4.0.0'
+
+# Application Dependencies
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # For making HTTP requests to our Go API.
+  http: ^1.2.1
+  
+  # For securely storing the JWT on the device after login.
+  flutter_secure_storage: ^9.0.0
+  
+  # A simple state management and dependency injection provider.
+  provider: ^6.1.2
+
+  cupertino_icons: ^1.0.6
+
+# Development-only Dependencies
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+# Flutter-specific configuration
+flutter:
+  uses-material-design: true
