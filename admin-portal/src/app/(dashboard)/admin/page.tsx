@@ -275,7 +275,7 @@ const AdminDashboard: React.FC = () => {
               Dashboard Administrativo
             </Title>
             <Text type="secondary">
-              Bienvenido al panel de administración del sistema CAF
+              Panel de administración del sistema CAF
             </Text>
           </div>
           <Space>
