@@ -5,7 +5,7 @@
 
 /* Custom Dashboard Styles */
 .admin-dashboard {
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
   min-height: 100vh;
 }
 
@@ -28,7 +28,7 @@
 
 .announcement-modal .ant-modal-header {
   border-radius: 16px 16px 0 0;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
   color: white;
 }
 
@@ -42,24 +42,25 @@
 
 /* Enhanced Button Styles */
 .ant-btn-primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
   border: none;
   border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.3);
 }
 
 .ant-btn-primary:hover {
-  background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+  background: linear-gradient(135deg, #4338ca 0%, #6d28d9 100%);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4);
 }
 
 /* Statistics Card Enhancements */
 .statistics-card {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
   color: white;
   border-radius: 16px;
   overflow: hidden;
+  box-shadow: 0 4px 16px rgba(79, 70, 229, 0.2);
 }
 
 .statistics-card .ant-statistic-title {
@@ -74,11 +75,14 @@
 .ant-table {
   border-radius: 12px;
   overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
 }
 
 .ant-table-thead > tr > th {
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-  border-bottom: 2px solid #dee2e6;
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  border-bottom: 2px solid #cbd5e1;
+  font-weight: 600;
+  color: #475569;
 }
 
 /* Tag Enhancements */
@@ -87,14 +91,22 @@
   font-weight: 500;
 }
 
+/* Dashboard Page Enhancements */
+.dashboard-page {
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  min-height: calc(100vh - 200px);
+  padding: 24px;
+  border-radius: 12px;
+}
+
 /* Progress Bar Enhancements */
 .ant-progress-bg {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
 }
 
 /* Loading States */
 .ant-spin-dot-item {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
 }
 
 /* Responsive Enhancements */

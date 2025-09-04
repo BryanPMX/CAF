@@ -17,7 +17,7 @@ import (
 type CreateUserInput struct {
 	FirstName string `json:"firstName" binding:"required"`
 	LastName  string `json:"lastName" binding:"required"`
-	Email     string `json:"email" binding:"omitempty,email"`
+	Email     string `json:"email" binding:"required,email"`
 	Password  string `json:"password" binding:"required,min=8"`
 	Role      string `json:"role" binding:"required"`
 	OfficeID  *uint  `json:"officeId"`

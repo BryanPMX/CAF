@@ -172,7 +172,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <Header style={{ background: '#fff', padding: '0 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div className="flex items-center">
               <h1 className="text-xl font-semibold text-gray-800">
-                {user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : 'CAF System'}
+                {user?.firstName && user?.lastName 
+                  ? `¡Bienvenido, ${user.firstName} ${user.lastName}!` 
+                  : '¡Bienvenido al Sistema CAF!'}
               </h1>
               {roleDisplay && (
                 <span className={`ml-3 px-2 py-1 text-xs font-medium rounded-full ${roleDisplay.color}`}>
@@ -197,7 +199,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </Space>
           </Header>
           
-          <Content style={{ margin: '24px', background: '#fff', borderRadius: '8px', padding: '24px' }}>
+          <Content style={{ margin: '24px', background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)', borderRadius: '12px', padding: '24px', boxShadow: '0 2px 12px rgba(0, 0, 0, 0.08)' }}>
             {authError && (
               <Alert
                 message="Authentication Error"

@@ -39,18 +39,19 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
   // This `useEffect` hook runs whenever the modal becomes visible or the user to be edited changes.
   useEffect(() => {
     if (visible) {
-      // Fetch offices only for admins; office managers are auto-prefilled
+      // Fetch offices for admins and office managers
       const fetchOffices = async () => {
         try {
           const role = typeof window !== 'undefined' ? localStorage.getItem('userRole') : 'admin';
-          if (role === 'admin') {
+          if (role === 'admin' || role === 'office_manager') {
             const response = await apiClient.get('/admin/offices');
             setOffices(response.data);
           } else {
             setOffices([]);
           }
         } catch (error) {
-          // Silently ignore for non-admins
+          console.error('Error fetching offices:', error);
+          setOffices([]);
         }
       };
       fetchOffices();
@@ -123,14 +124,14 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
         </Form.Item>
         <Form.Item
           name="email"
-          label="Correo Electrónico"
+          label="Correo Electrónico Organizacional"
           rules={[
-            ...(selectedRole === 'client' ? [{ required: true, message: 'Ingrese un correo válido' }] : []),
+            { required: true, message: 'El correo electrónico organizacional es requerido' },
             { type: 'email', message: 'Ingrese un correo válido' },
           ]}
-          extra={selectedRole && selectedRole !== 'client' ? 'Opcional para personal: se generará un correo corporativo si se deja vacío.' : undefined}
+          extra={selectedRole && selectedRole !== 'client' ? 'Requerido: ingrese el correo organizacional o se generará uno corporativo automáticamente.' : undefined}
         >
-          <Input placeholder={selectedRole !== 'client' ? 'Opcional para personal' : undefined} />
+          <Input placeholder="ejemplo@caf.org" />
         </Form.Item>
         {/* The password field is only required and visible when creating a new user. */}
         {!isEditing && (
