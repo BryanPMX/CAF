@@ -1,106 +1,104 @@
+'use client';
+
 import React, { useState, useEffect } from 'react';
-import { Modal, Form, Input, Button, message, Select, DatePicker } from 'antd';
-import { apiClient } from '../../lib/api';
+import { Modal, Form, Input, Select, DatePicker, TimePicker, Button, message, Space } from 'antd';
+import { EditOutlined, SaveOutlined, CloseOutlined } from '@ant-design/icons';
+import { apiClient } from '@/app/lib/api';
+import { Appointment, User } from '@/app/lib/types';
 import dayjs from 'dayjs';
 
 const { Option } = Select;
-
-interface StaffMember {
-  id: number;
-  firstName: string;
-  lastName: string;
-  role: string;
-}
-
-interface Appointment {
-  id: number;
-  title: string;
-  status: string;
-  startTime: string;
-  endTime: string;
-  caseId: number;
-  staffId: number;
-  case?: {
-    client?: {
-      firstName: string;
-      lastName: string;
-    };
-    title: string;
-  };
-  staff?: {
-    firstName: string;
-    lastName: string;
-  };
-}
+const { TextArea } = Input;
 
 interface EditAppointmentModalProps {
   visible: boolean;
   appointment: Appointment | null;
-  onClose: () => void;
+  onCancel: () => void;
   onSuccess: () => void;
 }
 
-const EditAppointmentModal: React.FC<EditAppointmentModalProps> = ({ 
-  visible, 
-  appointment, 
-  onClose, 
-  onSuccess 
+interface EditAppointmentFormData {
+  title: string;
+  description: string;
+  date: string;
+  time: string;
+  duration: number;
+  status: string;
+  staffId: number;
+  clientId: number;
+  caseId?: number;
+  notes?: string;
+}
+
+const EditAppointmentModal: React.FC<EditAppointmentModalProps> = ({
+  visible,
+  appointment,
+  onCancel,
+  onSuccess
 }) => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
-  const [staffList, setStaffList] = useState<StaffMember[]>([]);
+  const [staffList, setStaffList] = useState<User[]>([]);
+  const [clients, setClients] = useState<User[]>([]);
 
-  // Load staff list when modal opens
   useEffect(() => {
     if (visible) {
-      const fetchStaff = async () => {
-        try {
-          const response = await apiClient.get('/admin/users');
-          setStaffList(response.data.filter((user: any) => user.role !== 'client'));
-        } catch (error) {
-          message.error('No se pudieron cargar los datos del personal.');
-        }
-      };
-      fetchStaff();
-    }
-  }, [visible]);
-
-  // Populate form when appointment data is available
-  useEffect(() => {
-    if (visible && appointment) {
-      form.setFieldsValue({
-        title: appointment.title,
-        staffId: appointment.staffId,
-        startTime: dayjs(appointment.startTime),
-        endTime: dayjs(appointment.endTime),
-        status: appointment.status,
-      });
+      fetchSupportingData();
+      if (appointment) {
+        form.setFieldsValue({
+          title: appointment.title,
+          description: appointment.description,
+          date: dayjs(appointment.date),
+          time: dayjs(appointment.time, 'HH:mm'),
+          duration: appointment.duration,
+          status: appointment.status,
+          staffId: appointment.staffId,
+          clientId: appointment.clientId,
+          caseId: appointment.caseId,
+          notes: appointment.notes
+        });
+      }
     }
   }, [visible, appointment, form]);
 
-  const handleOk = async () => {
+  const fetchSupportingData = async () => {
     try {
-      const values = await form.validateFields();
-      setLoading(true);
-      message.loading({ content: 'Actualizando...', key: 'editAppt' });
+      const role = typeof window !== 'undefined' ? localStorage.getItem('userRole') : 'admin';
+      const base = role === 'office_manager' ? '/manager' : '/admin';
+      // Fetch staff members
+      const staffRes = await apiClient.get(`${base}/users`);
+      const staffPayload = Array.isArray(staffRes.data) ? staffRes.data : (staffRes.data?.users || []);
+      setStaffList(staffPayload.filter((user: User) => user.role !== 'client'));
 
+      // Fetch clients
+      const clientsRes = await apiClient.get(`${base}/users?role=client`);
+      const clientsPayload = Array.isArray(clientsRes.data) ? clientsRes.data : (clientsRes.data?.users || []);
+      setClients(clientsPayload);
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.error || error.message || 'Error al cargar datos de apoyo';
+      message.error(`Error al cargar datos de apoyo: ${errorMessage}`);
+    }
+  };
+
+  const handleSubmit = async (values: EditAppointmentFormData) => {
+    if (!appointment) return;
+
+    setLoading(true);
+    try {
       const payload = {
-        title: values.title,
-        staffId: values.staffId,
-        startTime: values.startTime.toISOString(),
-        endTime: values.endTime.toISOString(),
-        status: values.status,
+        ...values,
+        date: values.date ? dayjs(values.date).format('YYYY-MM-DD') : undefined,
+        time: values.time ? dayjs(values.time).format('HH:mm') : undefined,
       };
 
-      await apiClient.patch(`/admin/appointments/${appointment?.id}`, payload);
+      await apiClient.patch(`/appointments/${appointment.id}`, payload);
       
-      message.success({ content: '¡Cita actualizada exitosamente!', key: 'editAppt' });
+      message.success('Cita actualizada exitosamente');
       onSuccess();
-      onClose();
+      onCancel();
     } catch (error: any) {
-      console.error('Appointment update error:', error);
-      const errorMessage = error.response?.data?.error || error.message || 'Ocurrió un error al actualizar la cita.';
-      message.error({ content: errorMessage, key: 'editAppt' });
+      const errorMessage = error.response?.data?.error || error.message || 'Error al actualizar cita';
+      message.error(`Error al actualizar cita: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
@@ -108,103 +106,186 @@ const EditAppointmentModal: React.FC<EditAppointmentModalProps> = ({
 
   const handleCancel = () => {
     form.resetFields();
-    onClose();
+    onCancel();
   };
 
-  if (!appointment) return null;
+  // Get client name for display
+  const getClientName = (appointment: Appointment | null) => {
+    if (!appointment) return '';
+    const client = clients.find(c => c.id === appointment.clientId);
+    return client ? `${client.firstName} ${client.lastName}` : 'Cliente no encontrado';
+  };
+
+  // Get staff name for display
+  const getStaffName = (appointment: Appointment | null) => {
+    if (!appointment) return '';
+    const staff = staffList.find(s => s.id === appointment.staffId);
+    return staff ? `${staff.firstName} ${staff.lastName}` : 'Personal no encontrado';
+  };
 
   return (
     <Modal
-      title="Editar Cita"
+      title={
+        <Space>
+          <EditOutlined />
+          Editar Cita
+        </Space>
+      }
       open={visible}
       onCancel={handleCancel}
+      footer={null}
       width={600}
-      footer={
-        <div className="flex justify-end space-x-2">
-          <Button onClick={handleCancel}>Cancelar</Button>
-          <Button type="primary" loading={loading} onClick={handleOk}>
-            ✅ Actualizar Cita
-          </Button>
-        </div>
-      }
+      destroyOnClose
     >
-      <div className="mb-4 p-3 bg-gray-50 rounded">
-        <h4 className="font-medium mb-2">Información de la Cita</h4>
-        <div className="text-sm text-gray-600">
-          <p><strong>Cliente:</strong> {appointment.case?.client?.firstName} {appointment.case?.client?.lastName}</p>
-          <p><strong>Caso:</strong> {appointment.case?.title}</p>
-          <p><strong>Asignado a:</strong> {appointment.staff?.firstName} {appointment.staff?.lastName}</p>
+      {appointment && (
+        <div className="mb-4 p-3 bg-gray-50 rounded">
+          <div className="text-sm text-gray-600">
+            <div><strong>Cliente:</strong> {getClientName(appointment)}</div>
+            <div><strong>Personal:</strong> {getStaffName(appointment)}</div>
+            <div><strong>Estado actual:</strong> {appointment.status}</div>
+          </div>
         </div>
-      </div>
+      )}
 
-      <Form form={form} layout="vertical">
-        <Form.Item 
-          name="title" 
-          label="Título de la Cita" 
-          rules={[{ required: true, message: "Debe ingresar un título para la cita" }]}
+      <Form
+        form={form}
+        layout="vertical"
+        onFinish={handleSubmit}
+        initialValues={{
+          status: 'scheduled',
+          duration: 60
+        }}
+      >
+        <Form.Item
+          name="title"
+          label="Título"
+          rules={[{ required: true, message: 'Por favor ingrese el título' }]}
         >
-          <Input placeholder="Ej: Consulta inicial, Seguimiento, etc." />
+          <Input placeholder="Título de la cita" />
         </Form.Item>
 
-        <Form.Item 
-          name="staffId" 
-          label="Reasignar a" 
-          rules={[{ required: true, message: "Debe seleccionar un miembro del personal" }]}
+        <Form.Item
+          name="description"
+          label="Descripción"
         >
-          <Select 
-            placeholder="Seleccione un miembro del personal"
-            showSearch
-            filterOption={(input, option) =>
-              (option?.children as unknown as string)?.toLowerCase().includes(input.toLowerCase())
-            }
-          >
-            {staffList.map(s => (
-              <Option key={s.id} value={s.id}>
-                {`${s.firstName} ${s.lastName} (${s.role})`}
+          <TextArea 
+            rows={3} 
+            placeholder="Descripción de la cita"
+          />
+        </Form.Item>
+
+        <Form.Item
+          name="date"
+          label="Fecha"
+          rules={[{ required: true, message: 'Por favor seleccione la fecha' }]}
+        >
+          <DatePicker 
+            style={{ width: '100%' }} 
+            placeholder="Seleccionar fecha"
+          />
+        </Form.Item>
+
+        <Form.Item
+          name="time"
+          label="Hora"
+          rules={[{ required: true, message: 'Por favor seleccione la hora' }]}
+        >
+          <TimePicker 
+            style={{ width: '100%' }} 
+            placeholder="Seleccionar hora"
+            format="HH:mm"
+          />
+        </Form.Item>
+
+        <Form.Item
+          name="duration"
+          label="Duración (minutos)"
+          rules={[{ required: true, message: 'Por favor ingrese la duración' }]}
+        >
+          <Select placeholder="Seleccionar duración">
+            <Option value={30}>30 minutos</Option>
+            <Option value={60}>1 hora</Option>
+            <Option value={90}>1.5 horas</Option>
+            <Option value={120}>2 horas</Option>
+          </Select>
+        </Form.Item>
+
+        <Form.Item
+          name="status"
+          label="Estado"
+          rules={[{ required: true, message: 'Por favor seleccione el estado' }]}
+        >
+          <Select placeholder="Seleccionar estado">
+            <Option value="scheduled">Programada</Option>
+            <Option value="confirmed">Confirmada</Option>
+            <Option value="completed">Completada</Option>
+            <Option value="cancelled">Cancelada</Option>
+            <Option value="no-show">No asistió</Option>
+          </Select>
+        </Form.Item>
+
+        <Form.Item
+          name="staffId"
+          label="Personal Asignado"
+          rules={[{ required: true, message: 'Por favor seleccione el personal' }]}
+        >
+          <Select placeholder="Seleccionar personal">
+            {staffList.map(staff => (
+              <Option key={staff.id} value={staff.id}>
+                {staff.firstName} {staff.lastName} ({staff.role})
               </Option>
             ))}
           </Select>
         </Form.Item>
 
-        <Form.Item 
-          name="startTime" 
-          label="Fecha y Hora de Inicio" 
-          rules={[{ required: true, message: "Debe seleccionar la fecha y hora de inicio" }]}
+        <Form.Item
+          name="clientId"
+          label="Cliente"
+          rules={[{ required: true, message: 'Por favor seleccione el cliente' }]}
         >
-          <DatePicker 
-            showTime={{ format: 'HH:mm' }} 
-            format="DD/MM/YYYY HH:mm" 
-            style={{ width: '100%' }}
-            placeholder="Seleccione fecha y hora"
-            disabledDate={(current) => current && current < dayjs().startOf('day')}
-          />
-        </Form.Item>
-
-        <Form.Item 
-          name="endTime" 
-          label="Fecha y Hora de Fin" 
-          rules={[{ required: true, message: "Debe seleccionar la fecha y hora de fin" }]}
-        >
-          <DatePicker 
-            showTime={{ format: 'HH:mm' }} 
-            format="DD/MM/YYYY HH:mm" 
-            style={{ width: '100%' }}
-            placeholder="Seleccione fecha y hora"
-            disabledDate={(current) => current && current < dayjs().startOf('day')}
-          />
-        </Form.Item>
-
-        <Form.Item 
-          name="status" 
-          label="Estado" 
-          rules={[{ required: true }]}
-        >
-          <Select>
-            <Option value="confirmed">✅ Confirmada</Option>
-            <Option value="pending">⏳ Pendiente</Option>
-            <Option value="completed">✅ Completada</Option>
-            <Option value="cancelled">❌ Cancelada</Option>
+          <Select placeholder="Seleccionar cliente">
+            {clients.map(client => (
+              <Option key={client.id} value={client.id}>
+                {client.firstName} {client.lastName}
+              </Option>
+            ))}
           </Select>
+        </Form.Item>
+
+        <Form.Item
+          name="caseId"
+          label="Caso (Opcional)"
+        >
+          <Select placeholder="Seleccionar caso" allowClear>
+            {/* This would need to be populated with actual cases */}
+            <Option value={1}>Caso de ejemplo</Option>
+          </Select>
+        </Form.Item>
+
+        <Form.Item
+          name="notes"
+          label="Notas"
+        >
+          <TextArea 
+            rows={3} 
+            placeholder="Notas adicionales"
+          />
+        </Form.Item>
+
+        <Form.Item className="mb-0">
+          <Space className="w-full justify-end">
+            <Button onClick={handleCancel} icon={<CloseOutlined />}>
+              Cancelar
+            </Button>
+            <Button 
+              type="primary" 
+              htmlType="submit" 
+              loading={loading}
+              icon={<SaveOutlined />}
+            >
+              Guardar Cambios
+            </Button>
+          </Space>
         </Form.Item>
       </Form>
     </Modal>

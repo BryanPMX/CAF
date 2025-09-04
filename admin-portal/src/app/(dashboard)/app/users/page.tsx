@@ -2,7 +2,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Button, Table, message, Spin, Tag, Popconfirm } from 'antd';
+import { Button, Table, message, Spin, Tag, Popconfirm, Select, Space } from 'antd';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import { apiClient } from '../../../lib/api';
 import UserModal from './components/UserModal'; // Import our reusable modal
@@ -17,7 +18,11 @@ interface User {
   office?: { name: string }; // The office is optional, as clients won't have one.
 }
 
+interface Office { id: number; name: string; }
+
 const UserManagementPage = () => {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   // --- State Management ---
   // `users`: An array to hold the list of users fetched from the API.
   const [users, setUsers] = useState<User[]>([]);
@@ -27,14 +32,35 @@ const UserManagementPage = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   // `editingUser`: Holds the data of the user being edited. If it's null, the modal is in "create" mode.
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [offices, setOffices] = useState<Office[]>([]);
+  const [selectedOfficeId, setSelectedOfficeId] = useState<number | undefined>(undefined);
+  const [activity, setActivity] = useState<string | undefined>(undefined);
+  const [roleFilter, setRoleFilter] = useState<string | undefined>(undefined);
+  const [q, setQ] = useState<string>("");
+  const [debouncedQ, setDebouncedQ] = useState<string>("");
+  const [page, setPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(20);
+  const [total, setTotal] = useState<number>(0);
 
   // --- Data Fetching ---
   // This function fetches the list of all users from our secure admin API endpoint.
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const response = await apiClient.get('/admin/users');
-      setUsers(response.data);
+      const role = typeof window !== 'undefined' ? localStorage.getItem('userRole') : 'admin';
+      const base = role === 'office_manager' ? '/manager' : '/admin';
+      const params: any = {};
+      if (selectedOfficeId) params.officeId = selectedOfficeId;
+      if (activity) params.activity = activity;
+      if (roleFilter) params.role = roleFilter;
+      if (debouncedQ.trim()) params.q = debouncedQ.trim();
+      params.page = page;
+      params.pageSize = pageSize;
+      const response = await apiClient.get(`${base}/users`, { params });
+      const data = response.data?.users ? response.data : { users: response.data, total: response.data?.length || 0, page: 1, pageSize: response.data?.length || 0 };
+      setUsers(data.users);
+      setTotal(data.total || 0);
     } catch (error) {
       message.error('No se pudieron cargar los usuarios.');
     } finally {
@@ -44,8 +70,73 @@ const UserManagementPage = () => {
 
   // The `useEffect` hook runs this function once when the component is first mounted.
   useEffect(() => {
+    setUserRole(typeof window !== 'undefined' ? localStorage.getItem('userRole') : null);
+    // Initialize filters from URL or sessionStorage
+    const officeFromUrl = searchParams.get('officeId');
+    const activityFromUrl = searchParams.get('activity');
+    const roleFromUrl = searchParams.get('role');
+    const qFromUrl = searchParams.get('q');
+    const pageFromUrl = searchParams.get('page');
+    const pageSizeFromUrl = searchParams.get('pageSize');
+    const ssOffice = typeof window !== 'undefined' ? sessionStorage.getItem('users_officeId') : null;
+    const ssActivity = typeof window !== 'undefined' ? sessionStorage.getItem('users_activity') : null;
+    const ssRole = typeof window !== 'undefined' ? sessionStorage.getItem('users_role') : null;
+    const ssQ = typeof window !== 'undefined' ? sessionStorage.getItem('users_q') : null;
+    if (officeFromUrl) setSelectedOfficeId(Number(officeFromUrl));
+    else if (ssOffice) setSelectedOfficeId(Number(ssOffice));
+    if (activityFromUrl) setActivity(activityFromUrl);
+    else if (ssActivity) setActivity(ssActivity);
+    if (roleFromUrl) setRoleFilter(roleFromUrl);
+    else if (ssRole) setRoleFilter(ssRole);
+    if (qFromUrl) { setQ(qFromUrl); setDebouncedQ(qFromUrl); }
+    else if (ssQ) { setQ(ssQ); setDebouncedQ(ssQ); }
+    if (pageFromUrl) setPage(Number(pageFromUrl));
+    if (pageSizeFromUrl) setPageSize(Number(pageSizeFromUrl));
     fetchUsers();
+    // Only admins can load office list for filtering
+    const role = typeof window !== 'undefined' ? localStorage.getItem('userRole') : null;
+    if (role === 'admin') {
+      apiClient.get('/admin/offices').then(res => setOffices(res.data)).catch(() => {});
+    }
   }, []); // The empty dependency array `[]` ensures it only runs once.
+
+  useEffect(() => {
+    // Persist filters to sessionStorage and URL; refetch
+    if (typeof window !== 'undefined') {
+      if (selectedOfficeId) sessionStorage.setItem('users_officeId', String(selectedOfficeId));
+      else sessionStorage.removeItem('users_officeId');
+      if (activity) sessionStorage.setItem('users_activity', activity);
+      else sessionStorage.removeItem('users_activity');
+      if (roleFilter) sessionStorage.setItem('users_role', roleFilter);
+      else sessionStorage.removeItem('users_role');
+      if (debouncedQ.trim()) sessionStorage.setItem('users_q', debouncedQ.trim());
+      else sessionStorage.removeItem('users_q');
+    }
+    const url = new URL(window.location.href);
+    if (selectedOfficeId) url.searchParams.set('officeId', String(selectedOfficeId)); else url.searchParams.delete('officeId');
+    if (activity) url.searchParams.set('activity', activity); else url.searchParams.delete('activity');
+    if (roleFilter) url.searchParams.set('role', roleFilter); else url.searchParams.delete('role');
+    if (debouncedQ.trim()) url.searchParams.set('q', debouncedQ.trim()); else url.searchParams.delete('q');
+    url.searchParams.set('page', String(page));
+    url.searchParams.set('pageSize', String(pageSize));
+    router.replace(url.pathname + url.search);
+    
+    // Only fetch users when filters actually change, not on every render
+    // This prevents excessive API calls
+    const shouldFetch = selectedOfficeId !== undefined || activity !== undefined || 
+                       roleFilter !== undefined || debouncedQ.trim() !== "" || 
+                       page !== 1 || pageSize !== 20;
+    
+    if (shouldFetch) {
+      fetchUsers();
+    }
+  }, [selectedOfficeId, activity, roleFilter, debouncedQ, page, pageSize]);
+
+  // Debounce free-text search input
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedQ(q), 400);
+    return () => clearTimeout(t);
+  }, [q]);
 
   // --- Event Handlers ---
   // Opens the modal in "create" mode by ensuring `editingUser` is null.
@@ -90,7 +181,21 @@ const UserManagementPage = () => {
       title: 'Rol',
       dataIndex: 'role',
       key: 'role',
-      render: (role: string) => <Tag color="blue">{role.toUpperCase()}</Tag>,
+      render: (role: string) => {
+        const MAP: Record<string, { label: string; color: string }> = {
+          admin: { label: 'Administrador', color: 'purple' },
+          staff: { label: 'Personal', color: 'blue' },
+          receptionist: { label: 'Recepción', color: 'geekblue' },
+          client: { label: 'Cliente', color: 'green' },
+          manager: { label: 'Gerencia', color: 'gold' },
+          lawyer: { label: 'Abogado(a)', color: 'volcano' },
+          psychologist: { label: 'Psicólogo(a)', color: 'orange' },
+          office_manager: { label: 'Gerente de Oficina', color: 'gold' },
+          event_coordinator: { label: 'Coordinador de Eventos', color: 'cyan' },
+        };
+        const { label, color } = MAP[role] || { label: role, color: 'default' };
+        return <Tag color={color}>{label}</Tag>;
+      },
     },
     {
       title: 'Oficina',
@@ -102,36 +207,115 @@ const UserManagementPage = () => {
       title: 'Acciones',
       key: 'actions',
       render: (_: any, record: User) => (
-        <span className="space-x-2">
-          <Button icon={<EditOutlined />} onClick={() => handleEdit(record)} />
-          <Popconfirm
-            title="¿Está seguro de que desea eliminar este usuario?"
-            onConfirm={() => handleDelete(record.id)}
-            okText="Sí"
-            cancelText="No"
-          >
-            <Button icon={<DeleteOutlined />} danger />
-          </Popconfirm>
-        </span>
+        userRole === 'admin' ? (
+          <span className="space-x-2">
+            <Button icon={<EditOutlined />} onClick={() => handleEdit(record)} />
+            <Popconfirm
+              title="¿Está seguro de que desea eliminar este usuario?"
+              onConfirm={() => handleDelete(record.id)}
+              okText="Sí"
+              cancelText="No"
+            >
+              <Button icon={<DeleteOutlined />} danger />
+            </Popconfirm>
+          </span>
+        ) : null
       ),
     },
   ];
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Gestión de Usuarios</h1>
-        <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
-          Crear Usuario
-        </Button>
+      <div className="mb-8">
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-6">Gestión de Usuarios</h1>
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div className="flex flex-wrap items-center gap-2 md:gap-3">
+            {userRole === 'admin' && (
+              <>
+                <Select
+                  allowClear
+                  placeholder="Filtrar por Oficina"
+                  style={{ minWidth: 220 }}
+                  value={selectedOfficeId}
+                  onChange={(v: number | undefined) => setSelectedOfficeId(v)}
+                  options={offices.map(o => ({ label: o.name, value: o.id }))}
+                />
+                <Select
+                  allowClear
+                  placeholder="Actividad"
+                  style={{ minWidth: 180 }}
+                  value={activity}
+                  onChange={(v: string | undefined) => setActivity(v)}
+                  options={[
+                    { label: 'Activos (24h)', value: 'active' },
+                    { label: 'Inactivos (30d+)', value: 'inactive' },
+                  ]}
+                />
+                <Select
+                  allowClear
+                  placeholder="Rol"
+                  style={{ minWidth: 200 }}
+                  value={roleFilter}
+                  onChange={(v: string | undefined) => setRoleFilter(v)}
+                  options={[
+                    { label: 'Administrador', value: 'admin' },
+                    { label: 'Abogado(a)', value: 'lawyer' },
+                    { label: 'Psicólogo(a)', value: 'psychologist' },
+                    { label: 'Gerente de Oficina', value: 'office_manager' },
+                    { label: 'Recepción', value: 'receptionist' },
+                    { label: 'Coordinador de Eventos', value: 'event_coordinator' },
+                    { label: 'Cliente', value: 'client' },
+                  ]}
+                />
+                <input
+                  placeholder="Buscar por nombre o correo"
+                  value={q}
+                  onChange={(e) => { setPage(1); setQ(e.target.value); }}
+                  style={{ 
+                    padding: '8px 12px', 
+                    border: '1px solid #d9d9d9', 
+                    borderRadius: '6px', 
+                    minWidth: 260,
+                    fontSize: '14px',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = '#1890ff';
+                    e.target.style.boxShadow = '0 0 0 2px rgba(24, 144, 255, 0.2)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = '#d9d9d9';
+                    e.target.style.boxShadow = 'none';
+                  }}
+                />
+              </>
+            )}
+          </div>
+          {userRole === 'admin' && (
+            <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
+              Crear Usuario
+            </Button>
+          )}
+        </div>
       </div>
-      <Spin spinning={loading}>
-        <Table
-          columns={columns}
-          dataSource={users}
-          rowKey="id"
-        />
-      </Spin>
+      <div className="bg-white rounded-lg">
+        <Spin spinning={loading}>
+          <Table
+            columns={columns}
+            dataSource={users}
+            rowKey="id"
+            pagination={{
+              current: page,
+              pageSize,
+              total,
+              onChange: (p, ps) => { setPage(p); setPageSize(ps); },
+              showSizeChanger: true,
+              showTotal: (t) => `${t} usuarios`,
+            }}
+            className="rounded-lg"
+          />
+        </Spin>
+      </div>
       <UserModal
         visible={isModalVisible}
         onClose={() => setIsModalVisible(false)}

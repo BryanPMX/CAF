@@ -1,36 +1,105 @@
-// admin-portal/src/lib/api.ts
-import axios from 'axios';
+// admin-portal/src/app/lib/api.ts
+import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
+import Cookies from 'js-cookie';
+import { getApiConfig, validateConfig, isDebugMode } from './config';
 
-// We create a new instance of axios with a custom configuration.
-const apiClient = axios.create({
-  // The base URL for all API requests. We use an environment variable
-  // to make it easy to change between development and production.
-  // The NEXT_PUBLIC_ prefix is required by Next.js to expose the variable to the browser.
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1',
-  headers: {
-    'Content-Type': 'application/json',
-  },
+// Validate configuration on module load
+validateConfig();
+
+// Extend AxiosRequestConfig to include metadata
+interface ExtendedAxiosRequestConfig extends InternalAxiosRequestConfig {
+  metadata?: {
+    resolve: (value: any) => void;
+    reject: (error: any) => void;
+  };
+}
+
+// Get API configuration
+const apiConfig = getApiConfig();
+
+// Create axios instance with centralized configuration
+const apiClient: AxiosInstance = axios.create({
+  baseURL: apiConfig.baseURL,
+  timeout: apiConfig.timeout,
+  headers: apiConfig.headers,
 });
 
-// We use an "interceptor" to automatically add the JWT to every outgoing request.
-// This is a powerful feature that saves us from having to add the token manually on every API call.
+// Debug: Log the base URL being used
+if (isDebugMode()) {
+  console.log('🚀 API Client initialized with base URL:', apiConfig.baseURL);
+}
+
+// Request interceptor for authentication and caching
 apiClient.interceptors.request.use(
-  (config) => {
-    // This code runs before each request is sent.
-    // We check if we're running in a browser environment.
-    if (typeof window !== 'undefined') {
-      const token = localStorage.getItem('authToken');
-      if (token) {
-        // If a token exists in localStorage, add it to the Authorization header.
-        config.headers.Authorization = `Bearer ${token}`;
-      }
+  (config: ExtendedAxiosRequestConfig) => {
+    // Debug: Log the full URL being requested
+    if (isDebugMode()) {
+      console.log('📤 Request:', {
+        method: config.method?.toUpperCase(),
+        url: config.baseURL + config.url,
+        endpoint: config.url,
+        baseURL: config.baseURL,
+      });
     }
+    
+    // Add auth token if available
+    const token = Cookies.get('authToken') || localStorage.getItem('authToken');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+
     return config;
   },
   (error) => {
-    // Handle any errors that occur during request setup.
     return Promise.reject(error);
   }
 );
 
+// Response interceptor for error handling and caching
+apiClient.interceptors.response.use(
+  (response: AxiosResponse) => {
+    // Debug: Log successful responses
+    if (isDebugMode()) {
+      console.log('✅ Response:', {
+        status: response.status,
+        url: response.config.url,
+        method: response.config.method?.toUpperCase(),
+      });
+    }
+
+    return response;
+  },
+  (error) => {
+    // Debug: Log error details
+    if (isDebugMode()) {
+      console.log('❌ Request Error:', {
+        status: error.response?.status,
+        url: error.config?.url,
+        method: error.config?.method?.toUpperCase(),
+        message: error.message,
+        baseURL: error.config?.baseURL,
+        fullURL: error.config?.baseURL + error.config?.url,
+      });
+    }
+
+    // Handle authentication errors
+    if (error.response?.status === 401) {
+      // Clear auth data and redirect to login
+      Cookies.remove('authToken');
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('userRole');
+      localStorage.removeItem('userID');
+      localStorage.removeItem('userFirstName');
+      localStorage.removeItem('userLastName');
+      
+      if (typeof window !== 'undefined') {
+        window.location.href = '/login';
+      }
+    }
+
+    return Promise.reject(error);
+  }
+);
+
+// Export the configured client
 export { apiClient };

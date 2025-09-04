@@ -1,1 +1,75 @@
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Dependency directories
+node_modules/
+**/node_modules/
+
+# Build outputs
+.next/
+**/.next/
+build/
+**/build/
+dist/
+**/dist/
+.svelte-kit/
+**/.svelte-kit/
+
+# Flutter specific
+.dart_tool/
+**/.dart_tool/
+*.lock
+**/*.lock
+.flutter-plugins
+.flutter-plugins-dependencies
+
+# Log files
+*.log
+**/*.log
+flutter_*.log
+**/flutter_*.log
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+*.cache
+**/.cache/
+
+# Downloaded archives
+*.tar.gz
+*.zip
+*.rar
+
+# Coverage reports
+coverage/
+**/coverage/
+*.lcov
+
+# Test outputs
+test-results/
+**/test-results/
+
+# Package manager files (keep package-lock.json and pubspec.lock for dependency resolution)
+# package-lock.json
+# pubspec.lock
 

@@ -3,9 +3,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Descriptions, Card, Table, Tag, Spin, message, Button, Empty, Row, Col, Tabs, Popconfirm } from 'antd';
+import { Descriptions, Card, Table, Tag, Spin, message, Button, Empty, Row, Col, Tabs, Popconfirm, Modal, Input } from 'antd';
 import type { TabsProps } from 'antd';
-import { ArrowLeftOutlined, PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined, PlusOutlined, EditOutlined, DeleteOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import { apiClient } from '../../../../lib/api';
 import CaseTimeline from './components/CaseTimeline';
 import AddCommentForm from './components/AddCommentForm';
@@ -13,6 +13,8 @@ import UploadDocument from './components/UploadDocument';
 import TaskModal from './components/TaskModal';
 import CaseProgressTracker from './components/CaseProgressTracker';
 import EditStageModal from './components/EditStageModal';
+import EditCaseModal from './components/EditCaseModal';
+import CompleteCaseModal from './components/CompleteCaseModal';
 
 // --- Define the detailed data structures (TypeScript interfaces) for this page ---
 interface User {
@@ -46,6 +48,12 @@ interface CaseDetails {
   title: string;
   status: string;
   currentStage: string;
+  category: string;
+  description?: string;
+  docketNumber?: string;
+  court?: string;
+  isCompleted: boolean;
+  isArchived: boolean;
   client: User;
   office: { name: string };
   appointments?: any[];
@@ -54,14 +62,96 @@ interface CaseDetails {
 }
 
 // Define the stages and their Spanish labels, matching the backend configuration.
-const ALL_STAGES = ["intake", "initial_consultation", "document_review", "action_plan", "resolution", "closed"];
-const STAGE_LABELS: { [key: string]: string } = {
-  "intake": "Recepción",
-  "initial_consultation": "Consulta Inicial",
-  "document_review": "Revisión de Documentos",
-  "action_plan": "Plan de Acción",
-  "resolution": "Resolución",
+const getCaseStages = (category: string) => {
+  // Legal cases use specific legal workflow stages
+  if (category === 'Familiar' || category === 'Civil') {
+    return [
+      "etapa_inicial",
+      "notificacion", 
+      "audiencia_preliminar",
+      "audiencia_juicio",
+      "sentencia"
+    ];
+  }
+  
+  // Default stages for non-legal cases
+  return [
+    "intake", 
+    "initial_consultation", 
+    "document_review", 
+    "action_plan", 
+    "resolution", 
+    "closed"
+  ];
+};
+
+const getStageLabels = (category: string): { [key: string]: string } => {
+  // Legal case stage labels
+  if (category === 'Familiar' || category === 'Civil') {
+    return {
+      "etapa_inicial": "Etapa Inicial",
+      "notificacion": "Notificación",
+      "audiencia_preliminar": "Audiencia Preliminar",
+      "audiencia_juicio": "Audiencia de Juicio",
+      "sentencia": "Sentencia",
+    };
+  }
+  
+  // Psychology case stage labels
+  if (category === 'Psicologia') {
+    return {
+      "intake": "Recepción",
+      "initial_consultation": "Consulta Inicial",
+      "document_review": "Revisión de Documentos",
+      "action_plan": "Plan de Acción",
+      "resolution": "Resolución",
+      "closed": "Cerrado",
+    };
+  }
+  
+  // Social Resources case stage labels
+  if (category === 'Recursos') {
+    return {
+      "intake": "Recepción",
+      "initial_consultation": "Consulta Inicial",
+      "document_review": "Revisión de Documentos",
+      "action_plan": "Plan de Acción",
+      "resolution": "Resolución",
+      "closed": "Cerrado",
+    };
+  }
+  
+  // Default stage labels for any other category
+  return {
+    "intake": "Recepción",
+    "initial_consultation": "Consulta Inicial",
+    "document_review": "Revisión de Documentos",
+    "action_plan": "Plan de Acción",
+    "resolution": "Resolución",
+    "closed": "Cerrado",
+  };
+};
+
+// Define status labels in Spanish
+const STATUS_LABELS: { [key: string]: string } = {
+  "open": "Abierto",
+  "active": "Activo",
+  "resolved": "Resuelto",
   "closed": "Cerrado",
+  "pending": "Pendiente",
+  "cancelled": "Cancelado",
+  "deleted": "Eliminado",
+};
+
+// Define status colors for better visual representation
+const STATUS_COLORS: { [key: string]: string } = {
+  "open": "green",       // Green always for Abierto
+  "active": "green",
+  "resolved": "red",     // Closed-like outcome colored red per request
+  "closed": "red",       // Red always for Cerrado
+  "pending": "gold",     // Yellow for Pending (gold in AntD)
+  "cancelled": "red",
+  "deleted": "red",
 };
 
 const CaseDetailPage = () => {
@@ -75,18 +165,31 @@ const CaseDetailPage = () => {
   const [isTaskModalVisible, setIsTaskModalVisible] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [isStageModalVisible, setIsStageModalVisible] = useState(false);
+  const [isEditCaseModalVisible, setIsEditCaseModalVisible] = useState(false);
+  const [completeCaseModalVisible, setCompleteCaseModalVisible] = useState(false);
+  const [isDeletingCase, setIsDeletingCase] = useState(false);
+  const [forceDeleteRequired, setForceDeleteRequired] = useState(false);
+  const [deleteReason, setDeleteReason] = useState('');
+  const [userRole, setUserRole] = useState<string | null>(null);
 
   // --- Data Fetching ---
   const fetchCaseDetails = async () => {
     if (!caseId) return;
     try {
-      if (!loading) setLoading(true); // Show spinner on manual refresh
-      // This is the corrected URL, pointing to the general protected route.
-      const response = await apiClient.get(`/cases/${caseId}`);
+      setLoading(true);
+      
+      // Single optimized API call with all necessary data
+      const response = await apiClient.get(`/cases/${caseId}`, { 
+        params: { 
+          include: 'full' // Get all data in one request for better performance
+        } 
+      });
+      
       setCaseDetails(response.data);
+      setLoading(false);
+      
     } catch (error) {
       message.error('No se pudo cargar los detalles del caso.');
-    } finally {
       setLoading(false);
     }
   };
@@ -95,6 +198,12 @@ const CaseDetailPage = () => {
   useEffect(() => {
     fetchCaseDetails();
   }, [caseId]); // It re-runs if the caseId in the URL changes.
+
+  // Get user role from localStorage
+  useEffect(() => {
+    const role = localStorage.getItem('userRole');
+    setUserRole(role);
+  }, []);
 
   // --- Event Handlers for Tasks ---
   const handleCreateTask = () => {
@@ -110,12 +219,52 @@ const CaseDetailPage = () => {
   const handleDeleteTask = async (taskId: number) => {
     try {
       message.loading({ content: 'Eliminando tarea...', key: 'deleteTask' });
-      await apiClient.delete(`/admin/tasks/${taskId}`);
+      await apiClient.delete(`/tasks/${taskId}`);
       message.success({ content: 'Tarea eliminada.', key: 'deleteTask' });
       fetchCaseDetails(); // Refresh the data to show the change.
     } catch (error) {
       message.error({ content: 'No se pudo eliminar la tarea.', key: 'deleteTask' });
     }
+  };
+
+  const tryDeleteCase = async (force: boolean = false) => {
+    if (!caseId) return;
+    try {
+      setIsDeletingCase(true);
+      await apiClient.delete(`/cases/${caseId}` as string, {
+        params: {
+          force: force ? 'true' : undefined,
+          reason: deleteReason || undefined,
+        },
+      });
+      message.success('Caso eliminado exitosamente');
+      router.push('/app/cases');
+    } catch (error: any) {
+      const status = error?.response?.status;
+      const data = error?.response?.data;
+      if (status === 400 && typeof data?.error === 'string' && data.error.toLowerCase().includes('requiere confirmación')) {
+        setForceDeleteRequired(true);
+        message.warning('Este caso requiere confirmación de eliminación forzada. Proporcione una razón.');
+      } else if (status === 403 && data?.details) {
+        const a = data.details.activeAppointments ?? 0;
+        const t = data.details.pendingTasks ?? 0;
+        message.error(`No se puede eliminar: ${a} citas activas, ${t} tareas pendientes.`);
+      } else {
+        message.error(data?.error || 'No se pudo eliminar el caso.');
+      }
+    } finally {
+      setIsDeletingCase(false);
+    }
+  };
+
+  const handleDeleteCase = async () => {
+    await tryDeleteCase(false);
+  };
+
+  const handleForceDelete = async () => {
+    await tryDeleteCase(true);
+    setForceDeleteRequired(false);
+    setDeleteReason('');
   };
 
   // --- Table & Tab Definitions ---
@@ -161,7 +310,7 @@ const CaseDetailPage = () => {
         <div>
           <AddCommentForm caseId={caseId as string} onSuccess={fetchCaseDetails} />
           <hr className="my-6" />
-          <CaseTimeline events={caseDetails?.caseEvents || []} />
+          <CaseTimeline events={caseDetails?.caseEvents || []} onRefresh={fetchCaseDetails} />
         </div>
       ),
     },
@@ -203,34 +352,86 @@ const CaseDetailPage = () => {
 
   return (
     <div>
-      <Button 
-        type="text" 
-        icon={<ArrowLeftOutlined />} 
-        onClick={() => router.back()}
-        className="mb-4"
-      >
-        Volver a todos los casos
-      </Button>
+      <div className="flex justify-between items-center mb-4">
+        <Button 
+          type="text" 
+          icon={<ArrowLeftOutlined />} 
+          onClick={() => router.back()}
+        >
+          Volver a todos los casos
+        </Button>
+        <Popconfirm 
+          title="¿Eliminar este caso?"
+          description="Esta acción archivará el caso y cancelará citas/tareas relacionadas."
+          onConfirm={handleDeleteCase}
+          okText="Sí"
+          cancelText="No"
+        >
+          <Button danger icon={<DeleteOutlined />} loading={isDeletingCase}>
+            Eliminar Caso
+          </Button>
+        </Popconfirm>
+      </div>
 
       <Card className="mb-6">
-        <Descriptions title={`Resumen del Caso #${caseDetails.id}`} bordered column={1}>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-lg font-semibold">Resumen del Caso #{caseDetails.id}</h2>
+          <div className="flex space-x-2">
+            {!caseDetails.isCompleted && userRole && (userRole === 'admin' || userRole === 'office_manager') && (
+              <Button 
+                type="primary"
+                icon={<CheckCircleOutlined />}
+                onClick={() => setCompleteCaseModalVisible(true)}
+                className="bg-green-500 hover:bg-green-600"
+              >
+                Completar Caso
+              </Button>
+            )}
+            <Button 
+              type="primary" 
+              icon={<EditOutlined />}
+              onClick={() => setIsEditCaseModalVisible(true)}
+            >
+              Editar Caso
+            </Button>
+          </div>
+        </div>
+        <Descriptions bordered column={1}>
           <Descriptions.Item label="Título">{caseDetails.title}</Descriptions.Item>
-          <Descriptions.Item label="Cliente">{`${caseDetails.client.firstName} ${caseDetails.client.lastName}`}</Descriptions.Item>
+          <Descriptions.Item label="Cliente">
+            {caseDetails.client
+              ? `${caseDetails.client.firstName} ${caseDetails.client.lastName}`
+              : 'Cliente eliminado o no disponible'}
+          </Descriptions.Item>
           <Descriptions.Item label="Oficina">{caseDetails.office.name}</Descriptions.Item>
+          <Descriptions.Item label="Departamento">{caseDetails.category}</Descriptions.Item>
+          <Descriptions.Item label="Número de Expediente">
+            {caseDetails.docketNumber || '-'}
+          </Descriptions.Item>
+          <Descriptions.Item label="Juzgado">
+            {caseDetails.court || '-'}
+          </Descriptions.Item>
+          {caseDetails.description && (
+            <Descriptions.Item label="Descripción">
+              {caseDetails.description}
+            </Descriptions.Item>
+          )}
           <Descriptions.Item label="Estado del Caso">
-            <Tag color={caseDetails.status === 'closed' ? 'green' : 'blue'}>{caseDetails.status.toUpperCase()}</Tag>
+            <Tag color={STATUS_COLORS[caseDetails.status] || 'default'}>
+              {STATUS_LABELS[caseDetails.status] || caseDetails.status.toUpperCase()}
+            </Tag>
           </Descriptions.Item>
           <Descriptions.Item label="Etapa del Proceso">
             <div className="flex items-center justify-between">
-              <span>{STAGE_LABELS[caseDetails.currentStage] || caseDetails.currentStage}</span>
+              <span>{getStageLabels(caseDetails.category)[caseDetails.currentStage] || caseDetails.currentStage}</span>
               <Button icon={<EditOutlined />} size="small" onClick={() => setIsStageModalVisible(true)}>
                 Actualizar Etapa
               </Button>
             </div>
             <CaseProgressTracker
-              allStages={ALL_STAGES}
+              allStages={getCaseStages(caseDetails.category)}
               currentStage={caseDetails.currentStage}
-              stageLabels={STAGE_LABELS}
+              stageLabels={getStageLabels(caseDetails.category)}
             />
           </Descriptions.Item>
         </Descriptions>
@@ -253,9 +454,52 @@ const CaseDetailPage = () => {
         onSuccess={fetchCaseDetails}
         caseId={caseId as string}
         currentStage={caseDetails.currentStage}
-        allStages={ALL_STAGES}
-        stageLabels={STAGE_LABELS}
+        allStages={getCaseStages(caseDetails.category)}
+        stageLabels={getStageLabels(caseDetails.category)}
       />
+
+      <EditCaseModal
+        visible={isEditCaseModalVisible}
+        onClose={() => setIsEditCaseModalVisible(false)}
+        onSuccess={fetchCaseDetails}
+        caseId={caseId as string}
+        caseData={{
+          title: caseDetails.title,
+          category: caseDetails.category,
+          docketNumber: caseDetails.docketNumber,
+          court: caseDetails.court,
+          description: caseDetails.description || '',
+        }}
+      />
+
+      <CompleteCaseModal
+        visible={completeCaseModalVisible}
+        onClose={() => setCompleteCaseModalVisible(false)}
+        onSuccess={() => {
+          message.success('Caso completado exitosamente');
+          router.push('/admin/cases');
+        }}
+        caseId={parseInt(caseId as string)}
+        caseTitle={caseDetails.title}
+      />
+
+      <Modal
+        title="Confirmar eliminación forzada"
+        open={forceDeleteRequired}
+        onOk={handleForceDelete}
+        onCancel={() => setForceDeleteRequired(false)}
+        okText="Eliminar definitivamente"
+        cancelText="Cancelar"
+        confirmLoading={isDeletingCase}
+      >
+        <p>Este caso contiene datos significativos. Confirme la eliminación forzada e indique una razón:</p>
+        <Input.TextArea
+          rows={3}
+          value={deleteReason}
+          onChange={(e) => setDeleteReason(e.target.value)}
+          placeholder="Razón de eliminación (opcional)"
+        />
+      </Modal>
     </div>
   );
 };

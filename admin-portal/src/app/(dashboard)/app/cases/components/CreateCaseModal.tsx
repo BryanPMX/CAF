@@ -2,10 +2,13 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Modal, Form, Input, Button, message, Select, Radio, Spin, AutoComplete } from 'antd';
+import { Modal, Form, Input, Button, message, Select, Radio, Spin, AutoComplete, InputNumber } from 'antd';
 import { apiClient } from '../../../../lib/api';
+import { CASE_TYPES, findDepartmentByCaseType } from '../../../../lib/caseTaxonomy';
 
 const { Option } = Select;
+
+// taxonomy imported from shared module
 
 interface Office {
   id: number;
@@ -47,8 +50,17 @@ const CreateCaseModal: React.FC<CreateCaseModalProps> = ({ visible, onClose, onS
       // Reset state when modal opens
       setClientMode('existing');
       setSelectedClientId(null);
+      // Reset form fields
+      form.resetFields();
+      // Prefill office for office managers
+      if (typeof window !== 'undefined') {
+        const officeId = localStorage.getItem('userOfficeId');
+        if (officeId) {
+          form.setFieldsValue({ officeId: Number(officeId) });
+        }
+      }
     }
-  }, [visible]);
+  }, [visible, form]);
 
   const handleClientSearch = async (searchText: string) => {
     if (!searchText || searchText.length < 2) {
@@ -56,9 +68,10 @@ const CreateCaseModal: React.FC<CreateCaseModalProps> = ({ visible, onClose, onS
       return;
     }
     try {
-      // TODO: Create GET /api/v1/admin/users/search?q=... endpoint in Go
-      const response = await apiClient.get(`/admin/users`);
-      const allUsers: Client[] = response.data;
+      const role = typeof window !== 'undefined' ? localStorage.getItem('userRole') : 'admin';
+      const base = role === 'office_manager' ? '/manager' : '/admin';
+      const response = await apiClient.get(`${base}/users?role=client`);
+      const allUsers: Client[] = Array.isArray(response.data) ? response.data : (response.data?.users || []);
       const filteredClients = allUsers
         .filter(user => 
           `${user.firstName} ${user.lastName}`.toLowerCase().includes(searchText.toLowerCase()) ||
@@ -88,8 +101,21 @@ const CreateCaseModal: React.FC<CreateCaseModalProps> = ({ visible, onClose, onS
       let payload: any = {
         officeId: values.officeId,
         title: values.title,
+        category: values.category, // Use the category field directly
         description: values.description,
       };
+
+      if (values.fee !== undefined) {
+        payload.fee = Number(values.fee);
+      }
+      
+      // Handle docket number and court - allow empty values
+      if (values.docketNumber !== undefined) {
+        payload.docketNumber = values.docketNumber;
+      }
+      if (values.court !== undefined) {
+        payload.court = values.court;
+      }
 
       if (clientMode === 'existing') {
         if (!selectedClientId) {
@@ -115,6 +141,8 @@ const CreateCaseModal: React.FC<CreateCaseModalProps> = ({ visible, onClose, onS
       setLoading(false);
     }
   };
+
+  const selectedCategory = Form.useWatch('category', form);
 
   return (
     <Modal
@@ -160,27 +188,76 @@ const CreateCaseModal: React.FC<CreateCaseModalProps> = ({ visible, onClose, onS
         
         <hr className="my-6" />
 
-        {/* --- UPDATED: Changed from Input to Select Dropdown --- */}
-        <Form.Item name="title" label="Título del Caso" rules={[{ required: true, message: 'Por favor, seleccione un título' }]}>
-          <Select placeholder="Seleccione el tipo de caso">
-            <Option value="Consulta Legal - Familiar">Consulta Legal - Familiar</Option>
-            <Option value="Consulta Legal - Civil">Consulta Legal - Civil</Option>
-            <Option value="Consulta Legal - Migratoria">Consulta Legal - Migratoria</Option>
-            <Option value="Consulta Psicológica - Individual">Consulta Psicológica - Individual</Option>
-            <Option value="Consulta Psicológica - Pareja/Familiar">Consulta Psicológica - Pareja/Familiar</Option>
-            <Option value="Asistencia Social - Recursos">Asistencia Social - Recursos</Option>
-            <Option value="Otro">Otro (Especifique en descripción)</Option>
+        {/* Department -> Case Type taxonomy selector */}
+        <Form.Item name="title" label="Tipo de Caso" rules={[{ required: true, message: 'Por favor, seleccione un tipo de caso' }]}>
+          <Select 
+            placeholder="Seleccione el tipo de caso"
+            showSearch
+            optionFilterProp="children"
+            onChange={(value: string) => {
+              const dept = findDepartmentByCaseType(value) || 'General';
+              form.setFieldsValue({ category: dept });
+            }}
+          >
+            {Object.entries(CASE_TYPES).map(([dept, types]) => (
+              <Select.OptGroup key={dept} label={dept}>
+                {types.map((t) => (
+                  <Option key={t} value={t}>{t}</Option>
+                ))}
+              </Select.OptGroup>
+            ))}
+            <Select.OptGroup label="Otro">
+              <Option value="Otro">Otro (Especifique en descripción)</Option>
+            </Select.OptGroup>
           </Select>
         </Form.Item>
 
+        {/* Hidden category (department) - auto-synced from case type */}
+        <Form.Item name="category" hidden={true}>
+          <Input />
+        </Form.Item>
+
+        {/* Show stage workflow information based on category */}
+        {selectedCategory && (
+          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+            <div className="text-sm text-blue-800">
+              <strong>Flujo de Etapas:</strong>
+              {selectedCategory === 'Familiar' || selectedCategory === 'Civil' ? (
+                <span> Este caso seguirá el flujo legal: Etapa Inicial → Notificación → Audiencia Preliminar → Audiencia de Juicio → Sentencia</span>
+              ) : (
+                <span> Este caso seguirá el flujo estándar: Recepción → Consulta Inicial → Revisión de Documentos → Plan de Acción → Resolución → Cerrado</span>
+              )}
+            </div>
+          </div>
+        )}
+
+        <Form.Item name="fee" label="Cuota/Precio (Opcional)" tooltip="Campo opcional para cualquier tipo de caso; se usa en reportes donde aplique">
+          <InputNumber min={0} step={50} style={{ width: '100%' }} prefix="$" />
+        </Form.Item>
+
+        <Form.Item name="docketNumber" label="Número de Expediente (Opcional)" tooltip="Número de expediente del caso legal (ej. 589-25)">
+          <Input placeholder="Ej: 589-25" />
+        </Form.Item>
+
+        <Form.Item name="court" label="Juzgado (Opcional)" tooltip="Juzgado donde se tramita el caso (ej. 1FXA)">
+          <Input placeholder="Ej: 1FXA" />
+        </Form.Item>
+
         <Form.Item name="officeId" label="Asignar a Oficina" rules={[{ required: true, message: 'Por favor, seleccione una oficina' }]}>
-          <Select placeholder="Seleccione una oficina">
-            {offices.map(office => (
+          <Select
+            placeholder="Seleccione una oficina"
+            disabled={typeof window !== 'undefined' && localStorage.getItem('userRole') === 'office_manager'}
+          >
+            {offices && offices.length > 0 && offices.map(office => (
               <Option key={office.id} value={office.id}>{office.name}</Option>
             ))}
+            {typeof window !== 'undefined' && localStorage.getItem('userRole') === 'office_manager' && (() => {
+              const officeId = localStorage.getItem('userOfficeId');
+              return officeId ? <Option key={officeId} value={Number(officeId)}>Mi Oficina</Option> : null;
+            })()}
           </Select>
         </Form.Item>
-        <Form.Item name="description" label="Descripción Inicial">
+        <Form.Item name="description" label="Descripción Inicial" rules={[{ required: true, message: 'La descripción es obligatoria' }]}>
           <Input.TextArea rows={4} />
         </Form.Item>
       </Form>

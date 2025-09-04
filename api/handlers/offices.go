@@ -39,7 +39,8 @@ func CreateOffice(db *gorm.DB) gin.HandlerFunc {
 // GetOffices is an admin-only handler to retrieve all office locations.
 func GetOffices(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var offices []models.Office
+		// Initialize with empty slice to prevent null JSON response
+		offices := make([]models.Office, 0)
 		if err := db.Find(&offices).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve offices."})
 			return

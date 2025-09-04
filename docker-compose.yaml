@@ -12,9 +12,22 @@ services:
       db:
         condition: service_healthy
       localstack:
-        condition: service_started
-    env_file:
-      - ./.env
+        condition: service_healthy
+    environment:
+      - DB_USER=user
+      - DB_PASSWORD=password
+      - DB_HOST=db
+      - DB_NAME=caf_db
+      - DB_PORT=5432
+      - PORT=8080
+      - JWT_SECRET=your-secret-key-here
+      - AWS_REGION=us-east-1
+      - S3_BUCKET=caf-system-bucket
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+      - AWS_ENDPOINT_URL=http://localstack:4566
+      - AWS_DISABLE_SSL=true
+      - AWS_S3_FORCE_PATH_STYLE=true
     networks:
       - caf_network
 
@@ -22,9 +35,9 @@ services:
     image: postgres:15-alpine
     container_name: caf_postgres
     environment:
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: caf_db
     ports:
       - "5432:5432"
     volumes:
@@ -32,7 +45,7 @@ services:
     networks:
       - caf_network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      test: ["CMD-SHELL", "pg_isready -U user -d caf_db"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -43,13 +56,25 @@ services:
     environment:
       - SERVICES=s3
       - EDGE_PORT=4566
-      - AWS_DEFAULT_REGION=${AWS_REGION}
-      - S3_BUCKET=${S3_BUCKET}
+      - AWS_DEFAULT_REGION=us-east-1
+      - S3_BUCKET=caf-system-bucket
+      - PERSISTENCE=1
+      - DATA_DIR=/tmp/localstack/data
+      - DEBUG=1
+      - LAMBDA_EXECUTOR=docker
+      - DOCKER_HOST=unix:///var/run/docker.sock
     ports:
       - "4566:4566"
+    volumes:
+      - "${LOCALSTACK_VOLUME_DIR:-./volume}:/var/lib/localstack"
+      - "/var/run/docker.sock:/var/run/docker.sock"
     networks:
       - caf_network
-    # REMOVED: The problematic volumes section has been deleted.
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 networks:
   caf_network:
