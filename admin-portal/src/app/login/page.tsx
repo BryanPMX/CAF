@@ -1,80 +1,136 @@
-// admin-portal/src/app/login/page.tsx
-'use client'; // This directive marks the component as a Client Component.
+'use client';
 
-import React, { useState } from 'react';
+import { useState, useCallback } from 'react';
+import { Form, Input, Button, Card, message, Alert } from 'antd';
+import { UserOutlined, LockOutlined } from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
-import { Form, Input, Button, Card, message, Spin } from 'antd';
-import { LockOutlined, UserOutlined } from '@ant-design/icons';
-import { apiClient } from '../lib/api'; // We created this in a previous step
+import { apiClient } from '@/app/lib/api';
+import { LoginFormData, UserRole } from '@/app/lib/types';
+import { handleApiError, logApiSuccess } from '@/app/lib/logger';
+import { useAuth } from '@/hooks/useAuth';
 
-const LoginPage = () => {
-  const router = useRouter();
+// Role-based redirect configuration
+const ROLE_REDIRECTS: Record<UserRole, string> = {
+  admin: '/admin',
+  office_manager: '/admin',
+  staff: '/',
+  counselor: '/',
+  psychologist: '/',
+  client: '/',
+} as const;
+
+export default function LoginPage() {
   const [loading, setLoading] = useState(false);
+  const router = useRouter();
+  const { login, error: authError, clearError } = useAuth();
 
-  // This function runs when the user submits the login form.
-  const onFinish = async (values: any) => {
+  const handleLogin = useCallback(async (values: LoginFormData) => {
     setLoading(true);
-    // Show a loading message that won't disappear on its own.
-    message.loading({ content: 'Verificando...', key: 'login', duration: 0 });
-
+    clearError();
+    
     try {
-      // Use the apiClient to send the login request to the Go API.
-      const response = await apiClient.post('/login', {
-        email: values.email,
-        password: values.password,
-      });
-
-      // On success, store the returned JWT in the browser's localStorage.
-      // This is how the app "remembers" that the user is logged in.
-      localStorage.setItem('authToken', response.data.token);
+      const response = await apiClient.post('/login', values);
       
-      // Update the message to show success.
-      message.success({ content: '¡Inicio de sesión exitoso!', key: 'login' });
-      
-      // Redirect the user to the main dashboard page.
-      router.push('/');
-
+      if (response.data.token) {
+        // Use the auth hook to handle login
+        login(response.data.token, response.data.user);
+        
+        logApiSuccess('User logged in successfully', 'LoginPage', { email: values.email });
+        message.success('Login successful!');
+        
+        // Role-based redirect logic
+        const userRole = response.data.user?.role as UserRole;
+        const redirectPath = ROLE_REDIRECTS[userRole] || '/';
+        
+        // Wait a moment to ensure everything is updated before redirect
+        setTimeout(() => {
+          router.push(redirectPath);
+        }, 100);
+      } else {
+        message.error('Invalid response from server');
+      }
     } catch (error) {
-      // If the API returns an error (e.g., 401 Unauthorized), show an error message.
-      message.error({ content: 'Credenciales incorrectas. Por favor, intente de nuevo.', key: 'login' });
+      const errorMessage = handleApiError(error, 'LoginPage');
+      message.error(errorMessage);
     } finally {
-      // This block runs whether the login succeeded or failed.
       setLoading(false);
     }
-  };
+  }, [login, router, clearError]);
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100">
-      <Card title="Portal de Administración CAF" className="w-full max-w-md mx-4">
-        <Spin spinning={loading} tip="Cargando...">
-          <Form
-            name="login"
-            initialValues={{ remember: true }}
-            onFinish={onFinish}
-            size="large"
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <Card className="w-full max-w-md shadow-lg">
+        <div className="text-center mb-6">
+          <h1 className="text-2xl font-bold text-gray-800">CAF System</h1>
+          <p className="text-gray-600">Iniciar Sesión</p>
+        </div>
+        
+        {authError && (
+          <Alert
+            message="Authentication Error"
+            description={authError}
+            type="error"
+            showIcon
+            className="mb-4"
+            closable
+            onClose={clearError}
+          />
+        )}
+        
+        <Form
+          name="login"
+          onFinish={handleLogin}
+          autoComplete="off"
+          layout="vertical"
+        >
+          <Form.Item
+            name="email"
+            label="Email"
+            rules={[
+              { required: true, message: 'Por favor ingrese su email' },
+              { type: 'email', message: 'Por favor ingrese un email válido' }
+            ]}
           >
-            <Form.Item
-              name="email"
-              rules={[{ required: true, type: 'email', message: '¡Por favor, ingrese un correo válido!' }]}
+            <Input 
+              prefix={<UserOutlined />} 
+              placeholder="su@email.com"
+              size="large"
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="password"
+            label="Contraseña"
+            rules={[
+              { required: true, message: 'Por favor ingrese su contraseña' }
+            ]}
+          >
+            <Input.Password 
+              prefix={<LockOutlined />} 
+              placeholder="••••••••"
+              size="large"
+            />
+          </Form.Item>
+
+          <Form.Item>
+            <Button 
+              type="primary" 
+              htmlType="submit" 
+              loading={loading}
+              className="w-full"
+              size="large"
+              style={{ 
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                border: 'none',
+                borderRadius: '8px',
+                boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)'
+              }}
             >
-              <Input prefix={<UserOutlined />} placeholder="Correo Electrónico" />
-            </Form.Item>
-            <Form.Item
-              name="password"
-              rules={[{ required: true, message: '¡Por favor, ingrese su contraseña!' }]}
-            >
-              <Input.Password prefix={<LockOutlined />} placeholder="Contraseña" />
-            </Form.Item>
-            <Form.Item>
-              <Button type="primary" htmlType="submit" className="w-full" disabled={loading}>
-                INICIAR SESIÓN
-              </Button>
-            </Form.Item>
-          </Form>
-        </Spin>
+              Iniciar Sesión
+            </Button>
+          </Form.Item>
+        </Form>
       </Card>
     </div>
   );
-};
-
-export default LoginPage;
+}

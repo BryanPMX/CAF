@@ -18,11 +18,22 @@ type Appointment struct {
 	StaffID uint `gorm:"not null;index" json:"staffId"`
 	Staff   User `gorm:"foreignKey:StaffID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT" json:"staff"`
 
-	Title     string         `gorm:"size:255;not null;index" json:"title"`
-	StartTime time.Time      `gorm:"not null;index" json:"startTime"`
-	EndTime   time.Time      `gorm:"not null" json:"endTime"`
-	Status    string         `gorm:"size:50;default:'confirmed';index" json:"status"` // "confirmed", "completed", "cancelled"
+	// Office where the appointment takes place
+	OfficeID uint   `gorm:"not null" json:"officeId"`
+	Office   *Office `gorm:"foreignKey:OfficeID" json:"office"`
+
+	Title     string    `gorm:"size:255;not null;index" json:"title"`
+	StartTime time.Time `gorm:"not null;index" json:"startTime"`
+	EndTime   time.Time `gorm:"not null" json:"endTime"`
+	Status    string    `gorm:"size:50;default:'confirmed';index" json:"status"` // "confirmed", "completed", "cancelled"
+
+	// NEW: Appointment category for department-based filtering
+	Category string `gorm:"size:100;default:'General';index" json:"category"` // e.g., "Legal Consultation", "Therapy Session", "Administrative"
+
+	// NEW: Department for access control
+	Department string `gorm:"size:100;default:'General';index" json:"department"` // e.g., "Legal", "Psychology", "Administration"
+
 	CreatedAt time.Time      `json:"createdAt"`
 	UpdatedAt time.Time      `json:"updatedAt"`
-	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
+	DeletedAt gorm.DeletedAt `gorm:"index;type:timestamp" json:"-"`
 }

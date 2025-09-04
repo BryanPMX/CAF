@@ -2,11 +2,11 @@
 package db
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"time"
 
-	"github.com/BryanPMX/CAF/api/models"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -24,28 +24,36 @@ func Init(url string) (*gorm.DB, error) {
 		},
 	)
 
-	db, err := gorm.Open(postgres.Open(url), &gorm.Config{Logger: newLogger})
-	if err != nil {
-		return nil, err
+	// Add retry logic for database connection
+	var db *gorm.DB
+	var err error
+	maxRetries := 30
+	retryDelay := 2 * time.Second
+
+	for i := 0; i < maxRetries; i++ {
+		log.Printf("Attempting to connect to database (attempt %d/%d)...", i+1, maxRetries)
+
+		db, err = gorm.Open(postgres.Open(url), &gorm.Config{Logger: newLogger})
+		if err == nil {
+			log.Println("Database connection successful!")
+			break
+		}
+
+		log.Printf("Database connection failed: %v", err)
+		if i < maxRetries-1 {
+			log.Printf("Retrying in %v...", retryDelay)
+			time.Sleep(retryDelay)
+		}
 	}
 
-	log.Println("Database connection successful. Running migrations...")
-
-	// UPDATED: Add the new CaseEvent model to the migration.
-	err = db.AutoMigrate(
-		&models.User{},
-		&models.Office{},
-		&models.Case{},
-		&models.Appointment{},
-		&models.Task{},
-		&models.TaskComment{},
-		&models.CaseEvent{}, // New model
-	)
 	if err != nil {
-		log.Printf("Failed to auto-migrate database: %v", err)
-		return nil, err
+		return nil, fmt.Errorf("failed to connect to database after %d attempts: %v", maxRetries, err)
 	}
 
-	log.Println("Database migrated successfully.")
+	log.Println("Database connection successful!")
+
+	// Note: Auto-migration is now handled by the custom migration system in main.go
+	// This prevents conflicts with views and allows proper migration ordering
+
 	return db, nil
 }

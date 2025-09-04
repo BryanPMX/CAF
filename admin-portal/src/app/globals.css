@@ -2,3 +2,127 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Custom Dashboard Styles */
+.admin-dashboard {
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  min-height: 100vh;
+}
+
+/* Enhanced Card Styles */
+.ant-card {
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.ant-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+}
+
+/* Announcement Modal Styles */
+.announcement-modal .ant-modal-content {
+  border-radius: 16px;
+}
+
+.announcement-modal .ant-modal-header {
+  border-radius: 16px 16px 0 0;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.announcement-modal .ant-modal-title {
+  color: white;
+}
+
+.announcement-modal .ant-modal-close {
+  color: white;
+}
+
+/* Enhanced Button Styles */
+.ant-btn-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.ant-btn-primary:hover {
+  background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+/* Statistics Card Enhancements */
+.statistics-card {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.statistics-card .ant-statistic-title {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.statistics-card .ant-statistic-content {
+  color: white;
+}
+
+/* Table Enhancements */
+.ant-table {
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.ant-table-thead > tr > th {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-bottom: 2px solid #dee2e6;
+}
+
+/* Tag Enhancements */
+.ant-tag {
+  border-radius: 6px;
+  font-weight: 500;
+}
+
+/* Progress Bar Enhancements */
+.ant-progress-bg {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+/* Loading States */
+.ant-spin-dot-item {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+/* Responsive Enhancements */
+@media (max-width: 768px) {
+  .admin-dashboard {
+    padding: 16px;
+  }
+  
+  .ant-card {
+    margin-bottom: 16px;
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+}

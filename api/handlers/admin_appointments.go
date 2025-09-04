@@ -2,11 +2,14 @@
 package handlers
 
 import (
+	"fmt"
+	"log"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/BryanPMX/CAF/api/models"
-	"github.com/BryanPMX/CAF/api/utils/notifications"
+	"github.com/BryanPMX/CAF/api/notifications"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
@@ -37,6 +40,10 @@ type SmartAppointmentInput struct {
 	StartTime time.Time `json:"startTime" binding:"required"`
 	EndTime   time.Time `json:"endTime" binding:"required"`
 	Status    string    `json:"status" binding:"required"`
+
+	// --- Department and Category Information ---
+	Department string `json:"department"` // Department for case creation and appointment categorization
+	Category   string `json:"category"`   // Category for appointment classification
 }
 
 // CreateAppointmentSmart is the new, intelligent handler for creating appointments.
@@ -50,14 +57,21 @@ func CreateAppointmentSmart(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		var client models.User
+		hasClient := false
 		var caseRecord models.Case
 
 		// --- Step 1: Determine the Client ---
 		if input.ClientID != nil {
-			// Scenario: Use an existing client.
-			if err := db.First(&client, *input.ClientID).Error; err != nil {
-				c.JSON(http.StatusBadRequest, gin.H{"error": "Selected client not found."})
-				return
+			// Scenario: Use an existing client. If not found, try falling back to case's client (if provided). If still not found, continue without client.
+			if err := db.First(&client, *input.ClientID).Error; err == nil {
+				hasClient = true
+			} else if input.CaseID != nil {
+				if err := db.First(&caseRecord, *input.CaseID).Error; err == nil && caseRecord.ClientID != nil {
+					if err := db.First(&client, *caseRecord.ClientID).Error; err == nil {
+						hasClient = true
+					}
+				}
+				// If client still not found, proceed without client
 			}
 		} else if input.NewClient != nil {
 			// Scenario: Create a new client.
@@ -74,6 +88,14 @@ func CreateAppointmentSmart(db *gorm.DB) gin.HandlerFunc {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create new client. Email may be in use."})
 				return
 			}
+			hasClient = true
+		} else if input.CaseID != nil {
+			// No client provided, but an existing case might reference one. If not found, continue without client.
+			if err := db.First(&caseRecord, *input.CaseID).Error; err == nil && caseRecord.ClientID != nil {
+				if err := db.First(&client, *caseRecord.ClientID).Error; err == nil {
+					hasClient = true
+				}
+			}
 		} else {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Client information (either clientId or newClient) is required."})
 			return
@@ -88,16 +110,68 @@ func CreateAppointmentSmart(db *gorm.DB) gin.HandlerFunc {
 			}
 		} else if input.NewCase != nil {
 			// Scenario: Create a new case for the client.
+			// Use the department from the frontend input instead of staff role
+			var category string
+
+			// Priority: Use department from input, then fallback to staff role
+			if input.Department != "" {
+				category = input.Department
+			} else {
+				// Fallback: determine from staff role
+				var staff models.User
+				if err := db.First(&staff, input.StaffID).Error; err == nil {
+					if staff.Role == "admin" {
+						category = "General"
+					} else {
+						// Map staff role to proper department
+						switch staff.Role {
+						case "lawyer", "attorney", "senior_attorney", "paralegal", "associate":
+							category = "Familiar" // Default to Familiar for legal staff
+						case "psychologist":
+							category = "Psicologia"
+						case "social_worker":
+							category = "Recursos"
+						default:
+							category = "General"
+						}
+					}
+				} else {
+					category = "General" // Default fallback
+				}
+			}
+
+			// Get current user ID for CreatedBy field
+			userID, _ := c.Get("userID")
+			userIDUint, _ := strconv.ParseUint(userID.(string), 10, 32)
+
 			caseRecord = models.Case{
-				ClientID:    client.ID,
+				ClientID: func() *uint {
+					if hasClient {
+						return &client.ID
+					}
+					return nil
+				}(),
 				OfficeID:    input.NewCase.OfficeID,
 				Title:       input.NewCase.Title,
 				Description: input.NewCase.Description,
 				Status:      "open",
+				Category:    category,
+				CurrentStage: func() string {
+					if category == "Familiar" || category == "Civil" {
+						return "etapa_inicial"
+					}
+					return "intake"
+				}(),
+				CreatedBy: uint(userIDUint),
 			}
 			if err := db.Create(&caseRecord).Error; err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create new case."})
 				return
+			}
+			// If we created a new client in this flow, ensure their office is set to the case office
+			if hasClient && client.OfficeID == nil {
+				client.OfficeID = &caseRecord.OfficeID
+				db.Model(&client).Update("office_id", caseRecord.OfficeID)
 			}
 		} else {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Case information (either caseId or newCase) is required."})
@@ -105,13 +179,55 @@ func CreateAppointmentSmart(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		// --- Step 3: Create the Appointment ---
+		// Determine appointment category and department
+		var appointmentCategory, department string
+
+		// Priority: Use department from input, then fallback to case category
+		if input.Department != "" {
+			appointmentCategory = input.Department
+			department = input.Department
+		} else if caseRecord.Category != "" {
+			appointmentCategory = caseRecord.Category
+			department = caseRecord.Category
+		} else {
+			// Fallback: determine from staff role
+			var staff models.User
+			if err := db.First(&staff, input.StaffID).Error; err == nil {
+				if staff.Role == "admin" {
+					appointmentCategory = "General"
+					department = "General"
+				} else {
+					// Map staff role to proper department
+					switch staff.Role {
+					case "lawyer", "attorney", "senior_attorney", "paralegal", "associate":
+						appointmentCategory = "Familiar"
+						department = "Familiar"
+					case "psychologist":
+						appointmentCategory = "Psicologia"
+						department = "Psicologia"
+					case "social_worker":
+						appointmentCategory = "Recursos"
+						department = "Recursos"
+					default:
+						appointmentCategory = "General"
+						department = "General"
+					}
+				}
+			} else {
+				appointmentCategory = "General"
+				department = "General"
+			}
+		}
+
 		appointment := models.Appointment{
-			CaseID:    caseRecord.ID,
-			StaffID:   input.StaffID,
-			Title:     input.Title,
-			StartTime: input.StartTime,
-			EndTime:   input.EndTime,
-			Status:    input.Status,
+			CaseID:     caseRecord.ID,
+			StaffID:    input.StaffID,
+			Title:      input.Title,
+			StartTime:  input.StartTime,
+			EndTime:    input.EndTime,
+			Status:     input.Status,
+			Category:   appointmentCategory,
+			Department: department,
 		}
 		if err := db.Create(&appointment).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create appointment."})
@@ -119,10 +235,12 @@ func CreateAppointmentSmart(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		// --- Step 4: Send Notification (Async) ---
-		// Trigger the placeholder notification function asynchronously for better performance
-		go func() {
-			notifications.SendAppointmentConfirmation(appointment, client)
-		}()
+		// Only send notification if a client exists
+		if hasClient {
+			go func() {
+				notifications.SendAppointmentConfirmation(appointment, client)
+			}()
+		}
 
 		// Return success response with minimal data
 		c.JSON(http.StatusCreated, gin.H{
@@ -169,19 +287,194 @@ func UpdateAppointmentAdmin(db *gorm.DB) gin.HandlerFunc {
 		appointment.Status = input.Status
 		db.Save(&appointment)
 
+		// Generate notification for client if appointment status is changed to "confirmed"
+		if input.Status == "confirmed" && appointment.CaseID > 0 {
+			// Get the case to find the client
+			var caseRecord models.Case
+			if err := db.First(&caseRecord, appointment.CaseID).Error; err == nil && caseRecord.ClientID != nil {
+				// Format the appointment date and time
+				formattedDateTime := appointment.StartTime.Format("02/01/2006 a las 15:04")
+				
+				// Create notification message in Spanish
+				notificationMessage := "Su cita ha sido confirmada para el " + formattedDateTime + "."
+				
+				// Create link to the appointment
+				appointmentLink := "/app/appointments/" + strconv.FormatUint(uint64(appointment.ID), 10)
+
+				// Create notification for the client
+				if err := CreateNotification(db, *caseRecord.ClientID, notificationMessage, "success", &appointmentLink); err != nil {
+					// Log error but don't fail the appointment update
+					_ = err // Suppress unused variable warning
+				}
+			}
+		}
+
 		c.JSON(http.StatusOK, appointment)
 	}
 }
 
-// DeleteAppointmentAdmin removes an appointment (soft delete).
+// DeleteAppointmentAdmin removes an appointment with enhanced security and audit logging
 func DeleteAppointmentAdmin(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		appointmentID := c.Param("id")
+
+		// Get current user context for audit logging
+		currentUser, _ := c.Get("currentUser")
+		user := currentUser.(models.User)
+
 		var appointment models.Appointment
-		if err := db.Where("id = ?", c.Param("id")).First(&appointment).Error; err != nil {
-			c.JSON(http.StatusNotFound, gin.H{"error": "Appointment not found"})
+		if err := db.Preload("Case").Preload("Staff").First(&appointment, appointmentID).Error; err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Cita no encontrada"})
 			return
 		}
-		db.Delete(&appointment)
-		c.Status(http.StatusNoContent)
+
+		// Professional Security Checks for non-admin users only
+		if user.Role != "admin" {
+			// Prevent deletion of completed appointments
+			if appointment.Status == "completed" {
+				c.JSON(http.StatusForbidden, gin.H{
+					"error": "No se puede eliminar una cita completada",
+					"details": gin.H{
+						"appointmentId": appointment.ID,
+						"status":        appointment.Status,
+						"completedAt":   appointment.UpdatedAt,
+					},
+				})
+				return
+			}
+
+			// Prevent deletion of past appointments
+			if time.Now().After(appointment.StartTime) {
+				c.JSON(http.StatusForbidden, gin.H{
+					"error": "No se puede eliminar una cita que ya ha pasado",
+					"details": gin.H{
+						"appointmentId": appointment.ID,
+						"scheduledTime": appointment.StartTime,
+						"currentTime":   time.Now(),
+					},
+				})
+				return
+			}
+		}
+
+		// Professional Security Check 3: Create audit log before deletion
+		auditLog := models.CaseEvent{
+			CaseID:     appointment.CaseID,
+			UserID:     user.ID,
+			EventType:  "appointment_deletion_admin",
+			Visibility: "internal",
+			CommentText: fmt.Sprintf("Cita eliminada por administrador %s %s (ID: %d). Cita: %s programada para %s",
+				user.FirstName, user.LastName, user.ID, appointment.Title, appointment.StartTime.Format("02/01/2006 15:04")),
+		}
+
+		if err := db.Create(&auditLog).Error; err != nil {
+			log.Printf("WARNING: Failed to create audit log for admin appointment deletion: %v", err)
+		}
+
+		// Professional Security Check 4: Soft delete with status update
+		// Update appointment status to cancelled instead of hard delete
+		updates := map[string]interface{}{
+			"status":     "cancelled",
+			"deleted_at": time.Now(),
+		}
+
+		if err := db.Model(&appointment).Updates(updates).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al cancelar la cita"})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"message":     "Cita cancelada exitosamente por administrador",
+			"cancelledAt": time.Now(),
+			"cancelledBy": gin.H{
+				"id":   user.ID,
+				"name": fmt.Sprintf("%s %s", user.FirstName, user.LastName),
+				"role": user.Role,
+			},
+			"appointment": gin.H{
+				"id":     appointment.ID,
+				"title":  appointment.Title,
+				"status": "cancelled",
+			},
+		})
+	}
+}
+
+// GetClientCasesForAppointment returns all existing cases for a client when setting up an appointment
+// This endpoint is used to populate the case dropdown in the appointment creation form
+//
+// Frontend Usage:
+// 1. When a client is selected in the appointment creation form
+// 2. Call GET /api/v1/admin/clients/{clientId}/cases-for-appointment
+// 3. Use the returned cases array to populate the case dropdown
+// 4. If no cases exist, show option to create a new case
+//
+// Response format:
+//
+//	{
+//	  "client": { "id": 1, "firstName": "John", "lastName": "Doe", "email": "john@example.com" },
+//	  "cases": [
+//	    { "id": 1, "title": "Divorce Case", "category": "Familiar", "status": "open", "currentStage": "etapa_inicial", "createdAt": "2025-09-02T..." }
+//	  ],
+//	  "count": 1
+//	}
+func GetClientCasesForAppointment(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		clientIDStr := c.Param("clientId")
+		clientID, err := strconv.ParseUint(clientIDStr, 10, 32)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid client ID"})
+			return
+		}
+
+		// Verify the client exists
+		var client models.User
+		if err := db.Where("id = ? AND role = ?", uint(clientID), "client").First(&client).Error; err != nil {
+			if err == gorm.ErrRecordNotFound {
+				c.JSON(http.StatusNotFound, gin.H{"error": "Client not found"})
+				return
+			}
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve client"})
+			return
+		}
+
+		// Get all active cases for this client (exclude deleted/archived cases)
+		// Initialize with empty slice to prevent null JSON response
+		cases := make([]models.Case, 0)
+		query := db.Model(&models.Case{}).
+			Where("client_id = ?", client.ID).
+			Where("deleted_at IS NULL").
+			Where("is_archived = ?", false).
+			Where("status != ?", "deleted").
+			Order("created_at DESC")
+
+		if err := query.Find(&cases).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve client cases"})
+			return
+		}
+
+		// Return cases with minimal data for dropdown
+		var caseOptions []gin.H
+		for _, caseItem := range cases {
+			caseOptions = append(caseOptions, gin.H{
+				"id":           caseItem.ID,
+				"title":        caseItem.Title,
+				"category":     caseItem.Category,
+				"status":       caseItem.Status,
+				"currentStage": caseItem.CurrentStage,
+				"createdAt":    caseItem.CreatedAt,
+			})
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"client": gin.H{
+				"id":        client.ID,
+				"firstName": client.FirstName,
+				"lastName":  client.LastName,
+				"email":     client.Email,
+			},
+			"cases": caseOptions,
+			"count": len(caseOptions),
+		})
 	}
 }

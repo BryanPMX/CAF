@@ -1,4 +1,176 @@
 /** @type {import('next').NextConfig} */
-const nextConfig = {}
+const nextConfig = {
+  // Temporarily disable React Strict Mode to prevent double renders
+  reactStrictMode: false,
+  
+  // Enable experimental features for better performance
+  experimental: {
+    optimizeCss: true,
+    optimizePackageImports: ['antd', '@ant-design/icons'],
+    turbo: {
+      rules: {
+        '*.svg': {
+          loaders: ['@svgr/webpack'],
+          as: '*.js',
+        },
+      },
+    },
+    // Enable SWC minification
+    swcMinify: true,
+  },
 
-module.exports = nextConfig
+  // Enable compression
+  compress: true,
+
+  // Optimize images
+  images: {
+    formats: ['image/webp', 'image/avif'],
+    minimumCacheTTL: 60,
+    dangerouslyAllowSVG: true,
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
+    // Disable image optimization in development for faster builds
+    unoptimized: process.env.NODE_ENV === 'development',
+  },
+
+  // Webpack optimizations
+  webpack: (config, { dev, isServer }) => {
+    // Development optimizations
+    if (dev) {
+      // Faster source maps in development
+      config.devtool = 'eval-cheap-module-source-map';
+      
+      // Disable some optimizations in development for faster builds
+      config.optimization.minimize = false;
+      config.optimization.splitChunks = false;
+    }
+
+    // Production optimizations
+    if (!dev && !isServer) {
+      // Enable tree shaking
+      config.optimization.usedExports = true;
+      config.optimization.sideEffects = false;
+
+      // Split chunks for better caching
+      config.optimization.splitChunks = {
+        chunks: 'all',
+        cacheGroups: {
+          vendor: {
+            test: /[\\/]node_modules[\\/]/,
+            name: 'vendors',
+            chunks: 'all',
+            priority: 10,
+            reuseExistingChunk: true,
+          },
+          antd: {
+            test: /[\\/]node_modules[\\/]antd[\\/]/,
+            name: 'antd',
+            chunks: 'all',
+            priority: 20,
+            reuseExistingChunk: true,
+          },
+          icons: {
+            test: /[\\/]node_modules[\\/]@ant-design[\\/]icons[\\/]/,
+            name: 'antd-icons',
+            chunks: 'all',
+            priority: 15,
+            reuseExistingChunk: true,
+          },
+          common: {
+            name: 'common',
+            minChunks: 2,
+            chunks: 'all',
+            priority: 5,
+            reuseExistingChunk: true,
+          },
+        },
+      };
+
+      // Enable minification
+      config.optimization.minimize = true;
+      
+      // Remove console logs in production
+      config.optimization.minimizer.push(
+        new (require('terser-webpack-plugin'))({
+          terserOptions: {
+            compress: {
+              drop_console: true,
+            },
+          },
+        })
+      );
+    }
+
+    // SVG optimization
+    config.module.rules.push({
+      test: /\.svg$/,
+      use: ['@svgr/webpack'],
+    });
+
+    // Faster module resolution
+    config.resolve.modules = ['node_modules'];
+    config.resolve.extensions = ['.js', '.jsx', '.ts', '.tsx'];
+
+    return config;
+  },
+
+  // Bundle analyzer (only in development)
+  ...(process.env.ANALYZE === 'true' && {
+    webpack: (config) => {
+      const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
+      config.plugins.push(
+        new BundleAnalyzerPlugin({
+          analyzerMode: 'static',
+          openAnalyzer: false,
+        })
+      );
+      return config;
+    },
+  }),
+
+  // Performance optimizations
+  poweredByHeader: false,
+  generateEtags: false,
+
+  // Headers for performance and security
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
+          },
+          {
+            key: 'X-Frame-Options',
+            value: 'DENY',
+          },
+          {
+            key: 'X-XSS-Protection',
+            value: '1; mode=block',
+          },
+        ],
+      },
+      {
+        source: '/api/(.*)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=300, stale-while-revalidate=600',
+          },
+        ],
+      },
+      {
+        source: '/_next/static/(.*)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+    ];
+  },
+};
+
+module.exports = nextConfig;

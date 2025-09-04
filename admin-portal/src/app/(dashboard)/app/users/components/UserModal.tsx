@@ -39,13 +39,18 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
   // This `useEffect` hook runs whenever the modal becomes visible or the user to be edited changes.
   useEffect(() => {
     if (visible) {
-      // Fetch the list of offices from the API to populate the dropdown menu.
+      // Fetch offices only for admins; office managers are auto-prefilled
       const fetchOffices = async () => {
         try {
-          const response = await apiClient.get('/admin/offices');
-          setOffices(response.data);
+          const role = typeof window !== 'undefined' ? localStorage.getItem('userRole') : 'admin';
+          if (role === 'admin') {
+            const response = await apiClient.get('/admin/offices');
+            setOffices(response.data);
+          } else {
+            setOffices([]);
+          }
         } catch (error) {
-          message.error('No se pudieron cargar las oficinas.');
+          // Silently ignore for non-admins
         }
       };
       fetchOffices();
@@ -61,6 +66,13 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
         // If we are creating a new user, ensure the form is empty.
         form.resetFields();
         setSelectedRole('');
+        // Prefill office for office managers creating staff
+        if (typeof window !== 'undefined') {
+          const officeId = localStorage.getItem('userOfficeId');
+          if (officeId) {
+            form.setFieldsValue({ officeId: Number(officeId) });
+          }
+        }
       }
     }
   }, [visible, user, form, isEditing]);
@@ -109,8 +121,16 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
         <Form.Item name="lastName" label="Apellidos" rules={[{ required: true, message: 'El apellido es requerido' }]}>
           <Input />
         </Form.Item>
-        <Form.Item name="email" label="Correo Electrónico" rules={[{ required: true, type: 'email', message: 'Ingrese un correo válido' }]}>
-          <Input />
+        <Form.Item
+          name="email"
+          label="Correo Electrónico"
+          rules={[
+            ...(selectedRole === 'client' ? [{ required: true, message: 'Ingrese un correo válido' }] : []),
+            { type: 'email', message: 'Ingrese un correo válido' },
+          ]}
+          extra={selectedRole && selectedRole !== 'client' ? 'Opcional para personal: se generará un correo corporativo si se deja vacío.' : undefined}
+        >
+          <Input placeholder={selectedRole !== 'client' ? 'Opcional para personal' : undefined} />
         </Form.Item>
         {/* The password field is only required and visible when creating a new user. */}
         {!isEditing && (
@@ -130,10 +150,19 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
           </Select>
         </Form.Item>
         {/* The office dropdown is only shown for non-client roles. */}
-        {selectedRole && selectedRole !== 'client' && (
+        {selectedRole && selectedRole !== 'client' && selectedRole !== 'admin' && (
           <Form.Item name="officeId" label="Oficina" rules={[{ required: true, message: 'Debe asignar una oficina al personal' }]}>
-            <Select placeholder="Seleccione una oficina">
-              {offices.map(o => <Option key={o.id} value={o.id}>{o.name}</Option>)}
+            <Select
+              placeholder="Seleccione una oficina"
+              disabled={typeof window !== 'undefined' && localStorage.getItem('userRole') === 'office_manager'}
+            >
+              {offices.length > 0 && offices.map(o => <Option key={o.id} value={o.id}>{o.name}</Option>)}
+              {typeof window !== 'undefined' && localStorage.getItem('userRole') === 'office_manager' && (
+                (() => {
+                  const officeId = localStorage.getItem('userOfficeId');
+                  return officeId ? <Option key={officeId} value={Number(officeId)}>Mi Oficina</Option> : null;
+                })()
+              )}
             </Select>
           </Form.Item>
         )}

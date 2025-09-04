@@ -2,9 +2,10 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Table, Tag, message, Spin, Button, Popconfirm, Card, Statistic, Row, Col } from 'antd';
+import { Table, Tag, message, Spin, Button, Popconfirm, Card, Statistic, Row, Col, Select, Space } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, CalendarOutlined, UserOutlined, ClockCircleOutlined } from '@ant-design/icons';
-import { apiClient } from '../../../lib/api';
+import { apiClient } from '@/app/lib/api';
+import { Appointment as AppointmentType } from '@/app/lib/types';
 import AppointmentModal from '../../components/AppointmentModal';
 import EditAppointmentModal from '../../components/EditAppointmentModal';
 import SmartSearchBar from '../../components/SmartSearchBar';
@@ -13,15 +14,8 @@ import isBetween from 'dayjs/plugin/isBetween';
 
 dayjs.extend(isBetween);
 
-// IMPROVEMENT: Nested objects are now optional (?) to prevent runtime errors if the API omits them.
-interface Appointment {
-  id: number;
-  title: string;
-  status: string;
-  startTime: string;
-  endTime: string;
-  caseId: number;
-  staffId: number;
+// Local appointment interface with additional properties
+interface Appointment extends AppointmentType {
   case?: {
     title: string;
     client?: {
@@ -48,6 +42,9 @@ const AppointmentsPage = () => {
   const [userRole, setUserRole] = useState<string | null>(null);
   const [staffList, setStaffList] = useState<Array<{ id: number; firstName: string; lastName: string; role: string }>>([]);
   const [clientList, setClientList] = useState<Array<{ id: number; firstName: string; lastName: string; email: string }>>([]);
+  const [deptFilter, setDeptFilter] = useState<string | undefined>(undefined);
+  const [caseTypeFilter, setCaseTypeFilter] = useState<string | undefined>(undefined);
+  const [searchFilters, setSearchFilters] = useState<any>({});
 
   // --- Data Fetching & Role Management ---
   useEffect(() => {
@@ -59,8 +56,9 @@ const AppointmentsPage = () => {
   const fetchAppointments = async () => {
     try {
       setLoading(true);
+      // Base list is protected route for any logged-in user; scoped by backend
       const response = await apiClient.get('/appointments');
-      console.log('Appointments response:', response.data);
+      // Appointments loaded successfully
       setAppointments(response.data);
       setFilteredAppointments(response.data);
     } catch (error: any) {
@@ -74,13 +72,22 @@ const AppointmentsPage = () => {
 
   const fetchSupportingData = async () => {
     try {
+      const role = typeof window !== 'undefined' ? localStorage.getItem('userRole') : 'admin';
+      const base = role === 'office_manager' ? '/manager' : '/admin';
       const [staffRes, clientsRes] = await Promise.all([
-        apiClient.get('/admin/users'),
-        apiClient.get('/admin/users?role=client')
+        apiClient.get(`${base}/users`),
+        apiClient.get(`${base}/users?role=client`)
       ]);
-      
-      setStaffList(staffRes.data.filter((user: any) => user.role !== 'client'));
-      setClientList(clientsRes.data);
+
+      const staffPayload = Array.isArray(staffRes.data)
+        ? staffRes.data
+        : (staffRes.data?.users || []);
+      const clientsPayload = Array.isArray(clientsRes.data)
+        ? clientsRes.data
+        : (clientsRes.data?.users || []);
+
+      setStaffList(staffPayload.filter((user: any) => user.role !== 'client'));
+      setClientList(clientsPayload);
     } catch (error) {
       console.error('Failed to fetch supporting data:', error);
     }
@@ -91,6 +98,24 @@ const AppointmentsPage = () => {
     fetchAppointments();
     fetchSupportingData();
   }, []);
+
+  // Department and Case Type options
+  const DEPARTMENTS = ['Familiar', 'Civil', 'Psicologia', 'Recursos'];
+  const CASE_TYPES = [
+    'Divorcios','Guardia y Custodia','Acto Prejudicial','Adopcion','Pension Alimenticia','Rectificacion de Actas','Reclamacion de Paternidad',
+    'Prescripcion Positiva','Reinvindicatorio','Intestado',
+    'Individual','Pareja',
+    'Tutoria Escolar','Asistencia Social',
+    'Otro'
+  ];
+
+  const mapCaseTypeToDepartment = (caseType: string): string | undefined => {
+    if (['Divorcios','Guardia y Custodia','Acto Prejudicial','Adopcion','Pension Alimenticia','Rectificacion de Actas','Reclamacion de Paternidad'].includes(caseType)) return 'Familiar';
+    if (['Prescripcion Positiva','Reinvindicatorio','Intestado'].includes(caseType)) return 'Civil';
+    if (['Individual','Pareja'].includes(caseType)) return 'Psicologia';
+    if (['Tutoria Escolar','Asistencia Social'].includes(caseType)) return 'Recursos';
+    return undefined;
+  };
 
   // --- Event Handlers ---
   const handleCreate = () => {
@@ -103,43 +128,44 @@ const AppointmentsPage = () => {
     setIsEditModalVisible(true);
   };
 
-  const handleSearch = (filters: any) => {
+  // --- Search & Filter Functions ---
+  const handleSearch = (query: string) => {
     setSearchLoading(true);
     
-    // Apply filters to appointments
-    let filtered = [...appointments];
+    const filtered = appointments.filter(appointment => {
+      const searchLower = query.toLowerCase();
+      const titleMatch = appointment.title.toLowerCase().includes(searchLower);
+      const caseMatch = appointment.case?.title.toLowerCase().includes(searchLower);
+      const staffMatch = `${appointment.staff?.firstName} ${appointment.staff?.lastName}`.toLowerCase().includes(searchLower);
+      
+      return titleMatch || caseMatch || staffMatch;
+    });
     
-    if (filters.searchText) {
-      const searchLower = filters.searchText.toLowerCase();
-      filtered = filtered.filter(appointment => 
-        appointment.title.toLowerCase().includes(searchLower) ||
-        appointment.case?.client?.firstName?.toLowerCase().includes(searchLower) ||
-        appointment.case?.client?.lastName?.toLowerCase().includes(searchLower) ||
-        appointment.case?.title?.toLowerCase().includes(searchLower) ||
-        appointment.staff?.firstName?.toLowerCase().includes(searchLower) ||
-        appointment.staff?.lastName?.toLowerCase().includes(searchLower)
-      );
-    }
+    setFilteredAppointments(filtered);
+    setSearchLoading(false);
+  };
+
+  const handleFiltersChange = (filters: any) => {
+    setSearchFilters(filters);
+    setSearchLoading(true);
     
+    let filtered = appointments;
+    
+    // Apply status filter
     if (filters.status) {
       filtered = filtered.filter(appointment => appointment.status === filters.status);
     }
     
-    if (filters.staffId) {
-      filtered = filtered.filter(appointment => appointment.staffId.toString() === filters.staffId);
+    // Apply category filter
+    if (filters.category) {
+      filtered = filtered.filter(appointment => appointment.category === filters.category);
     }
     
-    if (filters.clientId) {
-      filtered = filtered.filter(appointment => 
-        appointment.case?.client && appointment.case.client.id?.toString() === filters.clientId
-      );
-    }
-    
-    if (filters.dateRange && filters.dateRange[0] && filters.dateRange[1]) {
-      const startDate = filters.dateRange[0].startOf('day');
-      const endDate = filters.dateRange[1].endOf('day');
+    // Apply date range filter
+    if (filters.dateRange && filters.dateRange.length === 2) {
+      const [startDate, endDate] = filters.dateRange;
       filtered = filtered.filter(appointment => {
-        const appointmentDate = dayjs(appointment.startTime);
+        const appointmentDate = dayjs(appointment.date);
         return appointmentDate.isBetween(startDate, endDate, 'day', '[]');
       });
     }
@@ -149,6 +175,7 @@ const AppointmentsPage = () => {
   };
 
   const handleClearSearch = () => {
+    setSearchFilters({});
     setFilteredAppointments(appointments);
   };
 
@@ -171,12 +198,22 @@ const AppointmentsPage = () => {
       render: (_: any, record: Appointment) =>
         record.case?.client
           ? `${record.case.client.firstName} ${record.case.client.lastName}`
-          : 'N/A',
+          : 'Cliente eliminado',
     },
     {
       title: 'Asunto',
       dataIndex: 'title',
       key: 'title',
+    },
+    {
+      title: 'Departamento',
+      key: 'department',
+      render: (_: any, record: Appointment) => record.case?.title ? mapCaseTypeToDepartment(record.case.title) : 'N/A',
+    },
+    {
+      title: 'Tipo de Caso',
+      key: 'caseType',
+      render: (_: any, record: Appointment) => record.case?.title || record.title || 'N/A',
     },
     {
       title: 'Fecha y Hora',
@@ -196,10 +233,14 @@ const AppointmentsPage = () => {
       dataIndex: 'status',
       key: 'status',
       render: (status: string) => {
-        let color = 'geekblue';
-        if (status === 'completed') color = 'green';
-        if (status === 'cancelled') color = 'volcano';
-        return <Tag color={color}>{status.toUpperCase()}</Tag>;
+        const MAP: Record<string, { label: string; color: string }> = {
+          confirmed: { label: 'Confirmada', color: 'green' }, // Green for Confirmado
+          pending: { label: 'Pendiente', color: 'gold' },     // Yellow for Pending
+          completed: { label: 'Completada', color: 'red' },   // Treat as closed outcome per request
+          cancelled: { label: 'Cancelada', color: 'red' },
+        };
+        const { label, color } = MAP[status] || { label: status, color: 'default' };
+        return <Tag color={color}>{label}</Tag>;
       },
     },
     {
@@ -209,8 +250,8 @@ const AppointmentsPage = () => {
         <span className="space-x-2">
           {/* IMPROVEMENT: Accessibility and role-based UI */}
           <Button aria-label="Editar Cita" icon={<EditOutlined />} onClick={() => handleEdit(record)} />
-          {/* Only admins can delete appointments */}
-          {userRole === 'admin' && (
+          {/* Admin and Office Manager can delete appointments */}
+          {(userRole === 'admin' || userRole === 'office_manager') && (
             <Popconfirm title="¿Está seguro de que desea eliminar esta cita?" onConfirm={() => handleDelete(record.id)}>
               <Button aria-label="Eliminar Cita" icon={<DeleteOutlined />} danger />
             </Popconfirm>
@@ -234,7 +275,7 @@ const AppointmentsPage = () => {
   const stats = getStatistics();
 
   // IMPROVEMENT: Role-based UI check
-  const canManageAppointments = userRole === 'admin' || userRole === 'receptionist';
+  const canManageAppointments = userRole === 'admin' || userRole === 'office_manager';
 
   return (
     <div>
@@ -246,6 +287,29 @@ const AppointmentsPage = () => {
             Programar Cita
           </Button>
         )}
+      </div>
+
+      {/* Department / Case Type Filters */}
+      <div className="mb-4">
+        <Space size="middle" wrap>
+          <Select
+            allowClear
+            placeholder="Filtrar por Departamento"
+            style={{ minWidth: 220 }}
+            value={deptFilter}
+            onChange={(v) => { setDeptFilter(v); handleFiltersChange({}); }}
+            options={DEPARTMENTS.map(d => ({ label: d, value: d }))}
+          />
+          <Select
+            allowClear
+            showSearch
+            placeholder="Filtrar por Tipo de Caso"
+            style={{ minWidth: 260 }}
+            value={caseTypeFilter}
+            onChange={(v) => { setCaseTypeFilter(v); handleFiltersChange({}); }}
+            options={CASE_TYPES.map(ct => ({ label: ct, value: ct }))}
+          />
+        </Space>
       </div>
 
       {/* Statistics Cards */}
@@ -304,10 +368,9 @@ const AppointmentsPage = () => {
       {/* Smart Search Bar */}
       <SmartSearchBar
         onSearch={handleSearch}
-        onClear={handleClearSearch}
-        staffList={staffList}
-        clientList={clientList}
-        loading={searchLoading}
+        onFiltersChange={handleFiltersChange}
+        placeholder="Buscar citas por título, caso o personal..."
+        showFilters={true}
       />
 
       <Spin spinning={loading}>
@@ -334,7 +397,7 @@ const AppointmentsPage = () => {
       <EditAppointmentModal
         visible={isEditModalVisible}
         appointment={editingAppointment}
-        onClose={() => {
+        onCancel={() => {
           setIsEditModalVisible(false);
           setEditingAppointment(null);
         }}

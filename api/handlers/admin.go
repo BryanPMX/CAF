@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/BryanPMX/CAF/api/models"
 	"github.com/gin-gonic/gin"
@@ -16,16 +17,21 @@ import (
 type CreateUserInput struct {
 	FirstName string `json:"firstName" binding:"required"`
 	LastName  string `json:"lastName" binding:"required"`
-	Email     string `json:"email" binding:"required,email"`
+	Email     string `json:"email" binding:"omitempty,email"`
 	Password  string `json:"password" binding:"required,min=8"`
 	Role      string `json:"role" binding:"required"`
 	OfficeID  *uint  `json:"officeId"`
 }
 
-// validRoles defines the list of roles an admin is permitted to create.
+// validRoles strictly limits roles allowed in the system
 var validRoles = map[string]bool{
-	"client": true, "receptionist": true, "lawyer": true, "psychologist": true,
-	"office_manager": true, "event_coordinator": true, "admin": true,
+	"admin":             true,
+	"lawyer":            true,
+	"office_manager":    true,
+	"psychologist":      true,
+	"client":            true,
+	"receptionist":      true,
+	"event_coordinator": true,
 }
 
 // CreateUser handles the creation of a new user by an administrator.
@@ -43,10 +49,31 @@ func CreateUser(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		// Enforce that all non-client users must be assigned to an office.
-		if input.Role != "client" && input.OfficeID == nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "An office must be assigned to all staff members."})
+		// Enforce that all non-client users must be assigned to an office, except admins.
+		if input.Role != "client" && input.Role != "admin" && input.OfficeID == nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "An office must be assigned to all staff members (admins are exempt)."})
 			return
+		}
+
+		// For employees (non-clients), auto-generate corporate email if missing
+		if input.Role != "client" && strings.TrimSpace(input.Email) == "" {
+			if strings.TrimSpace(input.FirstName) == "" || strings.TrimSpace(input.LastName) == "" {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "First name and last name are required to generate email."})
+				return
+			}
+			base := generateCorpEmailLocalPart(input.FirstName, input.LastName)
+			domain := "@caf.org"
+			email := base + domain
+			suffix := 1
+			for {
+				var exists models.User
+				if err := db.Unscoped().Where("email = ?", email).First(&exists).Error; err == gorm.ErrRecordNotFound {
+					break
+				}
+				email = base + strconv.Itoa(suffix) + domain
+				suffix++
+			}
+			input.Email = email
 		}
 
 		// Securely hash the temporary password.
@@ -103,16 +130,97 @@ func CreateUser(db *gorm.DB) gin.HandlerFunc {
 	}
 }
 
+// generateCorpEmailLocalPart builds a normalized local-part like jsmith from first/last names
+func generateCorpEmailLocalPart(firstName, lastName string) string {
+	fn := strings.TrimSpace(firstName)
+	ln := strings.TrimSpace(lastName)
+	local := ""
+	if fn != "" {
+		r := []rune(fn)
+		if len(r) > 0 {
+			local += strings.ToLower(string(r[0]))
+		}
+	}
+	for _, ch := range ln {
+		if (ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9') {
+			local += strings.ToLower(string(ch))
+		}
+	}
+	if local == "" {
+		local = "user"
+	}
+	return local
+}
+
 // GetUsers retrieves a list of all users in the system.
 func GetUsers(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var users []models.User
+		// Initialize with empty slice to prevent null JSON response
+		users := make([]models.User, 0)
 		query := db.Preload("Office").Order("created_at desc")
+		countQ := db.Model(&models.User{})
+
+		// Restrict to requester's office for non-admin roles when office scope is available
+		if roleVal, exists := c.Get("userRole"); exists {
+			if role, ok := roleVal.(string); ok && role != "admin" {
+				if officeScopeVal, ok2 := c.Get("officeScopeID"); ok2 {
+					if officeID, ok3 := officeScopeVal.(uint); ok3 {
+						query = query.Where("office_id = ?", officeID)
+						countQ = countQ.Where("office_id = ?", officeID)
+					}
+				}
+			}
+		}
 
 		// Filter by role if specified
 		if role := c.Query("role"); role != "" {
 			query = query.Where("role = ?", role)
+			countQ = countQ.Where("role = ?", role)
 		}
+
+		// Optional filter by officeId (primarily for admin; for non-admin it will still remain within their scoped office)
+		if officeIDParam := c.Query("officeId"); officeIDParam != "" {
+			if officeIDUint, err := strconv.ParseUint(officeIDParam, 10, 32); err == nil && officeIDUint > 0 {
+				query = query.Where("office_id = ?", uint(officeIDUint))
+				countQ = countQ.Where("office_id = ?", uint(officeIDUint))
+			}
+		}
+
+		// Optional activity filter: active (last_login within 24h), inactive (last_login null or >30d)
+		if activity := c.Query("activity"); activity != "" {
+			now := time.Now()
+			switch strings.ToLower(activity) {
+			case "active":
+				query = query.Where("last_login > ?", now.Add(-24*time.Hour))
+				countQ = countQ.Where("last_login > ?", now.Add(-24*time.Hour))
+			case "inactive":
+				query = query.Where("last_login IS NULL OR last_login <= ?", now.Add(-30*24*time.Hour))
+				countQ = countQ.Where("last_login IS NULL OR last_login <= ?", now.Add(-30*24*time.Hour))
+			}
+		}
+
+		// Optional free-text search
+		if q := strings.TrimSpace(c.Query("q")); q != "" {
+			like := "%" + strings.ToLower(q) + "%"
+			query = query.Where("LOWER(first_name || ' ' || last_name) LIKE ? OR LOWER(email) LIKE ?", like, like)
+			countQ = countQ.Where("LOWER(first_name || ' ' || last_name) LIKE ? OR LOWER(email) LIKE ?", like, like)
+		}
+
+		// Pagination
+		page := 1
+		pageSize := 20
+		if p := c.Query("page"); p != "" {
+			if pv, err := strconv.Atoi(p); err == nil && pv > 0 {
+				page = pv
+			}
+		}
+		if ps := c.Query("pageSize"); ps != "" {
+			if psv, err := strconv.Atoi(ps); err == nil && psv > 0 && psv <= 200 {
+				pageSize = psv
+			}
+		}
+		offset := (page - 1) * pageSize
+		query = query.Offset(offset).Limit(pageSize)
 
 		// Apply limit if specified (for recent clients)
 		if limit := c.Query("limit"); limit != "" {
@@ -121,16 +229,27 @@ func GetUsers(db *gorm.DB) gin.HandlerFunc {
 			}
 		}
 
-		if err := query.Find(&users).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve users"})
+		var total int64
+		if err := countQ.Count(&total).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to count users."})
 			return
 		}
-		c.JSON(http.StatusOK, users)
+
+		if err := query.Find(&users).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch users."})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"users":    users,
+			"total":    total,
+			"page":     page,
+			"pageSize": pageSize,
+		})
 	}
 }
 
 // UpdateUserInput defines the structure for updating a user's details.
-// Password is intentionally omitted; password resets should be a separate, secure process.
 type UpdateUserInput struct {
 	FirstName string `json:"firstName" binding:"required"`
 	LastName  string `json:"lastName" binding:"required"`
@@ -161,7 +280,7 @@ func UpdateUser(db *gorm.DB) gin.HandlerFunc {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid role specified."})
 			return
 		}
-		if input.Role != "client" && input.OfficeID == nil {
+		if input.Role != "client" && input.Role != "admin" && input.OfficeID == nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "An office must be assigned to all staff members."})
 			return
 		}
@@ -198,28 +317,13 @@ func DeleteUser(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var user models.User
 		if err := db.Where("id = ?", c.Param("id")).First(&user).Error; err != nil {
-			c.JSON(http.StatusNotFound, gin.H{"error": "User not found."})
+			c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
 			return
 		}
-
-		// Check if this is the admin user (prevent deleting the last admin)
-		if user.Role == "admin" {
-			var adminCount int64
-			db.Model(&models.User{}).Where("role = ? AND deleted_at IS NULL", "admin").Count(&adminCount)
-			if adminCount <= 1 {
-				c.JSON(http.StatusForbidden, gin.H{"error": "Cannot delete the last admin user."})
-				return
-			}
-		}
-
-		// GORM's Delete method automatically performs a soft delete
-		// because the User model has a `gorm.DeletedAt` field.
 		if err := db.Delete(&user).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete user."})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete user"})
 			return
 		}
-
-		// A 204 No Content response is standard for a successful deletion.
 		c.Status(http.StatusNoContent)
 	}
 }
@@ -234,7 +338,8 @@ func SearchClients(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		var clients []models.User
+		// Initialize with empty slice to prevent null JSON response
+		clients := make([]models.User, 0)
 		// Search for clients where the name or email contains the query text.
 		searchPattern := "%" + strings.ToLower(query) + "%"
 		db.Where("role = ? AND (LOWER(first_name || ' ' || last_name) LIKE ? OR LOWER(email) LIKE ?)", "client", searchPattern, searchPattern).

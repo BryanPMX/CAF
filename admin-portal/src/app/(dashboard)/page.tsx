@@ -1,10 +1,14 @@
 // admin-portal/src/app/(dashboard)/page.tsx
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Card, Col, Row, Statistic, Spin, message } from 'antd';
-import { ScheduleOutlined, FolderOpenOutlined, TeamOutlined, CheckCircleOutlined } from '@ant-design/icons';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
+import { Card, Col, Row, Statistic, Spin, message, Button, Space } from 'antd';
+import { ScheduleOutlined, FolderOpenOutlined, TeamOutlined, CheckCircleOutlined, PlusOutlined, BellOutlined } from '@ant-design/icons';
 import { apiClient } from '../lib/api';
+
+// Lazy load heavy components
+const AnnouncementsPanel = lazy(() => import('./components/AnnouncementsPanel'));
+const AdminAnnouncementsManager = lazy(() => import('./components/AdminAnnouncementsManager'));
 
 // --- TypeScript Interfaces for Data Structures ---
 interface DashboardSummary {
@@ -39,7 +43,7 @@ const AdminDashboard: React.FC<{ data: DashboardSummary }> = ({ data }) => (
 );
 
 const StaffDashboard: React.FC<{ data: DashboardSummary }> = ({ data }) => (
-   <Row gutter={[24, 24]}>
+  <Row gutter={[24, 24]}>
     <Col xs={24} sm={12} lg={8}>
       <Card hoverable>
         <Statistic title="Mis Próximas Citas" value={data.myUpcomingAppointments} prefix={<ScheduleOutlined />} />
@@ -50,12 +54,19 @@ const StaffDashboard: React.FC<{ data: DashboardSummary }> = ({ data }) => (
         <Statistic title="Mis Casos Activos" value={data.myOpenCases} prefix={<FolderOpenOutlined />} />
       </Card>
     </Col>
-     <Col xs={24} sm={12} lg={8}>
+    <Col xs={24} sm={12} lg={8}>
       <Card hoverable>
         <Statistic title="Mis Tareas Pendientes" value={data.myPendingTasks} prefix={<CheckCircleOutlined />} />
       </Card>
     </Col>
   </Row>
+);
+
+// Loading component for lazy-loaded sections
+const SectionLoading = () => (
+  <div className="flex justify-center items-center h-32">
+    <Spin size="large" tip="Cargando sección..." />
+  </div>
 );
 
 // --- Main Page Component ---
@@ -71,22 +82,49 @@ const TrueDashboardPage = () => {
     const fetchDashboardData = async () => {
       try {
         setLoading(true);
-        // UPDATED: This now calls the real API endpoint we created.
-        const response = await apiClient.get('/admin/dashboard-summary');
+        
+        // Wait a bit to ensure token is properly set after login
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Verify token is available before making API calls
+        const token = localStorage.getItem('authToken');
+        if (!token) {
+          console.warn('No auth token available, skipping dashboard data fetch');
+          setLoading(false);
+          return;
+        }
+        
+        // Call the universal dashboard endpoint (available to all roles)
+        const response = await apiClient.get('/dashboard-summary');
         setSummaryData(response.data);
-      } catch (error) {
+      } catch (error: any) {
+        console.error('Dashboard data fetch error:', error);
+        
+        // If it's a 401 error, try again after a short delay (token might not be ready)
+        if (error?.response?.status === 401) {
+          console.log('Retrying dashboard data fetch after 401 error...');
+          setTimeout(async () => {
+            try {
+              const retryResponse = await apiClient.get('/dashboard-summary');
+              setSummaryData(retryResponse.data);
+            } catch (retryError) {
+              console.error('Retry failed:', retryError);
+              message.error('No se pudo cargar el resumen del dashboard.');
+            } finally {
+              setLoading(false);
+            }
+          }, 500);
+          return;
+        }
+        
         message.error('No se pudo cargar el resumen del dashboard.');
       } finally {
         setLoading(false);
       }
     };
 
-    // Only fetch data if a user role is confirmed.
-    if (role) {
-      fetchDashboardData();
-    } else {
-      setLoading(false);
-    }
+    // Fetch data regardless of role - the API will handle permissions
+    fetchDashboardData();
   }, []);
 
   if (loading) {
@@ -95,10 +133,57 @@ const TrueDashboardPage = () => {
 
   return (
     <div>
-      <h1 className="text-3xl font-bold mb-6">Dashboard</h1>
-      {/* Conditionally render the correct dashboard based on the user's role */}
-      {userRole === 'admin' && summaryData && <AdminDashboard data={summaryData} />}
-      {userRole !== 'admin' && summaryData && <StaffDashboard data={summaryData} />}
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold text-gray-800">Dashboard</h1>
+        <Space>
+          <Button 
+            type="primary" 
+            icon={<PlusOutlined />} 
+            onClick={() => window.location.href = '/app/appointments'}
+            style={{ 
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              border: 'none',
+              borderRadius: '8px',
+              boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)'
+            }}
+          >
+            Nueva Cita
+          </Button>
+        </Space>
+      </div>
+
+      {/* Statistics Cards */}
+      <div className="mb-8">
+        {userRole === 'admin' || userRole === 'office_manager' ? (
+          <AdminDashboard data={summaryData || {}} />
+        ) : userRole ? (
+          <StaffDashboard data={summaryData || {}} />
+        ) : (
+          <div className="flex justify-center items-center h-32">
+            <Spin size="large" tip="Cargando dashboard..." />
+          </div>
+        )}
+      </div>
+
+      {/* Lazy-loaded sections */}
+      <Row gutter={[24, 24]}>
+        <Col xs={24} lg={12}>
+          <Card title="Anuncios Recientes" className="h-full">
+            <Suspense fallback={<SectionLoading />}>
+              <AnnouncementsPanel />
+            </Suspense>
+          </Card>
+        </Col>
+        <Col xs={24} lg={12}>
+          {(userRole === 'admin' || userRole === 'office_manager') && (
+            <Card title="Gestión de Anuncios" className="h-full">
+              <Suspense fallback={<SectionLoading />}>
+                <AdminAnnouncementsManager />
+              </Suspense>
+            </Card>
+          )}
+        </Col>
+      </Row>
     </div>
   );
 };

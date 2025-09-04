@@ -42,9 +42,13 @@ const TaskModal: React.FC<TaskModalProps> = ({ visible, caseId, onClose, onSucce
       const fetchStaff = async () => {
         try {
           const response = await apiClient.get('/admin/users');
-          const staff = response.data.filter((user: any) => user.role !== 'client');
+          // The API returns { users: [...], total: ..., page: ..., pageSize: ... }
+          const users = response.data.users || response.data;
+          const staff = users.filter((user: any) => user.role !== 'client');
+          // Staff data loaded successfully
           setStaffList(staff);
         } catch (error) {
+          console.error('Error fetching staff:', error); // Debug log
           message.error('No se pudo cargar la lista de personal.');
         }
       };
@@ -78,6 +82,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ visible, caseId, onClose, onSucce
 
       // Prepare the data payload for the API
       const payload = {
+        caseId: parseInt(caseId), // Add the missing caseId
         title: values.title,
         assignedToId: values.assignedToId,
         status: values.status || 'pending', // Default to 'pending' if creating
@@ -87,6 +92,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ visible, caseId, onClose, onSucce
       if (isEditing) {
         await apiClient.patch(`/admin/tasks/${task.id}`, payload);
       } else {
+        // Task creation initiated
         await apiClient.post(`/admin/cases/${caseId}/tasks`, payload);
       }
 

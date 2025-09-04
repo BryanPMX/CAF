@@ -2,15 +2,32 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Modal, Form, Input, Button, message, Select, DatePicker, Radio, AutoComplete, Steps, Spin } from 'antd';
+import { Modal, Form, Input, Button, message, Select, DatePicker, Radio, AutoComplete, Steps, Spin, Typography } from 'antd';
 import { apiClient } from '../../lib/api';
+import { CASE_TYPES, findDepartmentByCaseType } from '../../lib/caseTaxonomy';
 import dayjs from 'dayjs';
 
 const { Option } = Select;
+const { Text } = Typography;
+
+// Spanish role labels for staff members
+const ROLE_LABELS: { [key: string]: string } = {
+  'admin': 'Administrador',
+  'lawyer': 'Abogado',
+  'attorney': 'Abogado',
+  'senior_attorney': 'Abogado Senior',
+  'paralegal': 'Paralegal',
+  'associate': 'Asociado',
+  'psychologist': 'Psicólogo',
+  'social_worker': 'Trabajador Social',
+  'receptionist': 'Recepcionista',
+  'staff': 'Personal',
+  'office_manager': 'Gerente de Oficina',
+};
 
 // --- TypeScript Interfaces for data clarity ---
 interface Case { id: number; title: string; }
-interface StaffMember { id: number; firstName: string; lastName: string; role: string; }
+interface StaffMember { id: number; firstName: string; lastName: string; role: string; department?: string; email: string; }
 interface Office { id: number; name: string; }
 interface ClientSearchResult { value: string; label: string; key: number; }
 
@@ -26,6 +43,8 @@ interface AppointmentModalProps {
 
 const AppointmentModal: React.FC<AppointmentModalProps> = ({ visible, onClose, onSuccess, existingAppointment }) => {
   const [form] = Form.useForm();
+  const watchedClientId = Form.useWatch('clientId', form);
+  const watchedDepartment = Form.useWatch('department', form);
   const [loading, setLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   
@@ -40,7 +59,8 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ visible, onClose, o
   // --- State for user selections and filtering ---
   const [clientMode, setClientMode] = useState('existing');
   const [caseMode, setCaseMode] = useState('existing');
-  const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
+  const [selectedClientLabel, setSelectedClientLabel] = useState<string>('');
+  const [clientInputValue, setClientInputValue] = useState<string>('');
   const [selectedCaseCategory, setSelectedCaseCategory] = useState<string | null>(null);
 
   // Fetch initial data (staff, offices) for the dropdowns when the modal opens
@@ -48,11 +68,17 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ visible, onClose, o
     if (visible) {
       const fetchData = async () => {
         try {
+          const role = typeof window !== 'undefined' ? localStorage.getItem('userRole') : 'admin';
+          const base = role === 'office_manager' ? '/manager' : '/admin';
           const [staffRes, officesRes] = await Promise.all([
-            apiClient.get('/admin/users'),
-            apiClient.get('/admin/offices'),
+            apiClient.get(`${base}/users`),
+            apiClient.get('/offices'),
           ]);
-          setStaffList(staffRes.data.filter((user: any) => user.role !== 'client'));
+          const staffPayload = Array.isArray(staffRes.data)
+            ? staffRes.data
+            : (staffRes.data?.users || []);
+          const filteredStaff = staffPayload.filter((user: any) => user.role !== 'client');
+          setStaffList(filteredStaff);
           setOffices(officesRes.data);
         } catch (error) { message.error('No se pudieron cargar los datos necesarios.'); }
       };
@@ -62,33 +88,54 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ visible, onClose, o
       setCurrentStep(0);
       setClientMode('existing');
       setCaseMode('existing');
-      setSelectedClientId(null);
+      setSelectedClientLabel('');
+      setClientInputValue('');
       setSelectedCaseCategory(null);
+      setCases([]);
       form.resetFields();
+
+      // Prefill office for office managers (and any user with stored office)
+      if (typeof window !== 'undefined') {
+        const officeId = localStorage.getItem('userOfficeId');
+        if (officeId) {
+          form.setFieldsValue({ officeId: Number(officeId) });
+        }
+      }
 
       // If we have an existing appointment, pre-select the client and case
       if (existingAppointment) {
-        setSelectedClientId(existingAppointment.clientId);
+        form.setFieldsValue({ clientId: existingAppointment.clientId });
         setCurrentStep(2); // Skip to appointment details
       }
     }
-  }, [visible, form]);
+  }, [visible, form, existingAppointment]);
 
-  // Fetch a client's existing cases when a client is selected from the search
+  // Fetch a client's existing cases whenever clientId changes
   useEffect(() => {
-    if (selectedClientId) {
-      const fetchClientCases = async () => {
+    const clientId = watchedClientId as number | undefined;
+    if (clientId) {
+      (async () => {
         try {
-          const response = await apiClient.get(`/admin/clients/${selectedClientId}/cases`);
-          setCases(response.data || []);
-        } catch (error) { message.error("No se pudieron cargar los casos de este cliente."); }
-      };
-      fetchClientCases();
+          const role = typeof window !== 'undefined' ? localStorage.getItem('userRole') : 'admin';
+          const base = role === 'office_manager' ? '/manager' : '/admin';
+          const response = await apiClient.get(`${base}/clients/${clientId}/cases`);
+          const data = response.data;
+          const list = Array.isArray(data) ? data : (data?.cases || []);
+          setCases(list);
+        } catch (error) {
+          message.error('No se pudieron cargar los casos de este cliente.');
+          setCases([]);
+        }
+      })();
+    } else {
+      setCases([]);
+      form.setFieldsValue({ caseId: undefined });
     }
-  }, [selectedClientId]);
+  }, [watchedClientId, form]);
 
   // Handle live searching for clients as the user types
   const handleClientSearch = async (searchText: string) => {
+    setClientInputValue(searchText);
     if (!searchText || searchText.length < 2) { 
       setClientOptions(recentClients); 
       return; 
@@ -96,7 +143,9 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ visible, onClose, o
     
     setIsSearching(true);
     try {
-      const response = await apiClient.get(`/admin/users/search?q=${searchText}`);
+      const role = typeof window !== 'undefined' ? localStorage.getItem('userRole') : 'admin';
+      const base = role === 'office_manager' ? '/manager' : '/admin';
+      const response = await apiClient.get(`${base}/users/search?q=${searchText}`);
       const formattedOptions = response.data.map((client: any) => ({
         value: `${client.firstName} ${client.lastName} (${client.email})`,
         label: `${client.firstName} ${client.lastName} (${client.email})`,
@@ -104,7 +153,7 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ visible, onClose, o
       }));
       setClientOptions(formattedOptions);
     } catch (error) { 
-      console.error("Client search failed:", error);
+      console.error('Client search failed:', error);
       message.error('Error al buscar clientes');
     } finally {
       setIsSearching(false);
@@ -114,8 +163,13 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ visible, onClose, o
   // Load recent clients on modal open
   const loadRecentClients = async () => {
     try {
-      const response = await apiClient.get('/admin/users?limit=10&role=client');
-      const formattedOptions = response.data.map((client: any) => ({
+      const role = typeof window !== 'undefined' ? localStorage.getItem('userRole') : 'admin';
+      const base = role === 'office_manager' ? '/manager' : '/admin';
+      const response = await apiClient.get(`${base}/users?limit=10&role=client`);
+      const recentClientsPayload = Array.isArray(response.data)
+        ? response.data
+        : (response.data?.users || []);
+      const formattedOptions = recentClientsPayload.map((client: any) => ({
         value: `${client.firstName} ${client.lastName} (${client.email})`,
         label: `${client.firstName} ${client.lastName} (${client.email})`,
         key: client.id,
@@ -123,32 +177,76 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ visible, onClose, o
       setRecentClients(formattedOptions);
       setClientOptions(formattedOptions);
     } catch (error) {
-      console.error("Failed to load recent clients:", error);
+      console.error('Failed to load recent clients:', error);
     }
   };
 
   const handleClientSelect = (value: string, option: any) => {
-    setSelectedClientId(option.key);
+    setSelectedClientLabel(value);
+    setClientInputValue(value);
+    form.setFieldsValue({ clientId: option.key, clientSearch: value });
+  };
+
+  const handleClientChange = (val: string) => {
+    setClientInputValue(val);
+    if (val !== selectedClientLabel) {
+      // User changed the text after selecting: clear the selected id
+      setSelectedClientLabel('');
+      form.setFieldsValue({ clientId: undefined });
+    }
+  };
+
+  const handleClientBlur = () => {
+    const clientId = form.getFieldValue('clientId');
+    if (clientMode === 'existing' && !clientId) {
+      form.setFields([
+        { name: 'clientSearch', errors: ['Debe seleccionar un cliente de la lista'] },
+      ]);
+    }
   };
 
   // Determines the case category from the title to enable staff filtering
   const handleCaseTitleChange = (value: string) => {
-    if (value.toLowerCase().includes('legal')) setSelectedCaseCategory('lawyer');
-    else if (value.toLowerCase().includes('psicológica')) setSelectedCaseCategory('psychologist');
-    else setSelectedCaseCategory('general');
-    form.setFieldsValue({ staffId: undefined });
+    // Use the shared case taxonomy to determine department
+    const department = findDepartmentByCaseType(value) || 'General';
+    // Automatically set the department based on case type selection
+    form.setFieldsValue({ department, staffId: undefined });
+    setSelectedCaseCategory(department);
   };
 
   // A memoized, filtered list of staff based on the selected case category
   const filteredStaffList = useMemo(() => {
-    if (!selectedCaseCategory || selectedCaseCategory === 'general') return staffList;
-    return staffList.filter(staff => staff.role === selectedCaseCategory || staff.role === 'admin');
-  }, [selectedCaseCategory, staffList]);
+    const categoryToUse = selectedCaseCategory || watchedDepartment;
+    
+    if (!categoryToUse || categoryToUse === 'General') return staffList;
+    
+    // Map case categories to staff roles and departments
+    const categoryStaffMapping: { [key: string]: string[] } = {
+      'Familiar': ['lawyer', 'attorney', 'senior_attorney', 'paralegal', 'associate'],
+      'Civil': ['lawyer', 'attorney', 'senior_attorney', 'paralegal', 'associate'],
+      'Psicologia': ['psychologist', 'social_worker'],
+      'Recursos': ['social_worker', 'receptionist'],
+    };
+    
+    const allowedRoles = categoryStaffMapping[categoryToUse] || [];
+    
+    // Admins should only appear for legal cases (Familiar, Civil), not for psychology cases
+    const isLegalCase = categoryToUse === 'Familiar' || categoryToUse === 'Civil';
+    
+    const filtered = staffList.filter(staff => {
+      const isAdmin = staff.role === 'admin' && isLegalCase; // Only show admins for legal cases
+      const hasAllowedRole = allowedRoles.includes(staff.role);
+      const hasMatchingDepartment = staff.department === categoryToUse;
+      
+      return isAdmin || hasAllowedRole || hasMatchingDepartment;
+    });
+    
+    return filtered;
+  }, [selectedCaseCategory, staffList, watchedDepartment]);
 
   // Handle the final submission of the multi-step form
   const handleOk = async () => {
     try {
-      // Validate only the fields that are currently visible
       const validationFields: string[] = ['staffId', 'title', 'startTime', 'endTime', 'status'];
       
       if (clientMode === 'existing') {
@@ -164,6 +262,10 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ visible, onClose, o
       }
       
       const values = await form.validateFields(validationFields);
+      const clientId = form.getFieldValue('clientId');
+      if (clientMode === 'existing' && !clientId) {
+        throw new Error('Por favor, seleccione un cliente de la lista.');
+      }
       setLoading(true);
       message.loading({ content: 'Guardando...', key: 'appt' });
 
@@ -175,9 +277,13 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ visible, onClose, o
         status: values.status,
       };
 
+      // Automatically include department for new cases
+      if (caseMode === 'new') {
+        payload.department = form.getFieldValue('department');
+      }
+
       if (clientMode === 'existing') {
-        if (!selectedClientId) throw new Error('Por favor, seleccione un cliente de la lista.');
-        payload.clientId = selectedClientId;
+        payload.clientId = clientId;
       } else {
         payload.newClient = { firstName: values.firstName, lastName: values.lastName, email: values.email };
       }
@@ -202,10 +308,9 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ visible, onClose, o
     }
   };
 
-  // Renders the appropriate form fields for the current step
   const renderStepContent = () => {
     switch (currentStep) {
-      case 0: // Step 1: Client Selection
+      case 0:
         return (
           <>
             <Form.Item label="Cliente">
@@ -215,33 +320,52 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ visible, onClose, o
               </Radio.Group>
             </Form.Item>
             {clientMode === 'existing' ? (
-              <Form.Item label="Buscar Cliente" name="clientSearch" rules={[{ required: true, message: "Debe seleccionar un cliente"}]}>
-                <AutoComplete 
-                  options={clientOptions} 
-                  onSelect={handleClientSelect} 
-                  onSearch={handleClientSearch} 
-                  placeholder="Escriba el nombre o correo del cliente..."
-                  notFoundContent={isSearching ? <Spin size="small" /> : "No se encontraron clientes"}
-                  showSearch
-                  filterOption={false}
-                  style={{ width: '100%' }}
-                />
-                {recentClients.length > 0 && (
-                  <div style={{ marginTop: 8, fontSize: '12px', color: '#666' }}>
-                    💡 Clientes recientes disponibles en el dropdown
+              <Form.Item label="Buscar Cliente" name="clientSearch" rules={[{ required: true, message: 'Debe seleccionar un cliente' }]}>
+                <>
+                  <Form.Item name="clientId" hidden>
+                    <Input type="hidden" />
+                  </Form.Item>
+                  <AutoComplete
+                    options={clientOptions}
+                    onSelect={handleClientSelect}
+                    onSearch={handleClientSearch}
+                    onBlur={handleClientBlur}
+                    value={clientInputValue}
+                    onChange={handleClientChange}
+                    placeholder="Escriba el nombre o correo del cliente..."
+                    notFoundContent={isSearching ? <Spin size="small" /> : 'No se encontraron clientes'}
+                    showSearch
+                    filterOption={false}
+                    style={{ width: '100%' }}
+                  />
+                  <div style={{ marginTop: 6 }}>
+                    <Text type={!form.getFieldValue('clientId') && clientMode === 'existing' ? 'danger' : 'secondary'}>
+                      {!form.getFieldValue('clientId') && clientMode === 'existing' ? 'Debe seleccionar un cliente de la lista' : 'Seleccione un cliente de la lista desplegable'}
+                    </Text>
                   </div>
-                )}
+                  {recentClients.length > 0 && (
+                    <div style={{ marginTop: 4, fontSize: '12px', color: '#666' }}>
+                      💡 Clientes recientes disponibles en el dropdown
+                    </div>
+                  )}
+                </>
               </Form.Item>
             ) : (
               <>
-                <Form.Item name="firstName" label="Nombre(s)" rules={[{ required: true }]}><Input /></Form.Item>
-                <Form.Item name="lastName" label="Apellidos" rules={[{ required: true }]}><Input /></Form.Item>
-                <Form.Item name="email" label="Correo" rules={[{ required: true, type: 'email' }]}><Input /></Form.Item>
+                <Form.Item name="firstName" label="Nombre(s)" rules={[{ required: true }]}>
+                  <Input />
+                </Form.Item>
+                <Form.Item name="lastName" label="Apellidos" rules={[{ required: true }]}>
+                  <Input />
+                </Form.Item>
+                <Form.Item name="email" label="Correo" rules={[{ required: true, type: 'email' }]}>
+                  <Input />
+                </Form.Item>
               </>
             )}
           </>
         );
-      case 1: // Step 2: Case Selection
+      case 1:
         return (
           <>
             <Form.Item label="Caso">
@@ -251,18 +375,28 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ visible, onClose, o
               </Radio.Group>
             </Form.Item>
             {caseMode === 'existing' ? (
-              <Form.Item name="caseId" label="Seleccionar Caso" rules={[{ required: true, message: "Debe seleccionar un caso" }]}>
-                <Select 
-                  placeholder="Seleccione un caso existente" 
+              <Form.Item name="caseId" label="Seleccionar Caso" rules={[{ required: true, message: 'Debe seleccionar un caso' }]}>
+                <Select
+                  placeholder="Seleccione un caso existente"
                   disabled={cases.length === 0}
                   showSearch
-                  filterOption={(input, option) =>
-                    (option?.children as unknown as string)?.toLowerCase().includes(input.toLowerCase())
-                  }
+                  filterOption={(input, option) => (option?.children as unknown as string)?.toLowerCase().includes(input.toLowerCase())}
+                  onChange={(caseId: number) => {
+                    const selected = (cases as any[]).find((c: any) => c.id === caseId);
+                    if (selected && selected.category) {
+                      form.setFieldsValue({ department: selected.category, staffId: undefined, category: undefined });
+                      setSelectedCaseCategory(selected.category);
+                      // Don't auto-fill category - let user choose
+                    }
+                  }}
                 >
-                  {cases.map(c => <Option key={c.id} value={c.id}>{c.title}</Option>)}
+                  {cases.map((c) => (
+                    <Option key={c.id} value={c.id}>
+                      {c.title}
+                    </Option>
+                  ))}
                 </Select>
-                {cases.length === 0 && selectedClientId && (
+                {cases.length === 0 && form.getFieldValue('clientId') && (
                   <div style={{ marginTop: 8, fontSize: '12px', color: '#666' }}>
                     ℹ️ Este cliente no tiene casos existentes. Seleccione "Caso Nuevo" para crear uno.
                   </div>
@@ -270,59 +404,76 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ visible, onClose, o
               </Form.Item>
             ) : (
               <>
-                <Form.Item name="newCaseTitle" label="Tipo de Caso" rules={[{ required: true, message: "Debe seleccionar el tipo de caso" }]}>
-                  <Select placeholder="Seleccione el tipo de caso" onChange={handleCaseTitleChange}>
-                    <Option value="Consulta Legal - Familiar">⚖️ Consulta Legal - Familiar</Option>
-                    <Option value="Consulta Psicológica - Individual">🧠 Consulta Psicológica - Individual</Option>
-                    <Option value="Asistencia Social - Recursos">🤝 Asistencia Social - Recursos</Option>
-                    <Option value="Otro">📋 Otro (Especifique en descripción)</Option>
+                <Form.Item name="newCaseTitle" label="Tipo de Caso" rules={[{ required: true, message: 'Debe seleccionar el tipo de caso' }]}>
+                  <Select placeholder="Seleccione el tipo de caso" onChange={handleCaseTitleChange} showSearch optionFilterProp="children">
+                    {Object.entries(CASE_TYPES).map(([dept, types]) => (
+                      <Select.OptGroup key={dept} label={dept}>
+                        {types.map((t) => (
+                          <Option key={t} value={t}>{t}</Option>
+                        ))}
+                      </Select.OptGroup>
+                    ))}
+                    <Select.OptGroup label="Otro">
+                      <Option value="Otro">Otro (Especifique en descripción)</Option>
+                    </Select.OptGroup>
                   </Select>
                 </Form.Item>
-                <Form.Item name="officeId" label="Oficina" rules={[{ required: true, message: "Debe seleccionar una oficina" }]}>
-                  <Select placeholder="Seleccione una oficina">
-                    {offices.map(o => <Option key={o.id} value={o.id}>{o.name}</Option>)}
+                <Form.Item name="department" hidden>
+                  <Input type="hidden" />
+                </Form.Item>
+                <Form.Item name="officeId" label="Oficina" rules={[{ required: true, message: 'Debe seleccionar una oficina' }]}>
+                  <Select
+                    placeholder="Seleccione una oficina"
+                    disabled={typeof window !== 'undefined' && localStorage.getItem('userRole') === 'office_manager'}
+                  >
+                    {offices && offices.length > 0 && offices.map((o) => (
+                      <Option key={o.id} value={o.id}>
+                        {o.name}
+                      </Option>
+                    ))}
+                    {typeof window !== 'undefined' && localStorage.getItem('userRole') === 'office_manager' && (() => {
+                      const officeId = localStorage.getItem('userOfficeId');
+                      return officeId ? <Option key={officeId} value={Number(officeId)}>Mi Oficina</Option> : null;
+                    })()}
                   </Select>
                 </Form.Item>
                 <Form.Item name="newCaseDescription" label="Descripción Adicional">
-                  <Input.TextArea 
-                    rows={3} 
-                    placeholder="Agregue detalles adicionales sobre el caso (opcional)"
-                  />
+                  <Input.TextArea rows={3} placeholder="Agregue detalles adicionales sobre el caso (opcional)" />
                 </Form.Item>
               </>
             )}
           </>
         );
-      case 2: // Step 3: Appointment Details
+      case 2:
         return (
           <>
-            <Form.Item name="title" label="Título de la Cita" rules={[{ required: true, message: "Debe ingresar un título para la cita" }]}>
+            <Form.Item name="title" label="Título de la Cita" rules={[{ required: true, message: 'Debe ingresar un título para la cita' }]}>
               <Input placeholder="Ej: Consulta inicial, Seguimiento, etc." />
             </Form.Item>
-            <Form.Item name="staffId" label="Asignar a" rules={[{ required: true, message: "Debe seleccionar un miembro del personal" }]}>
-              <Select 
+            <Form.Item name="staffId" label="Asignar a" rules={[{ required: true, message: 'Debe seleccionar un miembro del personal' }]}>
+              <Select
                 placeholder="Seleccione un miembro del personal"
                 showSearch
-                filterOption={(input, option) =>
-                  (option?.children as unknown as string)?.toLowerCase().includes(input.toLowerCase())
-                }
+                filterOption={(input, option) => (option?.children as unknown as string)?.toLowerCase().includes(input.toLowerCase())}
               >
-                {filteredStaffList.map(s => <Option key={s.id} value={s.id}>{`${s.firstName} ${s.lastName} (${s.role})`}</Option>)}
+                {filteredStaffList.map((s) => (
+                  <Option key={s.id} value={s.id}>{`${s.firstName} ${s.lastName} (${ROLE_LABELS[s.role] || s.role})`}</Option>
+                ))}
               </Select>
             </Form.Item>
-            <Form.Item name="startTime" label="Fecha y Hora de Inicio" rules={[{ required: true, message: "Debe seleccionar la fecha y hora de inicio" }]}>
-              <DatePicker 
-                showTime={{ format: 'HH:mm' }} 
-                format="DD/MM/YYYY HH:mm" 
+            <Form.Item name="startTime" label="Fecha y Hora de Inicio" rules={[{ required: true, message: 'Debe seleccionar la fecha y hora de inicio' }]}>
+              <DatePicker
+                showTime={{ format: 'HH:mm' }}
+                format="DD/MM/YYYY HH:mm"
                 style={{ width: '100%' }}
                 placeholder="Seleccione fecha y hora"
                 disabledDate={(current) => current && current < dayjs().startOf('day')}
               />
             </Form.Item>
-            <Form.Item name="endTime" label="Fecha y Hora de Fin" rules={[{ required: true, message: "Debe seleccionar la fecha y hora de fin" }]}>
-              <DatePicker 
-                showTime={{ format: 'HH:mm' }} 
-                format="DD/MM/YYYY HH:mm" 
+            <Form.Item name="endTime" label="Fecha y Hora de Fin" rules={[{ required: true, message: 'Debe seleccionar la fecha y hora de fin' }]}>
+              <DatePicker
+                showTime={{ format: 'HH:mm' }}
+                format="DD/MM/YYYY HH:mm"
                 style={{ width: '100%' }}
                 placeholder="Seleccione fecha y hora"
                 disabledDate={(current) => current && current < dayjs().startOf('day')}
@@ -342,6 +493,17 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ visible, onClose, o
     }
   };
 
+  const isNextDisabled = () => {
+    if (currentStep === 0 && clientMode === 'existing') {
+      return !form.getFieldValue('clientId');
+    }
+    if (currentStep === 1 && caseMode === 'existing') {
+      const caseId = form.getFieldValue('caseId');
+      return !caseId;
+    }
+    return false;
+  };
+
   return (
     <Modal
       title="Programar Cita"
@@ -352,15 +514,14 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ visible, onClose, o
         <div className="flex justify-between">
           <div>
             {currentStep > 0 && (
-              <Button onClick={() => setCurrentStep(currentStep - 1)}>
-                ← Anterior
-              </Button>
+              <Button onClick={() => setCurrentStep(currentStep - 1)}>← Anterior</Button>
             )}
           </div>
           <div className="space-x-2">
             {currentStep < 2 && (
-              <Button 
-                type="primary" 
+              <Button
+                type="primary"
+                disabled={isNextDisabled()}
                 onClick={() => {
                   const validationFields: string[] = [];
                   if (currentStep === 0) {
