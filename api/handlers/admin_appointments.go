@@ -74,21 +74,33 @@ func CreateAppointmentSmart(db *gorm.DB) gin.HandlerFunc {
 				// If client still not found, proceed without client
 			}
 		} else if input.NewClient != nil {
-			// Scenario: Create a new client.
-			tempPassword := "password123" // Placeholder password
-			hashedPassword, _ := bcrypt.GenerateFromPassword([]byte(tempPassword), bcrypt.DefaultCost)
-			client = models.User{
-				FirstName: input.NewClient.FirstName,
-				LastName:  input.NewClient.LastName,
-				Email:     input.NewClient.Email,
-				Password:  string(hashedPassword),
-				Role:      "client",
-			}
-			if err := db.Create(&client).Error; err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create new client. Email may be in use."})
+			// Scenario: Create a new client, but first check if one already exists with the same email.
+			var existingClient models.User
+			if err := db.Where("email = ? AND role = ?", input.NewClient.Email, "client").First(&existingClient).Error; err == nil {
+				// Client already exists, use the existing one
+				client = existingClient
+				hasClient = true
+			} else if err == gorm.ErrRecordNotFound {
+				// Client doesn't exist, create a new one
+				tempPassword := "password123" // Placeholder password
+				hashedPassword, _ := bcrypt.GenerateFromPassword([]byte(tempPassword), bcrypt.DefaultCost)
+				client = models.User{
+					FirstName: input.NewClient.FirstName,
+					LastName:  input.NewClient.LastName,
+					Email:     input.NewClient.Email,
+					Password:  string(hashedPassword),
+					Role:      "client",
+				}
+				if err := db.Create(&client).Error; err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create new client."})
+					return
+				}
+				hasClient = true
+			} else {
+				// Database error
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to check for existing client."})
 				return
 			}
-			hasClient = true
 		} else if input.CaseID != nil {
 			// No client provided, but an existing case might reference one. If not found, continue without client.
 			if err := db.First(&caseRecord, *input.CaseID).Error; err == nil && caseRecord.ClientID != nil {
@@ -222,6 +234,7 @@ func CreateAppointmentSmart(db *gorm.DB) gin.HandlerFunc {
 		appointment := models.Appointment{
 			CaseID:     caseRecord.ID,
 			StaffID:    input.StaffID,
+			OfficeID:   caseRecord.OfficeID, // Set the office ID from the case
 			Title:      input.Title,
 			StartTime:  input.StartTime,
 			EndTime:    input.EndTime,
@@ -294,10 +307,10 @@ func UpdateAppointmentAdmin(db *gorm.DB) gin.HandlerFunc {
 			if err := db.First(&caseRecord, appointment.CaseID).Error; err == nil && caseRecord.ClientID != nil {
 				// Format the appointment date and time
 				formattedDateTime := appointment.StartTime.Format("02/01/2006 a las 15:04")
-				
+
 				// Create notification message in Spanish
 				notificationMessage := "Su cita ha sido confirmada para el " + formattedDateTime + "."
-				
+
 				// Create link to the appointment
 				appointmentLink := "/app/appointments/" + strconv.FormatUint(uint64(appointment.ID), 10)
 
@@ -438,14 +451,14 @@ func GetClientCasesForAppointment(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		// Get all active cases for this client (exclude deleted/archived cases)
+		// Get all cases appropriate for appointment scheduling
 		// Initialize with empty slice to prevent null JSON response
 		cases := make([]models.Case, 0)
 		query := db.Model(&models.Case{}).
 			Where("client_id = ?", client.ID).
-			Where("deleted_at IS NULL").
-			Where("is_archived = ?", false).
-			Where("status != ?", "deleted").
+			Where("deleted_at IS NULL").                                  // Not soft-deleted
+			Where("is_archived = ?", false).                              // Not archived
+			Where("status NOT IN (?)", []string{"deleted", "cancelled"}). // Exclude deleted/cancelled, but allow closed/resolved cases
 			Order("created_at DESC")
 
 		if err := query.Find(&cases).Error; err != nil {
@@ -475,6 +488,11 @@ func GetClientCasesForAppointment(db *gorm.DB) gin.HandlerFunc {
 			},
 			"cases": caseOptions,
 			"count": len(caseOptions),
+			"debug": gin.H{
+				"clientId":        client.ID,
+				"query":           "client_id = " + clientIDStr + " AND deleted_at IS NULL AND is_archived = false AND status NOT IN ('deleted', 'cancelled')",
+				"totalCasesFound": len(cases),
+			},
 		})
 	}
 }

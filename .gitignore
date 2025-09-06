@@ -1,46 +1,52 @@
-# Environment variables
+# CAF System - Global .gitignore
+# This file defines what should be ignored across the entire project
+
+# === Compiled binaries and executables ===
+*.exe
+*.dll
+*.so
+*.dylib
+server
+api/server
+api/server.exe
+
+# === Build artifacts ===
+/build/
+/dist/
+/out/
+*.tsbuildinfo
+
+# === Log files ===
+*.log
+logs/
+*.log.*
+
+# === Environment and configuration ===
 .env
 .env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env.production
+.env.development
+*.env
 
-# Dependency directories
-node_modules/
-**/node_modules/
+# === Database files ===
+*.db
+*.sqlite
+*.sqlite3
 
-# Build outputs
-.next/
-**/.next/
-build/
-**/build/
-dist/
-**/dist/
-.svelte-kit/
-**/.svelte-kit/
+# === Temporary files ===
+tmp/
+temp/
+*.tmp
+*.temp
 
-# Flutter specific
-.dart_tool/
-**/.dart_tool/
-*.lock
-**/*.lock
-.flutter-plugins
-.flutter-plugins-dependencies
-
-# Log files
-*.log
-**/*.log
-flutter_*.log
-**/flutter_*.log
-
-# IDE and editor files
+# === IDE and editor files ===
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
 
-# OS generated files
+# === OS generated files ===
 .DS_Store
 .DS_Store?
 ._*
@@ -49,27 +55,33 @@ flutter_*.log
 ehthumbs.db
 Thumbs.db
 
-# Temporary files
-*.tmp
-*.temp
-*.cache
-**/.cache/
+# === Backup files ===
+*.bak
+*.backup
+*.orig
 
-# Downloaded archives
-*.tar.gz
-*.zip
-*.rar
+# === Cache directories ===
+.cache/
+cache/
 
-# Coverage reports
+# === Documentation build artifacts ===
+docs/_build/
+site/
+
+# === Test coverage ===
 coverage/
-**/coverage/
-*.lcov
+*.coverage
+.nyc_output/
 
-# Test outputs
-test-results/
-**/test-results/
+# === Package manager files ===
+package-lock.json.bak
+yarn-error.log
 
-# Package manager files (keep package-lock.json and pubspec.lock for dependency resolution)
-# package-lock.json
-# pubspec.lock
-
+# === Security and sensitive files ===
+*.key
+*.pem
+*.p12
+*.p8
+*.crt
+*.cer
+secrets/

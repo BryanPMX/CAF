@@ -1,4 +1,4 @@
-// admin-portal/src/app/lib/test-config.tsx
+// admin-portal/src/app/lib/testConfig.tsx
 'use client';
 
 import { useEffect } from 'react';

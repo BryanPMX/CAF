@@ -1,8 +1,8 @@
--- Migration: 001_initial_schema.sql
+-- Migration: 0001_initial_schema.sql
 -- Description: Initial database schema setup for CAF System
--- Date: 2025-09-03
+-- Date: 2025-01-27 (Renamed for consistency)
 -- Author: CAF System Team
--- Version: 3.0 - Fully Synchronized with GORM models
+-- Version: 3.1 - Fully Synchronized with GORM models (Renamed from 001 to 0001 for consistency)
 
 -- Drop existing tables if they exist (for clean migration)
 DROP TABLE IF EXISTS therapist_capacity CASCADE;
@@ -160,12 +160,18 @@ CREATE TABLE IF NOT EXISTS task_comments (
 );
 
 -- Create case_events table (Fully Synchronized with CaseEvent model)
+-- NOTE: This includes the missing columns that were causing runtime errors
 CREATE TABLE IF NOT EXISTS case_events (
     id SERIAL PRIMARY KEY,
     case_id INTEGER NOT NULL REFERENCES cases(id),
     user_id INTEGER NOT NULL REFERENCES users(id),
     event_type VARCHAR(100) NOT NULL,
+    visibility VARCHAR(50) DEFAULT 'internal',
+    comment_text TEXT,
     description TEXT,
+    file_name VARCHAR(255),
+    file_url VARCHAR(512),
+    file_type VARCHAR(100),
     metadata JSONB,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -199,11 +205,10 @@ CREATE TABLE IF NOT EXISTS audit_logs (
 CREATE TABLE IF NOT EXISTS notifications (
     id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL REFERENCES users(id),
-    title VARCHAR(255) NOT NULL,
     message TEXT NOT NULL,
-    type VARCHAR(50) DEFAULT 'info',
     is_read BOOLEAN DEFAULT FALSE,
-    read_at TIMESTAMP,
+    link VARCHAR(500),
+    type VARCHAR(50) DEFAULT 'info',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP
@@ -346,9 +351,12 @@ CREATE INDEX IF NOT EXISTS idx_task_comments_task_id ON task_comments(task_id);
 CREATE INDEX IF NOT EXISTS idx_task_comments_user_id ON task_comments(user_id);
 CREATE INDEX IF NOT EXISTS idx_task_comments_created_at ON task_comments(created_at);
 
+-- Enhanced indexes for case_events with new columns
 CREATE INDEX IF NOT EXISTS idx_case_events_case_id ON case_events(case_id);
 CREATE INDEX IF NOT EXISTS idx_case_events_user_id ON case_events(user_id);
 CREATE INDEX IF NOT EXISTS idx_case_events_event_type ON case_events(event_type);
+CREATE INDEX IF NOT EXISTS idx_case_events_visibility ON case_events(visibility);
+CREATE INDEX IF NOT EXISTS idx_case_events_file_type ON case_events(file_type);
 CREATE INDEX IF NOT EXISTS idx_case_events_created_at ON case_events(created_at);
 
 CREATE INDEX IF NOT EXISTS idx_audit_logs_entity_type ON audit_logs(entity_type);
@@ -464,11 +472,17 @@ INSERT INTO audit_logs (
     reason, tags, severity, created_at
 ) VALUES (
     'system', 0, 'migration', 1, 'admin',
-    'Database migration: Initial schema setup (v3.0) - Fully synchronized with GORM models',
-    ARRAY['migration', 'system', 'initial_setup', 'schema_sync', 'gorm_sync'], 'info', CURRENT_TIMESTAMP
+    'Database migration: Initial schema setup (v3.1) - Renamed for consistency, includes case_events missing columns fix',
+    ARRAY['migration', 'system', 'initial_setup', 'schema_sync', 'gorm_sync', 'naming_consistency'], 'info', CURRENT_TIMESTAMP
 );
 
 -- Update existing cases to set created_by if not set
 UPDATE cases
 SET created_by = 1, updated_by = 1
 WHERE created_by IS NULL;
+
+-- Success notification (must be in DO block)
+DO $$
+BEGIN
+    RAISE NOTICE '✓ Migration 0001_initial_schema completed successfully (renamed for consistency)';
+END $$;

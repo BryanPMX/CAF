@@ -1,0 +1,34 @@
+# API-specific .gitignore
+
+# === Go compiled binaries ===
+server
+server.exe
+*.exe
+main
+main.exe
+
+# === Go build cache ===
+go.sum.bak
+
+# === Go modules cache ===
+vendor/
+
+# === Go test files ===
+*.test
+*.prof
+
+# === Configuration files ===
+config.local.yaml
+config.production.yaml
+
+# === Database migration backups ===
+migrations/*.backup
+db/migrations/*.backup
+
+# === Log files ===
+*.log
+logs/
+
+# === Temporary files ===
+tmp/
+temp/

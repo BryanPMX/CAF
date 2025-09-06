@@ -118,12 +118,36 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ visible, onClose, o
         try {
           const role = typeof window !== 'undefined' ? localStorage.getItem('userRole') : 'admin';
           const base = role === 'office_manager' ? '/manager' : '/admin';
-          const response = await apiClient.get(`${base}/clients/${clientId}/cases`);
+          
+          console.log(`🔍 Fetching cases for client ${clientId} from: ${base}/clients/${clientId}/cases-for-appointment`);
+          
+          const response = await apiClient.get(`${base}/clients/${clientId}/cases-for-appointment`);
           const data = response.data;
+          
+          console.log('📋 Cases API response:', data);
+          
           const list = Array.isArray(data) ? data : (data?.cases || []);
           setCases(list);
-        } catch (error) {
-          message.error('No se pudieron cargar los casos de este cliente.');
+          
+          // Enhanced debugging information
+          if (data?.debug) {
+            console.log('🔍 Debug info:', data.debug);
+          }
+          
+          if (list.length === 0) {
+            console.log('⚠️ No cases found for this client');
+            console.log('🔍 Possible reasons: cases may be archived, deleted, or cancelled');
+            message.info({
+              content: 'Este cliente no tiene casos activos disponibles para citas. Puede crear un caso nuevo.',
+              duration: 5
+            });
+          } else {
+            console.log(`✅ Found ${list.length} cases for client:`, list.map(c => ({ id: c.id, title: c.title, status: c.status })));
+          }
+        } catch (error: any) {
+          console.error('❌ Error fetching client cases:', error);
+          const errorMessage = error.response?.data?.error || error.message || 'Error desconocido';
+          message.error(`No se pudieron cargar los casos: ${errorMessage}`);
           setCases([]);
         }
       })();
@@ -397,8 +421,20 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ visible, onClose, o
                   ))}
                 </Select>
                 {cases.length === 0 && form.getFieldValue('clientId') && (
-                  <div style={{ marginTop: 8, fontSize: '12px', color: '#666' }}>
-                    ℹ️ Este cliente no tiene casos existentes. Seleccione "Caso Nuevo" para crear uno.
+                  <div style={{ marginTop: 8, padding: '12px', backgroundColor: '#fff3cd', border: '1px solid #ffeaa7', borderRadius: '6px' }}>
+                    <div style={{ fontSize: '13px', color: '#856404', fontWeight: '600', marginBottom: '6px' }}>
+                      ⚠️ No se encontraron casos activos para este cliente
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#6c757d', marginBottom: '8px' }}>
+                      Los casos existentes pueden estar archivados, completados o cancelados.
+                    </div>
+                    <div style={{ fontSize: '11px', color: '#495057' }}>
+                      <strong>Opciones disponibles:</strong>
+                      <br />
+                      • Seleccione "Caso Nuevo" para crear un caso fresco
+                      <br />
+                      • Verifique en la sección de Casos si existen casos archivados
+                    </div>
                   </div>
                 )}
               </Form.Item>

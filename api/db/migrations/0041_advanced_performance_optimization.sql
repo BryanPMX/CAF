@@ -1,5 +1,8 @@
--- Migration 006: Advanced Performance Optimization
--- This migration adds comprehensive performance optimizations for the CAF system
+-- Migration: 0041_advanced_performance_optimization.sql
+-- Description: Advanced Performance Optimization - Comprehensive indexes and performance enhancements
+-- Date: 2025-01-27
+-- Author: CAF System Team
+-- Version: 1.0 - Migrated from legacy migrations directory
 
 -- 1. Advanced Composite Indexes for Common Query Patterns
 CREATE INDEX IF NOT EXISTS idx_cases_performance_main ON cases(office_id, category, status, is_archived, deleted_at) 
@@ -17,7 +20,6 @@ WHERE deleted_at IS NULL;
 CREATE INDEX IF NOT EXISTS idx_cases_active ON cases(id, title, category, current_stage) 
 WHERE deleted_at IS NULL AND is_archived = false AND status != 'deleted';
 
--- Remove problematic WHERE clause with CURRENT_DATE
 CREATE INDEX IF NOT EXISTS idx_appointments_upcoming ON appointments(id, title, start_time, staff_id) 
 WHERE deleted_at IS NULL;
 
@@ -182,54 +184,8 @@ CREATE TRIGGER trigger_refresh_case_summary
   FOR EACH STATEMENT
   EXECUTE FUNCTION refresh_case_summary();
 
--- 13. Optimize Database Configuration
--- These settings should be applied to postgresql.conf for production
--- For now, we'll create a function to check current settings
-
-CREATE OR REPLACE FUNCTION check_performance_settings()
-RETURNS TABLE(setting_name TEXT, current_value TEXT, recommended_value TEXT, description TEXT) AS $$
-BEGIN
-  RETURN QUERY
-  SELECT 
-    'shared_buffers'::TEXT,
-    current_setting('shared_buffers'),
-    '25% of RAM'::TEXT,
-    'Memory for caching data'::TEXT
-  UNION ALL
-  SELECT 
-    'effective_cache_size'::TEXT,
-    current_setting('effective_cache_size'),
-    '75% of RAM'::TEXT,
-    'Estimated available memory for caching'::TEXT
-  UNION ALL
-  SELECT 
-    'work_mem'::TEXT,
-    current_setting('work_mem'),
-    '4MB'::TEXT,
-    'Memory for query operations'::TEXT
-  UNION ALL
-  SELECT 
-    'maintenance_work_mem'::TEXT,
-    current_setting('maintenance_work_mem'),
-    '64MB'::TEXT,
-    'Memory for maintenance operations'::TEXT
-  UNION ALL
-  SELECT 
-    'random_page_cost'::TEXT,
-    current_setting('random_page_cost'),
-    '1.1'::TEXT,
-    'Cost of random page access'::TEXT
-  UNION ALL
-  SELECT 
-    'effective_io_concurrency'::TEXT,
-    current_setting('effective_io_concurrency'),
-    '200'::TEXT,
-    'Number of concurrent I/O operations'::TEXT;
-END;
-$$ LANGUAGE plpgsql;
-
--- 14. Create Performance Monitoring Views (removed pg_stat_statements dependency)
-CREATE VIEW v_table_performance AS
+-- 13. Create Performance Monitoring Views
+CREATE OR REPLACE VIEW v_table_performance AS
 SELECT 
   schemaname,
   relname as tablename,
@@ -249,7 +205,7 @@ SELECT
 FROM pg_stat_user_tables
 ORDER BY n_live_tup DESC;
 
--- 15. Add Comments for Documentation
+-- 14. Add Comments for Documentation
 COMMENT ON INDEX idx_cases_performance_main IS 'Composite index for main case queries with office, category, and status filtering';
 COMMENT ON INDEX idx_cases_search IS 'Full-text search index for case title, docket number, and court';
 COMMENT ON INDEX idx_appointments_performance_main IS 'Composite index for appointment queries with office and department filtering';
@@ -257,11 +213,22 @@ COMMENT ON INDEX idx_users_performance_main IS 'Composite index for user queries
 COMMENT ON MATERIALIZED VIEW mv_case_summary IS 'Materialized view for fast case summary queries with related counts';
 COMMENT ON FUNCTION get_case_statistics IS 'Function to get comprehensive case statistics with filtering options';
 COMMENT ON FUNCTION get_appointment_statistics IS 'Function to get comprehensive appointment statistics with filtering options';
-COMMENT ON FUNCTION check_performance_settings IS 'Function to check current PostgreSQL performance settings against recommendations';
 
--- 16. Grant Permissions (removed for development environment)
--- Note: These GRANT statements assume a production user 'caf_user' exists
--- In development, we skip these permissions to avoid errors
+-- Insert audit log entry for this migration
+INSERT INTO audit_logs (
+    entity_type, entity_id, action, user_id, user_role,
+    reason, tags, severity, created_at
+) VALUES (
+    'system', 0, 'migration', 1, 'admin',
+    'Migrated legacy migration: Advanced performance optimization with comprehensive indexes and functions',
+    ARRAY['migration', 'legacy_consolidation', 'performance', 'indexes', 'optimization'], 'info', CURRENT_TIMESTAMP
+);
 
--- 17. Final Statistics Update
+-- Final Statistics Update
 ANALYZE;
+
+-- Success notification (must be in DO block)
+DO $$
+BEGIN
+    RAISE NOTICE '✓ Migration 0041_advanced_performance_optimization completed successfully';
+END $$;
