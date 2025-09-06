@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Modal, Form, Input, Select, DatePicker, TimePicker, Button, message, Space } from 'antd';
-import { EditOutlined, SaveOutlined, CloseOutlined } from '@ant-design/icons';
+import { Modal, Form, Input, Select, DatePicker, TimePicker, Button, message, Space, Alert, Tag, Divider } from 'antd';
+import { EditOutlined, SaveOutlined, CloseOutlined, CheckCircleOutlined, CalendarOutlined, UserOutlined } from '@ant-design/icons';
 import { apiClient } from '@/app/lib/api';
 import { Appointment, User } from '@/app/lib/types';
 import dayjs from 'dayjs';
@@ -38,6 +38,7 @@ const EditAppointmentModal: React.FC<EditAppointmentModalProps> = ({
 }) => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
+  const [completingAppointment, setCompletingAppointment] = useState(false);
   const [staffList, setStaffList] = useState<User[]>([]);
   const [clients, setClients] = useState<User[]>([]);
 
@@ -80,18 +81,31 @@ const EditAppointmentModal: React.FC<EditAppointmentModalProps> = ({
     }
   };
 
-  const handleSubmit = async (values: EditAppointmentFormData) => {
+  const handleSubmit = async (values: any) => {
     if (!appointment) return;
 
     setLoading(true);
     try {
-      const payload = {
-        ...values,
-        date: values.date ? dayjs(values.date).format('YYYY-MM-DD') : undefined,
-        time: values.time ? dayjs(values.time).format('HH:mm') : undefined,
+      const updateData: any = {
+        title: values.title,
+        notes: values.notes
       };
 
-      await apiClient.patch(`/appointments/${appointment.id}`, payload);
+      // Only include date/time if they were provided and appointment allows it
+      if (values.date && appointment.status !== 'completed' && dayjs(`${appointment.date} ${appointment.time}`).isAfter(dayjs())) {
+        updateData.date = dayjs(values.date).format('YYYY-MM-DD');
+      }
+      
+      if (values.time && appointment.status !== 'completed' && dayjs(`${appointment.date} ${appointment.time}`).isAfter(dayjs())) {
+        updateData.time = dayjs(values.time).format('HH:mm');
+      }
+
+      // Only include status if appointment is not completed
+      if (values.status && appointment.status !== 'completed') {
+        updateData.status = values.status;
+      }
+
+      await apiClient.put(`/admin/appointments/${appointment.id}`, updateData);
       
       message.success('Cita actualizada exitosamente');
       onSuccess();
@@ -123,6 +137,58 @@ const EditAppointmentModal: React.FC<EditAppointmentModalProps> = ({
     return staff ? `${staff.firstName} ${staff.lastName}` : 'Personal no encontrado';
   };
 
+  // Handle appointment completion
+  const handleCompleteAppointment = async () => {
+    if (!appointment) return;
+    
+    setCompletingAppointment(true);
+    try {
+      await apiClient.put(`/admin/appointments/${appointment.id}`, {
+        status: 'completed'
+      });
+      
+      message.success('Cita marcada como completada exitosamente');
+      onSuccess();
+      onCancel();
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.error || error.message || 'Error al completar la cita';
+      message.error(`Error al completar la cita: ${errorMessage}`);
+    } finally {
+      setCompletingAppointment(false);
+    }
+  };
+
+  // Check if appointment can be completed
+  const canCompleteAppointment = () => {
+    if (!appointment) return false;
+    const now = dayjs();
+    const appointmentTime = dayjs(`${appointment.date} ${appointment.time}`);
+    return appointment.status !== 'completed' && 
+           appointment.status !== 'cancelled' && 
+           appointmentTime.isBefore(now.add(1, 'hour')); // Can complete 1 hour before or after appointment time
+  };
+
+  // Get status styling
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'completed': return 'success';
+      case 'confirmed': return 'processing';
+      case 'cancelled': return 'error';
+      case 'pending': return 'warning';
+      default: return 'default';
+    }
+  };
+
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'completed': return 'Completada';
+      case 'confirmed': return 'Confirmada';
+      case 'cancelled': return 'Cancelada';
+      case 'pending': return 'Pendiente';
+      default: return status;
+    }
+  };
+
   return (
     <Modal
       title={
@@ -138,13 +204,76 @@ const EditAppointmentModal: React.FC<EditAppointmentModalProps> = ({
       destroyOnClose
     >
       {appointment && (
-        <div className="mb-4 p-3 bg-gray-50 rounded">
-          <div className="text-sm text-gray-600">
-            <div><strong>Cliente:</strong> {getClientName(appointment)}</div>
-            <div><strong>Personal:</strong> {getStaffName(appointment)}</div>
-            <div><strong>Estado actual:</strong> {appointment.status}</div>
+        <>
+          <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="text-lg font-medium text-blue-900 flex items-center">
+                <CalendarOutlined className="mr-2" />
+                Información de la Cita
+              </h4>
+              <Tag color={getStatusColor(appointment.status)} className="text-sm">
+                {getStatusText(appointment.status)}
+              </Tag>
+            </div>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <span className="font-medium text-gray-700">Cliente:</span>
+                <div className="flex items-center mt-1">
+                  <UserOutlined className="mr-1 text-gray-500" />
+                  {getClientName(appointment)}
+                </div>
+              </div>
+              <div>
+                <span className="font-medium text-gray-700">Personal Asignado:</span>
+                <div className="flex items-center mt-1">
+                  <UserOutlined className="mr-1 text-gray-500" />
+                  {getStaffName(appointment)}
+                </div>
+              </div>
+              <div>
+                <span className="font-medium text-gray-700">Fecha:</span>
+                <div className="mt-1">{appointment.date}</div>
+              </div>
+              <div>
+                <span className="font-medium text-gray-700">Hora:</span>
+                <div className="mt-1">{appointment.time}</div>
+              </div>
+            </div>
           </div>
-        </div>
+
+          {appointment.status === 'completed' && (
+            <Alert
+              message="Esta cita ya ha sido completada"
+              description="Solo puede editar el título y las notas de citas completadas."
+              type="success"
+              showIcon
+              className="mb-4"
+            />
+          )}
+
+          {canCompleteAppointment() && (
+            <Alert
+              message="¿Cita finalizada?"
+              description="Si la cita ya se realizó, puede marcarla como completada."
+              type="info"
+              showIcon
+              action={
+                <Button
+                  size="small"
+                  type="primary"
+                  icon={<CheckCircleOutlined />}
+                  loading={completingAppointment}
+                  onClick={handleCompleteAppointment}
+                >
+                  Marcar como Completada
+                </Button>
+              }
+              className="mb-4"
+            />
+          )}
+
+          <Divider />
+        </>
       )}
 
       <Form
@@ -158,117 +287,79 @@ const EditAppointmentModal: React.FC<EditAppointmentModalProps> = ({
       >
         <Form.Item
           name="title"
-          label="Título"
+          label="Título de la Cita"
           rules={[{ required: true, message: 'Por favor ingrese el título' }]}
+          tooltip="Puede modificar el título para reflejar mejor el propósito de la cita"
         >
-          <Input placeholder="Título de la cita" />
+          <Input placeholder="Ej: Consulta inicial, Seguimiento, Revisión de documentos" />
         </Form.Item>
 
-        <Form.Item
-          name="description"
-          label="Descripción"
-        >
-          <TextArea 
-            rows={3} 
-            placeholder="Descripción de la cita"
-          />
-        </Form.Item>
+        {/* Only allow date/time editing if appointment is not completed and is in the future */}
+        {appointment && appointment.status !== 'completed' && dayjs(`${appointment.date} ${appointment.time}`).isAfter(dayjs()) && (
+          <>
+            <Alert
+              message="Reprogramar Cita"
+              description="Solo puede cambiar la fecha y hora de citas futuras no completadas."
+              type="warning"
+              showIcon
+              className="mb-4"
+            />
+            
+            <Form.Item
+              name="date"
+              label="Nueva Fecha (Opcional)"
+              tooltip="Deje vacío si no desea cambiar la fecha"
+            >
+              <DatePicker 
+                style={{ width: '100%' }} 
+                placeholder="Seleccionar nueva fecha"
+                disabledDate={(current) => current && current < dayjs().startOf('day')}
+              />
+            </Form.Item>
 
-        <Form.Item
-          name="date"
-          label="Fecha"
-          rules={[{ required: true, message: 'Por favor seleccione la fecha' }]}
-        >
-          <DatePicker 
-            style={{ width: '100%' }} 
-            placeholder="Seleccionar fecha"
-          />
-        </Form.Item>
+            <Form.Item
+              name="time"
+              label="Nueva Hora (Opcional)"
+              tooltip="Deje vacío si no desea cambiar la hora"
+            >
+              <TimePicker 
+                style={{ width: '100%' }} 
+                placeholder="Seleccionar nueva hora"
+                format="HH:mm"
+              />
+            </Form.Item>
+          </>
+        )}
 
-        <Form.Item
-          name="time"
-          label="Hora"
-          rules={[{ required: true, message: 'Por favor seleccione la hora' }]}
-        >
-          <TimePicker 
-            style={{ width: '100%' }} 
-            placeholder="Seleccionar hora"
-            format="HH:mm"
-          />
-        </Form.Item>
+        {/* Only show status change for non-completed appointments */}
+        {appointment && appointment.status !== 'completed' && (
+          <Form.Item
+            name="status"
+            label="Estado de la Cita"
+            tooltip="Cambie el estado según sea necesario"
+          >
+            <Select placeholder="Seleccionar estado">
+              <Option value="confirmed">✅ Confirmada</Option>
+              <Option value="pending">⏳ Pendiente</Option>
+              <Option value="cancelled">❌ Cancelada</Option>
+            </Select>
+          </Form.Item>
+        )}
 
-        <Form.Item
-          name="duration"
-          label="Duración (minutos)"
-          rules={[{ required: true, message: 'Por favor ingrese la duración' }]}
-        >
-          <Select placeholder="Seleccionar duración">
-            <Option value={30}>30 minutos</Option>
-            <Option value={60}>1 hora</Option>
-            <Option value={90}>1.5 horas</Option>
-            <Option value={120}>2 horas</Option>
-          </Select>
-        </Form.Item>
 
-        <Form.Item
-          name="status"
-          label="Estado"
-          rules={[{ required: true, message: 'Por favor seleccione el estado' }]}
-        >
-          <Select placeholder="Seleccionar estado">
-            <Option value="scheduled">Programada</Option>
-            <Option value="confirmed">Confirmada</Option>
-            <Option value="completed">Completada</Option>
-            <Option value="cancelled">Cancelada</Option>
-            <Option value="no-show">No asistió</Option>
-          </Select>
-        </Form.Item>
-
-        <Form.Item
-          name="staffId"
-          label="Personal Asignado"
-          rules={[{ required: true, message: 'Por favor seleccione el personal' }]}
-        >
-          <Select placeholder="Seleccionar personal">
-            {staffList.map(staff => (
-              <Option key={staff.id} value={staff.id}>
-                {staff.firstName} {staff.lastName} ({staff.role})
-              </Option>
-            ))}
-          </Select>
-        </Form.Item>
-
-        <Form.Item
-          name="clientId"
-          label="Cliente"
-          rules={[{ required: true, message: 'Por favor seleccione el cliente' }]}
-        >
-          <Select placeholder="Seleccionar cliente">
-            {clients.map(client => (
-              <Option key={client.id} value={client.id}>
-                {client.firstName} {client.lastName}
-              </Option>
-            ))}
-          </Select>
-        </Form.Item>
-
-        <Form.Item
-          name="caseId"
-          label="Caso (Opcional)"
-        >
-          <Select placeholder="Seleccionar caso" allowClear>
-            {/* This would need to be populated with actual cases */}
-            <Option value={1}>Caso de ejemplo</Option>
-          </Select>
-        </Form.Item>
+        {/* Notes section - always editable for additional information */}
+        <Divider orientation="left">Notas y Observaciones</Divider>
 
         <Form.Item
           name="notes"
-          label="Notas"
+          label="Notas y Observaciones"
+          tooltip="Agregue cualquier información adicional sobre la cita, resultados, o seguimiento necesario"
         >
           <TextArea 
-            rows={3} 
-            placeholder="Notas adicionales"
+            rows={4} 
+            placeholder="Ej: Cliente llegó puntual, se revisaron documentos X e Y, próximos pasos: ..."
+            showCount
+            maxLength={500}
           />
         </Form.Item>
 

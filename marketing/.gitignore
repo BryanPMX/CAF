@@ -1,0 +1,53 @@
+# Marketing Site - SvelteKit .gitignore
+
+# === SvelteKit ===
+.svelte-kit/
+build/
+.output/
+
+# === Dependencies ===
+node_modules/
+
+# === Environment variables ===
+.env
+.env.*
+!.env.example
+
+# === Logs ===
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# === Runtime data ===
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# === Coverage directory used by tools like istanbul ===
+coverage/
+*.lcov
+
+# === nyc test coverage ===
+.nyc_output/
+
+# === Cache ===
+.cache/
+.parcel-cache/
+
+# === Build artifacts ===
+dist/
+tmp/
+out-tsc/
+
+# === IDE ===
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# === OS ===
+.DS_Store
+Thumbs.db
