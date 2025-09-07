@@ -4,7 +4,7 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { Timeline, Tag, Button, Popconfirm, message, Space, Dropdown } from 'antd';
 import { CommentOutlined, FilePdfOutlined, FileTextOutlined, PaperClipOutlined, EditOutlined, DeleteOutlined, EyeOutlined, DownloadOutlined, MoreOutlined } from '@ant-design/icons';
-import { apiClient } from '../../../../../lib/api';
+import { apiClient } from '@/app/lib/api';
 import EditCommentModal from './EditCommentModal';
 import EditDocumentModal from './EditDocumentModal';
 import DocumentPreviewModal from './DocumentPreviewModal';

@@ -3,7 +3,7 @@
 
 import React, { useState } from 'react';
 import { Modal, Form, Select, Button, message } from 'antd';
-import { apiClient } from '../../../../../lib/api';
+import { apiClient } from '@/app/lib/api';
 
 const { Option } = Select;
 
@@ -21,9 +21,16 @@ const EditStageModal: React.FC<EditStageModalProps> = ({ visible, caseId, curren
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
 
+  // Reset form when modal opens
+  React.useEffect(() => {
+    if (visible) {
+      form.setFieldsValue({ stage: currentStage });
+    }
+  }, [visible, currentStage, form]);
+
   const handleUpdateStage = async (values: any) => {
     setLoading(true);
-    message.loading({ content: 'Actualizando etapa...', key: 'updateStage' });
+    message.loading({ content: 'Guardando...', key: 'updateStage' });
 
     try {
       await apiClient.patch(`/admin/cases/${caseId}/stage`, { stage: values.stage });
@@ -39,19 +46,14 @@ const EditStageModal: React.FC<EditStageModalProps> = ({ visible, caseId, curren
 
   return (
     <Modal
-      title="Actualizar Etapa del Caso"
+      title="Editar Etapa del Caso"
       open={visible}
       onCancel={onClose}
-      footer={[
-        <Button key="back" onClick={onClose} disabled={loading}>
-          Cancelar
-        </Button>,
-        <Button key="submit" type="primary" loading={loading} onClick={() => form.submit()}>
-          Guardar Cambios
-        </Button>,
-      ]}
+      onOk={() => form.submit()}
+      confirmLoading={loading}
+      destroyOnClose
     >
-      <Form form={form} layout="vertical" onFinish={handleUpdateStage} initialValues={{ stage: currentStage }}>
+      <Form form={form} layout="vertical" onFinish={handleUpdateStage}>
         <Form.Item
           name="stage"
           label="Nueva Etapa"

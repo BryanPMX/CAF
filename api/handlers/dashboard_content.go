@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"fmt"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -29,7 +29,7 @@ func GetAnnouncements(db *gorm.DB) gin.HandlerFunc {
 		now := time.Now()
 
 		// Debug logging
-		fmt.Printf("GetAnnouncements: userRole=%v, userDepartment=%v, userID=%v\n", userRole, userDepartment, userIDVal)
+		// Debug logging removed for production
 
 		var items []models.Announcement = make([]models.Announcement, 0)
 		q := db.Model(&models.Announcement{}).
@@ -52,12 +52,10 @@ func GetAnnouncements(db *gorm.DB) gin.HandlerFunc {
 
 		q = q.Order("pinned DESC, start_at DESC NULLS LAST, created_at DESC").Limit(20)
 		if err := q.Find(&items).Error; err != nil {
-			fmt.Printf("GetAnnouncements error: %v\n", err)
+			log.Printf("GetAnnouncements error: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudieron cargar los anuncios"})
 			return
 		}
-
-		fmt.Printf("GetAnnouncements: found %d announcements\n", len(items))
 		c.Header("Cache-Control", "public, max-age=60")
 		c.JSON(http.StatusOK, AnnouncementsResponse{Announcements: items})
 	}

@@ -3,7 +3,7 @@
 
 import React, { useState } from 'react';
 import { Modal, Form, Input, Radio, Button, message } from 'antd';
-import { apiClient } from '../../../../../lib/api';
+import { apiClient } from '@/app/lib/api';
 
 interface User {
   firstName: string;

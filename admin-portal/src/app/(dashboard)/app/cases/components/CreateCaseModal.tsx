@@ -3,8 +3,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { Modal, Form, Input, Button, message, Select, Radio, Spin, AutoComplete, InputNumber } from 'antd';
-import { apiClient } from '../../../../lib/api';
-import { CASE_TYPES, findDepartmentByCaseType } from '../../../../lib/caseTaxonomy';
+import { apiClient } from '@/app/lib/api';
+import { CASE_TYPES, findDepartmentByCaseType } from '@/app/lib/caseTaxonomy';
 
 const { Option } = Select;
 

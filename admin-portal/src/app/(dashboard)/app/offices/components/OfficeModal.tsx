@@ -3,7 +3,7 @@
 
 import React, { useEffect } from 'react';
 import { Modal, Form, Input, Button, message } from 'antd';
-import { apiClient } from '../../../../lib/api';
+import { apiClient } from '@/app/lib/api';
 
 interface Office {
   id: number;
@@ -26,12 +26,14 @@ const OfficeModal: React.FC<OfficeModalProps> = ({ visible, onClose, onSuccess, 
   // This effect runs when the modal opens or the 'office' prop changes.
   // It populates the form with the office data when in edit mode.
   useEffect(() => {
-    if (office) {
-      form.setFieldsValue(office);
-    } else {
-      form.resetFields();
+    if (visible) {
+      if (office) {
+        form.setFieldsValue(office);
+      } else {
+        form.resetFields();
+      }
     }
-  }, [office, form]);
+  }, [visible, office, form]);
 
   const handleOk = async () => {
     try {
@@ -66,6 +68,7 @@ const OfficeModal: React.FC<OfficeModalProps> = ({ visible, onClose, onSuccess, 
       onCancel={onClose}
       onOk={handleOk}
       confirmLoading={loading}
+      destroyOnClose
     >
       <Form form={form} layout="vertical">
         <Form.Item

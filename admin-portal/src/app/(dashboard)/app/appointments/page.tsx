@@ -384,6 +384,8 @@ const AppointmentsPage = () => {
             showQuickJumper: true,
             showTotal: (total, range) => `${range[0]}-${range[1]} de ${total} citas`,
           }}
+          scroll={{ x: true }}
+          locale={{ emptyText: 'No hay citas programadas.' }}
         />
       </Spin>
 

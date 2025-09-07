@@ -51,7 +51,7 @@ const AdminDashboard: React.FC = () => {
 
       // Fetch recent users (only for admin and office managers)
       try {
-        const usersRes = await apiClient.get('/users');
+        const usersRes = await apiClient.get('/admin/users');
         setRecentUsers(usersRes.data.slice(0, 5));
       } catch (error) {
         console.warn('Could not fetch users:', error);
@@ -78,10 +78,10 @@ const AdminDashboard: React.FC = () => {
 
       // Fetch unread notifications count
       try {
-        const notificationsRes = await apiClient.get('/notifications/unread-count');
-        setUnreadNotifications(notificationsRes.data.count || 0);
+        const notificationsRes = await apiClient.get('/notifications');
+        setUnreadNotifications(notificationsRes.data.unread_count || 0);
       } catch (error) {
-        // Notifications endpoint might not exist yet, set to 0
+        console.warn('Could not fetch notifications:', error);
         setUnreadNotifications(0);
       }
 

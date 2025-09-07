@@ -79,9 +79,11 @@ func EnhancedLogin(db *gorm.DB, jwtSecret string, sessionService *services.Sessi
 				"lastActivity": session.LastActivity,
 			},
 			"user": gin.H{
-				"id":    user.ID,
-				"email": user.Email,
-				"role":  user.Role,
+				"id":        user.ID,
+				"email":     user.Email,
+				"role":      user.Role,
+				"firstName": user.FirstName,
+				"lastName":  user.LastName,
 			},
 		})
 	}
