@@ -83,14 +83,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (loading) return; // Wait for auth to complete
     
     if (!user) {
-      // No user, redirect to login
-      window.location.href = '/login';
+      // No user, redirect to login using Next.js router
+      router.replace('/login');
       return;
     }
 
     // Immediately set auth checked without any API calls or redirects
     setAuthChecked(true);
-  }, [user, loading]); // Minimal dependencies
+  }, [user, loading, router]); // Minimal dependencies
 
   // Helper function to check if user should be redirected based on role
   const checkRoleBasedRedirect = useCallback((role: UserRole, currentPath: string): string | null => {
@@ -172,10 +172,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <Header style={{ background: '#fff', padding: '0 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div className="flex items-center">
               <h1 className="text-xl font-semibold text-gray-800">
-                {user?.firstName && user?.lastName && roleDisplay
-                  ? `Bienvenido, ${user.firstName} ${user.lastName} - ${roleDisplay.label}` 
+                {user?.firstName && roleDisplay
+                  ? `Bienvenido, ${user.firstName}` 
                   : '¡Bienvenido al Sistema CAF!'}
               </h1>
+              {roleDisplay && (
+                <span className={`ml-3 px-3 py-1 rounded-full text-xs font-medium ${roleDisplay.color}`}>
+                  {roleDisplay.label}
+                </span>
+              )}
             </div>
             
             <Space>

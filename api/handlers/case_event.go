@@ -3,15 +3,15 @@ package handlers
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
-
-	"errors"
 
 	"github.com/BryanPMX/CAF/api/models"
 	"github.com/BryanPMX/CAF/api/storage"
@@ -77,7 +77,7 @@ func CreateComment(db *gorm.DB) gin.HandlerFunc {
 			if err := db.Where("id = ?", caseRecord.ClientID).First(&client).Error; err == nil {
 				// Create notification message in Spanish
 				notificationMessage := "Un miembro de nuestro equipo ha añadido un comentario en su caso."
-				
+
 				// Create link to the case
 				caseLink := "/app/cases/" + strconv.FormatUint(uint64(caseID), 10)
 
@@ -398,7 +398,7 @@ func DeleteDocument(db *gorm.DB) gin.HandlerFunc {
 						})
 						if deleteErr != nil {
 							// Log the error but don't fail the request
-							fmt.Printf("Warning: Failed to delete file from S3: %v\n", deleteErr)
+							log.Printf("Warning: Failed to delete file from S3: %v", deleteErr)
 						}
 					}
 				}

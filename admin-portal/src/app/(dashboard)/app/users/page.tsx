@@ -5,7 +5,8 @@ import React, { useState, useEffect } from 'react';
 import { Button, Table, message, Spin, Tag, Popconfirm, Select, Space } from 'antd';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
-import { apiClient } from '../../../lib/api';
+import { STAFF_ROLES } from '@/config/roles';
+import { apiClient } from '@/app/lib/api';
 import UserModal from './components/UserModal'; // Import our reusable modal
 
 // Define the TypeScript interface for a User object to ensure type safety.
@@ -257,15 +258,7 @@ const UserManagementPage = () => {
                   style={{ minWidth: 200 }}
                   value={roleFilter}
                   onChange={(v: string | undefined) => setRoleFilter(v)}
-                  options={[
-                    { label: 'Administrador', value: 'admin' },
-                    { label: 'Abogado(a)', value: 'lawyer' },
-                    { label: 'Psicólogo(a)', value: 'psychologist' },
-                    { label: 'Gerente de Oficina', value: 'office_manager' },
-                    { label: 'Recepción', value: 'receptionist' },
-                    { label: 'Coordinador de Eventos', value: 'event_coordinator' },
-                    { label: 'Cliente', value: 'client' },
-                  ]}
+                  options={STAFF_ROLES.map(role => ({ label: role.label, value: role.value }))}
                 />
                 <input
                   placeholder="Buscar por nombre o correo"
@@ -313,6 +306,7 @@ const UserManagementPage = () => {
               showTotal: (t) => `${t} usuarios`,
             }}
             className="rounded-lg"
+            locale={{ emptyText: 'No hay usuarios registrados.' }}
           />
         </Spin>
       </div>

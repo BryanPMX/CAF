@@ -15,6 +15,14 @@ import (
 	"gorm.io/gorm"
 )
 
+// validAppointmentStatuses strictly limits appointment statuses allowed in the system
+var validAppointmentStatuses = map[string]bool{
+	"scheduled": true,
+	"completed": true,
+	"cancelled": true,
+	"no_show":   true,
+}
+
 // SmartAppointmentInput defines the flexible structure for scheduling an appointment from the admin portal.
 // It uses pointers and nested structs to handle different scenarios gracefully.
 type SmartAppointmentInput struct {
@@ -288,6 +296,12 @@ func UpdateAppointmentAdmin(db *gorm.DB) gin.HandlerFunc {
 		var input AdminAppointmentInput
 		if err := c.ShouldBindJSON(&input); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		// Validate the provided status against our allowed list
+		if _, ok := validAppointmentStatuses[input.Status]; !ok {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid appointment status specified. Allowed values: scheduled, completed, cancelled, no_show"})
 			return
 		}
 

@@ -514,7 +514,7 @@ const RecordsPage: React.FC = () => {
         title="Acceso Denegado"
         subTitle="No tiene permisos para acceder a esta sección. Solo administradores y gerentes de oficina pueden acceder a los archivos."
         extra={
-          <Button type="primary" onClick={() => router.push('/app/dashboard')}>
+          <Button type="primary" onClick={() => router.push('/')}>
             Volver al Dashboard
           </Button>
         }

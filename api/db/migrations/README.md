@@ -28,7 +28,8 @@ The CAF System uses a custom migration system that:
 - **0040_reporting_enhancements.sql**: Reporting enhancements (migrated from legacy)
 - **0041_advanced_performance_optimization.sql**: Performance optimization (migrated from legacy)
 - **0042_create_notifications_table.sql**: Notifications table (migrated from legacy)
-- **0043_fix_deleted_at_column_type.sql**: Timestamp column fixes (migrated from legacy)
+- **0043_fix_announcements_schema.sql**: Fix announcements table schema to match GORM model
+- **0044_fix_deleted_at_column_type.sql**: Timestamp column fixes (migrated from legacy)
 
 ## Adding New Migrations
 

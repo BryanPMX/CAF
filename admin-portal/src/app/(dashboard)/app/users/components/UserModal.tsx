@@ -1,9 +1,10 @@
-// admin-portal/src/app/(dashboard)/admin/users/components/UserModal.tsx
+// admin-portal/src/app/(dashboard)/app/users/components/UserModal.tsx
 'use client';
 
 import React, { useState, useEffect } from 'react';
 import { Modal, Form, Input, Select, Button, message } from 'antd';
-import { apiClient } from '../../../../lib/api';
+import { apiClient } from '@/app/lib/api';
+import { STAFF_ROLES, getRoleByValue, requiresOffice, canManageUsers } from '@/config/roles';
 
 const { Option } = Select;
 
@@ -43,10 +44,13 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
       const fetchOffices = async () => {
         try {
           const role = typeof window !== 'undefined' ? localStorage.getItem('userRole') : 'admin';
+          // Check if the current user can manage users (admin or office_manager)
           if (role === 'admin' || role === 'office_manager') {
             const response = await apiClient.get('/admin/offices');
+            console.log('Offices loaded:', response.data);
             setOffices(response.data);
           } else {
+            console.log('User role does not allow office management:', role);
             setOffices([]);
           }
         } catch (error) {
@@ -69,8 +73,9 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
         setSelectedRole('');
         // Prefill office for office managers creating staff
         if (typeof window !== 'undefined') {
+          const role = localStorage.getItem('userRole');
           const officeId = localStorage.getItem('userOfficeId');
-          if (officeId) {
+          if (role === 'office_manager' && officeId) {
             form.setFieldsValue({ officeId: Number(officeId) });
           }
         }
@@ -103,6 +108,15 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
       message.error({ content: errorMessage, key: 'createUser' });
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Handle role selection change
+  const handleRoleChange = (roleValue: string) => {
+    setSelectedRole(roleValue);
+    // Clear office selection if the new role doesn't require an office
+    if (!requiresOffice(roleValue)) {
+      form.setFieldsValue({ officeId: undefined });
     }
   };
 
@@ -140,31 +154,32 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
           </Form.Item>
         )}
         <Form.Item name="role" label="Rol" rules={[{ required: true, message: 'Seleccione un rol' }]}>
-          <Select placeholder="Asignar un rol" onChange={setSelectedRole}>
-            <Option value="receptionist">Recepcionista</Option>
-            <Option value="lawyer">Abogado(a)</Option>
-            <Option value="psychologist">Psicólogo(a)</Option>
-            <Option value="office_manager">Gerente de Oficina</Option>
-            <Option value="event_coordinator">Coordinador de Eventos</Option>
-            <Option value="admin">Administrador</Option>
-            <Option value="client">Cliente</Option>
+          <Select placeholder="Asignar un rol" onChange={handleRoleChange}>
+            {STAFF_ROLES.map((role) => (
+              <Option key={role.value} value={role.value}>
+                {role.label}
+              </Option>
+            ))}
           </Select>
         </Form.Item>
-        {/* The office dropdown is only shown for non-client roles. */}
-        {selectedRole && selectedRole !== 'client' && selectedRole !== 'admin' && (
+        {/* The office dropdown is only shown for roles that require office assignment. */}
+        {selectedRole && requiresOffice(selectedRole) && (
           <Form.Item name="officeId" label="Oficina" rules={[{ required: true, message: 'Debe asignar una oficina al personal' }]}>
             <Select
               placeholder="Seleccione una oficina"
               disabled={typeof window !== 'undefined' && localStorage.getItem('userRole') === 'office_manager'}
             >
-              {offices.length > 0 && offices.map(o => <Option key={o.id} value={o.id}>{o.name}</Option>)}
-              {typeof window !== 'undefined' && localStorage.getItem('userRole') === 'office_manager' && (
-                (() => {
-                  const officeId = localStorage.getItem('userOfficeId');
-                  return officeId ? <Option key={officeId} value={Number(officeId)}>Mi Oficina</Option> : null;
-                })()
-              )}
+              {offices.map(office => (
+                <Option key={office.id} value={office.id}>
+                  {office.name}
+                </Option>
+              ))}
             </Select>
+            {offices.length === 0 && (
+              <div style={{ color: 'red', fontSize: '12px', marginTop: '4px' }}>
+                ⚠️ No hay oficinas disponibles. Contacte al administrador.
+              </div>
+            )}
           </Form.Item>
         )}
       </Form>

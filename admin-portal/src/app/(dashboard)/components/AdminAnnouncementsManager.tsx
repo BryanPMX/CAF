@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Button, Card, Form, Input, Modal, Select, Switch, DatePicker, Upload, message, Table, Space, Tag, Row, Col } from 'antd';
 import { PlusOutlined, UploadOutlined, EditOutlined, DeleteOutlined, BellOutlined } from '@ant-design/icons';
-import { apiClient } from '../../lib/api';
+import { STAFF_ROLES } from '@/config/roles';
 
 const { RangePicker } = DatePicker;
 
@@ -248,13 +248,7 @@ const AdminAnnouncementsManager: React.FC = () => {
                 <Select 
                   mode="multiple" 
                   placeholder="Seleccionar roles..." 
-                  options={[
-                    { label: 'Administrador', value: 'admin' },
-                    { label: 'Personal', value: 'staff' },
-                    { label: 'Abogado', value: 'lawyer' },
-                    { label: 'Cliente', value: 'client' },
-                    { label: 'Gerente de Oficina', value: 'office_manager' }
-                  ]}
+                  options={STAFF_ROLES.map(role => ({ label: role.label, value: role.value }))}
                 />
               </Form.Item>
             </Col>

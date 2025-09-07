@@ -3,7 +3,7 @@
 
 import React, { useState } from 'react';
 import { Form, Input, Button, Radio, message } from 'antd';
-import { apiClient } from '../../../../../lib/api';
+import { apiClient } from '@/app/lib/api';
 
 interface AddCommentFormProps {
   caseId: string;

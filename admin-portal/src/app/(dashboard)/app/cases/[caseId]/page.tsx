@@ -6,7 +6,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { Descriptions, Card, Table, Tag, Spin, message, Button, Empty, Row, Col, Tabs, Popconfirm, Modal, Input } from 'antd';
 import type { TabsProps } from 'antd';
 import { ArrowLeftOutlined, PlusOutlined, EditOutlined, DeleteOutlined, CheckCircleOutlined } from '@ant-design/icons';
-import { apiClient } from '../../../../lib/api';
+import { apiClient } from '@/app/lib/api';
 import CaseTimeline from './components/CaseTimeline';
 import AddCommentForm from './components/AddCommentForm';
 import UploadDocument from './components/UploadDocument';
@@ -325,9 +325,11 @@ const CaseDetailPage = () => {
       children: (
         <div>
           <div className="text-right mb-4">
-            <Button type="primary" icon={<PlusOutlined />} onClick={handleCreateTask}>
-              Crear Tarea
-            </Button>
+            {(userRole === 'admin' || userRole === 'office_manager') && (
+              <Button type="primary" icon={<PlusOutlined />} onClick={handleCreateTask}>
+                Crear Tarea
+              </Button>
+            )}
           </div>
           <Table
             columns={taskColumns}
@@ -477,7 +479,7 @@ const CaseDetailPage = () => {
         onClose={() => setCompleteCaseModalVisible(false)}
         onSuccess={() => {
           message.success('Caso completado exitosamente');
-          router.push('/admin/cases');
+          router.push('/app/cases');
         }}
         caseId={parseInt(caseId as string)}
         caseTitle={caseDetails.title}

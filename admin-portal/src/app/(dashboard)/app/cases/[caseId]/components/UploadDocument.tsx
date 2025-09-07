@@ -4,7 +4,7 @@
 import React, { useState } from 'react';
 import { Upload, Button, message, Radio } from 'antd';
 import { UploadOutlined } from '@ant-design/icons';
-import { apiClient } from '../../../../../lib/api';
+import { apiClient } from '@/app/lib/api';
 
 interface UploadDocumentProps {
   caseId: string;

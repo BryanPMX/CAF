@@ -4,7 +4,7 @@
 import React, { useState } from 'react';
 import { Modal, Form, Input, Button, message, Typography, Alert } from 'antd';
 import { CheckCircleOutlined, FileTextOutlined } from '@ant-design/icons';
-import { apiClient } from '../../../../../lib/api';
+import { apiClient } from '@/app/lib/api';
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;

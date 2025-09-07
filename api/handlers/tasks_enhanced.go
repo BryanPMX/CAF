@@ -10,6 +10,13 @@ import (
 	"gorm.io/gorm"
 )
 
+// validTaskStatuses strictly limits task statuses allowed in the system
+var validTaskStatuses = map[string]bool{
+	"pending":     true,
+	"in_progress": true,
+	"completed":   true,
+}
+
 // CreateTaskInput defines the structure for creating a new task
 type CreateTaskInput struct {
 	CaseID       uint       `json:"caseId" binding:"required"`
@@ -20,9 +27,10 @@ type CreateTaskInput struct {
 
 // UpdateTaskInput defines the structure for updating a task
 type UpdateTaskInput struct {
-	Title   string     `json:"title,omitempty"`
-	DueDate *time.Time `json:"dueDate,omitempty"`
-	Status  string     `json:"status,omitempty"`
+	Title        string     `json:"title,omitempty"`
+	AssignedToID *uint      `json:"assignedToId,omitempty"`
+	DueDate      *time.Time `json:"dueDate,omitempty"`
+	Status       string     `json:"status,omitempty"`
 }
 
 // GetTasks returns tasks based on user permissions and assignments
@@ -191,7 +199,7 @@ func CreateTaskEnhanced(db *gorm.DB) gin.HandlerFunc {
 
 			// Create notification message in Spanish
 			notificationMessage := "Se le ha asignado una nueva tarea en el caso: " + caseTitle
-			
+
 			// Create link to the task
 			taskLink := "/app/tasks/" + strconv.FormatUint(uint64(task.ID), 10)
 
@@ -256,7 +264,18 @@ func UpdateTaskEnhanced(db *gorm.DB) gin.HandlerFunc {
 			updates["due_date"] = input.DueDate
 		}
 		if input.Status != "" {
+			// Validate the provided status against our allowed list
+			if _, ok := validTaskStatuses[input.Status]; !ok {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid task status specified. Allowed values: pending, in_progress, completed"})
+				return
+			}
 			updates["status"] = input.Status
+
+			// Set completed_at timestamp when status changes to completed
+			if input.Status == "completed" {
+				now := time.Now()
+				updates["completed_at"] = &now
+			}
 		}
 
 		if err := db.Model(&task).Updates(updates).Error; err != nil {

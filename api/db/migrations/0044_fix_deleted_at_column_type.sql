@@ -1,4 +1,4 @@
--- Migration: 0043_fix_deleted_at_column_type.sql
+-- Migration: 0044_fix_deleted_at_column_type.sql
 -- Description: Fix timestamp column type issues and recreate views
 -- Date: 2025-01-27
 -- Author: CAF System Team
@@ -60,5 +60,5 @@ INSERT INTO audit_logs (
 -- Success notification (must be in DO block)
 DO $$
 BEGIN
-    RAISE NOTICE '✓ Migration 0043_fix_deleted_at_column_type completed successfully';
+    RAISE NOTICE '✓ Migration 0044_fix_deleted_at_column_type completed successfully';
 END $$;

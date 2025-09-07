@@ -28,7 +28,7 @@ import {
   BarChartOutlined,
   ClockCircleOutlined
 } from '@ant-design/icons';
-import { apiClient } from '../../../lib/api';
+import { apiClient } from '@/app/lib/api';
 import CreateCaseModal from './components/CreateCaseModal';
 // Custom debounce implementation to avoid lodash dependency
 const debounce = <T extends (...args: any[]) => any>(func: T, wait: number): T => {

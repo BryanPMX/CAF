@@ -3,27 +3,13 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { Modal, Form, Input, Button, message, Select, DatePicker, Radio, AutoComplete, Steps, Spin, Typography } from 'antd';
-import { apiClient } from '../../lib/api';
-import { CASE_TYPES, findDepartmentByCaseType } from '../../lib/caseTaxonomy';
+import { apiClient } from '@/app/lib/api';
+import { CASE_TYPES, findDepartmentByCaseType } from '@/app/lib/caseTaxonomy';
+import { ROLE_LABELS, DEPARTMENT_ROLE_MAPPING, getRoleLabel, getRolesForCaseCategory, isAdminRole } from '@/config/roles';
 import dayjs from 'dayjs';
 
 const { Option } = Select;
 const { Text } = Typography;
-
-// Spanish role labels for staff members
-const ROLE_LABELS: { [key: string]: string } = {
-  'admin': 'Administrador',
-  'lawyer': 'Abogado',
-  'attorney': 'Abogado',
-  'senior_attorney': 'Abogado Senior',
-  'paralegal': 'Paralegal',
-  'associate': 'Asociado',
-  'psychologist': 'Psicólogo',
-  'social_worker': 'Trabajador Social',
-  'receptionist': 'Recepcionista',
-  'staff': 'Personal',
-  'office_manager': 'Gerente de Oficina',
-};
 
 // --- TypeScript Interfaces for data clarity ---
 interface Case { id: number; title: string; }
@@ -244,21 +230,14 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ visible, onClose, o
     
     if (!categoryToUse || categoryToUse === 'General') return staffList;
     
-    // Map case categories to staff roles and departments
-    const categoryStaffMapping: { [key: string]: string[] } = {
-      'Familiar': ['lawyer', 'attorney', 'senior_attorney', 'paralegal', 'associate'],
-      'Civil': ['lawyer', 'attorney', 'senior_attorney', 'paralegal', 'associate'],
-      'Psicologia': ['psychologist', 'social_worker'],
-      'Recursos': ['social_worker', 'receptionist'],
-    };
-    
-    const allowedRoles = categoryStaffMapping[categoryToUse] || [];
+    // Get allowed roles for this case category using centralized configuration
+    const allowedRoles = getRolesForCaseCategory(categoryToUse);
     
     // Admins should only appear for legal cases (Familiar, Civil), not for psychology cases
     const isLegalCase = categoryToUse === 'Familiar' || categoryToUse === 'Civil';
     
     const filtered = staffList.filter(staff => {
-      const isAdmin = staff.role === 'admin' && isLegalCase; // Only show admins for legal cases
+      const isAdmin = isAdminRole(staff.role) && isLegalCase; // Only show admins for legal cases
       const hasAllowedRole = allowedRoles.includes(staff.role);
       const hasMatchingDepartment = staff.department === categoryToUse;
       
@@ -493,7 +472,7 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ visible, onClose, o
                 filterOption={(input, option) => (option?.children as unknown as string)?.toLowerCase().includes(input.toLowerCase())}
               >
                 {filteredStaffList.map((s) => (
-                  <Option key={s.id} value={s.id}>{`${s.firstName} ${s.lastName} (${ROLE_LABELS[s.role] || s.role})`}</Option>
+                  <Option key={s.id} value={s.id}>{`${s.firstName} ${s.lastName} (${getRoleLabel(s.role)})`}</Option>
                 ))}
               </Select>
             </Form.Item>
