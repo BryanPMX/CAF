@@ -28,10 +28,16 @@ func New() (*Config, error) {
 	dbHost := os.Getenv("DB_HOST")
 	dbName := os.Getenv("DB_NAME")
 	dbPort := os.Getenv("DB_PORT")
+	dbSSLMode := os.Getenv("DB_SSLMODE")
+	
+	// Default to 'require' if DB_SSLMODE is not set
+	if dbSSLMode == "" {
+		dbSSLMode = "require"
+	}
 
 	// Construct the database URL from individual parts.
-	databaseURL := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
-		dbUser, dbPassword, dbHost, dbPort, dbName)
+	databaseURL := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=%s",
+		dbUser, dbPassword, dbHost, dbPort, dbName, dbSSLMode)
 
 	return &Config{
 		DatabaseURL: databaseURL,
