@@ -30,16 +30,16 @@ func HealthCheck() error {
 	if s3Client == nil {
 		return fmt.Errorf("S3 client not initialized")
 	}
-	
+
 	bucketName := os.Getenv("S3_BUCKET")
 	if bucketName == "" {
 		bucketName = "caf-system-bucket" // fallback
 	}
-	
+
 	_, err := s3Client.HeadBucket(context.TODO(), &s3.HeadBucketInput{
 		Bucket: &bucketName,
 	})
-	
+
 	return err
 }
 
@@ -61,10 +61,23 @@ func InitS3() error {
 		return aws.Endpoint{}, &aws.EndpointNotFoundError{}
 	})
 
+	// Get AWS credentials from environment variables
+	awsAccessKey := os.Getenv("AWS_ACCESS_KEY_ID")
+	awsSecretKey := os.Getenv("AWS_SECRET_ACCESS_KEY")
+
+	var credentialProvider aws.CredentialsProvider
+	if awsAccessKey != "" && awsSecretKey != "" {
+		log.Printf("Using AWS credentials from environment variables")
+		credentialProvider = credentials.NewStaticCredentialsProvider(awsAccessKey, awsSecretKey, "")
+	} else {
+		log.Printf("No AWS credentials found in environment, using default credential chain")
+		credentialProvider = nil
+	}
+
 	cfg, err := config.LoadDefaultConfig(context.TODO(),
 		config.WithRegion(region),
 		config.WithEndpointResolver(resolver),
-		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider("test", "test", "")),
+		config.WithCredentialsProvider(credentialProvider),
 	)
 	if err != nil {
 		return fmt.Errorf("failed to load AWS config: %w", err)
@@ -83,7 +96,7 @@ func InitS3() error {
 func CreateBucketIfNotExists() error {
 	bucketName := os.Getenv("S3_BUCKET")
 	log.Printf("Checking for S3 bucket: %s", bucketName)
-	
+
 	if s3Client == nil {
 		return fmt.Errorf("S3 client not initialized")
 	}

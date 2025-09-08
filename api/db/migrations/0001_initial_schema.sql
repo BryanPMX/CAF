@@ -444,9 +444,9 @@ CREATE TRIGGER trigger_log_case_deletion
     FOR EACH ROW
     EXECUTE FUNCTION log_case_deletion();
 
--- Grant permissions to user (created by Docker Compose)
-GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO "user";
-GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO "user";
+-- Grant permissions to cafadmin user (RDS master user)
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO cafadmin;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO cafadmin;
 
 -- Optimize table statistics for query planner
 ANALYZE users;
