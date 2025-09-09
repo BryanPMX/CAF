@@ -493,10 +493,6 @@ const AdminDashboard: React.FC = () => {
                   ]}
                   xField="month"
                   yField="revenue"
-                  smooth
-                  color={{
-                    fill: 'l(270) 0:#ffffff 0.5:#7ec2f3 1:#1890ff',
-                  }}
                 />
               </Card>
             </Col>
