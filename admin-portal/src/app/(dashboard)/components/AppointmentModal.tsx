@@ -13,7 +13,7 @@ const { Option } = Select;
 const { Text } = Typography;
 
 // --- TypeScript Interfaces for data clarity ---
-interface Case { id: number; title: string; }
+interface Case { id: number; title: string; status?: string; }
 interface StaffMember { id: number; firstName: string; lastName: string; role: string; department?: string; email: string; }
 interface Office { id: number; name: string; }
 interface ClientSearchResult { value: string; label: string; key: number; }
@@ -129,7 +129,7 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ visible, onClose, o
               duration: 5
             });
           } else {
-            console.log(`✅ Found ${list.length} cases for client:`, list.map(c => ({ id: c.id, title: c.title, status: c.status })));
+            console.log(`✅ Found ${list.length} cases for client:`, list.map((c: Case) => ({ id: c.id, title: c.title, status: c.status })));
           }
         } catch (error: any) {
           console.error('❌ Error fetching client cases:', error);
