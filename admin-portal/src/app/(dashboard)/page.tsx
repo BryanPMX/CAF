@@ -220,7 +220,7 @@ const AdminDashboard: React.FC<{ data: DashboardSummary }> = ({ data }) => {
       <Row gutter={[16, 16]}>
         {quickStats.map((stat, index) => (
           <Col xs={24} sm={12} md={8} lg={6} xl={4} key={index}>
-            <StatCard {...stat} />
+            <StatCard {...stat} title={stat.label} />
           </Col>
         ))}
       </Row>
@@ -359,7 +359,7 @@ const StaffDashboard: React.FC<{ data: DashboardSummary }> = ({ data }) => {
       <Row gutter={[24, 24]}>
         {staffStats.map((stat, index) => (
           <Col xs={24} sm={12} lg={8} key={index}>
-            <StatCard {...stat} />
+            <StatCard {...stat} title={stat.label} />
           </Col>
         ))}
       </Row>
