@@ -167,7 +167,7 @@ const AppointmentsPage = () => {
     if (filters.dateRange && filters.dateRange.length === 2) {
       const [startDate, endDate] = filters.dateRange;
       filtered = filtered.filter(appointment => {
-        const appointmentDate = dayjs(appointment.date);
+        const appointmentDate = dayjs(appointment.startTime);
         return appointmentDate.isBetween(startDate, endDate, 'day', '[]');
       });
     }

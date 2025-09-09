@@ -19,13 +19,10 @@ interface EditAppointmentModalProps {
 
 interface EditAppointmentFormData {
   title: string;
-  description: string;
   date: string;
   time: string;
-  duration: number;
   status: string;
   staffId: number;
-  clientId: number;
   caseId?: number;
   notes?: string;
 }
@@ -46,17 +43,16 @@ const EditAppointmentModal: React.FC<EditAppointmentModalProps> = ({
     if (visible) {
       fetchSupportingData();
       if (appointment) {
+        // Convert startTime to separate date and time for the form
+        const startTime = dayjs(appointment.startTime);
         form.setFieldsValue({
           title: appointment.title,
-          description: appointment.description,
-          date: dayjs(appointment.date),
-          time: dayjs(appointment.time, 'HH:mm'),
-          duration: appointment.duration,
+          date: startTime,
+          time: startTime,
           status: appointment.status,
           staffId: appointment.staffId,
-          clientId: appointment.clientId,
           caseId: appointment.caseId,
-          notes: appointment.notes
+          notes: '' // Notes field doesn't exist in new interface
         });
       }
     }
@@ -91,13 +87,12 @@ const EditAppointmentModal: React.FC<EditAppointmentModalProps> = ({
         notes: values.notes
       };
 
-      // Only include date/time if they were provided and appointment allows it
-      if (values.date && appointment.status !== 'completed' && dayjs(`${appointment.date} ${appointment.time}`).isAfter(dayjs())) {
-        updateData.date = dayjs(values.date).format('YYYY-MM-DD');
-      }
-      
-      if (values.time && appointment.status !== 'completed' && dayjs(`${appointment.date} ${appointment.time}`).isAfter(dayjs())) {
-        updateData.time = dayjs(values.time).format('HH:mm');
+      // Only include startTime if date/time were provided and appointment allows it
+      if (values.date && values.time && appointment.status !== 'completed') {
+        const newStartTime = dayjs(values.date).hour(dayjs(values.time).hour()).minute(dayjs(values.time).minute());
+        if (newStartTime.isAfter(dayjs())) {
+          updateData.startTime = newStartTime.toISOString();
+        }
       }
 
       // Only include status if appointment is not completed
@@ -123,11 +118,11 @@ const EditAppointmentModal: React.FC<EditAppointmentModalProps> = ({
     onCancel();
   };
 
-  // Get client name for display
+  // Get client name for display - note: clientId doesn't exist in new interface
   const getClientName = (appointment: Appointment | null) => {
-    if (!appointment) return '';
-    const client = clients.find(c => c.id === appointment.clientId);
-    return client ? `${client.firstName} ${client.lastName}` : 'Cliente no encontrado';
+    if (!appointment) return 'Cliente no disponible';
+    // Since clientId doesn't exist, we'll show a placeholder
+    return 'Cliente asociado al caso';
   };
 
   // Get staff name for display
@@ -162,7 +157,7 @@ const EditAppointmentModal: React.FC<EditAppointmentModalProps> = ({
   const canCompleteAppointment = () => {
     if (!appointment) return false;
     const now = dayjs();
-    const appointmentTime = dayjs(`${appointment.date} ${appointment.time}`);
+    const appointmentTime = dayjs(appointment.startTime);
     return appointment.status !== 'completed' && 
            appointment.status !== 'cancelled' && 
            appointmentTime.isBefore(now.add(1, 'hour')); // Can complete 1 hour before or after appointment time
@@ -231,12 +226,12 @@ const EditAppointmentModal: React.FC<EditAppointmentModalProps> = ({
                 </div>
               </div>
               <div>
-                <span className="font-medium text-gray-700">Fecha:</span>
-                <div className="mt-1">{appointment.date}</div>
+                <span className="font-medium text-gray-700">Fecha y Hora:</span>
+                <div className="mt-1">{dayjs(appointment.startTime).format('DD/MM/YYYY HH:mm')}</div>
               </div>
               <div>
-                <span className="font-medium text-gray-700">Hora:</span>
-                <div className="mt-1">{appointment.time}</div>
+                <span className="font-medium text-gray-700">Duración:</span>
+                <div className="mt-1">{dayjs(appointment.endTime).diff(dayjs(appointment.startTime), 'minutes')} minutos</div>
               </div>
             </div>
           </div>
@@ -295,7 +290,7 @@ const EditAppointmentModal: React.FC<EditAppointmentModalProps> = ({
         </Form.Item>
 
         {/* Only allow date/time editing if appointment is not completed and is in the future */}
-        {appointment && appointment.status !== 'completed' && dayjs(`${appointment.date} ${appointment.time}`).isAfter(dayjs()) && (
+        {appointment && appointment.status !== 'completed' && dayjs(appointment.startTime).isAfter(dayjs()) && (
           <>
             <Alert
               message="Reprogramar Cita"
