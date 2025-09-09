@@ -569,23 +569,23 @@ func UpdateCaseStage(db *gorm.DB) gin.HandlerFunc {
 
 		// Update appointment statuses based on case stage
 		for _, appointment := range appointments {
-			var appointmentStatus string
+			var appointmentStatus config.AppointmentStatus
 
 			switch input.Stage {
 			case "closed":
 				// If case is closed, mark all appointments as completed
-				appointmentStatus = "completed"
+				appointmentStatus = config.StatusCompleted
 			case "resolution":
 				// If case is resolved, mark future appointments as cancelled
 				if time.Now().Before(appointment.StartTime) {
-					appointmentStatus = "cancelled"
+					appointmentStatus = config.StatusCancelled
 				} else {
-					appointmentStatus = "completed"
+					appointmentStatus = config.StatusCompleted
 				}
 			case "action_plan":
 				// If case is in action plan, keep appointments as confirmed
-				if appointment.Status == "pending" {
-					appointmentStatus = "confirmed"
+				if appointment.Status == config.StatusPending {
+					appointmentStatus = config.StatusConfirmed
 				}
 			default:
 				// For other stages, maintain current appointment status
@@ -761,26 +761,26 @@ func UpdateCase(db *gorm.DB) gin.HandlerFunc {
 
 			// Update appointment statuses based on case status change
 			for _, appointment := range appointments {
-				var appointmentStatus string
+				var appointmentStatus config.AppointmentStatus
 
 				switch input.Status {
 				case "closed":
 					// If case is closed, mark all appointments as completed
-					appointmentStatus = "completed"
+					appointmentStatus = config.StatusCompleted
 				case "resolved":
 					// If case is resolved, mark future appointments as cancelled
 					if time.Now().Before(appointment.StartTime) {
-						appointmentStatus = "cancelled"
+						appointmentStatus = config.StatusCancelled
 					} else {
-						appointmentStatus = "completed"
+						appointmentStatus = config.StatusCompleted
 					}
 				case "cancelled":
 					// If case is cancelled, mark all appointments as cancelled
-					appointmentStatus = "cancelled"
+					appointmentStatus = config.StatusCancelled
 				case "active":
 					// If case is active, keep appointments as confirmed
-					if appointment.Status == "pending" {
-						appointmentStatus = "confirmed"
+					if appointment.Status == config.StatusPending {
+						appointmentStatus = config.StatusConfirmed
 					}
 				default:
 					// For other statuses, maintain current appointment status

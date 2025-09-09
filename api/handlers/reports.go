@@ -685,7 +685,7 @@ func (rh *ReportsHandler) generateEnhancedAppointmentsCSV(query QueryParams) str
 			appointment.StartTime.Format("02/01/2006 15:04"),
 			appointment.EndTime.Format("02/01/2006 15:04"),
 			durationStr,
-			escapeCSV(appointment.Status),
+			escapeCSV(string(appointment.Status)),
 			escapeCSV(appointment.Category),
 			escapeCSV(appointment.Department),
 			appointment.CreatedAt.Format("02/01/2006"),
@@ -700,7 +700,7 @@ func (rh *ReportsHandler) generateEnhancedAppointmentsCSV(query QueryParams) str
 	// Group by status for summary
 	statusStats := make(map[string]int)
 	for _, a := range allAppointments {
-		statusStats[a.Status]++
+		statusStats[string(a.Status)]++
 	}
 
 	for status, count := range statusStats {

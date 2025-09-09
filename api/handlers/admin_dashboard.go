@@ -391,11 +391,11 @@ func GetRecentActivity(db *gorm.DB) gin.HandlerFunc {
 			activities = append(activities, RecentActivity{
 				ID:          strconv.FormatUint(uint64(apt.ID), 10),
 				Type:        "appointment",
-				Action:      "Appointment " + apt.Status,
+				Action:      "Appointment " + string(apt.Status),
 				Description: apt.Title + " for " + clientName,
 				Timestamp:   apt.CreatedAt,
 				User:        staffName,
-				Status:      apt.Status,
+				Status:      string(apt.Status),
 				Priority:    priority,
 				Metadata: map[string]interface{}{
 					"appointmentId": apt.ID,

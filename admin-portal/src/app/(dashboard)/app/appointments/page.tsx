@@ -6,6 +6,7 @@ import { Table, Tag, message, Spin, Button, Popconfirm, Card, Statistic, Row, Co
 import { PlusOutlined, EditOutlined, DeleteOutlined, CalendarOutlined, UserOutlined, ClockCircleOutlined } from '@ant-design/icons';
 import { apiClient } from '@/app/lib/api';
 import { Appointment as AppointmentType } from '@/app/lib/types';
+import { APPOINTMENT_STATUS_CONFIG, getValidAppointmentStatuses } from '@/config/statuses';
 import AppointmentModal from '../../components/AppointmentModal';
 import EditAppointmentModal from '../../components/EditAppointmentModal';
 import SmartSearchBar from '../../components/SmartSearchBar';
@@ -234,14 +235,11 @@ const AppointmentsPage = () => {
       dataIndex: 'status',
       key: 'status',
       render: (status: string) => {
-        const MAP: Record<string, { label: string; color: string }> = {
-          confirmed: { label: 'Confirmada', color: 'green' }, // Green for Confirmado
-          pending: { label: 'Pendiente', color: 'gold' },     // Yellow for Pending
-          completed: { label: 'Completada', color: 'red' },   // Treat as closed outcome per request
-          cancelled: { label: 'Cancelada', color: 'red' },
-        };
-        const { label, color } = MAP[status] || { label: status, color: 'default' };
-        return <Tag color={color}>{label}</Tag>;
+        const config = APPOINTMENT_STATUS_CONFIG[status as keyof typeof APPOINTMENT_STATUS_CONFIG];
+        if (config) {
+          return <Tag color={config.color}>{config.label}</Tag>;
+        }
+        return <Tag color="default">{status}</Tag>;
       },
     },
     {
@@ -262,7 +260,7 @@ const AppointmentsPage = () => {
     },
   ];
 
-  // Calculate statistics
+  // Calculate statistics using centralized status configuration
   const getStatistics = () => {
     const total = appointments.length;
     const confirmed = appointments.filter(a => a.status === 'confirmed').length;

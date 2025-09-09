@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/BryanPMX/CAF/api/config"
 	"github.com/BryanPMX/CAF/api/models"
 	"github.com/BryanPMX/CAF/api/notifications"
 	"github.com/gin-gonic/gin"
@@ -16,11 +17,13 @@ import (
 )
 
 // validAppointmentStatuses strictly limits appointment statuses allowed in the system
+// DEPRECATED: Use config.IsValidAppointmentStatus() instead
 var validAppointmentStatuses = map[string]bool{
-	"scheduled": true,
-	"completed": true,
-	"cancelled": true,
-	"no_show":   true,
+	string(config.StatusPending):   true,
+	string(config.StatusConfirmed): true,
+	string(config.StatusCompleted): true,
+	string(config.StatusCancelled): true,
+	string(config.StatusNoShow):    true,
 }
 
 // SmartAppointmentInput defines the flexible structure for scheduling an appointment from the admin portal.
@@ -246,7 +249,7 @@ func CreateAppointmentSmart(db *gorm.DB) gin.HandlerFunc {
 			Title:      input.Title,
 			StartTime:  input.StartTime,
 			EndTime:    input.EndTime,
-			Status:     input.Status,
+			Status:     config.AppointmentStatus(input.Status), // Convert string to AppointmentStatus type
 			Category:   appointmentCategory,
 			Department: department,
 		}
@@ -299,9 +302,9 @@ func UpdateAppointmentAdmin(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		// Validate the provided status against our allowed list
-		if _, ok := validAppointmentStatuses[input.Status]; !ok {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid appointment status specified. Allowed values: scheduled, completed, cancelled, no_show"})
+		// Validate the provided status using centralized configuration
+		if !config.IsValidAppointmentStatus(input.Status) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid appointment status specified. Allowed values: pending, confirmed, completed, cancelled, no_show"})
 			return
 		}
 
@@ -311,7 +314,7 @@ func UpdateAppointmentAdmin(db *gorm.DB) gin.HandlerFunc {
 		appointment.Title = input.Title
 		appointment.StartTime = input.StartTime
 		appointment.EndTime = input.EndTime
-		appointment.Status = input.Status
+		appointment.Status = config.AppointmentStatus(input.Status) // Convert string to AppointmentStatus type
 		db.Save(&appointment)
 
 		// Generate notification for client if appointment status is changed to "confirmed"
