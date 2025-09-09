@@ -18,6 +18,7 @@ dayjs.extend(isBetween);
 interface Appointment extends AppointmentType {
   case?: {
     title: string;
+    category?: string;
     client?: {
       id: number;
       firstName: string;
