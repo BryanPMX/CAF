@@ -83,51 +83,67 @@ func NewPerformanceOptimizedHandler(db *gorm.DB, redisClient *redis.Client) *Per
 // GetOptimizedCases returns cases with advanced caching, pagination, and query optimization
 func (h *PerformanceOptimizedHandler) GetOptimizedCases() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		startTime := time.Now()
+		monitor := NewPerformanceMonitor("GetOptimizedCases")
+		defer monitor.Finish()
 
-		// Parse pagination parameters
+		logger := NewLogger(c.Request.Context())
+		logger.Log(LogLevelInfo, "Starting optimized cases retrieval")
+
+		// Parse pagination parameters with validation
 		params := h.parsePaginationParams(c)
+		params.Page, params.PageSize, _ = ValidatePaginationParams(params.Page, params.PageSize)
 
 		// Generate cache key
 		cacheKey := h.generateCacheKey("cases", params, c)
 
 		// Try to get from cache first
 		if cached, found := h.cache.Get(cacheKey); found {
-			h.sendCachedResponse(c, cached, startTime, true)
+			logger.Log(LogLevelDebug, "Cache hit for cases", map[string]interface{}{
+				"cacheKey": cacheKey,
+			})
+			h.sendCachedResponse(c, cached, time.Now(), true)
 			return
 		}
 
-		// Build optimized query
+		// Build optimized query with access control
 		query := h.buildOptimizedCasesQuery(params, c)
+		query = ApplyAccessControl(query, c, "cases")
 
 		// Execute query with performance monitoring
-		// Initialize with empty slice to prevent null JSON response
-		cases := make([]models.Case, 0)
+		var cases []models.Case
 		var total int64
 
-		// Count total for pagination
-		countQuery := query.Session(&gorm.Session{})
-		if err := countQuery.Count(&total).Error; err != nil {
-			log.Printf("Error counting cases: %v", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to count cases"})
+		// Count total for pagination with proper error handling
+		if err := SafeExecute(h.db, func(db *gorm.DB) error {
+			return query.Session(&gorm.Session{}).Count(&total).Error
+		}, "CountCases"); err != nil {
+			HandleError(c, err, "Failed to count cases", http.StatusInternalServerError)
 			return
 		}
 
-		// Apply pagination and execute
+		// Apply pagination and execute with proper error handling
 		offset := (params.Page - 1) * params.PageSize
-		if err := query.Offset(offset).Limit(params.PageSize).Find(&cases).Error; err != nil {
-			log.Printf("Error retrieving cases: %v", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve cases"})
+		if err := SafeExecute(h.db, func(db *gorm.DB) error {
+			return query.Offset(offset).Limit(params.PageSize).Find(&cases).Error
+		}, "RetrieveCases"); err != nil {
+			HandleError(c, err, "Failed to retrieve cases", http.StatusInternalServerError)
 			return
 		}
 
-		// Build response
-		response := h.buildPaginatedResponse(cases, params, total, startTime, false)
+		// Build response with performance metrics
+		response := h.buildPaginatedResponse(cases, params, total, time.Now(), false)
 
 		// Cache the result
 		h.cache.Set(cacheKey, response, h.cache.ttl)
 
-		c.JSON(http.StatusOK, response)
+		logger.Log(LogLevelInfo, "Cases retrieved successfully", map[string]interface{}{
+			"total":    total,
+			"returned": len(cases),
+			"page":     params.Page,
+			"pageSize": params.PageSize,
+		})
+
+		HandleSuccess(c, response, "Cases retrieved successfully")
 	}
 }
 
@@ -150,6 +166,7 @@ func (h *PerformanceOptimizedHandler) GetOptimizedAppointments() gin.HandlerFunc
 		appointments := make([]models.Appointment, 0)
 		var total int64
 
+		// Count total for pagination with proper error handling
 		countQuery := query.Session(&gorm.Session{})
 		if err := countQuery.Count(&total).Error; err != nil {
 			log.Printf("Error counting appointments: %v", err)
@@ -157,6 +174,7 @@ func (h *PerformanceOptimizedHandler) GetOptimizedAppointments() gin.HandlerFunc
 			return
 		}
 
+		// Apply pagination and execute with proper error handling
 		offset := (params.Page - 1) * params.PageSize
 		if err := query.Offset(offset).Limit(params.PageSize).Find(&appointments).Error; err != nil {
 			log.Printf("Error retrieving appointments: %v", err)
@@ -190,6 +208,7 @@ func (h *PerformanceOptimizedHandler) GetOptimizedUsers() gin.HandlerFunc {
 		users := make([]models.User, 0)
 		var total int64
 
+		// Count total for pagination with proper error handling
 		countQuery := query.Session(&gorm.Session{})
 		if err := countQuery.Count(&total).Error; err != nil {
 			log.Printf("Error counting users: %v", err)
@@ -197,6 +216,7 @@ func (h *PerformanceOptimizedHandler) GetOptimizedUsers() gin.HandlerFunc {
 			return
 		}
 
+		// Apply pagination and execute with proper error handling
 		offset := (params.Page - 1) * params.PageSize
 		if err := query.Offset(offset).Limit(params.PageSize).Find(&users).Error; err != nil {
 			log.Printf("Error retrieving users: %v", err)
@@ -542,13 +562,27 @@ func (h *PerformanceOptimizedHandler) applyAccessControl(query *gorm.DB, c *gin.
 		if userID != nil {
 			userIDStr, ok := userID.(string)
 			if ok && userIDStr != "" {
-				// userIDUint, _ := strconv.ParseUint(userIDStr, 10, 32)
+				userIDUint, err := strconv.ParseUint(userIDStr, 10, 32)
+				if err != nil {
+					log.Printf("Invalid user ID: %s", userIDStr)
+					return
+				}
 
 				// Apply staff-specific restrictions based on entity type
 				// This will be handled differently for each entity type
 				// Cases: user_case_assignments table
 				// Appointments: staff_id field
 				// Users: no restriction needed for staff viewing users
+
+				// For cases, include cases where user is assigned
+				if strings.Contains(query.Statement.Table, "cases") {
+					query = query.Where("primary_staff_id = ? OR id IN (SELECT case_id FROM user_case_assignments WHERE user_id = ?)", userIDUint, userIDUint)
+				}
+
+				// For appointments, include appointments where user is assigned staff
+				if strings.Contains(query.Statement.Table, "appointments") {
+					query = query.Where("staff_id = ?", userIDUint)
+				}
 			}
 		}
 	}

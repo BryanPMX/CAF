@@ -11,6 +11,7 @@ export interface Notification {
   isRead: boolean;
   createdAt: string;
   userId?: number;
+  link?: string; // Optional link for clickable notifications
 }
 
 // Context interface

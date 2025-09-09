@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/csv"
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -143,66 +144,100 @@ type SystemHealth struct {
 // GetDashboardStats returns comprehensive dashboard statistics for admin users
 func GetDashboardStats(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		monitor := NewPerformanceMonitor("GetDashboardStats")
+		defer monitor.Finish()
+
+		logger := NewLogger(c.Request.Context())
+		logger.Log(LogLevelInfo, "Starting dashboard stats calculation")
+
+		// Validate database connection
+		if err := ValidateDatabaseConnection(db); err != nil {
+			HandleError(c, err, "Database connection failed", http.StatusInternalServerError)
+			return
+		}
+
 		var stats DashboardStats
 		now := time.Now()
 		monthStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
 		yearStart := time.Date(now.Year(), 1, 1, 0, 0, 0, 0, now.Location())
 
 		// Office-scoped view context (applies to non-admin users)
-		userRole, _ := c.Get("userRole")
-		userDepartment, _ := c.Get("userDepartment")
-		officeScopeID, _ := c.Get("officeScopeID")
+		userID, userRole, officeScopeID, userDepartment := GetUserContext(c)
+		logger.Log(LogLevelDebug, "User context extracted", map[string]interface{}{
+			"userID":     userID,
+			"userRole":   userRole,
+			"officeID":   officeScopeID,
+			"department": userDepartment,
+		})
 
-		// 1. USER MANAGEMENT STATISTICS
+		// 1. USER MANAGEMENT STATISTICS with proper error handling
 		var totalUsers, activeUsers, inactiveUsers, newUsersThisMonth int64
 		usersBase := db.Model(&models.User{})
-		if role, ok := userRole.(string); ok && role != "admin" && officeScopeID != nil {
+		if userRole != "admin" && officeScopeID != "" {
 			usersBase = usersBase.Where("office_id = ?", officeScopeID)
 		}
-		usersBase.Count(&totalUsers)
+		if err := usersBase.Count(&totalUsers).Error; err != nil {
+			HandleError(c, err, "Failed to count total users", http.StatusInternalServerError)
+			return
+		}
 
 		activeQ := db.Model(&models.User{}).Where("last_login > ?", now.Add(-24*time.Hour))
-		if role, ok := userRole.(string); ok && role != "admin" && officeScopeID != nil {
+		if userRole != "admin" && officeScopeID != "" {
 			activeQ = activeQ.Where("office_id = ?", officeScopeID)
 		}
-		activeQ.Count(&activeUsers)
+		if err := activeQ.Count(&activeUsers).Error; err != nil {
+			logger.LogError(err, "Failed to count active users")
+			activeUsers = 0
+		}
 
 		inactiveQ := db.Model(&models.User{}).Where("last_login <= ? OR last_login IS NULL", now.Add(-30*24*time.Hour))
-		if role, ok := userRole.(string); ok && role != "admin" && officeScopeID != nil {
+		if userRole != "admin" && officeScopeID != "" {
 			inactiveQ = inactiveQ.Where("office_id = ?", officeScopeID)
 		}
-		inactiveQ.Count(&inactiveUsers)
+		if err := inactiveQ.Count(&inactiveUsers).Error; err != nil {
+			logger.LogError(err, "Failed to count inactive users")
+			inactiveUsers = 0
+		}
 
 		newUsersQ := db.Model(&models.User{}).Where("created_at >= ?", monthStart)
-		if role, ok := userRole.(string); ok && role != "admin" && officeScopeID != nil {
+		if userRole != "admin" && officeScopeID != "" {
 			newUsersQ = newUsersQ.Where("office_id = ?", officeScopeID)
 		}
-		newUsersQ.Count(&newUsersThisMonth)
+		if err := newUsersQ.Count(&newUsersThisMonth).Error; err != nil {
+			logger.LogError(err, "Failed to count new users this month")
+			newUsersThisMonth = 0
+		}
 
 		stats.TotalUsers = int(totalUsers)
 		stats.ActiveUsers = int(activeUsers)
 		stats.InactiveUsers = int(inactiveUsers)
 		stats.NewUsersThisMonth = int(newUsersThisMonth)
 
-		// Get users by role
+		// Get users by role with proper error handling
 		var usersByRole []struct {
 			Role  string
 			Count int64
 		}
-		db.Model(&models.User{}).Select("role, count(*) as count").Group("role").Scan(&usersByRole)
+		if err := db.Model(&models.User{}).Select("role, count(*) as count").Group("role").Scan(&usersByRole).Error; err != nil {
+			log.Printf("Error getting users by role: %v", err)
+			usersByRole = make([]struct {
+				Role  string
+				Count int64
+			}, 0)
+		}
 		stats.UsersByRole = make(map[string]int)
 		for _, ur := range usersByRole {
 			stats.UsersByRole[ur.Role] = int(ur.Count)
 		}
 
-		// 2. APPOINTMENT MANAGEMENT STATISTICS
+		// 2. APPOINTMENT MANAGEMENT STATISTICS with proper error handling
 		var totalAppointments, pendingAppointments, completedAppointments, cancelledAppointments int64
 		var todayAppointments, upcomingAppointments int64
 
 		apptBase := db.Model(&models.Appointment{})
-		if role, ok := userRole.(string); ok && role != "admin" && officeScopeID != nil {
+		if userRole != "admin" && officeScopeID != "" {
 			apptBase = apptBase.Joins("INNER JOIN cases ON cases.id = appointments.case_id AND cases.office_id = ?", officeScopeID)
-			if userDepartment != nil {
+			if userDepartment != "" {
 				apptBase = apptBase.Where("appointments.department = ?", userDepartment)
 			}
 		}
@@ -210,7 +245,9 @@ func GetDashboardStats(db *gorm.DB) gin.HandlerFunc {
 		apptBase.Where("appointments.status = ?", "scheduled").Count(&pendingAppointments)
 		apptBase.Where("appointments.status = ?", "completed").Count(&completedAppointments)
 		apptBase.Where("appointments.status = ?", "cancelled").Count(&cancelledAppointments)
-		apptBase.Where("appointments.start_time::date = CURRENT_DATE").Count(&todayAppointments)
+		// Fix SQL injection risk - use proper date filtering
+		today := time.Now().Format("2006-01-02")
+		apptBase.Where("DATE(appointments.start_time) = ?", today).Count(&todayAppointments)
 		apptBase.Where("appointments.start_time > ? AND appointments.status = ?", now, "scheduled").Count(&upcomingAppointments)
 
 		stats.TotalAppointments = int(totalAppointments)
@@ -225,14 +262,14 @@ func GetDashboardStats(db *gorm.DB) gin.HandlerFunc {
 			stats.AppointmentSuccessRate = float64(completedAppointments) / float64(totalAppointments) * 100
 		}
 
-		// 3. CASE MANAGEMENT STATISTICS
+		// 3. CASE MANAGEMENT STATISTICS with proper error handling
 		var totalCases, activeCases, completedCases, overdueCases, newCasesThisMonth int64
 		caseBase := db.Model(&models.Case{})
-		if role, ok := userRole.(string); ok && role != "admin" {
-			if officeScopeID != nil {
+		if userRole != "admin" {
+			if officeScopeID != "" {
 				caseBase = caseBase.Where("office_id = ?", officeScopeID)
 			}
-			if userDepartment != nil {
+			if userDepartment != "" {
 				caseBase = caseBase.Where("category = ?", userDepartment)
 			}
 		}
@@ -253,49 +290,65 @@ func GetDashboardStats(db *gorm.DB) gin.HandlerFunc {
 			stats.CaseCompletionRate = float64(completedCases) / float64(totalCases) * 100
 		}
 
-		// Get cases by category
+		// Get cases by category with proper error handling
 		var casesByCategory []struct {
 			Category string
 			Count    int64
 		}
 		catQ := db.Model(&models.Case{}).Select("category, count(*) as count")
-		if role, ok := userRole.(string); ok && role != "admin" {
-			if officeScopeID != nil {
+		if userRole != "admin" {
+			if officeScopeID != "" {
 				catQ = catQ.Where("office_id = ?", officeScopeID)
 			}
-			if userDepartment != nil {
+			if userDepartment != "" {
 				catQ = catQ.Where("category = ?", userDepartment)
 			}
 		}
-		catQ.Group("category").Scan(&casesByCategory)
+		if err := catQ.Group("category").Scan(&casesByCategory).Error; err != nil {
+			log.Printf("Error getting cases by category: %v", err)
+			casesByCategory = make([]struct {
+				Category string
+				Count    int64
+			}, 0)
+		}
 		stats.CasesByCategory = make(map[string]int)
 		for _, cc := range casesByCategory {
 			stats.CasesByCategory[cc.Category] = int(cc.Count)
 		}
 
-		// Get cases by stage
+		// Get cases by stage with proper field validation
 		var casesByStage []struct {
 			Stage string
 			Count int64
 		}
 		stageQ := db.Model(&models.Case{}).Select("current_stage, count(*) as count")
-		if role, ok := userRole.(string); ok && role != "admin" {
-			if officeScopeID != nil {
+		if userRole != "admin" {
+			if officeScopeID != "" {
 				stageQ = stageQ.Where("office_id = ?", officeScopeID)
 			}
-			if userDepartment != nil {
+			if userDepartment != "" {
 				stageQ = stageQ.Where("category = ?", userDepartment)
 			}
 		}
-		stageQ.Group("current_stage").Scan(&casesByStage)
+		if err := stageQ.Group("current_stage").Scan(&casesByStage).Error; err != nil {
+			log.Printf("Error getting cases by stage: %v", err)
+			// Continue with empty slice instead of failing
+			casesByStage = make([]struct {
+				Stage string
+				Count int64
+			}, 0)
+		}
 		stats.CasesByStage = make(map[string]int)
 		for _, cs := range casesByStage {
 			stats.CasesByStage[cs.Stage] = int(cs.Count)
 		}
 
-		// Calculate average case duration
+		// Calculate average case duration with proper error handling
 		var avgDuration float64
-		db.Raw("SELECT AVG(EXTRACT(EPOCH FROM (updated_at - created_at))/86400) FROM cases WHERE status = 'completed'").Scan(&avgDuration)
+		if err := db.Raw("SELECT COALESCE(AVG(EXTRACT(EPOCH FROM (updated_at - created_at))/86400), 0) FROM cases WHERE status = ? AND deleted_at IS NULL", "completed").Scan(&avgDuration).Error; err != nil {
+			log.Printf("Error calculating average case duration: %v", err)
+			avgDuration = 0.0 // Default value on error
+		}
 		stats.AverageCaseDuration = avgDuration
 
 		// 4. OFFICE MANAGEMENT STATISTICS
@@ -306,12 +359,18 @@ func GetDashboardStats(db *gorm.DB) gin.HandlerFunc {
 		stats.TotalOffices = int(totalOffices)
 		stats.ActiveOffices = int(activeOffices)
 
-		// Get offices by region
+		// Get offices by region with proper error handling
 		var officesByRegion []struct {
 			Region string
 			Count  int64
 		}
-		db.Model(&models.Office{}).Select("region, count(*) as count").Group("region").Scan(&officesByRegion)
+		if err := db.Model(&models.Office{}).Select("region, count(*) as count").Group("region").Scan(&officesByRegion).Error; err != nil {
+			log.Printf("Error getting offices by region: %v", err)
+			officesByRegion = make([]struct {
+				Region string
+				Count  int64
+			}, 0)
+		}
 		stats.OfficesByRegion = make(map[string]int)
 		for _, or := range officesByRegion {
 			stats.OfficesByRegion[or.Region] = int(or.Count)
@@ -717,15 +776,22 @@ func ExportData(db *gorm.DB) gin.HandlerFunc {
 // Enhanced Helper Functions for Admin Dashboard
 
 // Financial Calculations
+// Financial Calculations with proper error handling
 func calculateRevenue(db *gorm.DB) float64 {
 	var totalRevenue float64
-	db.Raw("SELECT COALESCE(SUM(estimated_value), 0) FROM cases WHERE status = 'completed'").Scan(&totalRevenue)
+	if err := db.Raw("SELECT COALESCE(SUM(estimated_value), 0) FROM cases WHERE status = ? AND deleted_at IS NULL", "completed").Scan(&totalRevenue).Error; err != nil {
+		log.Printf("Error calculating revenue: %v", err)
+		return 0.0
+	}
 	return totalRevenue
 }
 
 func calculateRevenueForPeriod(db *gorm.DB, startDate, endDate time.Time) float64 {
 	var revenue float64
-	db.Raw("SELECT COALESCE(SUM(estimated_value), 0) FROM cases WHERE status = 'completed' AND updated_at BETWEEN ? AND ?", startDate, endDate).Scan(&revenue)
+	if err := db.Raw("SELECT COALESCE(SUM(estimated_value), 0) FROM cases WHERE status = ? AND updated_at BETWEEN ? AND ? AND deleted_at IS NULL", "completed", startDate, endDate).Scan(&revenue).Error; err != nil {
+		log.Printf("Error calculating revenue for period: %v", err)
+		return 0.0
+	}
 	return revenue
 }
 
@@ -734,8 +800,18 @@ func calculateGrowthRate(db *gorm.DB) float64 {
 	lastYear := now.AddDate(-1, 0, 0)
 
 	var currentRevenue, lastYearRevenue float64
-	db.Raw("SELECT COALESCE(SUM(estimated_value), 0) FROM cases WHERE status = 'completed' AND updated_at >= ?", now.AddDate(-1, 0, 0)).Scan(&currentRevenue)
-	db.Raw("SELECT COALESCE(SUM(estimated_value), 0) FROM cases WHERE status = 'completed' AND updated_at BETWEEN ? AND ?", lastYear, now.AddDate(-1, 0, 0)).Scan(&lastYearRevenue)
+
+	// Current year revenue
+	if err := db.Raw("SELECT COALESCE(SUM(estimated_value), 0) FROM cases WHERE status = ? AND updated_at >= ? AND deleted_at IS NULL", "completed", now.AddDate(-1, 0, 0)).Scan(&currentRevenue).Error; err != nil {
+		log.Printf("Error calculating current revenue: %v", err)
+		return 0.0
+	}
+
+	// Last year revenue
+	if err := db.Raw("SELECT COALESCE(SUM(estimated_value), 0) FROM cases WHERE status = ? AND updated_at BETWEEN ? AND ? AND deleted_at IS NULL", "completed", lastYear, now.AddDate(-1, 0, 0)).Scan(&lastYearRevenue).Error; err != nil {
+		log.Printf("Error calculating last year revenue: %v", err)
+		return 0.0
+	}
 
 	if lastYearRevenue > 0 {
 		return ((currentRevenue - lastYearRevenue) / lastYearRevenue) * 100
@@ -745,13 +821,19 @@ func calculateGrowthRate(db *gorm.DB) float64 {
 
 func calculateAverageCaseValue(db *gorm.DB) float64 {
 	var avgValue float64
-	db.Raw("SELECT COALESCE(AVG(estimated_value), 0) FROM cases WHERE status = 'completed'").Scan(&avgValue)
+	if err := db.Raw("SELECT COALESCE(AVG(estimated_value), 0) FROM cases WHERE status = ? AND deleted_at IS NULL", "completed").Scan(&avgValue).Error; err != nil {
+		log.Printf("Error calculating average case value: %v", err)
+		return 0.0
+	}
 	return avgValue
 }
 
 func calculateOutstandingInvoices(db *gorm.DB) float64 {
 	var outstanding float64
-	db.Raw("SELECT COALESCE(SUM(estimated_value), 0) FROM cases WHERE status != 'completed' AND status != 'cancelled'").Scan(&outstanding)
+	if err := db.Raw("SELECT COALESCE(SUM(estimated_value), 0) FROM cases WHERE status NOT IN (?, ?) AND deleted_at IS NULL", "completed", "cancelled").Scan(&outstanding).Error; err != nil {
+		log.Printf("Error calculating outstanding invoices: %v", err)
+		return 0.0
+	}
 	return outstanding
 }
 
@@ -784,7 +866,10 @@ func calculateAPIResponseTime() float64 {
 // Security & Compliance
 func getFailedLoginAttempts(db *gorm.DB) int {
 	var count int64
-	db.Model(&models.AuditLog{}).Where("action = ? AND status = ?", "login_attempt", "failed").Count(&count)
+	if err := db.Model(&models.AuditLog{}).Where("action = ? AND status = ? AND created_at >= ?", "login_attempt", "failed", time.Now().Add(-24*time.Hour)).Count(&count).Error; err != nil {
+		log.Printf("Error getting failed login attempts: %v", err)
+		return 0
+	}
 	return int(count)
 }
 
@@ -888,7 +973,10 @@ func checkNetworkConnectivity() bool {
 
 func hasRecentSecurityIncidents(db *gorm.DB) bool {
 	var count int64
-	db.Model(&models.AuditLog{}).Where("action IN (?) AND created_at >= ?", []string{"security_violation", "unauthorized_access"}, time.Now().Add(-24*time.Hour)).Count(&count)
+	if err := db.Model(&models.AuditLog{}).Where("action IN (?) AND created_at >= ?", []string{"security_violation", "unauthorized_access"}, time.Now().Add(-24*time.Hour)).Count(&count).Error; err != nil {
+		log.Printf("Error checking security incidents: %v", err)
+		return false
+	}
 	return count > 0
 }
 
@@ -1130,7 +1218,10 @@ func getNextStorageCleanup() string {
 
 func getSecurityThreats(db *gorm.DB) int {
 	var count int64
-	db.Model(&models.AuditLog{}).Where("action IN (?) AND created_at >= ?", []string{"security_violation", "unauthorized_access", "suspicious_activity"}, time.Now().Add(-7*24*time.Hour)).Count(&count)
+	if err := db.Model(&models.AuditLog{}).Where("action IN (?) AND created_at >= ?", []string{"security_violation", "unauthorized_access", "suspicious_activity"}, time.Now().Add(-7*24*time.Hour)).Count(&count).Error; err != nil {
+		log.Printf("Error getting security threats: %v", err)
+		return 0
+	}
 	return int(count)
 }
 

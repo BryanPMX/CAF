@@ -72,62 +72,100 @@ func (rh *ReportsHandler) GetSummaryReport() gin.HandlerFunc {
 			dbq = dbq.Where("office_id = ?", *query.OfficeID)
 		}
 
-		// Get case statistics
+		// Get case statistics with proper error handling
 		var totalCases int64
-		dbq.Where("created_at BETWEEN ? AND ?", query.DateFrom, query.DateTo).Count(&totalCases)
+		if err := dbq.Where("created_at BETWEEN ? AND ?", query.DateFrom, query.DateTo).Count(&totalCases).Error; err != nil {
+			log.Printf("Error counting total cases: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al contar casos"})
+			return
+		}
 
-		// Cases by status
+		// Cases by status with proper error handling
 		var casesByStatus []struct {
 			Status string
 			Count  int64
 		}
-		dbq.Where("created_at BETWEEN ? AND ?", query.DateFrom, query.DateTo).
+		if err := dbq.Where("created_at BETWEEN ? AND ?", query.DateFrom, query.DateTo).
 			Select("status, COUNT(*) as count").
-			Group("status").Scan(&casesByStatus)
+			Group("status").Scan(&casesByStatus).Error; err != nil {
+			log.Printf("Error getting cases by status: %v", err)
+			casesByStatus = make([]struct {
+				Status string
+				Count  int64
+			}, 0)
+		}
 
-		// Cases by department
+		// Cases by department with proper error handling
 		var casesByDepartment []struct {
 			Department string
 			Count      int64
 		}
-		dbq.Where("created_at BETWEEN ? AND ?", query.DateFrom, query.DateTo).
+		if err := dbq.Where("created_at BETWEEN ? AND ?", query.DateFrom, query.DateTo).
 			Select("category as department, COUNT(*) as count").
-			Group("category").Scan(&casesByDepartment)
+			Group("category").Scan(&casesByDepartment).Error; err != nil {
+			log.Printf("Error getting cases by department: %v", err)
+			casesByDepartment = make([]struct {
+				Department string
+				Count      int64
+			}, 0)
+		}
 
-		// Cases by stage
+		// Cases by stage with proper error handling
 		var casesByStage []struct {
 			Stage string
 			Count int64
 		}
-		dbq.Where("created_at BETWEEN ? AND ?", query.DateFrom, query.DateTo).
+		if err := dbq.Where("created_at BETWEEN ? AND ?", query.DateFrom, query.DateTo).
 			Select("current_stage as stage, COUNT(*) as count").
-			Group("current_stage").Scan(&casesByStage)
+			Group("current_stage").Scan(&casesByStage).Error; err != nil {
+			log.Printf("Error getting cases by stage: %v", err)
+			casesByStage = make([]struct {
+				Stage string
+				Count int64
+			}, 0)
+		}
 
-		// Get appointment statistics
+		// Get appointment statistics with proper error handling
 		var totalAppointments int64
 		apptQuery := rh.db.Model(&models.Appointment{})
 		if query.Department != "" {
 			apptQuery = apptQuery.Where("department = ?", query.Department)
 		}
-		apptQuery.Where("start_time BETWEEN ? AND ?", query.DateFrom, query.DateTo).Count(&totalAppointments)
+		if err := apptQuery.Where("start_time BETWEEN ? AND ?", query.DateFrom, query.DateTo).Count(&totalAppointments).Error; err != nil {
+			log.Printf("Error counting total appointments: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al contar citas"})
+			return
+		}
 
-		// Appointments by status
+		// Appointments by status with proper error handling
 		var appointmentsByStatus []struct {
 			Status string
 			Count  int64
 		}
-		apptQuery.Where("start_time BETWEEN ? AND ?", query.DateFrom, query.DateTo).
+		if err := apptQuery.Where("start_time BETWEEN ? AND ?", query.DateFrom, query.DateTo).
 			Select("status, COUNT(*) as count").
-			Group("status").Scan(&appointmentsByStatus)
+			Group("status").Scan(&appointmentsByStatus).Error; err != nil {
+			log.Printf("Error getting appointments by status: %v", err)
+			appointmentsByStatus = make([]struct {
+				Status string
+				Count  int64
+			}, 0)
+		}
 
-		// Appointments by department
+		// Appointments by department with proper error handling
 		var appointmentsByDepartment []struct {
 			Department string
 			Count      int64
 		}
-		apptQuery.Where("start_time BETWEEN ? AND ?", query.DateFrom, query.DateTo).
+		if err := apptQuery.Where("start_time BETWEEN ? AND ?", query.DateFrom, query.DateTo).
 			Select("department, COUNT(*) as count").
-			Group("department").Scan(&appointmentsByDepartment)
+			Group("department").Scan(&appointmentsByDepartment).Error; err != nil {
+			log.Printf("Error getting appointments by department: %v", err)
+			appointmentsByDepartment = make([]struct {
+				Department string
+				Count      int64
+			}, 0)
+		}
 
 		c.JSON(http.StatusOK, gin.H{
 			"totalCases":               totalCases,
@@ -522,14 +560,14 @@ func (rh *ReportsHandler) generateEnhancedCasesCSV(query QueryParams) string {
 	}
 
 	// Use pagination for large datasets to prevent memory issues
+	const maxRecords = 50000
 	const batchSize = 1000
 	var offset int
-	// Initialize with empty slice to prevent null JSON response
-	allCases := make([]models.Case, 0)
+	var totalProcessed int
+	var allCases []models.Case
 
-	for {
-		// Initialize with empty slice to prevent null JSON response
-		batch := make([]models.Case, 0)
+	for offset = 0; totalProcessed < maxRecords; offset += batchSize {
+		var batch []models.Case
 		if err := dbq.Offset(offset).Limit(batchSize).Order("created_at DESC").Find(&batch).Error; err != nil {
 			return "Error al consultar casos: " + err.Error()
 		}
@@ -539,10 +577,13 @@ func (rh *ReportsHandler) generateEnhancedCasesCSV(query QueryParams) string {
 		}
 
 		allCases = append(allCases, batch...)
-		offset += batchSize
+		totalProcessed += len(batch)
+
+		// Clear batch from memory
+		batch = nil
 
 		// Safety check to prevent infinite loops
-		if offset > 10000 {
+		if totalProcessed >= maxRecords {
 			break
 		}
 	}
@@ -632,13 +673,15 @@ func (rh *ReportsHandler) generateEnhancedAppointmentsCSV(query QueryParams) str
 		dbq = dbq.Where("status = ?", query.AppointmentStatus)
 	}
 
-	// Use pagination for large datasets
+	// Use pagination for large datasets to prevent memory issues
+	const maxRecords = 50000
 	const batchSize = 1000
 	var offset int
-	var allAppointments []models.Appointment = make([]models.Appointment, 0)
+	var totalProcessed int
+	var allAppointments []models.Appointment
 
-	for {
-		var batch []models.Appointment = make([]models.Appointment, 0)
+	for offset = 0; totalProcessed < maxRecords; offset += batchSize {
+		var batch []models.Appointment
 		if err := dbq.Offset(offset).Limit(batchSize).Order("start_time DESC").Find(&batch).Error; err != nil {
 			return "Error al consultar citas: " + err.Error()
 		}
@@ -648,9 +691,13 @@ func (rh *ReportsHandler) generateEnhancedAppointmentsCSV(query QueryParams) str
 		}
 
 		allAppointments = append(allAppointments, batch...)
-		offset += batchSize
+		totalProcessed += len(batch)
 
-		if offset > 10000 {
+		// Clear batch from memory
+		batch = nil
+
+		// Safety check to prevent infinite loops
+		if totalProcessed >= maxRecords {
 			break
 		}
 	}
