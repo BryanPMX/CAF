@@ -21,6 +21,10 @@ interface Announcement {
   visibleDepartments?: string[];
 }
 
+interface AnnouncementFormData extends Omit<Announcement, 'startAt' | 'endAt'> {
+  dateRange?: [Date, Date] | undefined;
+}
+
 interface AnnouncementModalProps {
   visible: boolean;
   onCancel: () => void;
@@ -34,7 +38,7 @@ const AnnouncementModal: React.FC<AnnouncementModalProps> = ({
   onSuccess,
   editingAnnouncement
 }) => {
-  const [form] = Form.useForm<Announcement>();
+  const [form] = Form.useForm<AnnouncementFormData>();
   const [uploading, setUploading] = useState(false);
   const [confirmLoading, setConfirmLoading] = useState(false);
 
@@ -65,9 +69,9 @@ const AnnouncementModal: React.FC<AnnouncementModalProps> = ({
       const payload: Announcement = { ...values };
       
       // Transform date range
-      if ((values as any).dateRange?.length === 2) {
-        payload.startAt = (values as any).dateRange[0]?.toISOString();
-        payload.endAt = (values as any).dateRange[1]?.toISOString();
+      if (values.dateRange?.length === 2) {
+        payload.startAt = values.dateRange[0]?.toISOString();
+        payload.endAt = values.dateRange[1]?.toISOString();
       } else {
         payload.startAt = null;
         payload.endAt = null;
