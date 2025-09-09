@@ -73,10 +73,10 @@ export default function NotificationsPage() {
 
   // Handle notification click
   const handleNotificationClick = (notification: Notification) => {
-    // TODO: Implement notification link handling when backend supports it
-    // if (notification.link) {
-    //   router.push(notification.link);
-    // }
+    // Navigate to the notification link if it exists
+    if (notification.link) {
+      router.push(notification.link);
+    }
   };
 
   // Get notification type icon
