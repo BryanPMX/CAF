@@ -73,15 +73,14 @@ export interface Case {
 export interface Appointment {
   id: number;
   title: string;
-  description: string;
-  date: string;
-  time: string;
-  duration: number;
+  startTime: string;
+  endTime: string;
   status: AppointmentStatus;
-  clientId: number;
+  caseId: number;
   staffId: number;
-  caseId?: number;
-  notes?: string;
+  officeId: number;
+  category?: string;
+  department?: string;
   createdAt: string;
   updatedAt: string;
 }
