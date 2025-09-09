@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, Table, DatePicker, Select, Button, Space, Tag, Statistic, Row, Col, message, Spin, Radio, Divider } from 'antd';
 import { DownloadOutlined, BarChartOutlined, FileExcelOutlined, FilePdfOutlined } from '@ant-design/icons';
 import { apiClient } from '@/app/lib/api';
-import { Office } from '@/lib/types';
+import { Office } from '@/app/lib/types';
 import dayjs from 'dayjs';
 
 const { RangePicker } = DatePicker;
