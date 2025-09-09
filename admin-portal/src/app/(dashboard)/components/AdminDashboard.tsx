@@ -36,7 +36,7 @@ import {
   CalendarOutlined,
   FileTextOutlined,
   DollarOutlined,
-  TrendingUpOutlined,
+  RiseOutlined,
   AlertOutlined,
   CheckCircleOutlined,
   ClockCircleOutlined,
@@ -337,7 +337,7 @@ const AdminDashboard: React.FC = () => {
               suffix="USD"
             />
             <div className="flex items-center mt-2">
-              <TrendingUpOutlined className="text-green-500 mr-1" />
+              <RiseOutlined className="text-green-500 mr-1" />
               <span className="text-green-500">{stats?.growthRate || 0}%</span>
             </div>
           </Card>

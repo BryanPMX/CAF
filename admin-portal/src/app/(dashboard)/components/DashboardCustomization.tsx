@@ -25,7 +25,7 @@ import {
   EyeOutlined, 
   SaveOutlined, 
   ReloadOutlined,
-  PaletteOutlined,
+  BgColorsOutlined,
   LayoutOutlined,
   BellOutlined,
   BarChartOutlined,
@@ -161,7 +161,7 @@ const DashboardCustomization: React.FC = () => {
         {/* Theme Settings */}
         <div>
           <Title level={5} className="!mb-3 flex items-center">
-            <PaletteOutlined className="mr-2 text-purple-500" />
+            <BgColorsOutlined className="mr-2 text-purple-500" />
             Apariencia
           </Title>
           

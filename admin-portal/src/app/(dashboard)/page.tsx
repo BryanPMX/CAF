@@ -33,8 +33,8 @@ import {
   CheckCircleOutlined, 
   PlusOutlined, 
   BellOutlined,
-  TrendingUpOutlined,
-  TrendingDownOutlined,
+  RiseOutlined,
+  FallOutlined,
   ClockCircleOutlined,
   ExclamationCircleOutlined,
   UserOutlined,
@@ -137,8 +137,8 @@ const StatCard: React.FC<{
           </Typography.Title>
           {change !== undefined && (
             <div className="flex items-center">
-              {trend === 'up' && <TrendingUpOutlined className="text-green-500 mr-1" />}
-              {trend === 'down' && <TrendingDownOutlined className="text-red-500 mr-1" />}
+              {trend === 'up' && <RiseOutlined className="text-green-500 mr-1" />}
+              {trend === 'down' && <FallOutlined className="text-red-500 mr-1" />}
               {trend === 'stable' && <ClockCircleOutlined className="text-gray-500 mr-1" />}
               <Typography.Text 
                 type={trend === 'up' ? 'success' : trend === 'down' ? 'danger' : 'secondary'}
