@@ -6,6 +6,7 @@ import { Modal, Form, Input, Button, message, Select, DatePicker, Radio, AutoCom
 import { apiClient } from '@/app/lib/api';
 import { CASE_TYPES, findDepartmentByCaseType } from '@/app/lib/caseTaxonomy';
 import { ROLE_LABELS, DEPARTMENT_ROLE_MAPPING, getRoleLabel, getRolesForCaseCategory, isAdminRole } from '@/config/roles';
+import { APPOINTMENT_STATUS_CONFIG, getValidAppointmentStatuses } from '@/config/statuses';
 import dayjs from 'dayjs';
 
 const { Option } = Select;
@@ -496,9 +497,14 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ visible, onClose, o
             </Form.Item>
             <Form.Item name="status" label="Estado" rules={[{ required: true }]} initialValue="confirmed">
               <Select>
-                <Option value="confirmed">✅ Confirmada</Option>
-                <Option value="pending">⏳ Pendiente</Option>
-                <Option value="cancelled">❌ Cancelada</Option>
+                {getValidAppointmentStatuses().map(status => {
+                  const config = APPOINTMENT_STATUS_CONFIG[status];
+                  return (
+                    <Option key={status} value={status}>
+                      {config.label}
+                    </Option>
+                  );
+                })}
               </Select>
             </Form.Item>
           </>

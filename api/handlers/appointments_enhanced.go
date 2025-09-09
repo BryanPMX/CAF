@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/BryanPMX/CAF/api/config"
 	"github.com/BryanPMX/CAF/api/models"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -165,14 +166,14 @@ func CreateAppointmentEnhanced(db *gorm.DB) gin.HandlerFunc {
 			}
 		}
 
-		// Create the appointment
+		// Create the appointment with centralized status
 		appointment := models.Appointment{
 			CaseID:     input.CaseID,
 			StaffID:    input.StaffID,
 			Title:      input.Title,
 			StartTime:  input.StartTime,
 			EndTime:    input.EndTime,
-			Status:     "confirmed",
+			Status:     config.StatusConfirmed, // Use centralized status constant
 			Category:   input.Category,
 			Department: input.Department,
 		}
@@ -234,6 +235,11 @@ func UpdateAppointmentEnhanced(db *gorm.DB) gin.HandlerFunc {
 			updates["end_time"] = input.EndTime
 		}
 		if input.Status != "" {
+			// Validate status using centralized configuration
+			if !config.IsValidAppointmentStatus(input.Status) {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid appointment status"})
+				return
+			}
 			updates["status"] = input.Status
 		}
 		if input.Category != "" {

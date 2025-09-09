@@ -4,6 +4,7 @@ package models
 import (
 	"time"
 
+	"github.com/BryanPMX/CAF/api/config"
 	"gorm.io/gorm"
 )
 
@@ -19,13 +20,13 @@ type Appointment struct {
 	Staff   User `gorm:"foreignKey:StaffID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT" json:"staff"`
 
 	// Office where the appointment takes place
-	OfficeID uint   `gorm:"not null" json:"officeId"`
+	OfficeID uint    `gorm:"not null" json:"officeId"`
 	Office   *Office `gorm:"foreignKey:OfficeID" json:"office"`
 
-	Title     string    `gorm:"size:255;not null;index" json:"title"`
-	StartTime time.Time `gorm:"not null;index" json:"startTime"`
-	EndTime   time.Time `gorm:"not null" json:"endTime"`
-	Status    string    `gorm:"size:50;default:'confirmed';index" json:"status"` // "confirmed", "completed", "cancelled"
+	Title     string                   `gorm:"size:255;not null;index" json:"title"`
+	StartTime time.Time                `gorm:"not null;index" json:"startTime"`
+	EndTime   time.Time                `gorm:"not null" json:"endTime"`
+	Status    config.AppointmentStatus `gorm:"size:50;default:'pending';index" json:"status"` // Uses centralized status definitions
 
 	// NEW: Appointment category for department-based filtering
 	Category string `gorm:"size:100;default:'General';index" json:"category"` // e.g., "Legal Consultation", "Therapy Session", "Administrative"
