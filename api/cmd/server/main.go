@@ -304,6 +304,11 @@ func main() {
 		admin.GET("/clients/:clientId/cases", handlers.GetCasesForClient(database))                            // For client's cases
 		admin.GET("/clients/:clientId/cases-for-appointment", handlers.GetClientCasesForAppointment(database)) // For appointment case dropdown
 
+		// Announcement Management (Admin only)
+		admin.POST("/announcements", handlers.CreateAnnouncement(database))
+		admin.PATCH("/announcements/:id", handlers.UpdateAnnouncement(database))
+		admin.DELETE("/announcements/:id", handlers.DeleteAnnouncement(database))
+
 		// Reports and Audit routes
 		reportsHandler := handlers.NewReportsHandler(database)
 		admin.GET("/reports/summary-report", reportsHandler.GetSummaryReport())
