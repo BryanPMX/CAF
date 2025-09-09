@@ -88,16 +88,8 @@ const nextConfig = {
       // Enable minification
       config.optimization.minimize = true;
       
-      // Remove console logs in production
-      config.optimization.minimizer.push(
-        new (require('terser-webpack-plugin'))({
-          terserOptions: {
-            compress: {
-              drop_console: true,
-            },
-          },
-        })
-      );
+      // Remove console logs in production (using built-in SWC minifier)
+      // SWC handles console removal automatically in production builds
     }
 
     // SVG optimization
