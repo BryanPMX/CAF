@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { Modal, Form, Input, Select, Switch, DatePicker, Upload, Button, Row, Col, message } from 'antd';
 import { BellOutlined, UploadOutlined } from '@ant-design/icons';
 import { STAFF_ROLES } from '@/config/roles';
-import { apiClient } from '../lib/api';
+import { apiClient } from '../../lib/api';
 
 const { RangePicker } = DatePicker;
 

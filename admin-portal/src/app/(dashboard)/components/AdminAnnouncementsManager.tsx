@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { Button, Card, message, Table, Space, Tag } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, BellOutlined } from '@ant-design/icons';
-import { apiClient } from '../lib/api';
+import { apiClient } from '../../lib/api';
 import AnnouncementModal from './AnnouncementModal';
 
 interface Announcement {
