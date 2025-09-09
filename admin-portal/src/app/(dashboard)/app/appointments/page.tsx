@@ -156,9 +156,9 @@ const AppointmentsPage = () => {
       filtered = filtered.filter(appointment => appointment.status === filters.status);
     }
     
-    // Apply category filter
+    // Apply category filter (using case category instead)
     if (filters.category) {
-      filtered = filtered.filter(appointment => appointment.category === filters.category);
+      filtered = filtered.filter(appointment => appointment.case?.category === filters.category);
     }
     
     // Apply date range filter
