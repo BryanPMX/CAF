@@ -207,13 +207,13 @@ export default function NotificationsPage() {
                         {notification.title || notification.message}
                       </Text>
                       {!notification.isRead && (
-                        <Tag color="blue" size="small">Nuevo</Tag>
+                        <Tag color="blue">Nuevo</Tag>
                       )}
                     </Space>
                   }
                   description={
                     <Space size="small" className="mt-2">
-                      <Tag color={getTypeColor(notification.type)} size="small">
+                      <Tag color={getTypeColor(notification.type)}>
                         {notification.type}
                       </Tag>
                       <Text type="secondary" style={{ fontSize: '12px' }}>
