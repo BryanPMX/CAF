@@ -36,7 +36,7 @@ apiClient.interceptors.request.use(
     if (isDebugMode()) {
       console.log('📤 Request:', {
         method: config.method?.toUpperCase(),
-        url: config.baseURL + config.url,
+        url: (config.baseURL || '') + (config.url || ''),
         endpoint: config.url,
         baseURL: config.baseURL,
       });
@@ -78,7 +78,7 @@ apiClient.interceptors.response.use(
         method: error.config?.method?.toUpperCase(),
         message: error.message,
         baseURL: error.config?.baseURL,
-        fullURL: error.config?.baseURL + error.config?.url,
+        fullURL: (error.config?.baseURL || '') + (error.config?.url || ''),
       });
     }
 

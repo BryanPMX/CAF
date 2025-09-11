@@ -18,9 +18,17 @@ const getEnvironmentConfig = (): AppConfig => {
   const environment = process.env.NODE_ENV || 'development';
   const debug = environment === 'development';
 
+  // Ensure baseURL is always defined with a fallback
+  const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1';
+  
+  // Validate that we have a proper baseURL
+  if (!baseURL || baseURL.trim() === '') {
+    throw new Error('NEXT_PUBLIC_API_URL environment variable is required and cannot be empty');
+  }
+
   // API Configuration
   const apiConfig: ApiConfig = {
-    baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1',
+    baseURL,
     timeout: 10000,
     headers: {
       'Content-Type': 'application/json',
