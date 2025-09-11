@@ -1,8 +1,10 @@
 // admin-portal/src/app/lib/types.ts
 // Type definitions for the CAF Admin Portal
 
-// Import centralized status types
-export type { AppointmentStatus, CaseStatus, TaskStatus } from '@/config/statuses';
+// Define status types directly to avoid import issues during build
+export type AppointmentStatus = 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'no_show';
+export type CaseStatus = 'open' | 'in_progress' | 'closed' | 'pending' | 'archived';
+export type TaskStatus = 'pending' | 'in_progress' | 'completed' | 'cancelled';
 
 // User roles
 export type UserRole = 'admin' | 'office_manager' | 'staff' | 'counselor' | 'psychologist' | 'client';
