@@ -52,7 +52,7 @@ module.exports = {
     SWC_MINIFY: 'true',
     
     // Enable experimental features
-    EXPERIMENTAL_OPTIMIZE_CSS: 'true',
+    EXPERIMENTAL_OPTIMIZE_CSS: 'false',
     EXPERIMENTAL_OPTIMIZE_PACKAGE_IMPORTS: 'true',
     
     // Disable image optimization in development

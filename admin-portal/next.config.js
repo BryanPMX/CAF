@@ -5,7 +5,8 @@ const nextConfig = {
   
   // Enable experimental features for better performance
   experimental: {
-    optimizeCss: true,
+    // Disable CSS optimization to avoid critters dependency issue
+    optimizeCss: false,
     optimizePackageImports: ['antd', '@ant-design/icons'],
     turbo: {
       rules: {
@@ -15,9 +16,10 @@ const nextConfig = {
         },
       },
     },
-    // Enable SWC minification
-    swcMinify: true,
   },
+  
+  // Enable SWC minification at root level (not experimental)
+  swcMinify: true,
 
   // Enable compression
   compress: true,
