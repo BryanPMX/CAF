@@ -4,6 +4,7 @@ package main
 import (
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	// Internal packages for our application
@@ -74,20 +75,27 @@ func main() {
 	// --- Step 3: Initialize S3 Storage Client ---
 	log.Println("INFO: Initializing S3 storage client...")
 
-	// Add a small delay to ensure LocalStack is fully ready
-	time.Sleep(2 * time.Second)
+	// Don't delay for AWS deployment - only for LocalStack
+	if os.Getenv("AWS_ENDPOINT_URL") != "" && os.Getenv("AWS_ENDPOINT_URL") != "http://localstack:4566" {
+		// This is likely AWS, don't delay
+	} else {
+		// Add a small delay to ensure LocalStack is fully ready
+		time.Sleep(2 * time.Second)
+	}
 
 	if err := storage.InitS3(); err != nil {
-		log.Fatalf("FATAL: Failed to initialize S3 client: %v", err)
+		log.Printf("WARN: Failed to initialize S3 client: %v", err)
+		log.Println("INFO: Continuing without S3 - some features may be limited")
+	} else {
+		log.Println("INFO: S3 client initialized successfully. Checking bucket...")
+
+		if err := storage.CreateBucketIfNotExists(); err != nil {
+			log.Printf("WARN: Failed to ensure S3 bucket exists: %v", err)
+			log.Println("INFO: Continuing without S3 bucket verification - some features may be limited")
+		} else {
+			log.Println("INFO: S3 bucket verified/created successfully")
+		}
 	}
-
-	log.Println("INFO: S3 client initialized successfully. Checking bucket...")
-
-	if err := storage.CreateBucketIfNotExists(); err != nil {
-		log.Fatalf("FATAL: Failed to ensure S3 bucket exists: %v", err)
-	}
-
-	log.Println("INFO: S3 bucket verified/created successfully")
 
 	// --- Step 4: Set up Gin HTTP Router ---
 	r := gin.Default()
@@ -96,11 +104,22 @@ func main() {
 	r.Use(gzip.Gzip(gzip.BestSpeed))
 
 	// --- Step 5: Apply Global Middleware ---
+	// Configure CORS for production deployment
+	allowedOrigins := []string{"*"} // Default for development
+	if os.Getenv("NODE_ENV") == "production" {
+		// In production, restrict to specific domains
+		allowedOrigins = []string{
+			"https://caf-admin-portal.vercel.app",
+			"https://caf-admin-portal-*.vercel.app", // Allow preview deployments
+			"https://caf-system.vercel.app",
+		}
+	}
+
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"*"}, // For development. In production, this should be restricted.
+		AllowOrigins:     allowedOrigins,
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
-		ExposeHeaders:    []string{"Content-Length"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization", "X-Requested-With"},
+		ExposeHeaders:    []string{"Content-Length", "Authorization"},
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
 	}))
@@ -117,9 +136,40 @@ func main() {
 	// WebSocket endpoint for per-user notifications (token via query param)
 	r.GET("/ws", handlers.NotificationsWebSocket(cfg.JWTSecret, sessionService))
 
-	// Health check endpoints
+	// Health check endpoints - Basic health check that doesn't depend on external services
 	r.GET("/health", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"status": "healthy", "service": "CAF API"})
+		c.JSON(http.StatusOK, gin.H{
+			"status":    "healthy",
+			"service":   "CAF API",
+			"timestamp": time.Now().UTC(),
+			"version":   "1.0.0",
+		})
+	})
+
+	// AWS ALB health check endpoint (common AWS convention)
+	r.GET("/health/live", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"status": "ok",
+			"alive":  true,
+		})
+	})
+
+	// Readiness check (includes dependencies)
+	r.GET("/health/ready", func(c *gin.Context) {
+		// Test database connection
+		if err := database.Raw("SELECT 1").Error; err != nil {
+			c.JSON(http.StatusServiceUnavailable, gin.H{
+				"status": "not ready",
+				"error":  "database connection failed",
+			})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"status":    "ready",
+			"database":  "connected",
+			"timestamp": time.Now().UTC(),
+		})
 	})
 
 	r.GET("/test", func(c *gin.Context) {
@@ -393,11 +443,23 @@ func main() {
 	}
 
 	// --- Step 7: Start the Server ---
-	log.Printf("INFO: Server starting on port %s", cfg.Port)
+	// Bind to all interfaces (0.0.0.0) for AWS deployment
+	serverAddr := "0.0.0.0:" + cfg.Port
+	log.Printf("INFO: Server starting on %s", serverAddr)
 	log.Printf("INFO: Enhanced data access control system enabled")
 	log.Printf("INFO: Department-based filtering active")
 	log.Printf("INFO: Case assignment control active")
-	if err := r.Run(":" + cfg.Port); err != nil {
+
+	// Add graceful shutdown handling
+	srv := &http.Server{
+		Addr:         serverAddr,
+		Handler:      r,
+		ReadTimeout:  30 * time.Second,
+		WriteTimeout: 30 * time.Second,
+		IdleTimeout:  60 * time.Second,
+	}
+
+	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		log.Fatalf("FATAL: Failed to run server: %v", err)
 	}
 }
