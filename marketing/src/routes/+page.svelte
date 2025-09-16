@@ -45,15 +45,14 @@
       </p>
       <div class="flex justify-center space-x-4" in:slide={{ duration: 800, delay: 400, easing: cubicOut }}>
         <a
-          href="http://localhost:37507"
-          target="_blank"
+          href="tel:+1-915-555-0123"
           class="bg-white text-blue-700 font-bold py-3 px-8 rounded-full text-lg hover:bg-blue-100 transition-transform transform hover:scale-105 shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          aria-label="Solicitar ayuda ahora"
+          aria-label="Llamar para solicitar ayuda"
         >
-          Solicitar Ayuda
+          📞 Llamar Ahora
         </a>
         <a
-          href="/servicios"
+          href="/contacto"
           class="border-2 border-white text-white font-bold py-3 px-8 rounded-full text-lg hover:bg-white hover:text-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-white"
           aria-label="Ver nuestros servicios"
         >

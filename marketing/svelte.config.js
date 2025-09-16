@@ -4,8 +4,10 @@ import adapter from '@sveltejs/adapter-auto';
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
 	kit: {
-		// Using adapter-auto for development
-		adapter: adapter()
+		// Using adapter-auto for Vercel deployment
+		adapter: adapter({
+			runtime: 'nodejs18.x'
+		})
 	}
 };
 
