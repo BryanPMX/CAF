@@ -1,10 +1,19 @@
 {
-  "buildCommand": "cd marketing && npm install && npm run build",
-  "outputDirectory": "marketing/.svelte-kit/output/client",
-  "framework": "sveltekit",
-  "installCommand": "cd marketing && npm install",
-  "devCommand": "cd marketing && npm run dev",
-  "regions": ["iad1"],
+  "builds": [
+    {
+      "src": "marketing/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "marketing/.svelte-kit/output/client"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "marketing/$1"
+    }
+  ],
   "env": {
     "VITE_SITE_URL": "https://portal.caf-mexico.org",
     "VITE_API_URL": "https://api.caf-mexico.org/api/v1",
