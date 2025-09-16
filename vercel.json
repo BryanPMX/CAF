@@ -4,7 +4,8 @@
       "src": "marketing/package.json",
       "use": "@vercel/static-build",
       "config": {
-        "distDir": "marketing/.svelte-kit/output/client"
+        "distDir": "marketing/.svelte-kit/output/client",
+        "runtime": "nodejs18.x"
       }
     }
   ],
