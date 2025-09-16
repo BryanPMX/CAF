@@ -1,0 +1,22 @@
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": ".next",
+  "framework": "nextjs",
+  "installCommand": "npm install",
+  "devCommand": "npm run dev",
+  "regions": ["iad1"],
+  "functions": {
+    "marketing": {
+      "runtime": "nodejs18.x"
+    }
+  },
+  "env": {
+    "VITE_SITE_URL": "https://portal.caf-mexico.org",
+    "VITE_API_URL": "https://api.caf-mexico.org/api/v1",
+    "VITE_ADMIN_PORTAL_URL": "https://admin.caf-mexico.org",
+    "VITE_CONTACT_EMAIL": "info@caf-mexico.org",
+    "VITE_CONTACT_PHONE": "+1-915-555-0123",
+    "VITE_ADDRESS": "El Paso, Texas",
+    "NODE_ENV": "production"
+  }
+}

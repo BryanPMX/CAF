@@ -1,6 +1,7 @@
 <script>
     import { fade, slide } from 'svelte/transition';
     import { cubicOut } from 'svelte/easing';
+    import ContactInfo from '$lib/components/ContactInfo.svelte';
   </script>
   
   <svelte:head>
@@ -54,6 +55,11 @@
   
   <!-- Main Content Area -->
   <section class="container mx-auto px-6 py-16">
+    <!-- Contact Information Section -->
+    <div class="mb-12" in:fade={{ duration: 800, easing: cubicOut }}>
+      <ContactInfo />
+    </div>
+    
     <div class="grid lg:grid-cols-2 gap-8 md:gap-16">
       <!-- Left Side: Map -->
       <div in:fade={{ duration: 800, easing: cubicOut }}>
