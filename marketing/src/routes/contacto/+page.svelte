@@ -1,7 +1,88 @@
 <script>
     import { fade, slide } from 'svelte/transition';
     import { cubicOut } from 'svelte/easing';
+    import { onMount } from 'svelte';
     import ContactInfo from '$lib/components/ContactInfo.svelte';
+    import { formValidator, commonRules } from '$lib/utils/formValidator.js';
+    import { apiUtils } from '$lib/utils/apiClient.js';
+    import { errorHandler } from '$lib/utils/errorHandler.js';
+
+    let formData = {
+      name: '',
+      email: '',
+      phone: '',
+      message: ''
+    };
+
+    let isSubmitting = false;
+    let formErrors = {};
+
+    // Handle form submission
+    async function handleSubmit(event) {
+      event.preventDefault();
+      
+      // Clear previous errors
+      formErrors = {};
+      formValidator.clearFieldErrors(document.getElementById('form'));
+      
+      // Validate form
+      const validation = formValidator.validateForm(formData, commonRules.contactForm);
+      
+      if (!validation.isValid) {
+        formErrors = validation.errors;
+        showFieldErrors();
+        return;
+      }
+
+      isSubmitting = true;
+      
+      try {
+        const success = await apiUtils.submitContactForm(formData);
+        if (success) {
+          // Reset form
+          formData = { name: '', email: '', phone: '', message: '' };
+          formErrors = {};
+        }
+      } catch (error) {
+        errorHandler.handleError(error, 'contact_form_submission');
+      } finally {
+        isSubmitting = false;
+      }
+    }
+
+    // Show field errors
+    function showFieldErrors() {
+      Object.keys(formErrors).forEach(fieldName => {
+        const field = document.getElementById(fieldName);
+        const container = field?.parentElement;
+        if (container) {
+          formValidator.showFieldErrors(fieldName, formErrors[fieldName], container);
+          formValidator.addErrorStyling(field);
+        }
+      });
+    }
+
+    // Handle field changes
+    function handleFieldChange(fieldName, value) {
+      formData[fieldName] = value;
+      
+      // Clear field errors when user starts typing
+      if (formErrors[fieldName]) {
+        delete formErrors[fieldName];
+        const field = document.getElementById(fieldName);
+        const container = field?.parentElement;
+        if (container) {
+          formValidator.clearFieldErrors(container);
+          formValidator.removeErrorStyling(field);
+        }
+      }
+    }
+
+    // Initialize error handling
+    onMount(() => {
+      // Check API connectivity
+      apiUtils.checkConnectivity();
+    });
   </script>
   
   <svelte:head>
@@ -83,16 +164,19 @@
       <!-- Right Side: Contact Form and Info -->
       <div in:slide={{ duration: 800, delay: 200, easing: cubicOut }}>
         <h2 class="text-2xl md:text-3xl font-bold text-gray-800 mb-4">Envíanos un Mensaje</h2>
-        <form id="form" class="space-y-6 bg-white p-8 rounded-lg shadow-lg">
+        <form id="form" class="space-y-6 bg-white p-8 rounded-lg shadow-lg" on:submit={handleSubmit}>
           <div>
             <label for="name" class="block text-sm font-medium text-gray-700">Nombre Completo</label>
             <input
               type="text"
               id="name"
+              bind:value={formData.name}
+              on:input={(e) => handleFieldChange('name', e.target.value)}
               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
               placeholder="Ingresa tu nombre completo"
               required
               aria-required="true"
+              disabled={isSubmitting}
             />
           </div>
           <div>
@@ -100,30 +184,49 @@
             <input
               type="email"
               id="email"
+              bind:value={formData.email}
+              on:input={(e) => handleFieldChange('email', e.target.value)}
               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
               placeholder="Ingresa tu correo electrónico"
               required
               aria-required="true"
+              disabled={isSubmitting}
+            />
+          </div>
+          <div>
+            <label for="phone" class="block text-sm font-medium text-gray-700">Teléfono (Opcional)</label>
+            <input
+              type="tel"
+              id="phone"
+              bind:value={formData.phone}
+              on:input={(e) => handleFieldChange('phone', e.target.value)}
+              class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
+              placeholder="Ingresa tu número de teléfono"
+              disabled={isSubmitting}
             />
           </div>
           <div>
             <label for="message" class="block text-sm font-medium text-gray-700">Mensaje</label>
             <textarea
               id="message"
+              bind:value={formData.message}
+              on:input={(e) => handleFieldChange('message', e.target.value)}
               rows="4"
               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
               placeholder="Escribe tu mensaje aquí"
               required
               aria-required="true"
+              disabled={isSubmitting}
             ></textarea>
           </div>
           <div>
             <button
               type="submit"
-              class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition-transform transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition-transform transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
               aria-label="Enviar mensaje"
+              disabled={isSubmitting}
             >
-              Enviar Mensaje
+              {isSubmitting ? 'Enviando...' : 'Enviar Mensaje'}
             </button>
           </div>
         </form>
