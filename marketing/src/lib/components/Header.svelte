@@ -2,6 +2,7 @@
 	import { page } from '$app/stores';
 	import { fade } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
+	import { config } from '$lib/config.js';
   </script>
   
   <!-- Header with sticky behavior and subtle shadow -->
@@ -26,7 +27,7 @@
   
 	  <div class="hidden md:flex">
 		<a
-		  href="http://localhost:37507"
+		  href={config.api.adminPortalUrl}
 		  target="_blank"
 		  class="bg-blue-600 text-white font-semibold py-2 px-5 rounded-lg hover:bg-blue-700 transition-transform transform hover:scale-105 shadow hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
 		  aria-label="Acceso para clientes"

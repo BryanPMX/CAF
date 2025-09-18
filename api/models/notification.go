@@ -10,14 +10,14 @@ import (
 // Notifications are used to inform users about important events and updates
 type Notification struct {
 	ID        uint      `json:"id" gorm:"primaryKey"`
-	UserID    uint      `json:"user_id" gorm:"not null;index:idx_notifications_user_id"` // Indexed for efficient queries
+	UserID    uint      `json:"userId" gorm:"not null;index:idx_notifications_user_id"` // Indexed for efficient queries
 	Message   string    `json:"message" gorm:"not null;type:text"`                        // The notification message in Spanish
-	IsRead    bool      `json:"is_read" gorm:"default:false;index:idx_notifications_is_read"` // Indexed for unread count queries
+	IsRead    bool      `json:"isRead" gorm:"default:false;index:idx_notifications_is_read"` // Indexed for unread count queries
 	Link      *string   `json:"link,omitempty" gorm:"type:varchar(500)"`                 // Optional URL for navigation
 	Type      string    `json:"type" gorm:"type:varchar(50);default:'info'"`             // Type: info, warning, error, success
-	CreatedAt time.Time `json:"created_at" gorm:"autoCreateTime"`
-	UpdatedAt time.Time `json:"updated_at" gorm:"autoUpdateTime"`
-	DeletedAt *time.Time `json:"deleted_at,omitempty" gorm:"index"`
+	CreatedAt time.Time `json:"createdAt" gorm:"autoCreateTime"`
+	UpdatedAt time.Time `json:"updatedAt" gorm:"autoUpdateTime"`
+	DeletedAt *time.Time `json:"deletedAt,omitempty" gorm:"index"`
 
 	// Relationships
 	User User `json:"user,omitempty" gorm:"foreignKey:UserID"`
@@ -51,20 +51,20 @@ func (n *Notification) IsUnread() bool {
 type NotificationResponse struct {
 	ID        uint      `json:"id"`
 	Message   string    `json:"message"`
-	IsRead    bool      `json:"is_read"`
+	IsRead    bool      `json:"isRead"`
 	Link      *string   `json:"link,omitempty"`
 	Type      string    `json:"type"`
-	CreatedAt time.Time `json:"created_at"`
+	CreatedAt time.Time `json:"createdAt"`
 }
 
 // MarkNotificationsRequest represents the request to mark notifications as read
 type MarkNotificationsRequest struct {
-	NotificationIDs []uint `json:"notification_ids" binding:"required,min=1"`
+	NotificationIDs []uint `json:"notificationIds" binding:"required,min=1"`
 }
 
 // CreateNotificationRequest represents the request to create a new notification
 type CreateNotificationRequest struct {
-	UserID  uint    `json:"user_id" binding:"required"`
+	UserID  uint    `json:"userId" binding:"required"`
 	Message string  `json:"message" binding:"required"`
 	Link    *string `json:"link,omitempty"`
 	Type    string  `json:"type,omitempty"`

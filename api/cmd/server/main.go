@@ -109,8 +109,13 @@ func main() {
 	if os.Getenv("NODE_ENV") == "production" {
 		// In production, restrict to specific domains
 		allowedOrigins = []string{
+			"https://admin.caf-mexico.org",
+			"https://portal.caf-mexico.org",
+			"https://caf-mexico.org",
+			"https://www.caf-mexico.org",
+			// Keep Vercel URLs for backup/preview deployments
 			"https://caf-admin-portal.vercel.app",
-			"https://caf-admin-portal-*.vercel.app", // Allow preview deployments
+			"https://caf-admin-portal-*.vercel.app",
 			"https://caf-system.vercel.app",
 		}
 	}
@@ -119,18 +124,21 @@ func main() {
 		AllowOrigins:     allowedOrigins,
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization", "X-Requested-With"},
-		ExposeHeaders:    []string{"Content-Length", "Authorization"},
+		ExposeHeaders:    []string{"Content-Length", "Authorization", "X-RateLimit-Limit", "X-RateLimit-Remaining", "X-RateLimit-Reset"},
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
 	}))
+
+	// Apply general rate limiting to all routes
+	r.Use(middleware.GeneralAPIRateLimit())
 
 	// --- Step 6: Define API Routes ---
 
 	// Group 1: Public Routes (No authentication required)
 	public := r.Group("/api/v1")
 	{
-		public.POST("/register", handlers.Register(database))
-		public.POST("/login", handlers.EnhancedLogin(database, cfg.JWTSecret, sessionService))
+		public.POST("/register", middleware.ValidateUserRegistration(), handlers.Register(database))
+		public.POST("/login", middleware.AuthRateLimit(), handlers.EnhancedLogin(database, cfg.JWTSecret, sessionService))
 	}
 
 	// WebSocket endpoint for per-user notifications (token via query param)
@@ -240,8 +248,8 @@ func main() {
 		protected.GET("/cases", middleware.CaseAccessControl(database), handlers.GetCasesEnhanced(database))
 		protected.GET("/cases/:id", middleware.CaseAccessControl(database), handlers.GetCaseByIDEnhanced(database))
 		protected.GET("/cases/my", middleware.CaseAccessControl(database), handlers.GetMyCases(database))
-		protected.POST("/cases", middleware.CaseAccessControl(database), handlers.CreateCaseEnhanced(database))
-		protected.PUT("/cases/:id", middleware.CaseAccessControl(database), handlers.UpdateCase(database))
+		protected.POST("/cases", middleware.CaseAccessControl(database), middleware.ValidateCaseCreation(), handlers.CreateCaseEnhanced(database))
+		protected.PUT("/cases/:id", middleware.CaseAccessControl(database), middleware.ValidateCaseUpdate(), handlers.UpdateCase(database))
 		protected.DELETE("/cases/:id", middleware.CaseAccessControl(database), handlers.DeleteCase(database))
 
 		// Enhanced Appointment Management with Access Control
