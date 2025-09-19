@@ -197,10 +197,10 @@ func (s *CaseService) GetCases(c *gin.Context) ([]models.Case, int64, error) {
 func (s *CaseService) GetCaseByID(caseID string, light bool) (*models.Case, error) {
 	var caseData models.Case
 
-	// Check cache first (TODO: implement caching)
-	// if cached, found := getFromCache(caseID, light); found {
-	//	return cached, nil
-	// }
+	// Check cache first
+	if cached, found := getFromCache(caseID, light); found {
+		return cached, nil
+	}
 
 	query := s.db.Preload("Client").Preload("Office").Preload("PrimaryStaff")
 
@@ -215,8 +215,8 @@ func (s *CaseService) GetCaseByID(caseID string, light bool) (*models.Case, erro
 		return nil, err
 	}
 
-	// Cache the result (TODO: implement caching)
-	// setCache(caseID, light, &caseData)
+	// Cache the result
+	setCache(caseID, light, &caseData)
 
 	return &caseData, nil
 }
@@ -285,8 +285,8 @@ func (s *CaseService) UpdateCase(caseID string, c *gin.Context) (*models.Case, e
 		return nil, fmt.Errorf("failed to update case: %v", err)
 	}
 
-	// Invalidate cache (TODO: implement caching)
-	// invalidateCache(caseID)
+	// Invalidate cache
+	invalidateCache(caseID)
 
 	// Load relationships
 	if err := s.db.Preload("Client").Preload("Office").Preload("PrimaryStaff").First(&updateData, updateData.ID).Error; err != nil {
@@ -321,8 +321,8 @@ func (s *CaseService) DeleteCase(caseID string, c *gin.Context) error {
 		return fmt.Errorf("failed to delete case: %v", err)
 	}
 
-	// Invalidate cache (TODO: implement caching)
-	// invalidateCache(caseID)
+	// Invalidate cache
+	invalidateCache(caseID)
 
 	return nil
 }
