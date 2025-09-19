@@ -156,8 +156,8 @@ func main() {
 			"status":    "healthy",
 			"service":   "CAF API",
 			"timestamp": time.Now().UTC(),
-			"version":   "1.1.1",
-			"deployment": "automated-ci-cd-fixed-permissions",
+			"version":   "1.2.0",
+			"deployment": "production-ready-https-enabled",
 		})
 	})
 
