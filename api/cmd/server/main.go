@@ -320,8 +320,9 @@ func main() {
 		admin.POST("/cases", handlers.CreateCaseEnhanced(database))
 		admin.PUT("/cases/:id", handlers.UpdateCase(database))
 		admin.DELETE("/cases/:id", handlers.DeleteCase(database))
-		admin.PATCH("/cases/:id/stage", handlers.UpdateCaseStage(database))
-		admin.POST("/cases/:id/assign", handlers.AssignStaffToCase(database))
+		// TODO: Implement these handlers
+		// admin.PATCH("/cases/:id/stage", handlers.UpdateCaseStage(database))
+		// admin.POST("/cases/:id/assign", handlers.AssignStaffToCase(database))
 
 		// Performance Optimized Endpoints
 		admin.GET("/optimized/cases", performanceHandler.GetOptimizedCases())
@@ -366,7 +367,8 @@ func main() {
 		admin.POST("/bulk-operations", handlers.GetBulkOperations(database))
 		admin.POST("/export", handlers.ExportData(database))
 		admin.GET("/users/search", handlers.SearchClients(database))                                           // For client search
-		admin.GET("/clients/:clientId/cases", handlers.GetCasesForClient(database))                            // For client's cases
+		// TODO: Implement this handler
+		// admin.GET("/clients/:clientId/cases", handlers.GetCasesForClient(database))                            // For client's cases
 		admin.GET("/clients/:clientId/cases-for-appointment", handlers.GetClientCasesForAppointment(database)) // For appointment case dropdown
 
 		// Announcement Management (Admin only)
