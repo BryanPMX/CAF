@@ -30,9 +30,13 @@ func New() (*Config, error) {
 	dbPort := os.Getenv("DB_PORT")
 	dbSSLMode := os.Getenv("DB_SSLMODE")
 	
-	// Default to 'require' if DB_SSLMODE is not set
+	// Default to 'require' for production, 'disable' for development
 	if dbSSLMode == "" {
-		dbSSLMode = "require"
+		if os.Getenv("NODE_ENV") == "production" {
+			dbSSLMode = "require"
+		} else {
+			dbSSLMode = "disable"
+		}
 	}
 
 	// Construct the database URL from individual parts.

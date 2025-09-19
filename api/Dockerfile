@@ -1,31 +1,55 @@
-# These are the step-by-step instructions for building the Go API's container image.
+# Multi-stage build for production optimization
+FROM golang:1.23-alpine AS builder
 
-# Use an official Go image as the base.
-FROM golang:1.23-alpine
+# Install necessary packages for building
+RUN apk add --no-cache git ca-certificates
 
-# Set the working directory inside the container.
+# Set the working directory
 WORKDIR /app
 
-# UPDATED: Install git.
-# The 'alpine' image uses the 'apk' package manager.
-# We need git to be able to download some of the Go modules.
-RUN apk add --no-cache git
-
-# Copy the Go module files first. This is a Docker caching optimization.
+# Copy go mod files first for better caching
 COPY go.mod go.sum ./
 
-# Download dependencies and ensure go.sum is up to date
-RUN go mod download && go mod tidy
+# Download dependencies
+RUN go mod download
 
-# Copy the rest of the application's source code into the container.
+# Copy source code
 COPY . .
 
-# Build the Go application with explicit architecture targeting.
-# '-o /app/main' specifies the output file name.
-# 'GOOS=linux GOARCH=amd64' ensures the binary is built for Linux x86_64
-RUN GOOS=linux GOARCH=amd64 go build -o /app/main ./cmd/server
+# Build the application with optimizations
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
+    -ldflags='-w -s -extldflags "-static"' \
+    -a -installsuffix cgo \
+    -o main ./cmd/server
 
-# This command will be executed when the container starts.
-# It simply runs our compiled application.
-CMD [ "/app/main" ]
+# Production stage
+FROM alpine:3.18
+
+# Install CA certificates for HTTPS requests to AWS
+RUN apk --no-cache add ca-certificates tzdata
+
+# Create non-root user for security
+RUN addgroup -g 1001 -S appgroup && \
+    adduser -u 1001 -S appuser -G appgroup
+
+WORKDIR /app
+
+# Copy the binary from builder stage
+COPY --from=builder /app/main .
+
+# Change ownership to non-root user
+RUN chown -R appuser:appgroup /app
+
+# Switch to non-root user
+USER appuser
+
+# Expose port
+EXPOSE 8080
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost:8080/health || exit 1
+
+# Run the application
+CMD ["./main"]
 

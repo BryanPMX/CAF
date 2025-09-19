@@ -77,6 +77,15 @@ coverage/
 package-lock.json.bak
 yarn-error.log
 
+# === Development configuration files ===
+dev.config.js
+dev.config.json
+*.dev.config.*
+
+# === Duplicate deployment configurations ===
+*-secure.json
+vercel-secure.json
+
 # === Security and sensitive files ===
 *.key
 *.pem

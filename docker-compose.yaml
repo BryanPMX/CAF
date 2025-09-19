@@ -21,7 +21,7 @@ services:
       - DB_PORT=5432
       - PORT=8080
       - JWT_SECRET=your-secret-key-here
-      - AWS_REGION=us-east-1
+      - AWS_REGION=us-east-2
       - S3_BUCKET=caf-system-bucket
       - AWS_ACCESS_KEY_ID=test
       - AWS_SECRET_ACCESS_KEY=test
@@ -56,7 +56,7 @@ services:
     environment:
       - SERVICES=s3
       - EDGE_PORT=4566
-      - AWS_DEFAULT_REGION=us-east-1
+      - AWS_DEFAULT_REGION=us-east-2
       - S3_BUCKET=caf-system-bucket
       - PERSISTENCE=1
       - DATA_DIR=/tmp/localstack/data
@@ -83,7 +83,4 @@ networks:
 volumes:
   postgres_data:
     driver: local
-
-
-
 

@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	// Internal packages for our application
@@ -106,18 +107,23 @@ func main() {
 	// --- Step 5: Apply Global Middleware ---
 	// Configure CORS for production deployment
 	allowedOrigins := []string{"*"} // Default for development
-	if os.Getenv("NODE_ENV") == "production" {
-		// In production, restrict to specific domains
+	
+	// Check for CORS configuration from environment
+	if corsOrigins := os.Getenv("CORS_ALLOWED_ORIGINS"); corsOrigins != "" {
+		allowedOrigins = strings.Split(corsOrigins, ",")
+		for i, origin := range allowedOrigins {
+			allowedOrigins[i] = strings.TrimSpace(origin)
+		}
+		log.Printf("INFO: Using CORS origins from environment: %v", allowedOrigins)
+	} else if os.Getenv("NODE_ENV") == "production" {
+		// Fallback production defaults
 		allowedOrigins = []string{
 			"https://admin.caf-mexico.org",
 			"https://portal.caf-mexico.org",
 			"https://caf-mexico.org",
 			"https://www.caf-mexico.org",
-			// Keep Vercel URLs for backup/preview deployments
-			"https://caf-admin-portal.vercel.app",
-			"https://caf-admin-portal-*.vercel.app",
-			"https://caf-system.vercel.app",
 		}
+		log.Printf("INFO: Using default production CORS origins: %v", allowedOrigins)
 	}
 
 	r.Use(cors.New(cors.Config{

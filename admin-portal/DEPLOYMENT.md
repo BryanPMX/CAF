@@ -12,37 +12,14 @@
 
 ### 🔧 Required Environment Variables
 
-Configure these in your Vercel dashboard:
+Configure these in your Vercel dashboard. You can copy the values from `env.production` file:
 
+**CRITICAL**: Update `NEXT_PUBLIC_API_URL` to your actual AWS ALB endpoint:
 ```bash
-# API Configuration - CRITICAL
-NEXT_PUBLIC_API_URL=https://caf-alb-1265516716.us-east-2.elb.amazonaws.com/api/v1
-
-# Environment
-NODE_ENV=production
-
-# Performance Optimizations
-NEXT_TELEMETRY_DISABLED=1
-NEXT_WEBPACK_USE_WORKER_THREADS=1
-SWC_MINIFY=true
-EXPERIMENTAL_OPTIMIZE_CSS=true
-EXPERIMENTAL_OPTIMIZE_PACKAGE_IMPORTS=true
-
-# Development Features (Disabled)
-NEXT_PUBLIC_DEV_MODE=false
-NEXT_PUBLIC_ENABLE_PERFORMANCE_MONITORING=false
-
-# Build Optimizations
-GENERATE_SOURCEMAP=false
-COMPRESS=true
-
-# Security
-NEXT_PUBLIC_SECURE_COOKIES=true
-
-# Caching
-CACHE_TTL=300000
-CACHE_MAX_SIZE=100
+NEXT_PUBLIC_API_URL=https://your-alb-endpoint.us-east-2.elb.amazonaws.com/api/v1
 ```
+
+See `env.production` file for complete environment variable configuration.
 
 ### 📋 Deployment Steps
 

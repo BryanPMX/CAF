@@ -65,26 +65,28 @@ func InitS3() error {
 	awsAccessKey := os.Getenv("AWS_ACCESS_KEY_ID")
 	awsSecretKey := os.Getenv("AWS_SECRET_ACCESS_KEY")
 
-	var credentialProvider aws.CredentialsProvider
+	var configOptions []func(*config.LoadOptions) error
+	configOptions = append(configOptions, config.WithRegion(region))
+	configOptions = append(configOptions, config.WithEndpointResolver(resolver))
+
 	if awsAccessKey != "" && awsSecretKey != "" {
 		log.Printf("Using AWS credentials from environment variables")
-		credentialProvider = credentials.NewStaticCredentialsProvider(awsAccessKey, awsSecretKey, "")
+		credentialProvider := credentials.NewStaticCredentialsProvider(awsAccessKey, awsSecretKey, "")
+		configOptions = append(configOptions, config.WithCredentialsProvider(credentialProvider))
 	} else {
-		log.Printf("No AWS credentials found in environment, using default credential chain")
-		credentialProvider = nil
+		log.Printf("No AWS credentials found in environment, using default credential chain (IAM roles)")
 	}
 
-	cfg, err := config.LoadDefaultConfig(context.TODO(),
-		config.WithRegion(region),
-		config.WithEndpointResolver(resolver),
-		config.WithCredentialsProvider(credentialProvider),
-	)
+	cfg, err := config.LoadDefaultConfig(context.TODO(), configOptions...)
 	if err != nil {
 		return fmt.Errorf("failed to load AWS config: %w", err)
 	}
 
 	s3Client = s3.NewFromConfig(cfg, func(o *s3.Options) {
-		o.UsePathStyle = true
+		// Only use path style for LocalStack, not for production AWS
+		if endpoint != "" {
+			o.UsePathStyle = true
+		}
 	})
 
 	return nil
@@ -155,8 +157,18 @@ func UploadFile(file *multipart.FileHeader, caseID string) (string, error) {
 		return "", fmt.Errorf("failed to upload file to S3: %w", err)
 	}
 
+	// Generate the correct file URL based on environment
 	endpoint := os.Getenv("AWS_ENDPOINT_URL")
-	fileURL := fmt.Sprintf("%s/%s/%s", endpoint, bucketName, objectKey)
+	region := os.Getenv("AWS_REGION")
+	
+	var fileURL string
+	if endpoint != "" {
+		// LocalStack or custom endpoint
+		fileURL = fmt.Sprintf("%s/%s/%s", endpoint, bucketName, objectKey)
+	} else {
+		// Production AWS S3
+		fileURL = fmt.Sprintf("https://%s.s3.%s.amazonaws.com/%s", bucketName, region, objectKey)
+	}
 
 	return fileURL, nil
 }
