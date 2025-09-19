@@ -3,9 +3,7 @@ package handlers
 
 import (
 	"fmt"
-	"net/http"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/BryanPMX/CAF/api/models"
@@ -199,10 +197,10 @@ func (s *CaseService) GetCases(c *gin.Context) ([]models.Case, int64, error) {
 func (s *CaseService) GetCaseByID(caseID string, light bool) (*models.Case, error) {
 	var caseData models.Case
 
-	// Check cache first
-	if cached, found := getFromCache(caseID, light); found {
-		return cached, nil
-	}
+	// Check cache first (TODO: implement caching)
+	// if cached, found := getFromCache(caseID, light); found {
+	//	return cached, nil
+	// }
 
 	query := s.db.Preload("Client").Preload("Office").Preload("PrimaryStaff")
 
@@ -217,8 +215,8 @@ func (s *CaseService) GetCaseByID(caseID string, light bool) (*models.Case, erro
 		return nil, err
 	}
 
-	// Cache the result
-	setCache(caseID, light, &caseData)
+	// Cache the result (TODO: implement caching)
+	// setCache(caseID, light, &caseData)
 
 	return &caseData, nil
 }
@@ -244,8 +242,9 @@ func (s *CaseService) CreateCase(c *gin.Context) (*models.Case, error) {
 
 	// Set audit fields
 	userID, _ := c.Get("userID")
-	caseData.CreatedBy = userID.(uint)
-	caseData.UpdatedBy = &userID.(uint)
+	userIDUint := userID.(uint)
+	caseData.CreatedBy = userIDUint
+	caseData.UpdatedBy = &userIDUint
 
 	if err := s.db.Create(&caseData).Error; err != nil {
 		return nil, fmt.Errorf("failed to create case: %v", err)
@@ -276,17 +275,18 @@ func (s *CaseService) UpdateCase(caseID string, c *gin.Context) (*models.Case, e
 
 	// Update fields
 	userID, _ := c.Get("userID")
+	userIDUint := userID.(uint)
 	updateData.ID = caseData.ID
 	updateData.CreatedAt = caseData.CreatedAt
 	updateData.CreatedBy = caseData.CreatedBy
-	updateData.UpdatedBy = &userID.(uint)
+	updateData.UpdatedBy = &userIDUint
 
 	if err := s.db.Save(&updateData).Error; err != nil {
 		return nil, fmt.Errorf("failed to update case: %v", err)
 	}
 
-	// Invalidate cache
-	invalidateCache(caseID)
+	// Invalidate cache (TODO: implement caching)
+	// invalidateCache(caseID)
 
 	// Load relationships
 	if err := s.db.Preload("Client").Preload("Office").Preload("PrimaryStaff").First(&updateData, updateData.ID).Error; err != nil {
@@ -307,12 +307,13 @@ func (s *CaseService) DeleteCase(caseID string, c *gin.Context) error {
 
 	// Set deletion fields
 	userID, _ := c.Get("userID")
+	userIDUint := userID.(uint)
 	deletionReason := c.PostForm("reason")
 	if deletionReason == "" {
 		deletionReason = "Manual deletion"
 	}
 
-	caseData.DeletedBy = &userID.(uint)
+	caseData.DeletedBy = &userIDUint
 	caseData.DeletionReason = deletionReason
 	caseData.DeletedAt = &time.Time{}
 
@@ -320,8 +321,8 @@ func (s *CaseService) DeleteCase(caseID string, c *gin.Context) error {
 		return fmt.Errorf("failed to delete case: %v", err)
 	}
 
-	// Invalidate cache
-	invalidateCache(caseID)
+	// Invalidate cache (TODO: implement caching)
+	// invalidateCache(caseID)
 
 	return nil
 }
