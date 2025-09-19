@@ -6,6 +6,10 @@ server.exe
 *.exe
 main
 main.exe
+cmd/server/main
+cmd/server/main.exe
+cmd/server/server
+cmd/server/server.exe
 
 # === Go build cache ===
 go.sum.bak
