@@ -3,22 +3,10 @@ const nextConfig = {
   // Temporarily disable React Strict Mode to prevent double renders
   reactStrictMode: false,
   
-  // Ensure module resolution works in Vercel
-  transpilePackages: [],
   
-  // Enable experimental features for better performance
+  // Minimal experimental features to avoid build issues
   experimental: {
-    // Disable CSS optimization to avoid critters dependency issue
     optimizeCss: false,
-    optimizePackageImports: ['antd', '@ant-design/icons'],
-    turbo: {
-      rules: {
-        '*.svg': {
-          loaders: ['@svgr/webpack'],
-          as: '*.js',
-        },
-      },
-    },
   },
   
   // Enable SWC minification at root level (not experimental)
