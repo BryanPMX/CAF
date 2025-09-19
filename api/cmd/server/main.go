@@ -208,6 +208,11 @@ func main() {
 		c.JSON(http.StatusOK, gin.H{"status": "healthy", "service": "S3"})
 	})
 
+	r.GET("/health/cache", func(c *gin.Context) {
+		stats := handlers.GetCacheStats()
+		c.JSON(http.StatusOK, gin.H{"status": "healthy", "service": "Cache", "stats": stats})
+	})
+
 	// Group 2: Protected Routes (Requires any valid login token)
 	// Enhanced with comprehensive data access control
 	protected := r.Group("/api/v1")
@@ -320,9 +325,9 @@ func main() {
 		admin.POST("/cases", handlers.CreateCaseEnhanced(database))
 		admin.PUT("/cases/:id", handlers.UpdateCase(database))
 		admin.DELETE("/cases/:id", handlers.DeleteCase(database))
-		// TODO: Implement these handlers
-		// admin.PATCH("/cases/:id/stage", handlers.UpdateCaseStage(database))
-		// admin.POST("/cases/:id/assign", handlers.AssignStaffToCase(database))
+		// Case management endpoints
+		admin.PATCH("/cases/:id/stage", handlers.UpdateCaseStage(database))
+		admin.POST("/cases/:id/assign", handlers.AssignStaffToCase(database))
 
 		// Performance Optimized Endpoints
 		admin.GET("/optimized/cases", performanceHandler.GetOptimizedCases())
@@ -367,8 +372,7 @@ func main() {
 		admin.POST("/bulk-operations", handlers.GetBulkOperations(database))
 		admin.POST("/export", handlers.ExportData(database))
 		admin.GET("/users/search", handlers.SearchClients(database))                                           // For client search
-		// TODO: Implement this handler
-		// admin.GET("/clients/:clientId/cases", handlers.GetCasesForClient(database))                            // For client's cases
+		admin.GET("/clients/:clientId/cases", handlers.GetCasesForClient(database))                            // For client's cases
 		admin.GET("/clients/:clientId/cases-for-appointment", handlers.GetClientCasesForAppointment(database)) // For appointment case dropdown
 
 		// Announcement Management (Admin only)
