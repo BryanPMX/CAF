@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class AuthService {
-  final String _baseUrl = 'http://localhost:8080/api/v1';
+  final String _baseUrl = 'https://api.caf-mexico.org/api/v1'; // Production API URL
   final _storage = const FlutterSecureStorage();
 
   Future<String?> getToken() async {
