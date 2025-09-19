@@ -3,6 +3,9 @@ const nextConfig = {
   // Temporarily disable React Strict Mode to prevent double renders
   reactStrictMode: false,
   
+  // Ensure module resolution works in Vercel
+  transpilePackages: [],
+  
   // Enable experimental features for better performance
   experimental: {
     // Disable CSS optimization to avoid critters dependency issue
@@ -36,6 +39,11 @@ const nextConfig = {
 
   // Webpack optimizations
   webpack: (config, { dev, isServer }) => {
+    // Ensure path aliases work in Vercel
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      '@': require('path').resolve(__dirname, 'src'),
+    };
     // Development optimizations
     if (dev) {
       // Faster source maps in development
