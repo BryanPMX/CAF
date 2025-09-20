@@ -4,6 +4,7 @@ const nextConfig = {
   reactStrictMode: false,
   
   
+  
   // Minimal experimental features to avoid build issues
   experimental: {
     optimizeCss: false,
