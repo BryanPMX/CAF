@@ -26,7 +26,7 @@ services:
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
       - NODE_ENV=${NODE_ENV:-development}
       - DB_SSLMODE=${DB_SSLMODE:-disable}
-      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS}
+      - CORS_ALLOWED_ORIGINS=https://admin.caf-mexico.org,https://admin.caf-mexico.com,https://portal.caf-mexico.org,https://portal.caf-mexico.com,https://caf-mexico.org,https://caf-mexico.com,https://www.caf-mexico.org,https://www.caf-mexico.com
     networks:
       - caf_network
 
