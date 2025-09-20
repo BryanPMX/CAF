@@ -19,7 +19,7 @@ const getEnvironmentConfig = (): AppConfig => {
   const debug = environment === 'development';
 
   // Ensure baseURL is always defined with a fallback
-  const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1';
+  const baseURL = process.env.NEXT_PUBLIC_API_URL || 'https://api.caf-mexico.org/api/v1';
   
   // Validate that we have a proper baseURL
   if (!baseURL || baseURL.trim() === '') {
