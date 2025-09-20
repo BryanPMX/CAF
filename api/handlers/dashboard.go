@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/BryanPMX/CAF/api/config"
 	"github.com/BryanPMX/CAF/api/models"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -21,7 +22,7 @@ func GetDashboardSummary(db *gorm.DB) gin.HandlerFunc {
 
 		var totalOpenCases int64
 		casesQuery := db.Model(&models.Case{}).Where("status = ?", "open")
-		if role, ok := userRole.(string); ok && role != "admin" && role != "client" {
+		if role, ok := userRole.(string); ok && !config.CanAccessAllOffices(role) && role != "client" {
 			if officeScopeID != nil {
 				casesQuery = casesQuery.Where("office_id = ?", officeScopeID)
 			}
@@ -45,7 +46,7 @@ func GetDashboardSummary(db *gorm.DB) gin.HandlerFunc {
 		todayStart := time.Now().Truncate(24 * time.Hour)
 		todayEnd := todayStart.Add(24 * time.Hour)
 		apptQuery := db.Model(&models.Appointment{}).Where("start_time >= ? AND start_time < ?", todayStart, todayEnd)
-		if role, ok := userRole.(string); ok && role != "admin" && role != "client" {
+		if role, ok := userRole.(string); ok && !config.CanAccessAllOffices(role) && role != "client" {
 			if officeScopeID != nil {
 				apptQuery = apptQuery.Joins("INNER JOIN cases ON cases.id = appointments.case_id AND cases.office_id = ?", officeScopeID)
 			}

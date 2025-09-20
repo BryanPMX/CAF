@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/BryanPMX/CAF/api/config"
 	"github.com/BryanPMX/CAF/api/models"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
@@ -23,17 +24,6 @@ type CreateUserInput struct {
 	OfficeID  *uint  `json:"officeId"`
 }
 
-// validRoles strictly limits roles allowed in the system
-var validRoles = map[string]bool{
-	"admin":             true,
-	"lawyer":            true,
-	"office_manager":    true,
-	"psychologist":      true,
-	"client":            true,
-	"receptionist":      true,
-	"event_coordinator": true,
-}
-
 // CreateUser handles the creation of a new user by an administrator.
 func CreateUser(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -43,14 +33,14 @@ func CreateUser(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		// Validate the provided role against our allowed list.
-		if _, ok := validRoles[input.Role]; !ok {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid role specified."})
+		// Validate the provided role against our centralized role configuration
+		if err := config.ValidateRole(input.Role); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 
-		// Enforce that all non-client users must be assigned to an office, except admins.
-		if input.Role != "client" && input.Role != "admin" && input.OfficeID == nil {
+		// Enforce that all non-client users must be assigned to an office, except admins
+		if input.Role != "client" && input.Role != config.RoleAdmin && input.OfficeID == nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "An office must be assigned to all staff members (admins are exempt)."})
 			return
 		}
@@ -162,7 +152,7 @@ func GetUsers(db *gorm.DB) gin.HandlerFunc {
 
 		// Restrict to requester's office for non-admin roles when office scope is available
 		if roleVal, exists := c.Get("userRole"); exists {
-			if role, ok := roleVal.(string); ok && role != "admin" {
+			if role, ok := roleVal.(string); ok && !config.CanAccessAllOffices(role) {
 				if officeScopeVal, ok2 := c.Get("officeScopeID"); ok2 {
 					if officeID, ok3 := officeScopeVal.(uint); ok3 {
 						query = query.Where("office_id = ?", officeID)
@@ -275,12 +265,12 @@ func UpdateUser(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		// Perform the same role and office validation as in CreateUser.
-		if _, ok := validRoles[input.Role]; !ok {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid role specified."})
+		// Perform the same role and office validation as in CreateUser using centralized config
+		if err := config.ValidateRole(input.Role); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		if input.Role != "client" && input.Role != "admin" && input.OfficeID == nil {
+		if input.Role != "client" && input.Role != config.RoleAdmin && input.OfficeID == nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "An office must be assigned to all staff members."})
 			return
 		}
@@ -361,9 +351,9 @@ func PermanentDeleteUser(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		// Check if this is the admin user (prevent deleting the last admin)
-		if user.Role == "admin" {
+		if user.Role == config.RoleAdmin {
 			var adminCount int64
-			db.Model(&models.User{}).Where("role = ? AND deleted_at IS NULL", "admin").Count(&adminCount)
+			db.Model(&models.User{}).Where("role = ? AND deleted_at IS NULL", config.RoleAdmin).Count(&adminCount)
 			if adminCount <= 1 {
 				c.JSON(http.StatusForbidden, gin.H{"error": "Cannot permanently delete the last admin user."})
 				return

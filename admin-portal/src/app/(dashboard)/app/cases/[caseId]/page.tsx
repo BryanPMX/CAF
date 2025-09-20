@@ -1,4 +1,4 @@
-// admin-portal/src/app/(dashboard)/admin/cases/[caseId]/page.tsx
+// admin-portal/src/app/(dashboard)/app/cases/[caseId]/page.tsx
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -15,6 +15,13 @@ import CaseProgressTracker from './components/CaseProgressTracker';
 import EditStageModal from './components/EditStageModal';
 import EditCaseModal from './components/EditCaseModal';
 import CompleteCaseModal from './components/CompleteCaseModal';
+import PrivacyWall, { DocumentTab, CaseDocumentFilter, CaseCommentFilter } from './components/PrivacyWall';
+import { 
+  PERMISSIONS, 
+  CASE_DOCUMENT_TYPES, 
+  STAFF_ROLES,
+  type StaffRoleKey 
+} from '@/config/roles';
 
 // --- Define the detailed data structures (TypeScript interfaces) for this page ---
 interface User {
@@ -302,6 +309,11 @@ const CaseDetailPage = () => {
     },
   ];
 
+  // Get user role for permission checking
+  const staffRole = userRole && Object.values(STAFF_ROLES).includes(userRole as StaffRoleKey) 
+    ? userRole as StaffRoleKey 
+    : STAFF_ROLES.RECEPTIONIST; // Default fallback
+
   const tabItems: TabsProps['items'] = [
     {
       key: '1',
@@ -310,14 +322,20 @@ const CaseDetailPage = () => {
         <div>
           <AddCommentForm caseId={caseId as string} onSuccess={fetchCaseDetails} />
           <hr className="my-6" />
-          <CaseTimeline events={caseDetails?.caseEvents || []} onRefresh={fetchCaseDetails} />
+          <PrivacyWall userRole={staffRole} documentType={CASE_DOCUMENT_TYPES.GENERAL}>
+            <CaseTimeline events={caseDetails?.caseEvents || []} onRefresh={fetchCaseDetails} />
+          </PrivacyWall>
         </div>
       ),
     },
     {
       key: '2',
       label: 'Documentos',
-      children: <UploadDocument caseId={caseId as string} onSuccess={fetchCaseDetails} />,
+      children: (
+        <PrivacyWall userRole={staffRole} documentType={CASE_DOCUMENT_TYPES.GENERAL}>
+          <UploadDocument caseId={caseId as string} onSuccess={fetchCaseDetails} />
+        </PrivacyWall>
+      ),
     },
     {
       key: '3',
@@ -325,7 +343,7 @@ const CaseDetailPage = () => {
       children: (
         <div>
           <div className="text-right mb-4">
-            {(userRole === 'admin' || userRole === 'office_manager') && (
+            {PERMISSIONS.canManageUsers(staffRole) && (
               <Button type="primary" icon={<PlusOutlined />} onClick={handleCreateTask}>
                 Crear Tarea
               </Button>
@@ -389,13 +407,15 @@ const CaseDetailPage = () => {
                 Completar Caso
               </Button>
             )}
-            <Button 
-              type="primary" 
-              icon={<EditOutlined />}
-              onClick={() => setIsEditCaseModalVisible(true)}
-            >
-              Editar Caso
-            </Button>
+            {PERMISSIONS.canManageUsers(staffRole) && (
+              <Button 
+                type="primary" 
+                icon={<EditOutlined />}
+                onClick={() => setIsEditCaseModalVisible(true)}
+              >
+                Editar Caso
+              </Button>
+            )}
           </div>
         </div>
         <Descriptions bordered column={1}>
@@ -426,9 +446,11 @@ const CaseDetailPage = () => {
           <Descriptions.Item label="Etapa del Proceso">
             <div className="flex items-center justify-between">
               <span>{getStageLabels(caseDetails.category)[caseDetails.currentStage] || caseDetails.currentStage}</span>
-              <Button icon={<EditOutlined />} size="small" onClick={() => setIsStageModalVisible(true)}>
-                Actualizar Etapa
-              </Button>
+              {PERMISSIONS.canManageUsers(staffRole) && (
+                <Button icon={<EditOutlined />} size="small" onClick={() => setIsStageModalVisible(true)}>
+                  Actualizar Etapa
+                </Button>
+              )}
             </div>
             <CaseProgressTracker
               allStages={getCaseStages(caseDetails.category)}

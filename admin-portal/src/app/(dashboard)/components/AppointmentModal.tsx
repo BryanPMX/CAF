@@ -5,7 +5,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Modal, Form, Input, Button, message, Select, DatePicker, Radio, AutoComplete, Steps, Spin, Typography } from 'antd';
 import { apiClient } from '@/app/lib/api';
 import { CASE_TYPES, findDepartmentByCaseType } from '@/app/lib/caseTaxonomy';
-import { ROLE_LABELS, DEPARTMENT_ROLE_MAPPING, getRoleLabel, getRolesForCaseCategory, isAdminRole } from '@/config/roles';
+import { ROLE_LABELS, DEPARTMENT_ROLE_MAPPING, getRoleLabel, getRolesForCaseCategory, isAdminRole, type StaffRoleKey } from '@/config/roles';
 import { APPOINTMENT_STATUS_CONFIG, getValidAppointmentStatuses } from '@/config/statuses';
 import dayjs from 'dayjs';
 
@@ -238,8 +238,8 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ visible, onClose, o
     const isLegalCase = categoryToUse === 'Familiar' || categoryToUse === 'Civil';
     
     const filtered = staffList.filter(staff => {
-      const isAdmin = isAdminRole(staff.role) && isLegalCase; // Only show admins for legal cases
-      const hasAllowedRole = allowedRoles.includes(staff.role);
+      const isAdmin = isAdminRole(staff.role as StaffRoleKey) && isLegalCase; // Only show admins for legal cases
+      const hasAllowedRole = allowedRoles.includes(staff.role as StaffRoleKey);
       const hasMatchingDepartment = staff.department === categoryToUse;
       
       return isAdmin || hasAllowedRole || hasMatchingDepartment;
@@ -473,7 +473,7 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ visible, onClose, o
                 filterOption={(input, option) => (option?.children as unknown as string)?.toLowerCase().includes(input.toLowerCase())}
               >
                 {filteredStaffList.map((s) => (
-                  <Option key={s.id} value={s.id}>{`${s.firstName} ${s.lastName} (${getRoleLabel(s.role)})`}</Option>
+                  <Option key={s.id} value={s.id}>{`${s.firstName} ${s.lastName} (${getRoleLabel(s.role as StaffRoleKey)})`}</Option>
                 ))}
               </Select>
             </Form.Item>

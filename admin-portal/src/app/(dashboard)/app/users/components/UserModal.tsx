@@ -4,7 +4,7 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, Form, Input, Select, Button, message } from 'antd';
 import { apiClient } from '@/app/lib/api';
-import { STAFF_ROLES, getRoleByValue, requiresOffice, canManageUsers } from '@/config/roles';
+import { STAFF_ROLES, getRoleByValue, requiresOffice, canManageUsers, getAllRoles, type StaffRoleKey } from '@/config/roles';
 
 const { Option } = Select;
 
@@ -115,7 +115,7 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
   const handleRoleChange = (roleValue: string) => {
     setSelectedRole(roleValue);
     // Clear office selection if the new role doesn't require an office
-    if (!requiresOffice(roleValue)) {
+    if (!requiresOffice(roleValue as StaffRoleKey)) {
       form.setFieldsValue({ officeId: undefined });
     }
   };
@@ -155,15 +155,15 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
         )}
         <Form.Item name="role" label="Rol" rules={[{ required: true, message: 'Seleccione un rol' }]}>
           <Select placeholder="Asignar un rol" onChange={handleRoleChange}>
-            {STAFF_ROLES.map((role) => (
-              <Option key={role.value} value={role.value}>
-                {role.label}
+            {getAllRoles().map((role) => (
+              <Option key={role.key} value={role.key}>
+                {role.spanishName}
               </Option>
             ))}
           </Select>
         </Form.Item>
         {/* The office dropdown is only shown for roles that require office assignment. */}
-        {selectedRole && requiresOffice(selectedRole) && (
+        {selectedRole && requiresOffice(selectedRole as StaffRoleKey) && (
           <Form.Item name="officeId" label="Oficina" rules={[{ required: true, message: 'Debe asignar una oficina al personal' }]}>
             <Select
               placeholder="Seleccione una oficina"

@@ -5,7 +5,7 @@ import React, { useState, useEffect } from 'react';
 import { Button, Table, message, Spin, Tag, Popconfirm, Select, Space } from 'antd';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
-import { STAFF_ROLES } from '@/config/roles';
+import { STAFF_ROLES, PERMISSIONS, getAllRoles } from '@/config/roles';
 import { apiClient } from '@/app/lib/api';
 import UserModal from './components/UserModal'; // Import our reusable modal
 
@@ -49,8 +49,8 @@ const UserManagementPage = () => {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const role = typeof window !== 'undefined' ? localStorage.getItem('userRole') : 'admin';
-      const base = role === 'office_manager' ? '/manager' : '/admin';
+      const role = typeof window !== 'undefined' ? localStorage.getItem('userRole') : STAFF_ROLES.ADMIN;
+      const base = role === STAFF_ROLES.OFFICE_MANAGER ? '/manager' : '/admin';
       const params: any = {};
       if (selectedOfficeId) params.officeId = selectedOfficeId;
       if (activity) params.activity = activity;
@@ -96,7 +96,7 @@ const UserManagementPage = () => {
     fetchUsers();
     // Only admins can load office list for filtering
     const role = typeof window !== 'undefined' ? localStorage.getItem('userRole') : null;
-    if (role === 'admin') {
+    if (role && PERMISSIONS.canManageOffices(role as any)) {
       apiClient.get('/admin/offices').then(res => setOffices(res.data)).catch(() => {});
     }
   }, []); // The empty dependency array `[]` ensures it only runs once.
@@ -258,7 +258,7 @@ const UserManagementPage = () => {
                   style={{ minWidth: 200 }}
                   value={roleFilter}
                   onChange={(v: string | undefined) => setRoleFilter(v)}
-                  options={STAFF_ROLES.map(role => ({ label: role.label, value: role.value }))}
+                  options={getAllRoles().map(role => ({ label: role.spanishName, value: role.key }))}
                 />
                 <input
                   placeholder="Buscar por nombre o correo"

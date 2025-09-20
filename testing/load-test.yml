@@ -1,0 +1,153 @@
+# CAF System Load Testing Configuration
+# Use with Artillery.js for performance testing
+
+config:
+  target: 'https://api.caf-mexico.org'
+  phases:
+    # Warm-up phase
+    - duration: 30
+      arrivalRate: 2
+      name: "Warm-up"
+    # Ramp-up phase
+    - duration: 60
+      arrivalRate: 5
+      rampTo: 10
+      name: "Ramp-up"
+    # Sustained load phase
+    - duration: 120
+      arrivalRate: 10
+      name: "Sustained load"
+    # Peak load phase
+    - duration: 60
+      arrivalRate: 15
+      name: "Peak load"
+    # Cool-down phase
+    - duration: 30
+      arrivalRate: 5
+      name: "Cool-down"
+  
+  # Global configuration
+  timeout: 10
+  processor: "./load-test-processor.js"
+  
+  # Variables for test data
+  variables:
+    testEmail: "test@caf-mexico.org"
+    testPassword: "TestPassword123"
+  
+  # Plugins for enhanced reporting
+  plugins:
+    expect: {}
+    metrics-by-endpoint: {}
+
+# Test scenarios
+scenarios:
+  # Health check scenario - low impact, high frequency
+  - name: "Health Check Load Test"
+    weight: 30
+    flow:
+      - get:
+          url: "/health"
+          expect:
+            - statusCode: 200
+            - hasProperty: "status"
+      - think: 1
+      - get:
+          url: "/health/ready"
+          expect:
+            - statusCode: 200
+            - hasProperty: "database"
+      - think: 2
+
+  # Authentication flow - realistic user behavior
+  - name: "Authentication Load Test"
+    weight: 25
+    flow:
+      - post:
+          url: "/api/v1/login"
+          json:
+            email: "{{ testEmail }}"
+            password: "{{ testPassword }}"
+          expect:
+            - statusCode: 200
+            - hasProperty: "token"
+          capture:
+            - json: "$.token"
+              as: "authToken"
+      - think: 2
+      - get:
+          url: "/api/v1/profile"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200
+            - hasProperty: "userID"
+      - think: 3
+
+  # Dashboard access - common user action
+  - name: "Dashboard Load Test"
+    weight: 20
+    flow:
+      - function: "authenticate"
+      - get:
+          url: "/api/v1/dashboard-summary"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200
+      - think: 5
+      - get:
+          url: "/api/v1/dashboard/announcements"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200
+      - think: 2
+
+  # Cases browsing - staff workflow
+  - name: "Cases Browsing Load Test"
+    weight: 15
+    flow:
+      - function: "authenticate"
+      - get:
+          url: "/api/v1/cases?limit=20"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200
+            - hasProperty: "cases"
+      - think: 3
+      - get:
+          url: "/api/v1/cases/my"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200
+      - think: 4
+
+  # Appointments viewing - calendar access
+  - name: "Appointments Load Test"
+    weight: 10
+    flow:
+      - function: "authenticate"
+      - get:
+          url: "/api/v1/appointments?limit=20"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200
+            - hasProperty: "appointments"
+      - think: 5
+
+# Performance thresholds
+expect:
+  # Response time expectations
+  - statusCode: 200
+  - responseTime: 
+      max: 2000  # 2 seconds max response time
+      p95: 1000  # 95th percentile under 1 second
+      p99: 1500  # 99th percentile under 1.5 seconds
+  
+  # Error rate expectations
+  - errorRate:
+      max: 0.01  # Less than 1% error rate
