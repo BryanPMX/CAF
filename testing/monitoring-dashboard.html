@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CAF System - Production Monitoring Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .status-healthy { color: #10B981; }
+        .status-warning { color: #F59E0B; }
+        .status-error { color: #EF4444; }
+        .metric-card { transition: all 0.3s ease; }
+        .metric-card:hover { transform: translateY(-2px); }
+        .blinking { animation: blink 1s infinite; }
+        @keyframes blink { 0%, 50% { opacity: 1; } 51%, 100% { opacity: 0.3; } }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <!-- Header -->
+    <header class="bg-blue-600 text-white shadow-lg">
+        <div class="container mx-auto px-6 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <i class="fas fa-heartbeat text-2xl mr-3"></i>
+                    <h1 class="text-2xl font-bold">CAF System Monitoring</h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="text-right">
+                        <div class="text-sm opacity-90">Last Updated</div>
+                        <div id="lastUpdated" class="font-semibold">--:--:--</div>
+                    </div>
+                    <button id="refreshBtn" class="bg-blue-500 hover:bg-blue-400 px-4 py-2 rounded-lg transition-colors">
+                        <i class="fas fa-sync-alt mr-2"></i>Refresh
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="container mx-auto px-6 py-8">
+        <!-- System Status Overview -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="metric-card bg-white rounded-lg shadow-md p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="text-gray-500 text-sm font-medium">Overall Status</h3>
+                        <div id="overallStatus" class="text-2xl font-bold status-healthy">
+                            <i class="fas fa-check-circle mr-2"></i>Healthy
+                        </div>
+                    </div>
+                    <div class="text-3xl status-healthy">
+                        <i id="overallStatusIcon" class="fas fa-check-circle"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="metric-card bg-white rounded-lg shadow-md p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="text-gray-500 text-sm font-medium">API Response</h3>
+                        <div id="apiResponse" class="text-2xl font-bold text-gray-900">--ms</div>
+                    </div>
+                    <div class="text-3xl text-blue-500">
+                        <i class="fas fa-tachometer-alt"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="metric-card bg-white rounded-lg shadow-md p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="text-gray-500 text-sm font-medium">Uptime</h3>
+                        <div id="uptime" class="text-2xl font-bold text-gray-900">99.9%</div>
+                    </div>
+                    <div class="text-3xl text-green-500">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="metric-card bg-white rounded-lg shadow-md p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="text-gray-500 text-sm font-medium">Active Users</h3>
+                        <div id="activeUsers" class="text-2xl font-bold text-gray-900">--</div>
+                    </div>
+                    <div class="text-3xl text-purple-500">
+                        <i class="fas fa-users"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Health Endpoints Status -->
+        <div class="bg-white rounded-lg shadow-md mb-8">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h2 class="text-xl font-semibold text-gray-800">
+                    <i class="fas fa-heartbeat mr-2"></i>Health Endpoints
+                </h2>
+            </div>
+            <div class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="healthEndpoints">
+                    <!-- Health endpoints will be populated here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Section -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+            <!-- Response Time Chart -->
+            <div class="bg-white rounded-lg shadow-md">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h3 class="text-lg font-semibold text-gray-800">
+                        <i class="fas fa-chart-line mr-2"></i>Response Time (Last Hour)
+                    </h3>
+                </div>
+                <div class="p-6">
+                    <canvas id="responseTimeChart" width="400" height="200"></canvas>
+                </div>
+            </div>
+
+            <!-- Error Rate Chart -->
+            <div class="bg-white rounded-lg shadow-md">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h3 class="text-lg font-semibold text-gray-800">
+                        <i class="fas fa-exclamation-triangle mr-2"></i>Error Rate (Last Hour)
+                    </h3>
+                </div>
+                <div class="p-6">
+                    <canvas id="errorRateChart" width="400" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Alerts -->
+        <div class="bg-white rounded-lg shadow-md mb-8">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h2 class="text-xl font-semibold text-gray-800">
+                    <i class="fas fa-bell mr-2"></i>Recent Alerts
+                </h2>
+            </div>
+            <div class="p-6">
+                <div id="recentAlerts" class="space-y-3">
+                    <!-- Recent alerts will be populated here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Test Results -->
+        <div class="bg-white rounded-lg shadow-md">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h2 class="text-xl font-semibold text-gray-800">
+                    <i class="fas fa-flask mr-2"></i>Latest Test Results
+                </h2>
+            </div>
+            <div class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6" id="testResults">
+                    <!-- Test results will be populated here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const CONFIG = {
+            API_BASE: 'https://api.caf-mexico.org',
+            REFRESH_INTERVAL: 30000, // 30 seconds
+            CHART_DATA_POINTS: 20
+        };
+
+        // Global state
+        let responseTimeChart, errorRateChart;
+        let responseTimeData = [];
+        let errorRateData = [];
+        let healthData = {};
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeCharts();
+            loadDashboardData();
+            setupEventListeners();
+            
+            // Start auto-refresh
+            setInterval(loadDashboardData, CONFIG.REFRESH_INTERVAL);
+        });
+
+        // Event listeners
+        function setupEventListeners() {
+            document.getElementById('refreshBtn').addEventListener('click', function() {
+                this.classList.add('animate-spin');
+                loadDashboardData().finally(() => {
+                    this.classList.remove('animate-spin');
+                });
+            });
+        }
+
+        // Initialize charts
+        function initializeCharts() {
+            const ctx1 = document.getElementById('responseTimeChart').getContext('2d');
+            responseTimeChart = new Chart(ctx1, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Response Time (ms)',
+                        data: [],
+                        borderColor: 'rgb(59, 130, 246)',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Response Time (ms)'
+                            }
+                        }
+                    }
+                }
+            });
+
+            const ctx2 = document.getElementById('errorRateChart').getContext('2d');
+            errorRateChart = new Chart(ctx2, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Error Rate (%)',
+                        data: [],
+                        borderColor: 'rgb(239, 68, 68)',
+                        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 5,
+                            title: {
+                                display: true,
+                                text: 'Error Rate (%)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Load all dashboard data
+        async function loadDashboardData() {
+            try {
+                await Promise.all([
+                    loadHealthEndpoints(),
+                    loadSystemMetrics(),
+                    loadTestResults(),
+                    loadRecentAlerts()
+                ]);
+                
+                updateLastUpdated();
+                updateCharts();
+            } catch (error) {
+                console.error('Error loading dashboard data:', error);
+                showError('Failed to load dashboard data');
+            }
+        }
+
+        // Load health endpoints status
+        async function loadHealthEndpoints() {
+            const endpoints = [
+                { name: 'Basic Health', path: '/health' },
+                { name: 'Database', path: '/health/ready' },
+                { name: 'AWS ALB', path: '/health/live' },
+                { name: 'Migrations', path: '/health/migrations' },
+                { name: 'S3 Storage', path: '/health/s3' },
+                { name: 'Cache', path: '/health/cache' }
+            ];
+
+            const container = document.getElementById('healthEndpoints');
+            container.innerHTML = '';
+
+            let healthyCount = 0;
+            let totalResponseTime = 0;
+
+            for (const endpoint of endpoints) {
+                const startTime = Date.now();
+                let status = 'error';
+                let responseTime = 0;
+                let statusText = 'Error';
+
+                try {
+                    const response = await fetch(`${CONFIG.API_BASE}${endpoint.path}`, {
+                        method: 'GET',
+                        timeout: 5000
+                    });
+                    
+                    responseTime = Date.now() - startTime;
+                    totalResponseTime += responseTime;
+
+                    if (response.ok) {
+                        status = 'healthy';
+                        statusText = 'Healthy';
+                        healthyCount++;
+                    } else {
+                        status = 'warning';
+                        statusText = `HTTP ${response.status}`;
+                    }
+                } catch (error) {
+                    responseTime = Date.now() - startTime;
+                    status = 'error';
+                    statusText = 'Offline';
+                }
+
+                healthData[endpoint.name] = { status, responseTime, statusText };
+
+                const card = createHealthCard(endpoint.name, status, statusText, responseTime);
+                container.appendChild(card);
+            }
+
+            // Update overall status
+            updateOverallStatus(healthyCount, endpoints.length);
+            
+            // Update average response time
+            const avgResponseTime = Math.round(totalResponseTime / endpoints.length);
+            document.getElementById('apiResponse').textContent = `${avgResponseTime}ms`;
+        }
+
+        // Create health endpoint card
+        function createHealthCard(name, status, statusText, responseTime) {
+            const card = document.createElement('div');
+            card.className = 'bg-gray-50 rounded-lg p-4 border-l-4 ' + 
+                (status === 'healthy' ? 'border-green-500' : 
+                 status === 'warning' ? 'border-yellow-500' : 'border-red-500');
+
+            const statusClass = status === 'healthy' ? 'status-healthy' : 
+                               status === 'warning' ? 'status-warning' : 'status-error';
+
+            const icon = status === 'healthy' ? 'fa-check-circle' : 
+                        status === 'warning' ? 'fa-exclamation-triangle' : 'fa-times-circle';
+
+            card.innerHTML = `
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h4 class="font-medium text-gray-900">${name}</h4>
+                        <div class="${statusClass}">
+                            <i class="fas ${icon} mr-1"></i>${statusText}
+                        </div>
+                    </div>
+                    <div class="text-right text-sm text-gray-500">
+                        ${responseTime}ms
+                    </div>
+                </div>
+            `;
+
+            return card;
+        }
+
+        // Update overall system status
+        function updateOverallStatus(healthyCount, totalCount) {
+            const overallStatus = document.getElementById('overallStatus');
+            const overallStatusIcon = document.getElementById('overallStatusIcon');
+
+            if (healthyCount === totalCount) {
+                overallStatus.innerHTML = '<i class="fas fa-check-circle mr-2"></i>Healthy';
+                overallStatus.className = 'text-2xl font-bold status-healthy';
+                overallStatusIcon.className = 'fas fa-check-circle';
+                overallStatusIcon.parentElement.className = 'text-3xl status-healthy';
+            } else if (healthyCount >= totalCount * 0.8) {
+                overallStatus.innerHTML = '<i class="fas fa-exclamation-triangle mr-2"></i>Warning';
+                overallStatus.className = 'text-2xl font-bold status-warning';
+                overallStatusIcon.className = 'fas fa-exclamation-triangle';
+                overallStatusIcon.parentElement.className = 'text-3xl status-warning';
+            } else {
+                overallStatus.innerHTML = '<i class="fas fa-times-circle mr-2"></i>Critical';
+                overallStatus.className = 'text-2xl font-bold status-error blinking';
+                overallStatusIcon.className = 'fas fa-times-circle';
+                overallStatusIcon.parentElement.className = 'text-3xl status-error';
+            }
+        }
+
+        // Load system metrics
+        async function loadSystemMetrics() {
+            // Simulate metrics - in real implementation, these would come from your monitoring system
+            const metrics = {
+                uptime: '99.9%',
+                activeUsers: Math.floor(Math.random() * 50) + 10
+            };
+
+            document.getElementById('uptime').textContent = metrics.uptime;
+            document.getElementById('activeUsers').textContent = metrics.activeUsers;
+        }
+
+        // Load test results
+        async function loadTestResults() {
+            // Simulate test results - in real implementation, these would come from your test runner
+            const testResults = [
+                {
+                    name: 'Smoke Tests',
+                    status: 'passed',
+                    lastRun: '2 hours ago',
+                    duration: '45s',
+                    icon: 'fa-smoke'
+                },
+                {
+                    name: 'Load Tests',
+                    status: 'passed',
+                    lastRun: '1 day ago',
+                    duration: '5m 23s',
+                    icon: 'fa-tachometer-alt'
+                },
+                {
+                    name: 'Integration Tests',
+                    status: 'warning',
+                    lastRun: '3 days ago',
+                    duration: '2m 15s',
+                    icon: 'fa-cogs'
+                }
+            ];
+
+            const container = document.getElementById('testResults');
+            container.innerHTML = '';
+
+            testResults.forEach(test => {
+                const card = createTestResultCard(test);
+                container.appendChild(card);
+            });
+        }
+
+        // Create test result card
+        function createTestResultCard(test) {
+            const card = document.createElement('div');
+            card.className = 'bg-gray-50 rounded-lg p-4';
+
+            const statusClass = test.status === 'passed' ? 'text-green-600' : 
+                               test.status === 'warning' ? 'text-yellow-600' : 'text-red-600';
+
+            const statusIcon = test.status === 'passed' ? 'fa-check-circle' : 
+                              test.status === 'warning' ? 'fa-exclamation-triangle' : 'fa-times-circle';
+
+            card.innerHTML = `
+                <div class="flex items-center justify-between mb-2">
+                    <h4 class="font-medium text-gray-900">
+                        <i class="fas ${test.icon} mr-2"></i>${test.name}
+                    </h4>
+                    <i class="fas ${statusIcon} ${statusClass}"></i>
+                </div>
+                <div class="text-sm text-gray-500">
+                    <div>Last run: ${test.lastRun}</div>
+                    <div>Duration: ${test.duration}</div>
+                </div>
+            `;
+
+            return card;
+        }
+
+        // Load recent alerts
+        async function loadRecentAlerts() {
+            // Simulate recent alerts - in real implementation, these would come from your alerting system
+            const alerts = [
+                {
+                    type: 'info',
+                    message: 'Scheduled maintenance completed successfully',
+                    timestamp: '1 hour ago'
+                },
+                {
+                    type: 'warning',
+                    message: 'Response time spike detected (resolved)',
+                    timestamp: '3 hours ago'
+                }
+            ];
+
+            const container = document.getElementById('recentAlerts');
+            
+            if (alerts.length === 0) {
+                container.innerHTML = '<div class="text-gray-500 text-center py-4">No recent alerts</div>';
+                return;
+            }
+
+            container.innerHTML = '';
+            alerts.forEach(alert => {
+                const alertElement = createAlertElement(alert);
+                container.appendChild(alertElement);
+            });
+        }
+
+        // Create alert element
+        function createAlertElement(alert) {
+            const alertDiv = document.createElement('div');
+            const colorClass = alert.type === 'error' ? 'bg-red-50 border-red-200 text-red-800' :
+                              alert.type === 'warning' ? 'bg-yellow-50 border-yellow-200 text-yellow-800' :
+                              'bg-blue-50 border-blue-200 text-blue-800';
+
+            const iconClass = alert.type === 'error' ? 'fa-times-circle' :
+                             alert.type === 'warning' ? 'fa-exclamation-triangle' :
+                             'fa-info-circle';
+
+            alertDiv.className = `${colorClass} border rounded-lg p-3`;
+            alertDiv.innerHTML = `
+                <div class="flex items-start">
+                    <i class="fas ${iconClass} mt-0.5 mr-3"></i>
+                    <div class="flex-1">
+                        <div class="font-medium">${alert.message}</div>
+                        <div class="text-sm opacity-75 mt-1">${alert.timestamp}</div>
+                    </div>
+                </div>
+            `;
+
+            return alertDiv;
+        }
+
+        // Update charts with new data
+        function updateCharts() {
+            const now = new Date();
+            const timeLabel = now.toLocaleTimeString();
+
+            // Add new data point
+            responseTimeData.push({
+                time: timeLabel,
+                value: Math.random() * 500 + 100 // Simulate response time
+            });
+
+            errorRateData.push({
+                time: timeLabel,
+                value: Math.random() * 2 // Simulate error rate
+            });
+
+            // Keep only last 20 data points
+            if (responseTimeData.length > CONFIG.CHART_DATA_POINTS) {
+                responseTimeData.shift();
+                errorRateData.shift();
+            }
+
+            // Update response time chart
+            responseTimeChart.data.labels = responseTimeData.map(d => d.time);
+            responseTimeChart.data.datasets[0].data = responseTimeData.map(d => d.value);
+            responseTimeChart.update('none');
+
+            // Update error rate chart
+            errorRateChart.data.labels = errorRateData.map(d => d.time);
+            errorRateChart.data.datasets[0].data = errorRateData.map(d => d.value);
+            errorRateChart.update('none');
+        }
+
+        // Update last updated timestamp
+        function updateLastUpdated() {
+            const now = new Date();
+            document.getElementById('lastUpdated').textContent = now.toLocaleTimeString();
+        }
+
+        // Show error message
+        function showError(message) {
+            // In a real implementation, you might want to show a toast notification
+            console.error(message);
+        }
+
+        // Export dashboard data (for debugging)
+        window.exportDashboardData = function() {
+            const data = {
+                timestamp: new Date().toISOString(),
+                healthData: healthData,
+                responseTimeData: responseTimeData,
+                errorRateData: errorRateData
+            };
+            
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `caf-dashboard-data-${Date.now()}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        };
+    </script>
+</body>
+</html>

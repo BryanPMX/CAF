@@ -59,6 +59,12 @@ import {
 } from '@ant-design/icons';
 import { apiClient } from '../lib/api';
 import { Line, Bar, Pie, Area, Column } from '@ant-design/plots';
+import { 
+  getDashboardWidgetsForRole, 
+  PERMISSIONS, 
+  STAFF_ROLES,
+  type StaffRoleKey 
+} from '@/config/roles';
 
 // Lazy load heavy components
 const AnnouncementsPanel = lazy(() => import('./components/AnnouncementsPanel'));
@@ -162,272 +168,247 @@ const StatCard: React.FC<{
   </Card>
 );
 
-const AdminDashboard: React.FC<{ data: DashboardSummary }> = ({ data }) => {
-  const quickStats: QuickStats[] = [
-    {
-      label: "Citas para Hoy",
-      value: data.appointmentsToday || 0,
-      change: 12,
-      trend: 'up',
-      icon: <ScheduleOutlined />,
-      color: '#52c41a'
-    },
-    {
-      label: "Casos Abiertos",
-      value: data.totalOpenCases || 0,
-      change: -5,
-      trend: 'down',
-      icon: <FolderOpenOutlined />,
-      color: '#1890ff'
-    },
-    {
-      label: "Personal Activo",
-      value: data.totalStaff || 0,
-      change: 8,
-      trend: 'up',
-      icon: <TeamOutlined />,
-      color: '#722ed1'
-    },
-    {
-      label: "Clientes Totales",
-      value: data.totalClients || 0,
-      change: 15,
-      trend: 'up',
-      icon: <UserOutlined />,
-      color: '#fa8c16'
-    },
-    {
-      label: "Casos Completados",
-      value: data.completedCases || 0,
-      change: 22,
-      trend: 'up',
-      icon: <CheckCircleOutlined />,
-      color: '#13c2c2'
-    },
-    {
-      label: "Casos Urgentes",
-      value: data.urgentCases || 0,
-      change: -3,
-      trend: 'down',
-      icon: <ExclamationCircleOutlined />,
-      color: '#f5222d'
-    }
-  ];
+const RoleBasedDashboard: React.FC<{ 
+  data: DashboardSummary; 
+  userRole: StaffRoleKey; 
+}> = ({ data, userRole }) => {
+  // Get widgets for the user's role
+  const availableWidgets = getDashboardWidgetsForRole(userRole);
+  
+  // Define widget components
+  const widgetComponents = {
+    'system-stats': () => (
+      <Card title="Estadísticas del Sistema" className="h-full">
+        <Row gutter={[16, 16]}>
+          <Col span={12}>
+            <Statistic title="Total de Usuarios" value={data.totalStaff || 0} />
+          </Col>
+          <Col span={12}>
+            <Statistic title="Oficinas Activas" value={3} />
+          </Col>
+        </Row>
+      </Card>
+    ),
+    'user-management': () => (
+      <Card title="Gestión de Usuarios" className="h-full">
+        <div className="text-center py-4">
+          <Typography.Title level={2} className="!text-blue-600">
+            {data.totalStaff || 0}
+          </Typography.Title>
+          <Typography.Text type="secondary">Usuarios Activos</Typography.Text>
+        </div>
+      </Card>
+    ),
+    'office-overview': () => (
+      <Card title="Resumen de Oficinas" className="h-full">
+        <div className="space-y-3">
+          <div className="flex justify-between">
+            <Typography.Text>Oficina Principal</Typography.Text>
+            <Tag color="green">Activa</Tag>
+          </div>
+          <div className="flex justify-between">
+            <Typography.Text>Oficina Norte</Typography.Text>
+            <Tag color="green">Activa</Tag>
+          </div>
+          <div className="flex justify-between">
+            <Typography.Text>Oficina Sur</Typography.Text>
+            <Tag color="orange">Mantenimiento</Tag>
+          </div>
+        </div>
+      </Card>
+    ),
+    'office-stats': () => (
+      <Card title="Estadísticas de Oficina" className="h-full">
+        <div className="text-center py-4">
+          <Typography.Title level={2} className="!text-blue-600">
+            {data.totalOpenCases || 0}
+          </Typography.Title>
+          <Typography.Text type="secondary">Casos en esta Oficina</Typography.Text>
+        </div>
+      </Card>
+    ),
+    'staff-performance': () => (
+      <Card title="Rendimiento del Personal" className="h-full">
+        <Progress
+          type="circle"
+          percent={data.staffPerformance || 85}
+          strokeColor="#52c41a"
+          size={100}
+        />
+        <div className="text-center mt-4">
+          <Typography.Text type="secondary">Meta: 90%</Typography.Text>
+        </div>
+      </Card>
+    ),
+    'case-load': () => (
+      <Card title="Carga de Casos" className="h-full">
+        <div className="space-y-3">
+          <div className="flex justify-between">
+            <Typography.Text>Casos Activos</Typography.Text>
+            <Typography.Text strong>{data.myOpenCases || 0}</Typography.Text>
+          </div>
+          <div className="flex justify-between">
+            <Typography.Text>Tareas Pendientes</Typography.Text>
+            <Typography.Text strong>{data.myPendingTasks || 0}</Typography.Text>
+          </div>
+          <Progress percent={75} strokeColor="#1890ff" />
+        </div>
+      </Card>
+    ),
+    'upcoming-appointments': () => (
+      <Card title="Próximas Citas" className="h-full">
+        <div className="text-center py-4">
+          <Typography.Title level={2} className="!text-green-600">
+            {data.myUpcomingAppointments || 0}
+          </Typography.Title>
+          <Typography.Text type="secondary">Citas Programadas</Typography.Text>
+        </div>
+      </Card>
+    ),
+    'today-appointments': () => (
+      <Card title="Citas de Hoy" className="h-full">
+        <div className="text-center py-4">
+          <Typography.Title level={2} className="!text-orange-600">
+            {data.appointmentsToday || 0}
+          </Typography.Title>
+          <Typography.Text type="secondary">Citas para Hoy</Typography.Text>
+        </div>
+      </Card>
+    ),
+    'client-check-ins': () => (
+      <Card title="Registros de Clientes" className="h-full">
+        <div className="space-y-3">
+          <div className="flex justify-between">
+            <Typography.Text>Clientes Nuevos</Typography.Text>
+            <Typography.Text strong>5</Typography.Text>
+          </div>
+          <div className="flex justify-between">
+            <Typography.Text>Registros Hoy</Typography.Text>
+            <Typography.Text strong>12</Typography.Text>
+          </div>
+        </div>
+      </Card>
+    ),
+    'upcoming-events': () => (
+      <Card title="Próximos Eventos" className="h-full">
+        <div className="space-y-3">
+          <div className="flex justify-between">
+            <Typography.Text>Taller Legal</Typography.Text>
+            <Tag color="blue">Mañana</Tag>
+          </div>
+          <div className="flex justify-between">
+            <Typography.Text>Sesión Grupal</Typography.Text>
+            <Tag color="green">Esta Semana</Tag>
+          </div>
+        </div>
+      </Card>
+    ),
+    'event-registrations': () => (
+      <Card title="Registros de Eventos" className="h-full">
+        <div className="text-center py-4">
+          <Typography.Title level={2} className="!text-purple-600">
+            24
+          </Typography.Title>
+          <Typography.Text type="secondary">Registros Esta Semana</Typography.Text>
+        </div>
+      </Card>
+    ),
+  };
 
   return (
     <div className="space-y-6">
-      {/* Main Statistics Grid - Enhanced Mobile */}
+      {/* Role-specific widgets */}
       <Row gutter={[16, 16]}>
-        {quickStats.map((stat, index) => (
-          <Col xs={24} sm={12} md={8} lg={6} xl={4} key={index}>
-            <StatCard {...stat} title={stat.label} />
+        {availableWidgets.map((widget) => {
+          const WidgetComponent = widgetComponents[widget.key as keyof typeof widgetComponents];
+          if (!WidgetComponent) return null;
+          
+          return (
+            <Col xs={24} sm={12} md={8} lg={6} key={widget.key}>
+              <WidgetComponent />
+            </Col>
+          );
+        })}
+      </Row>
+
+      {/* Role-specific additional content */}
+      {PERMISSIONS.canSeeAdminWidgets(userRole) && (
+        <Row gutter={[16, 16]}>
+          <Col xs={24} lg={12}>
+            <Card title="Rendimiento del Sistema">
+              <div className="space-y-4">
+                <div className="flex justify-between">
+                  <Typography.Text>Uptime del Servidor</Typography.Text>
+                  <Typography.Text strong>99.9%</Typography.Text>
+                </div>
+                <Progress percent={99.9} strokeColor="#52c41a" />
+                
+                <div className="flex justify-between">
+                  <Typography.Text>Uso de Base de Datos</Typography.Text>
+                  <Typography.Text strong>45%</Typography.Text>
+                </div>
+                <Progress percent={45} strokeColor="#1890ff" />
+              </div>
+            </Card>
           </Col>
-        ))}
-      </Row>
-
-      {/* Performance Metrics - Enhanced Mobile */}
-      <Row gutter={[16, 16]}>
-        <Col xs={24} sm={12} lg={8}>
-          <Card 
-            title={
-              <div className="flex items-center">
-                <TrophyOutlined className="mr-2 text-yellow-500" />
-                <span className="text-sm sm:text-base">Rendimiento del Mes</span>
-              </div>
-            }
-            className="h-full"
-          >
-            <div className="text-center">
-              <Progress
-                type="circle"
-                percent={data.staffPerformance || 85}
-                strokeColor={{
-                  '0%': '#108ee9',
-                  '100%': '#87d068',
-                }}
-                size={120}
-                format={(percent) => (
-                  <div className="text-center">
-                    <div className="text-xl sm:text-2xl font-bold text-blue-600">{percent}%</div>
-                    <div className="text-xs text-gray-500">Meta: 90%</div>
-                  </div>
-                )}
-              />
-              <div className="mt-4">
-                <Typography.Text type="secondary" className="text-xs sm:text-sm">
-                  Crecimiento mensual: <span className="text-green-500 font-semibold">+{data.monthlyGrowth || 12}%</span>
-                </Typography.Text>
-              </div>
-            </div>
-          </Card>
-        </Col>
-        
-        <Col xs={24} sm={12} lg={8}>
-          <Card 
-            title={
-              <div className="flex items-center">
-                <ClockCircleOutlined className="mr-2 text-blue-500" />
-                <span className="text-sm sm:text-base">Duración Promedio</span>
-              </div>
-            }
-            className="h-full"
-          >
-            <div className="text-center py-4">
-              <Typography.Title level={1} className="!text-3xl sm:!text-4xl !mb-2 text-blue-600">
-                {data.averageCaseDuration || 14}
-              </Typography.Title>
-              <Typography.Text type="secondary" className="text-sm sm:text-lg">
-                días promedio por caso
-              </Typography.Text>
-              <div className="mt-4">
-                <Tag color="green" className="text-xs sm:text-sm">
-                  <FireOutlined className="mr-1" />
-                  Eficiencia Alta
-                </Tag>
-              </div>
-            </div>
-          </Card>
-        </Col>
-
-        <Col xs={24} sm={12} lg={8}>
-          <Card 
-            title={
-              <div className="flex items-center">
-                <CalendarOutlined className="mr-2 text-purple-500" />
-                <span className="text-sm sm:text-base">Citas Esta Semana</span>
-              </div>
-            }
-            className="h-full"
-          >
-            <div className="text-center py-4">
-              <Typography.Title level={1} className="!text-3xl sm:!text-4xl !mb-2 text-purple-600">
-                {data.weeklyAppointments || 45}
-              </Typography.Title>
-              <Typography.Text type="secondary" className="text-sm sm:text-lg">
-                citas programadas
-              </Typography.Text>
-              <div className="mt-4">
-                <Badge 
-                  count={data.pendingAppointments || 8} 
-                  style={{ backgroundColor: '#fa8c16' }}
-                >
-                  <Tag color="orange" className="text-xs sm:text-sm">
-                    <ClockCircleOutlined className="mr-1" />
-                    Pendientes
-                  </Tag>
-                </Badge>
-              </div>
-            </div>
-          </Card>
-        </Col>
-      </Row>
-    </div>
-  );
-};
-
-const StaffDashboard: React.FC<{ data: DashboardSummary }> = ({ data }) => {
-  const staffStats: QuickStats[] = [
-    {
-      label: "Mis Próximas Citas",
-      value: data.myUpcomingAppointments || 0,
-      change: 5,
-      trend: 'up',
-      icon: <ScheduleOutlined />,
-      color: '#52c41a'
-    },
-    {
-      label: "Mis Casos Activos",
-      value: data.myOpenCases || 0,
-      change: -2,
-      trend: 'down',
-      icon: <FolderOpenOutlined />,
-      color: '#1890ff'
-    },
-    {
-      label: "Mis Tareas Pendientes",
-      value: data.myPendingTasks || 0,
-      change: 8,
-      trend: 'up',
-      icon: <CheckCircleOutlined />,
-      color: '#fa8c16'
-    }
-  ];
-
-  return (
-    <div className="space-y-6">
-      {/* Personal Statistics */}
-      <Row gutter={[24, 24]}>
-        {staffStats.map((stat, index) => (
-          <Col xs={24} sm={12} lg={8} key={index}>
-            <StatCard {...stat} title={stat.label} />
+          
+          <Col xs={24} lg={12}>
+            <Card title="Actividad Reciente">
+              <Timeline>
+                <Timeline.Item color="green">
+                  <Typography.Text strong>Sistema actualizado</Typography.Text>
+                  <br />
+                  <Typography.Text type="secondary" className="text-xs">Hace 2 horas</Typography.Text>
+                </Timeline.Item>
+                <Timeline.Item color="blue">
+                  <Typography.Text strong>Nuevo usuario registrado</Typography.Text>
+                  <br />
+                  <Typography.Text type="secondary" className="text-xs">Hace 4 horas</Typography.Text>
+                </Timeline.Item>
+              </Timeline>
+            </Card>
           </Col>
-        ))}
-      </Row>
+        </Row>
+      )}
 
-      {/* Personal Performance */}
-      <Row gutter={[24, 24]}>
-        <Col xs={24} lg={12}>
-          <Card 
-            title={
-              <div className="flex items-center">
-                <StarOutlined className="mr-2 text-yellow-500" />
-                Mi Rendimiento
+      {PERMISSIONS.canSeeProfessionalWidgets(userRole) && (
+        <Row gutter={[16, 16]}>
+          <Col xs={24} lg={12}>
+            <Card title="Mi Rendimiento">
+              <div className="space-y-4">
+                <div className="flex justify-between">
+                  <Typography.Text>Casos Completados</Typography.Text>
+                  <Typography.Text strong>12</Typography.Text>
+                </div>
+                <Progress percent={80} strokeColor="#52c41a" />
+                
+                <div className="flex justify-between">
+                  <Typography.Text>Puntualidad</Typography.Text>
+                  <Typography.Text strong>95%</Typography.Text>
+                </div>
+                <Progress percent={95} strokeColor="#1890ff" />
               </div>
-            }
-            className="h-full"
-          >
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <Typography.Text>Casos Completados</Typography.Text>
-                <Typography.Text strong>12</Typography.Text>
-              </div>
-              <Progress percent={80} strokeColor="#52c41a" />
-              
-              <div className="flex items-center justify-between">
-                <Typography.Text>Puntualidad</Typography.Text>
-                <Typography.Text strong>95%</Typography.Text>
-              </div>
-              <Progress percent={95} strokeColor="#1890ff" />
-              
-              <div className="flex items-center justify-between">
-                <Typography.Text>Satisfacción del Cliente</Typography.Text>
-                <Typography.Text strong>4.8/5</Typography.Text>
-              </div>
-              <Progress percent={96} strokeColor="#722ed1" />
-            </div>
-          </Card>
-        </Col>
-        
-        <Col xs={24} lg={12}>
-          <Card 
-            title={
-              <div className="flex items-center">
-                <ThunderboltOutlined className="mr-2 text-purple-500" />
-                Logros Recientes
-              </div>
-            }
-            className="h-full"
-          >
-            <Timeline>
-              <Timeline.Item color="green">
-                <Typography.Text strong>Completaste 5 casos esta semana</Typography.Text>
-                <br />
-                <Typography.Text type="secondary" className="text-xs">Hace 2 horas</Typography.Text>
-              </Timeline.Item>
-              <Timeline.Item color="blue">
-                <Typography.Text strong>Nueva certificación obtenida</Typography.Text>
-                <br />
-                <Typography.Text type="secondary" className="text-xs">Hace 1 día</Typography.Text>
-              </Timeline.Item>
-              <Timeline.Item color="orange">
-                <Typography.Text strong>Meta mensual alcanzada</Typography.Text>
-                <br />
-                <Typography.Text type="secondary" className="text-xs">Hace 3 días</Typography.Text>
-              </Timeline.Item>
-            </Timeline>
-          </Card>
-        </Col>
-      </Row>
+            </Card>
+          </Col>
+          
+          <Col xs={24} lg={12}>
+            <Card title="Logros Recientes">
+              <Timeline>
+                <Timeline.Item color="green">
+                  <Typography.Text strong>Completaste 5 casos esta semana</Typography.Text>
+                  <br />
+                  <Typography.Text type="secondary" className="text-xs">Hace 2 horas</Typography.Text>
+                </Timeline.Item>
+                <Timeline.Item color="blue">
+                  <Typography.Text strong>Nueva certificación obtenida</Typography.Text>
+                  <br />
+                  <Typography.Text type="secondary" className="text-xs">Hace 1 día</Typography.Text>
+                </Timeline.Item>
+              </Timeline>
+            </Card>
+          </Col>
+        </Row>
+      )}
     </div>
   );
 };
@@ -548,23 +529,28 @@ const TrueDashboardPage = () => {
       }
     ];
 
-    if (userRole === 'admin' || userRole === 'office_manager') {
-      baseActions.push(
-        {
+    if (userRole && Object.values(STAFF_ROLES).includes(userRole as StaffRoleKey)) {
+      const staffRole = userRole as StaffRoleKey;
+      
+      if (PERMISSIONS.canManageUsers(staffRole)) {
+        baseActions.push({
           label: 'Gestión de Usuarios',
           icon: <TeamOutlined />,
-          onClick: () => router.push('/admin/users'),
+          onClick: () => router.push('/app/users'),
           color: '#722ed1',
           gradient: 'linear-gradient(135deg, #722ed1 0%, #9254de 100%)'
-        },
-        {
-          label: 'Reportes',
+        });
+      }
+      
+      if (PERMISSIONS.canManageOffices(staffRole)) {
+        baseActions.push({
+          label: 'Gestión de Oficinas',
           icon: <BarChartOutlined />,
-          onClick: () => router.push('/admin/reports'),
+          onClick: () => router.push('/app/offices'),
           color: '#fa8c16',
           gradient: 'linear-gradient(135deg, #fa8c16 0%, #ffa940 100%)'
-        }
-      );
+        });
+      }
     }
 
     return baseActions;
@@ -624,10 +610,8 @@ const TrueDashboardPage = () => {
 
       {/* Statistics Cards */}
       <div className="mb-8">
-        {userRole === 'admin' || userRole === 'office_manager' ? (
-          <AdminDashboard data={summaryData || {}} />
-        ) : userRole ? (
-          <StaffDashboard data={summaryData || {}} />
+        {userRole && Object.values(STAFF_ROLES).includes(userRole as StaffRoleKey) ? (
+          <RoleBasedDashboard data={summaryData || {}} userRole={userRole as StaffRoleKey} />
         ) : (
           <div className="flex justify-center items-center h-32">
             <Spin size="large" tip="Cargando dashboard..." />
@@ -722,7 +706,8 @@ const TrueDashboardPage = () => {
       </Row>
 
       {/* Charts and Analytics Section */}
-      {(userRole === 'admin' || userRole === 'office_manager') && (
+      {userRole && Object.values(STAFF_ROLES).includes(userRole as StaffRoleKey) && 
+       PERMISSIONS.canSeeAdminWidgets(userRole as StaffRoleKey) && (
         <Suspense fallback={<SectionLoading />}>
           <DashboardCharts />
         </Suspense>
@@ -747,7 +732,8 @@ const TrueDashboardPage = () => {
         </Col>
         
         <Col xs={24} lg={8}>
-          {(userRole === 'admin' || userRole === 'office_manager') && (
+          {userRole && Object.values(STAFF_ROLES).includes(userRole as StaffRoleKey) && 
+           PERMISSIONS.canSeeOfficeManagerWidgets(userRole as StaffRoleKey) && (
             <Card 
               title={
                 <div className="flex items-center">

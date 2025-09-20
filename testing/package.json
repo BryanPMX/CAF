@@ -1,0 +1,36 @@
+{
+  "name": "caf-production-tests",
+  "version": "1.0.0",
+  "description": "Production testing suite for CAF system",
+  "scripts": {
+    "smoke-tests": "node smoke-tests.js",
+    "load-test": "artillery run load-test.yml",
+    "integration-tests": "node integration-tests.js",
+    "health-check": "./health-monitor.sh",
+    "websocket-test": "node websocket-tester.js basic",
+    "websocket-load": "node websocket-tester.js load",
+    "create-test-users": "node test-user-manager.js create",
+    "cleanup-test-users": "node test-user-manager.js cleanup",
+    "test-all": "npm run health-check && npm run smoke-tests",
+    "test-full": "npm run health-check && npm run smoke-tests && npm run integration-tests && npm run websocket-test",
+    "monitor": "./health-monitor.sh monitor",
+    "setup-testing": "npm run create-test-users && npm run test-full"
+  },
+  "dependencies": {
+    "axios": "^1.6.7",
+    "chalk": "^4.1.2",
+    "dotenv": "^16.3.1",
+    "ws": "^8.18.3"
+  },
+  "devDependencies": {
+    "artillery": "^2.0.0"
+  },
+  "keywords": [
+    "testing",
+    "production",
+    "health-check",
+    "caf"
+  ],
+  "author": "CAF Development Team",
+  "license": "MIT"
+}

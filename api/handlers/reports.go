@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/BryanPMX/CAF/api/config"
 	"github.com/BryanPMX/CAF/api/models"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -55,7 +56,7 @@ func (rh *ReportsHandler) GetSummaryReport() gin.HandlerFunc {
 		// Base query with office scoping for non-admin roles
 		dbq := rh.db.Model(&models.Case{})
 		if roleVal, exists := c.Get("userRole"); exists {
-			if role, ok := roleVal.(string); ok && role != "admin" {
+			if role, ok := roleVal.(string); ok && !config.CanAccessAllOffices(role) {
 				if officeScopeVal, ok2 := c.Get("officeScopeID"); ok2 {
 					if officeID, ok3 := officeScopeVal.(uint); ok3 {
 						dbq = dbq.Where("office_id = ?", officeID)
@@ -205,7 +206,7 @@ func (rh *ReportsHandler) GetCasesReport() gin.HandlerFunc {
 			Preload("AssignedStaff")
 
 		if roleVal, exists := c.Get("userRole"); exists {
-			if role, ok := roleVal.(string); ok && role != "admin" {
+			if role, ok := roleVal.(string); ok && !config.CanAccessAllOffices(role) {
 				if officeScopeVal, ok2 := c.Get("officeScopeID"); ok2 {
 					if officeID, ok3 := officeScopeVal.(uint); ok3 {
 						dbq = dbq.Where("office_id = ?", officeID)
@@ -318,7 +319,7 @@ func (rh *ReportsHandler) GetAppointmentsReport() gin.HandlerFunc {
 			dbq = dbq.Joins("JOIN cases ON appointments.case_id = cases.id").
 				Where("cases.office_id = ?", *query.OfficeID)
 		} else if roleVal, exists := c.Get("userRole"); exists {
-			if role, ok := roleVal.(string); ok && role != "admin" {
+			if role, ok := roleVal.(string); ok && !config.CanAccessAllOffices(role) {
 				if officeScopeVal, ok2 := c.Get("officeScopeID"); ok2 {
 					if officeID, ok3 := officeScopeVal.(uint); ok3 {
 						dbq = dbq.Joins("JOIN cases ON appointments.case_id = cases.id").
@@ -632,9 +633,9 @@ func (rh *ReportsHandler) generateEnhancedCasesCSV(query QueryParams) string {
 	}
 
 	// Add summary statistics
-	content.WriteString(fmt.Sprintf("\nRESUMEN ESTADÍSTICO\n"))
+	content.WriteString("\nRESUMEN ESTADÍSTICO\n")
 	content.WriteString(fmt.Sprintf("Total de Casos: %d\n", len(allCases)))
-	content.WriteString(fmt.Sprintf("Casos por Departamento:\n"))
+	content.WriteString("Casos por Departamento:\n")
 
 	// Group by department for summary
 	deptStats := make(map[string]int)
@@ -740,9 +741,9 @@ func (rh *ReportsHandler) generateEnhancedAppointmentsCSV(query QueryParams) str
 	}
 
 	// Add summary statistics
-	content.WriteString(fmt.Sprintf("\nRESUMEN ESTADÍSTICO\n"))
+	content.WriteString("\nRESUMEN ESTADÍSTICO\n")
 	content.WriteString(fmt.Sprintf("Total de Citas: %d\n", len(allAppointments)))
-	content.WriteString(fmt.Sprintf("Citas por Estado:\n"))
+	content.WriteString("Citas por Estado:\n")
 
 	// Group by status for summary
 	statusStats := make(map[string]int)

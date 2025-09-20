@@ -6,46 +6,23 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { Layout, Menu, Spin, Button, Space, Alert } from 'antd';
 import Image from 'next/image';
-import { 
-  HomeOutlined, 
-  ScheduleOutlined, 
-  TeamOutlined, 
-  ShopOutlined, 
-  FolderOpenOutlined, 
-  LogoutOutlined, 
-  BarChartOutlined, 
-  FileTextOutlined 
-} from '@ant-design/icons';
+import { LogoutOutlined } from '@ant-design/icons';
 import { apiClient } from '@/app/lib/api';
 import { useAuth } from '@/hooks/useAuth';
 import { UserRole } from '@/app/lib/types';
 import { NotificationProvider } from '@/context/NotificationContext';
+import { 
+  getNavigationItemsForRole, 
+  getRoleDefinition, 
+  STAFF_ROLES,
+  type StaffRoleKey 
+} from '@/config/roles';
 
 // Lazy load components for better performance
 const NotificationBell = lazy(() => import('./components/NotificationBell'));
 
 // Destructure Layout components once
 const { Header, Sider, Content } = Layout;
-
-// Menu configuration following Single Responsibility Principle
-interface MenuItem {
-  key: string;
-  icon: React.ReactNode;
-  label: string;
-  href: string;
-  adminOnly?: boolean;
-  superAdminOnly?: boolean;
-}
-
-const MENU_ITEMS: MenuItem[] = [
-  { key: 'dashboard', icon: <HomeOutlined />, label: 'Dashboard', href: '/' },
-  { key: 'appointments', icon: <ScheduleOutlined />, label: 'Citas', href: '/app/appointments' },
-  { key: 'cases', icon: <FolderOpenOutlined />, label: 'Casos', href: '/app/cases' },
-  { key: 'users', icon: <TeamOutlined />, label: 'Usuarios', href: '/app/users', adminOnly: true },
-  { key: 'offices', icon: <ShopOutlined />, label: 'Oficinas', href: '/app/offices', superAdminOnly: true },
-  { key: 'reports', icon: <BarChartOutlined />, label: 'Reportes', href: '/app/reports', adminOnly: true },
-  { key: 'archives', icon: <FileTextOutlined />, label: 'Archivos', href: '/app/records', adminOnly: true },
-];
 
 // Loading component for lazy-loaded components
 const LoadingSpinner = () => (
@@ -54,13 +31,14 @@ const LoadingSpinner = () => (
   </div>
 );
 
-// Role display configuration
+// Role display configuration - now using centralized role definitions
 const ROLE_DISPLAY_CONFIG = {
-  admin: { label: 'Administrador', color: 'bg-red-100 text-red-800' },
-  office_manager: { label: 'Gerente de Oficina', color: 'bg-blue-100 text-blue-800' },
-  staff: { label: 'Personal', color: 'bg-green-100 text-green-800' },
-  counselor: { label: 'Consejero', color: 'bg-purple-100 text-purple-800' },
-  psychologist: { label: 'Psicólogo', color: 'bg-orange-100 text-orange-800' },
+  [STAFF_ROLES.ADMIN]: { label: 'Administrador', color: 'bg-red-100 text-red-800' },
+  [STAFF_ROLES.OFFICE_MANAGER]: { label: 'Gerente de Oficina', color: 'bg-blue-100 text-blue-800' },
+  [STAFF_ROLES.LAWYER]: { label: 'Abogado/a', color: 'bg-green-100 text-green-800' },
+  [STAFF_ROLES.PSYCHOLOGIST]: { label: 'Psicólogo/a', color: 'bg-purple-100 text-purple-800' },
+  [STAFF_ROLES.RECEPTIONIST]: { label: 'Recepcionista', color: 'bg-orange-100 text-orange-800' },
+  [STAFF_ROLES.EVENT_COORDINATOR]: { label: 'Coordinador/a de Eventos', color: 'bg-yellow-100 text-yellow-800' },
   client: { label: 'Cliente', color: 'bg-gray-100 text-gray-800' },
 } as const;
 
@@ -119,23 +97,37 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return 'dashboard';
   }, [pathname]);
 
-  // Filter menu items based on user role and format for Ant Design
+  // Filter menu items based on user role using centralized role configuration
   const filteredMenuItems = useMemo(() => {
-    return MENU_ITEMS.filter(item => {
-      if (item.adminOnly && !isAdmin) return false;
-      if (item.superAdminOnly && user?.role !== 'admin') return false;
-      return true;
-    }).map(item => ({
+    if (!user?.role) return [];
+    
+    // Convert user role to StaffRoleKey if it's a valid staff role
+    const staffRole = user.role as StaffRoleKey;
+    const navigationItems = getNavigationItemsForRole(staffRole);
+    
+    // Convert navigation items to Ant Design menu format
+    return navigationItems.map(item => ({
       key: item.key,
-      icon: item.icon,
-      label: <Link href={item.href}>{item.label}</Link>,
+      icon: React.createElement(require('@ant-design/icons')[item.icon]),
+      label: <Link href={item.path}>{item.label}</Link>,
     }));
-  }, [isAdmin, user?.role]);
+  }, [user?.role]);
 
-  // Get role display configuration
+  // Get role display configuration using centralized role definitions
   const roleDisplay = useMemo(() => {
     if (!user?.role) return null;
-    return ROLE_DISPLAY_CONFIG[user.role] || ROLE_DISPLAY_CONFIG.client;
+    
+    // Check if it's a staff role first
+    if (Object.values(STAFF_ROLES).includes(user.role as StaffRoleKey)) {
+      const roleDef = getRoleDefinition(user.role as StaffRoleKey);
+      return {
+        label: roleDef.spanishName,
+        color: ROLE_DISPLAY_CONFIG[user.role as StaffRoleKey]?.color || 'bg-gray-100 text-gray-800'
+      };
+    }
+    
+    // Fallback for client role
+    return ROLE_DISPLAY_CONFIG.client;
   }, [user?.role]);
 
   if (loading) {

@@ -1,241 +1,384 @@
 /**
- * Centralized Staff Roles Configuration
+ * CAF System - Frontend Role Configuration
  * 
- * This file serves as the single source of truth for all staff role definitions
- * across the CAF Admin Portal. It eliminates hardcoded role lists and ensures
- * consistency throughout the application.
- * 
- * @author CAF Development Team
- * @version 1.0.0
+ * This is the SINGLE SOURCE OF TRUTH for all role definitions and permissions
+ * in the frontend. All components must use this configuration.
  */
 
-// Staff role interface definition
-export interface StaffRole {
-  /** Machine-readable key stored in the database */
-  value: string;
-  /** User-friendly, formal Spanish name for the UI */
-  label: string;
-  /** Associated department for smart filtering and case assignment */
-  department: 'legal' | 'psychology' | 'general' | 'administration';
-  /** Whether this role requires office assignment */
-  requiresOffice: boolean;
-  /** Whether this role can manage other users */
-  canManageUsers: boolean;
-  /** Display color for role badges */
-  color: string;
-}
+// Staff role keys - must match backend config/roles.go
+export const STAFF_ROLES = {
+  ADMIN: 'admin',
+  OFFICE_MANAGER: 'office_manager',
+  LAWYER: 'lawyer',
+  PSYCHOLOGIST: 'psychologist',
+  RECEPTIONIST: 'receptionist',
+  EVENT_COORDINATOR: 'event_coordinator',
+} as const;
 
-/**
- * Complete list of all staff roles in the CAF system
- * 
- * This array contains every single staff role defined in our architecture.
- * Adding a new role requires only updating this array, and the entire UI
- * will update automatically.
- */
-export const STAFF_ROLES: StaffRole[] = [
+// Staff role definitions with Spanish labels and departments
+export const STAFF_ROLE_DEFINITIONS = {
+  [STAFF_ROLES.ADMIN]: {
+    key: STAFF_ROLES.ADMIN,
+    spanishName: 'Administrador',
+    englishName: 'Administrator',
+    department: 'Administration',
+    description: 'Full system access and management',
+    hierarchyLevel: 1,
+  },
+  [STAFF_ROLES.OFFICE_MANAGER]: {
+    key: STAFF_ROLES.OFFICE_MANAGER,
+    spanishName: 'Gerente de Oficina',
+    englishName: 'Office Manager',
+    department: 'Management',
+    description: 'Office-level management and oversight',
+    hierarchyLevel: 2,
+  },
+  [STAFF_ROLES.LAWYER]: {
+    key: STAFF_ROLES.LAWYER,
+    spanishName: 'Abogado/a',
+    englishName: 'Lawyer',
+    department: 'Legal',
+    description: 'Legal case management and documentation',
+    hierarchyLevel: 3,
+  },
+  [STAFF_ROLES.PSYCHOLOGIST]: {
+    key: STAFF_ROLES.PSYCHOLOGIST,
+    spanishName: 'Psicólogo/a',
+    englishName: 'Psychologist',
+    department: 'Psychology',
+    description: 'Psychological assessment and counseling',
+    hierarchyLevel: 3,
+  },
+  [STAFF_ROLES.RECEPTIONIST]: {
+    key: STAFF_ROLES.RECEPTIONIST,
+    spanishName: 'Recepcionista',
+    englishName: 'Receptionist',
+    department: 'Administration',
+    description: 'Front desk and appointment management',
+    hierarchyLevel: 4,
+  },
+  [STAFF_ROLES.EVENT_COORDINATOR]: {
+    key: STAFF_ROLES.EVENT_COORDINATOR,
+    spanishName: 'Coordinador/a de Eventos',
+    englishName: 'Event Coordinator',
+    department: 'Events',
+    description: 'Event planning and coordination',
+    hierarchyLevel: 5,
+  },
+} as const;
+
+// Type definitions
+export type StaffRoleKey = typeof STAFF_ROLES[keyof typeof STAFF_ROLES];
+export type StaffRoleDefinition = typeof STAFF_ROLE_DEFINITIONS[StaffRoleKey];
+
+// Navigation menu items with role-based permissions
+export const NAVIGATION_ITEMS = [
   {
-    value: 'admin',
-    label: 'Administrador',
-    department: 'administration',
-    requiresOffice: false,
-    canManageUsers: true,
-    color: 'red'
+    key: 'dashboard',
+    label: 'Dashboard',
+    path: '/app',
+    icon: 'DashboardOutlined',
+    permissions: [STAFF_ROLES.ADMIN, STAFF_ROLES.OFFICE_MANAGER, STAFF_ROLES.LAWYER, STAFF_ROLES.PSYCHOLOGIST, STAFF_ROLES.RECEPTIONIST, STAFF_ROLES.EVENT_COORDINATOR],
   },
   {
-    value: 'office_manager',
-    label: 'Gerente de Oficina',
-    department: 'administration',
-    requiresOffice: true,
-    canManageUsers: true,
-    color: 'blue'
+    key: 'appointments',
+    label: 'Citas',
+    path: '/app/appointments',
+    icon: 'CalendarOutlined',
+    permissions: [STAFF_ROLES.ADMIN, STAFF_ROLES.OFFICE_MANAGER, STAFF_ROLES.LAWYER, STAFF_ROLES.PSYCHOLOGIST, STAFF_ROLES.RECEPTIONIST],
   },
   {
-    value: 'lawyer',
-    label: 'Abogado(a)',
-    department: 'legal',
-    requiresOffice: true,
-    canManageUsers: false,
-    color: 'volcano'
+    key: 'cases',
+    label: 'Casos',
+    path: '/app/cases',
+    icon: 'FileTextOutlined',
+    permissions: [STAFF_ROLES.ADMIN, STAFF_ROLES.OFFICE_MANAGER, STAFF_ROLES.LAWYER, STAFF_ROLES.PSYCHOLOGIST, STAFF_ROLES.RECEPTIONIST],
   },
   {
-    value: 'psychologist',
-    label: 'Psicólogo(a)',
-    department: 'psychology',
-    requiresOffice: true,
-    canManageUsers: false,
-    color: 'orange'
+    key: 'users',
+    label: 'Usuarios',
+    path: '/app/users',
+    icon: 'UserOutlined',
+    permissions: [STAFF_ROLES.ADMIN],
   },
   {
-    value: 'receptionist',
-    label: 'Recepcionista',
-    department: 'general',
-    requiresOffice: true,
-    canManageUsers: false,
-    color: 'geekblue'
+    key: 'offices',
+    label: 'Oficinas',
+    path: '/app/offices',
+    icon: 'BankOutlined',
+    permissions: [STAFF_ROLES.ADMIN],
   },
   {
-    value: 'event_coordinator',
-    label: 'Coordinador de Eventos',
-    department: 'general',
-    requiresOffice: true,
-    canManageUsers: false,
-    color: 'cyan'
+    key: 'files',
+    label: 'Archivos',
+    path: '/app/files',
+    icon: 'FolderOutlined',
+    permissions: [STAFF_ROLES.ADMIN],
   },
   {
-    value: 'client',
-    label: 'Cliente',
-    department: 'general',
-    requiresOffice: false,
-    canManageUsers: false,
-    color: 'gray'
+    key: 'web-content',
+    label: 'Contenido Web',
+    path: '/app/web-content',
+    icon: 'GlobalOutlined',
+    permissions: [STAFF_ROLES.ADMIN, STAFF_ROLES.OFFICE_MANAGER, STAFF_ROLES.EVENT_COORDINATOR],
+  },
+] as const;
+
+// Permission checking functions
+export const PERMISSIONS = {
+  // Data access permissions
+  canAccessAllOffices: (role: StaffRoleKey): boolean => {
+    return role === STAFF_ROLES.ADMIN;
+  },
+
+  canManageUsers: (role: StaffRoleKey): boolean => {
+    return role === STAFF_ROLES.ADMIN;
+  },
+
+  canManageOffices: (role: StaffRoleKey): boolean => {
+    return role === STAFF_ROLES.ADMIN;
+  },
+
+  canManageFiles: (role: StaffRoleKey): boolean => {
+    return role === STAFF_ROLES.ADMIN;
+  },
+
+  canManageWebContent: (role: StaffRoleKey): boolean => {
+    return [STAFF_ROLES.ADMIN, STAFF_ROLES.OFFICE_MANAGER, STAFF_ROLES.EVENT_COORDINATOR].includes(role as any);
+  },
+
+  canViewCases: (role: StaffRoleKey): boolean => {
+    return [STAFF_ROLES.ADMIN, STAFF_ROLES.OFFICE_MANAGER, STAFF_ROLES.LAWYER, STAFF_ROLES.PSYCHOLOGIST, STAFF_ROLES.RECEPTIONIST].includes(role as any);
+  },
+
+  canViewAppointments: (role: StaffRoleKey): boolean => {
+    return [STAFF_ROLES.ADMIN, STAFF_ROLES.OFFICE_MANAGER, STAFF_ROLES.LAWYER, STAFF_ROLES.PSYCHOLOGIST, STAFF_ROLES.RECEPTIONIST].includes(role as any);
+  },
+
+  canViewEvents: (role: StaffRoleKey): boolean => {
+    return [STAFF_ROLES.ADMIN, STAFF_ROLES.EVENT_COORDINATOR].includes(role as any);
+  },
+
+  // Document access permissions (Privacy Wall)
+  canViewLegalDocuments: (role: StaffRoleKey): boolean => {
+    return [STAFF_ROLES.ADMIN, STAFF_ROLES.LAWYER].includes(role as any);
+  },
+
+  canViewPsychologicalDocuments: (role: StaffRoleKey): boolean => {
+    return [STAFF_ROLES.ADMIN, STAFF_ROLES.PSYCHOLOGIST].includes(role as any);
+  },
+
+  // Dashboard widget permissions
+  canSeeAdminWidgets: (role: StaffRoleKey): boolean => {
+    return role === STAFF_ROLES.ADMIN;
+  },
+
+  canSeeOfficeManagerWidgets: (role: StaffRoleKey): boolean => {
+    return [STAFF_ROLES.ADMIN, STAFF_ROLES.OFFICE_MANAGER].includes(role as any);
+  },
+
+  canSeeProfessionalWidgets: (role: StaffRoleKey): boolean => {
+    return [STAFF_ROLES.ADMIN, STAFF_ROLES.LAWYER, STAFF_ROLES.PSYCHOLOGIST].includes(role as any);
+  },
+
+  canSeeReceptionistWidgets: (role: StaffRoleKey): boolean => {
+    return [STAFF_ROLES.ADMIN, STAFF_ROLES.RECEPTIONIST].includes(role as any);
+  },
+
+  canSeeEventCoordinatorWidgets: (role: StaffRoleKey): boolean => {
+    return [STAFF_ROLES.ADMIN, STAFF_ROLES.EVENT_COORDINATOR].includes(role as any);
+  },
+
+  // Role hierarchy functions
+  isProfessionalRole: (role: StaffRoleKey): boolean => {
+    return [STAFF_ROLES.LAWYER, STAFF_ROLES.PSYCHOLOGIST].includes(role as any);
+  },
+
+  isAdministrativeRole: (role: StaffRoleKey): boolean => {
+    return [STAFF_ROLES.ADMIN, STAFF_ROLES.OFFICE_MANAGER, STAFF_ROLES.RECEPTIONIST].includes(role as any);
+  },
+
+  isManagementRole: (role: StaffRoleKey): boolean => {
+    return [STAFF_ROLES.ADMIN, STAFF_ROLES.OFFICE_MANAGER].includes(role as any);
+  },
+
+  hasHigherOrEqualAccess: (role1: StaffRoleKey, role2: StaffRoleKey): boolean => {
+    const level1 = STAFF_ROLE_DEFINITIONS[role1].hierarchyLevel;
+    const level2 = STAFF_ROLE_DEFINITIONS[role2].hierarchyLevel;
+    return level1 <= level2;
+  },
+} as const;
+
+// Utility functions
+export const getRoleDefinition = (role: StaffRoleKey): StaffRoleDefinition => {
+  return STAFF_ROLE_DEFINITIONS[role];
+};
+
+export const getAllRoles = (): StaffRoleDefinition[] => {
+  return Object.values(STAFF_ROLE_DEFINITIONS);
+};
+
+export const getRolesByDepartment = (department: string): StaffRoleDefinition[] => {
+  return Object.values(STAFF_ROLE_DEFINITIONS).filter(role => role.department === department);
+};
+
+export const isValidRole = (role: string): role is StaffRoleKey => {
+  return Object.values(STAFF_ROLES).includes(role as StaffRoleKey);
+};
+
+// Navigation filtering
+export const getNavigationItemsForRole = (role: StaffRoleKey) => {
+  return NAVIGATION_ITEMS.filter(item => item.permissions.includes(role as any));
+};
+
+// Dashboard widget configuration
+export const DASHBOARD_WIDGETS = {
+  // Admin-only widgets
+  systemStats: {
+    key: 'system-stats',
+    title: 'Estadísticas del Sistema',
+    permissions: [STAFF_ROLES.ADMIN],
+  },
+  userManagement: {
+    key: 'user-management',
+    title: 'Gestión de Usuarios',
+    permissions: [STAFF_ROLES.ADMIN],
+  },
+  officeOverview: {
+    key: 'office-overview',
+    title: 'Resumen de Oficinas',
+    permissions: [STAFF_ROLES.ADMIN],
+  },
+
+  // Office Manager widgets
+  officeStats: {
+    key: 'office-stats',
+    title: 'Estadísticas de Oficina',
+    permissions: [STAFF_ROLES.ADMIN, STAFF_ROLES.OFFICE_MANAGER],
+  },
+  staffPerformance: {
+    key: 'staff-performance',
+    title: 'Rendimiento del Personal',
+    permissions: [STAFF_ROLES.ADMIN, STAFF_ROLES.OFFICE_MANAGER],
+  },
+
+  // Professional widgets
+  caseLoad: {
+    key: 'case-load',
+    title: 'Carga de Casos',
+    permissions: [STAFF_ROLES.ADMIN, STAFF_ROLES.LAWYER, STAFF_ROLES.PSYCHOLOGIST],
+  },
+  upcomingAppointments: {
+    key: 'upcoming-appointments',
+    title: 'Próximas Citas',
+    permissions: [STAFF_ROLES.ADMIN, STAFF_ROLES.LAWYER, STAFF_ROLES.PSYCHOLOGIST],
+  },
+
+  // Receptionist widgets
+  todayAppointments: {
+    key: 'today-appointments',
+    title: 'Citas de Hoy',
+    permissions: [STAFF_ROLES.ADMIN, STAFF_ROLES.RECEPTIONIST],
+  },
+  clientCheckIns: {
+    key: 'client-check-ins',
+    title: 'Registros de Clientes',
+    permissions: [STAFF_ROLES.ADMIN, STAFF_ROLES.RECEPTIONIST],
+  },
+
+  // Event Coordinator widgets
+  upcomingEvents: {
+    key: 'upcoming-events',
+    title: 'Próximos Eventos',
+    permissions: [STAFF_ROLES.ADMIN, STAFF_ROLES.EVENT_COORDINATOR],
+  },
+  eventRegistrations: {
+    key: 'event-registrations',
+    title: 'Registros de Eventos',
+    permissions: [STAFF_ROLES.ADMIN, STAFF_ROLES.EVENT_COORDINATOR],
+  },
+} as const;
+
+export const getDashboardWidgetsForRole = (role: StaffRoleKey) => {
+  return Object.values(DASHBOARD_WIDGETS).filter(widget =>
+    widget.permissions.includes(role as any)
+  );
+};
+
+// Case detail page privacy wall configuration
+export const CASE_DOCUMENT_TYPES = {
+  LEGAL: 'legal',
+  PSYCHOLOGICAL: 'psychological',
+  GENERAL: 'general',
+} as const;
+
+export const CASE_DOCUMENT_PERMISSIONS = {
+  [CASE_DOCUMENT_TYPES.LEGAL]: {
+    label: 'Documentos Legales',
+    permissions: [STAFF_ROLES.ADMIN, STAFF_ROLES.LAWYER],
+  },
+  [CASE_DOCUMENT_TYPES.PSYCHOLOGICAL]: {
+    label: 'Documentos Psicológicos',
+    permissions: [STAFF_ROLES.ADMIN, STAFF_ROLES.PSYCHOLOGIST],
+  },
+  [CASE_DOCUMENT_TYPES.GENERAL]: {
+    label: 'Documentos Generales',
+    permissions: [STAFF_ROLES.ADMIN, STAFF_ROLES.OFFICE_MANAGER, STAFF_ROLES.LAWYER, STAFF_ROLES.PSYCHOLOGIST, STAFF_ROLES.RECEPTIONIST],
+  },
+} as const;
+
+export const canViewDocumentType = (role: StaffRoleKey, documentType: string): boolean => {
+  const permissions = CASE_DOCUMENT_PERMISSIONS[documentType as keyof typeof CASE_DOCUMENT_PERMISSIONS];
+  return permissions ? permissions.permissions.includes(role as any) : false;
+};
+
+// Export all role keys for easy access
+export const ALL_ROLE_KEYS = Object.values(STAFF_ROLES);
+
+// Additional utility functions for backward compatibility
+export const requiresOffice = (role: StaffRoleKey): boolean => {
+  return role !== STAFF_ROLES.ADMIN;
+};
+
+export const getRoleByValue = (value: string): StaffRoleDefinition | undefined => {
+  return STAFF_ROLE_DEFINITIONS[value as StaffRoleKey];
+};
+
+export const canManageUsers = (role: StaffRoleKey): boolean => {
+  return PERMISSIONS.canManageUsers(role);
+};
+
+export const getRolesForCaseCategory = (category: string): StaffRoleKey[] => {
+  switch (category) {
+    case 'legal':
+      return [STAFF_ROLES.ADMIN, STAFF_ROLES.LAWYER];
+    case 'psychology':
+      return [STAFF_ROLES.ADMIN, STAFF_ROLES.PSYCHOLOGIST];
+    case 'social_work':
+      return [STAFF_ROLES.ADMIN, STAFF_ROLES.OFFICE_MANAGER, STAFF_ROLES.RECEPTIONIST];
+    default:
+      return [STAFF_ROLES.ADMIN, STAFF_ROLES.OFFICE_MANAGER, STAFF_ROLES.LAWYER, STAFF_ROLES.PSYCHOLOGIST, STAFF_ROLES.RECEPTIONIST];
   }
-];
-
-/**
- * Legacy role mappings for backward compatibility
- * 
- * These mappings handle variations in role names that may exist in the database
- * or API responses, ensuring smooth transitions during refactoring.
- */
-export const ROLE_LABELS: { [key: string]: string } = {
-  'admin': 'Administrador',
-  'lawyer': 'Abogado',
-  'attorney': 'Abogado',
-  'senior_attorney': 'Abogado Senior',
-  'paralegal': 'Paralegal',
-  'associate': 'Asociado',
-  'psychologist': 'Psicólogo',
-  'social_worker': 'Trabajador Social',
-  'receptionist': 'Recepcionista',
-  'staff': 'Personal',
-  'office_manager': 'Gerente de Oficina',
-  'event_coordinator': 'Coordinador de Eventos',
-  'client': 'Cliente'
 };
 
-/**
- * Department-based role filtering for case assignments
- * 
- * This mapping determines which staff roles are appropriate for different
- * types of cases, enabling smart filtering in appointment scheduling.
- */
-export const DEPARTMENT_ROLE_MAPPING: { [key: string]: string[] } = {
-  'Familiar': ['lawyer', 'attorney', 'senior_attorney', 'paralegal', 'associate'],
-  'Civil': ['lawyer', 'attorney', 'senior_attorney', 'paralegal', 'associate'],
-  'Psicologia': ['psychologist', 'social_worker'],
-  'Recursos': ['social_worker', 'receptionist'],
-  'General': ['receptionist', 'event_coordinator']
+export const isAdminRole = (role: StaffRoleKey): boolean => {
+  return role === STAFF_ROLES.ADMIN;
 };
 
-/**
- * Utility functions for role management
- */
-
-/**
- * Get role configuration by value
- * @param roleValue - The role value to look up
- * @returns StaffRole object or undefined if not found
- */
-export const getRoleByValue = (roleValue: string): StaffRole | undefined => {
-  return STAFF_ROLES.find(role => role.value === roleValue);
+export const getRoleLabel = (role: StaffRoleKey): string => {
+  return getRoleDefinition(role).spanishName;
 };
 
-/**
- * Get all roles for a specific department
- * @param department - The department to filter by
- * @returns Array of StaffRole objects
- */
-export const getRolesByDepartment = (department: StaffRole['department']): StaffRole[] => {
-  return STAFF_ROLES.filter(role => role.department === department);
-};
+// Additional exports for backward compatibility
+export const ROLE_LABELS = Object.fromEntries(
+  Object.entries(STAFF_ROLE_DEFINITIONS).map(([key, def]) => [key, def.spanishName])
+);
 
-/**
- * Get roles that can manage users
- * @returns Array of StaffRole objects that can manage users
- */
-export const getManagementRoles = (): StaffRole[] => {
-  return STAFF_ROLES.filter(role => role.canManageUsers);
-};
-
-/**
- * Get roles that require office assignment
- * @returns Array of StaffRole objects that require office assignment
- */
-export const getOfficeRequiredRoles = (): StaffRole[] => {
-  return STAFF_ROLES.filter(role => role.requiresOffice);
-};
-
-/**
- * Get staff roles (excludes client role)
- * @returns Array of StaffRole objects for staff members
- */
-export const getStaffRoles = (): StaffRole[] => {
-  return STAFF_ROLES.filter(role => role.value !== 'client');
-};
-
-/**
- * Get role label with fallback to legacy mapping
- * @param roleValue - The role value to get label for
- * @returns The display label for the role
- */
-export const getRoleLabel = (roleValue: string): string => {
-  const role = getRoleByValue(roleValue);
-  return role?.label || ROLE_LABELS[roleValue] || roleValue;
-};
-
-/**
- * Check if a role can manage users
- * @param roleValue - The role value to check
- * @returns True if the role can manage users
- */
-export const canManageUsers = (roleValue: string): boolean => {
-  const role = getRoleByValue(roleValue);
-  return role?.canManageUsers || false;
-};
-
-/**
- * Check if a role requires office assignment
- * @param roleValue - The role value to check
- * @returns True if the role requires office assignment
- */
-export const requiresOffice = (roleValue: string): boolean => {
-  const role = getRoleByValue(roleValue);
-  return role?.requiresOffice || false;
-};
-
-/**
- * Get roles appropriate for a case category
- * @param category - The case category (e.g., 'Familiar', 'Civil', 'Psicologia')
- * @returns Array of role values appropriate for the category
- */
-export const getRolesForCaseCategory = (category: string): string[] => {
-  return DEPARTMENT_ROLE_MAPPING[category] || [];
-};
-
-/**
- * Check if a role is appropriate for a case category
- * @param roleValue - The role value to check
- * @param category - The case category
- * @returns True if the role is appropriate for the category
- */
-export const isRoleAppropriateForCategory = (roleValue: string, category: string): boolean => {
-  const allowedRoles = getRolesForCaseCategory(category);
-  return allowedRoles.includes(roleValue);
-};
-
-/**
- * Get admin roles (admin and office_manager)
- * @returns Array of admin role values
- */
-export const getAdminRoles = (): string[] => {
-  return ['admin', 'office_manager'];
-};
-
-/**
- * Check if a role is an admin role
- * @param roleValue - The role value to check
- * @returns True if the role is an admin role
- */
-export const isAdminRole = (roleValue: string): boolean => {
-  return getAdminRoles().includes(roleValue);
+export const DEPARTMENT_ROLE_MAPPING = {
+  'legal': [STAFF_ROLES.ADMIN, STAFF_ROLES.LAWYER],
+  'psychology': [STAFF_ROLES.ADMIN, STAFF_ROLES.PSYCHOLOGIST],
+  'social_work': [STAFF_ROLES.ADMIN, STAFF_ROLES.OFFICE_MANAGER, STAFF_ROLES.RECEPTIONIST],
+  'management': [STAFF_ROLES.ADMIN, STAFF_ROLES.OFFICE_MANAGER],
+  'administration': [STAFF_ROLES.ADMIN, STAFF_ROLES.OFFICE_MANAGER, STAFF_ROLES.RECEPTIONIST],
+  'events': [STAFF_ROLES.ADMIN, STAFF_ROLES.EVENT_COORDINATOR],
 };
