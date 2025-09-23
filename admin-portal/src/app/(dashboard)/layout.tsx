@@ -1,35 +1,24 @@
 // admin-portal/src/app/(dashboard)/layout.tsx
 'use client';
 
-import React, { useState, useEffect, Suspense, lazy, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { Layout, Menu, Spin, Button, Space, Alert } from 'antd';
 import Image from 'next/image';
 import { LogoutOutlined } from '@ant-design/icons';
-import { apiClient } from '@/app/lib/api';
 import { useAuth } from '@/hooks/useAuth';
 import { UserRole } from '@/app/lib/types';
-import { NotificationProvider } from '@/context/NotificationContext';
 import { 
   getNavigationItemsForRole, 
   getRoleDefinition, 
   STAFF_ROLES,
   type StaffRoleKey 
 } from '@/config/roles';
-
-// Lazy load components for better performance
-const NotificationBell = lazy(() => import('./components/NotificationBell'));
+import ClientOnly from '@/components/ClientOnly';
 
 // Destructure Layout components once
 const { Header, Sider, Content } = Layout;
-
-// Loading component for lazy-loaded components
-const LoadingSpinner = () => (
-  <div className="flex justify-center items-center p-4">
-    <Spin size="small" />
-  </div>
-);
 
 // Role display configuration - now using centralized role definitions
 const ROLE_DISPLAY_CONFIG = {
@@ -135,8 +124,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   return (
-    // Temporarily disable NotificationProvider to isolate the infinite loop issue
-    // <NotificationProvider>
+    <ClientOnly fallback={<div className="flex items-center justify-center min-h-screen"><Spin size="large" /></div>}>
       <Layout style={{ minHeight: '100vh' }}>
         <Sider collapsible>
           <div className="flex flex-col items-start text-white py-4 px-4">
@@ -176,10 +164,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </div>
             
             <Space>
-              {/* Temporarily disable NotificationBell */}
-              {/* <Suspense fallback={<LoadingSpinner />}>
-                <NotificationBell />
-              </Suspense> */}
               <Button 
                 type="text" 
                 icon={<LogoutOutlined />} 
@@ -219,7 +203,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </Content>
         </Layout>
       </Layout>
-    // </NotificationProvider>
+    </ClientOnly>
   );
 }
 

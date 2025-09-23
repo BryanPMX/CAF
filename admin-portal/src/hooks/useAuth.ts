@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import Cookies from 'js-cookie';
 import { AuthUser, UserRole, LoginResponse } from '@/app/lib/types';
 import { apiClient } from '@/app/lib/api';
+import { useHydrationSafe } from './useHydrationSafe';
 
 // Storage keys constants
 const STORAGE_KEYS = {
@@ -54,6 +55,7 @@ export const useAuth = (): AuthState & AuthActions & AuthQueries => {
   });
   
   const router = useRouter();
+  const isHydrated = useHydrationSafe();
 
   // Storage utilities
   const storage = useMemo(() => ({
@@ -80,8 +82,10 @@ export const useAuth = (): AuthState & AuthActions & AuthQueries => {
     },
   }), []);
 
-  // Initialize auth state
+  // Initialize auth state - hydration safe
   useEffect(() => {
+    if (!isHydrated) return; // Wait for hydration to complete
+
     const initializeAuth = () => {
       try {
         const token = storage.get(STORAGE_KEYS.AUTH_TOKEN);
@@ -91,31 +95,37 @@ export const useAuth = (): AuthState & AuthActions & AuthQueries => {
         const lastName = storage.get(STORAGE_KEYS.USER_LAST_NAME);
 
         if (token && role && userId) {
-          setState(prev => ({
-            ...prev,
-            user: {
-              id: parseInt(userId, 10),
-              role,
-              firstName: firstName || undefined,
-              lastName: lastName || undefined,
-            },
+          const userData = {
+            id: parseInt(userId, 10),
+            role,
+            firstName: firstName || undefined,
+            lastName: lastName || undefined,
+          };
+          
+          setState({
+            user: userData,
             loading: false,
-          }));
+            error: null,
+          });
         } else {
-          setState(prev => ({ ...prev, loading: false }));
+          setState({
+            user: null,
+            loading: false,
+            error: null,
+          });
         }
       } catch (error) {
         console.error('Auth initialization error:', error);
-        setState(prev => ({ 
-          ...prev, 
+        setState({ 
+          user: null,
           loading: false, 
           error: 'Failed to initialize authentication' 
-        }));
+        });
       }
     };
 
     initializeAuth();
-  }, [storage]);
+  }, [isHydrated, storage]);
 
   // Actions
   const login = useCallback((token: string, userData: AuthUser) => {
