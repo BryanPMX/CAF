@@ -6,6 +6,7 @@ import { Button, Table, message, Spin, Tag, Popconfirm, Select, Space } from 'an
 import { useSearchParams, useRouter } from 'next/navigation';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import { STAFF_ROLES, PERMISSIONS, getAllRoles } from '@/config/roles';
+import { useHydrationSafe } from '@/hooks/useHydrationSafe';
 import { apiClient } from '@/app/lib/api';
 import UserModal from './components/UserModal'; // Import our reusable modal
 
@@ -24,6 +25,7 @@ interface Office { id: number; name: string; }
 const UserManagementPage = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const isHydrated = useHydrationSafe();
   // --- State Management ---
   // `users`: An array to hold the list of users fetched from the API.
   const [users, setUsers] = useState<User[]>([]);
@@ -71,6 +73,8 @@ const UserManagementPage = () => {
 
   // The `useEffect` hook runs this function once when the component is first mounted.
   useEffect(() => {
+    if (!isHydrated) return; // Wait for hydration to complete
+    
     setUserRole(typeof window !== 'undefined' ? localStorage.getItem('userRole') : null);
     // Initialize filters from URL or sessionStorage
     const officeFromUrl = searchParams.get('officeId');
@@ -99,7 +103,7 @@ const UserManagementPage = () => {
     if (role && PERMISSIONS.canManageOffices(role as any)) {
       apiClient.get('/admin/offices').then(res => setOffices(res.data)).catch(() => {});
     }
-  }, []); // The empty dependency array `[]` ensures it only runs once.
+  }, [isHydrated]); // The empty dependency array `[]` ensures it only runs once.
 
   useEffect(() => {
     // Persist filters to sessionStorage and URL; refetch

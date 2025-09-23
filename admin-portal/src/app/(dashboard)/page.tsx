@@ -65,6 +65,7 @@ import {
   STAFF_ROLES,
   type StaffRoleKey 
 } from '@/config/roles';
+import { useHydrationSafe } from '@/hooks/useHydrationSafe';
 
 // Lazy load heavy components
 const AnnouncementsPanel = lazy(() => import('./components/AnnouncementsPanel'));
@@ -423,6 +424,7 @@ const SectionLoading = () => (
 // --- Main Page Component ---
 const TrueDashboardPage = () => {
   const router = useRouter();
+  const isHydrated = useHydrationSafe();
   const [userRole, setUserRole] = useState<string | null>(null);
   const [summaryData, setSummaryData] = useState<DashboardSummary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -494,10 +496,12 @@ const TrueDashboardPage = () => {
   };
 
   useEffect(() => {
+    if (!isHydrated) return; // Wait for hydration to complete
+    
     const role = localStorage.getItem('userRole');
     setUserRole(role);
     fetchDashboardData();
-  }, []);
+  }, [isHydrated]);
 
   if (loading) {
     return <div className="flex justify-center items-center h-64"><Spin size="large" tip="Cargando resumen..." /></div>;

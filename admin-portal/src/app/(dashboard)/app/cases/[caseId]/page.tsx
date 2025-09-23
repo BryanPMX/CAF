@@ -5,6 +5,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Descriptions, Card, Table, Tag, Spin, message, Button, Empty, Row, Col, Tabs, Popconfirm, Modal, Input } from 'antd';
 import type { TabsProps } from 'antd';
+import { useHydrationSafe } from '@/hooks/useHydrationSafe';
 import { ArrowLeftOutlined, PlusOutlined, EditOutlined, DeleteOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import { apiClient } from '@/app/lib/api';
 import CaseTimeline from './components/CaseTimeline';
@@ -165,6 +166,7 @@ const CaseDetailPage = () => {
   // --- State Management ---
   const router = useRouter();
   const params = useParams();
+  const isHydrated = useHydrationSafe();
   const { caseId } = params;
 
   const [caseDetails, setCaseDetails] = useState<CaseDetails | null>(null);
@@ -208,9 +210,11 @@ const CaseDetailPage = () => {
 
   // Get user role from localStorage
   useEffect(() => {
+    if (!isHydrated) return; // Wait for hydration to complete
+    
     const role = localStorage.getItem('userRole');
     setUserRole(role);
-  }, []);
+  }, [isHydrated]);
 
   // --- Event Handlers for Tasks ---
   const handleCreateTask = () => {
