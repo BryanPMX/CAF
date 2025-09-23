@@ -1,7 +1,8 @@
 // admin-portal/src/hooks/useHydrationSafe.ts
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useIsomorphicLayoutEffect } from './useIsomorphicLayoutEffect';
 
 /**
  * Hook to safely handle client-side only operations
@@ -10,7 +11,7 @@ import { useState, useEffect } from 'react';
 export const useHydrationSafe = () => {
   const [isHydrated, setIsHydrated] = useState(false);
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     setIsHydrated(true);
   }, []);
 
