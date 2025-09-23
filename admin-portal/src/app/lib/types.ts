@@ -6,8 +6,8 @@ export type AppointmentStatus = 'pending' | 'confirmed' | 'completed' | 'cancell
 export type CaseStatus = 'open' | 'in_progress' | 'closed' | 'pending' | 'archived';
 export type TaskStatus = 'pending' | 'in_progress' | 'completed' | 'cancelled';
 
-// User roles
-export type UserRole = 'admin' | 'office_manager' | 'staff' | 'counselor' | 'psychologist' | 'client';
+// User roles - Updated to match backend and roles.ts configuration
+export type UserRole = 'admin' | 'office_manager' | 'lawyer' | 'psychologist' | 'receptionist' | 'event_coordinator' | 'client';
 
 // Notification types
 export type NotificationType = 'info' | 'warning' | 'error' | 'success';

@@ -232,7 +232,7 @@ export const useAuth = (): AuthState & AuthActions & AuthQueries => {
   }, [state.user]);
   
   const isAdmin = useMemo(() => hasAnyRole(['admin', 'office_manager']), [hasAnyRole]);
-  const isStaff = useMemo(() => hasAnyRole(['staff', 'counselor', 'psychologist']), [hasAnyRole]);
+  const isStaff = useMemo(() => hasAnyRole(['lawyer', 'psychologist', 'receptionist', 'event_coordinator']), [hasAnyRole]);
   const isClient = useMemo(() => hasRole('client'), [hasRole]);
 
   return {

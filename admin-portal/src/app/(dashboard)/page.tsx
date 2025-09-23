@@ -63,7 +63,8 @@ import {
   getDashboardWidgetsForRole, 
   PERMISSIONS, 
   STAFF_ROLES,
-  type StaffRoleKey 
+  type StaffRoleKey,
+  isValidRole
 } from '@/config/roles';
 import { useHydrationSafe } from '@/hooks/useHydrationSafe';
 
@@ -533,8 +534,8 @@ const TrueDashboardPage = () => {
       }
     ];
 
-    if (userRole && Object.values(STAFF_ROLES).includes(userRole as StaffRoleKey)) {
-      const staffRole = userRole as StaffRoleKey;
+        if (userRole && isValidRole(userRole)) {
+          const staffRole = userRole as StaffRoleKey;
       
       if (PERMISSIONS.canManageUsers(staffRole)) {
         baseActions.push({
@@ -614,7 +615,7 @@ const TrueDashboardPage = () => {
 
       {/* Statistics Cards */}
       <div className="mb-8">
-        {userRole && Object.values(STAFF_ROLES).includes(userRole as StaffRoleKey) ? (
+        {userRole && isValidRole(userRole) ? (
           <RoleBasedDashboard data={summaryData || {}} userRole={userRole as StaffRoleKey} />
         ) : (
           <div className="flex justify-center items-center h-32">
@@ -710,7 +711,7 @@ const TrueDashboardPage = () => {
       </Row>
 
       {/* Charts and Analytics Section */}
-      {userRole && Object.values(STAFF_ROLES).includes(userRole as StaffRoleKey) && 
+      {userRole && isValidRole(userRole) &&
        PERMISSIONS.canSeeAdminWidgets(userRole as StaffRoleKey) && (
         <Suspense fallback={<SectionLoading />}>
           <DashboardCharts />
@@ -736,7 +737,7 @@ const TrueDashboardPage = () => {
         </Col>
         
         <Col xs={24} lg={8}>
-          {userRole && Object.values(STAFF_ROLES).includes(userRole as StaffRoleKey) && 
+          {userRole && isValidRole(userRole) &&
            PERMISSIONS.canSeeOfficeManagerWidgets(userRole as StaffRoleKey) && (
             <Card 
               title={
