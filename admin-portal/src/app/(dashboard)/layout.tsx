@@ -67,7 +67,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
     
     // Regular staff should not be on admin routes
-    if ((role === 'staff' || role === 'counselor' || role === 'psychologist') && currentPath.startsWith('/admin')) {
+    if ((role === 'lawyer' || role === 'psychologist' || role === 'receptionist' || role === 'event_coordinator') && currentPath.startsWith('/admin')) {
       return '/';
     }
     
