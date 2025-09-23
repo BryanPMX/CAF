@@ -18,9 +18,10 @@ const { Title, Text, Paragraph } = Typography;
 const ROLE_REDIRECTS: Record<UserRole, string> = {
   admin: '/admin',
   office_manager: '/admin',
-  staff: '/',
-  counselor: '/',
+  lawyer: '/',
   psychologist: '/',
+  receptionist: '/',
+  event_coordinator: '/',
   client: '/',
 } as const;
 
