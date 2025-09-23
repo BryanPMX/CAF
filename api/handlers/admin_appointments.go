@@ -67,6 +67,22 @@ func CreateAppointmentSmart(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
+		// CRITICAL FIX: Wrap entire operation in a database transaction
+		// This ensures atomicity - either all operations succeed or all fail
+		tx := db.Begin()
+		if tx.Error != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to start transaction"})
+			return
+		}
+
+		// Defer rollback in case of any error
+		defer func() {
+			if r := recover(); r != nil {
+				tx.Rollback()
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Transaction failed due to panic"})
+			}
+		}()
+
 		var client models.User
 		hasClient := false
 		var caseRecord models.Case
@@ -74,11 +90,11 @@ func CreateAppointmentSmart(db *gorm.DB) gin.HandlerFunc {
 		// --- Step 1: Determine the Client ---
 		if input.ClientID != nil {
 			// Scenario: Use an existing client. If not found, try falling back to case's client (if provided). If still not found, continue without client.
-			if err := db.First(&client, *input.ClientID).Error; err == nil {
+			if err := tx.First(&client, *input.ClientID).Error; err == nil {
 				hasClient = true
 			} else if input.CaseID != nil {
-				if err := db.First(&caseRecord, *input.CaseID).Error; err == nil && caseRecord.ClientID != nil {
-					if err := db.First(&client, *caseRecord.ClientID).Error; err == nil {
+				if err := tx.First(&caseRecord, *input.CaseID).Error; err == nil && caseRecord.ClientID != nil {
+					if err := tx.First(&client, *caseRecord.ClientID).Error; err == nil {
 						hasClient = true
 					}
 				}
@@ -87,7 +103,7 @@ func CreateAppointmentSmart(db *gorm.DB) gin.HandlerFunc {
 		} else if input.NewClient != nil {
 			// Scenario: Create a new client, but first check if one already exists with the same email.
 			var existingClient models.User
-			if err := db.Where("email = ? AND role = ?", input.NewClient.Email, "client").First(&existingClient).Error; err == nil {
+			if err := tx.Where("email = ? AND role = ?", input.NewClient.Email, "client").First(&existingClient).Error; err == nil {
 				// Client already exists, use the existing one
 				client = existingClient
 				hasClient = true
@@ -102,24 +118,27 @@ func CreateAppointmentSmart(db *gorm.DB) gin.HandlerFunc {
 					Password:  string(hashedPassword),
 					Role:      "client",
 				}
-				if err := db.Create(&client).Error; err != nil {
-					c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create new client."})
+				if err := tx.Create(&client).Error; err != nil {
+					tx.Rollback()
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create new client: " + err.Error()})
 					return
 				}
 				hasClient = true
 			} else {
 				// Database error
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to check for existing client."})
+				tx.Rollback()
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to check for existing client: " + err.Error()})
 				return
 			}
 		} else if input.CaseID != nil {
 			// No client provided, but an existing case might reference one. If not found, continue without client.
-			if err := db.First(&caseRecord, *input.CaseID).Error; err == nil && caseRecord.ClientID != nil {
-				if err := db.First(&client, *caseRecord.ClientID).Error; err == nil {
+			if err := tx.First(&caseRecord, *input.CaseID).Error; err == nil && caseRecord.ClientID != nil {
+				if err := tx.First(&client, *caseRecord.ClientID).Error; err == nil {
 					hasClient = true
 				}
 			}
 		} else {
+			tx.Rollback()
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Client information (either clientId or newClient) is required."})
 			return
 		}
@@ -127,8 +146,9 @@ func CreateAppointmentSmart(db *gorm.DB) gin.HandlerFunc {
 		// --- Step 2: Determine the Case ---
 		if input.CaseID != nil {
 			// Scenario: Use an existing case.
-			if err := db.First(&caseRecord, *input.CaseID).Error; err != nil {
-				c.JSON(http.StatusBadRequest, gin.H{"error": "Selected case not found."})
+			if err := tx.First(&caseRecord, *input.CaseID).Error; err != nil {
+				tx.Rollback()
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Selected case not found: " + err.Error()})
 				return
 			}
 		} else if input.NewCase != nil {
@@ -142,7 +162,7 @@ func CreateAppointmentSmart(db *gorm.DB) gin.HandlerFunc {
 			} else {
 				// Fallback: determine from staff role
 				var staff models.User
-				if err := db.First(&staff, input.StaffID).Error; err == nil {
+				if err := tx.First(&staff, input.StaffID).Error; err == nil {
 					if staff.Role == "admin" {
 						category = "General"
 					} else {
@@ -187,16 +207,22 @@ func CreateAppointmentSmart(db *gorm.DB) gin.HandlerFunc {
 				}(),
 				CreatedBy: uint(userIDUint),
 			}
-			if err := db.Create(&caseRecord).Error; err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create new case."})
+			if err := tx.Create(&caseRecord).Error; err != nil {
+				tx.Rollback()
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create new case: " + err.Error()})
 				return
 			}
 			// If we created a new client in this flow, ensure their office is set to the case office
 			if hasClient && client.OfficeID == nil {
 				client.OfficeID = &caseRecord.OfficeID
-				db.Model(&client).Update("office_id", caseRecord.OfficeID)
+				if err := tx.Model(&client).Update("office_id", caseRecord.OfficeID).Error; err != nil {
+					tx.Rollback()
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update client office: " + err.Error()})
+					return
+				}
 			}
 		} else {
+			tx.Rollback()
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Case information (either caseId or newCase) is required."})
 			return
 		}
@@ -215,7 +241,7 @@ func CreateAppointmentSmart(db *gorm.DB) gin.HandlerFunc {
 		} else {
 			// Fallback: determine from staff role
 			var staff models.User
-			if err := db.First(&staff, input.StaffID).Error; err == nil {
+			if err := tx.First(&staff, input.StaffID).Error; err == nil {
 				if staff.Role == "admin" {
 					appointmentCategory = "General"
 					department = "General"
@@ -253,8 +279,15 @@ func CreateAppointmentSmart(db *gorm.DB) gin.HandlerFunc {
 			Category:   appointmentCategory,
 			Department: department,
 		}
-		if err := db.Create(&appointment).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create appointment."})
+		if err := tx.Create(&appointment).Error; err != nil {
+			tx.Rollback()
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create appointment: " + err.Error()})
+			return
+		}
+
+		// CRITICAL FIX: Commit the transaction only after all operations succeed
+		if err := tx.Commit().Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to commit transaction: " + err.Error()})
 			return
 		}
 

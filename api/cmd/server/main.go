@@ -107,7 +107,7 @@ func main() {
 	// --- Step 5: Apply Global Middleware ---
 	// Configure CORS for production deployment
 	allowedOrigins := []string{"*"} // Default for development
-	
+
 	// Check for CORS configuration from environment
 	if corsOrigins := os.Getenv("CORS_ALLOWED_ORIGINS"); corsOrigins != "" {
 		allowedOrigins = strings.Split(corsOrigins, ",")
@@ -157,10 +157,10 @@ func main() {
 	// Health check endpoints - Basic health check that doesn't depend on external services
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
-			"status":    "healthy",
-			"service":   "CAF API",
-			"timestamp": time.Now().UTC(),
-			"version":   "1.2.0",
+			"status":     "healthy",
+			"service":    "CAF API",
+			"timestamp":  time.Now().UTC(),
+			"version":    "1.2.0",
 			"deployment": "production-ready-https-enabled",
 		})
 	})
@@ -273,7 +273,7 @@ func main() {
 		protected.GET("/appointments/:id", middleware.AppointmentAccessControl(database), handlers.GetAppointmentByIDEnhanced(database))
 		protected.GET("/appointments/my", middleware.AppointmentAccessControl(database), handlers.GetMyAppointments(database))
 		protected.POST("/appointments", middleware.AppointmentAccessControl(database), handlers.CreateAppointmentEnhanced(database))
-		protected.PUT("/appointments/:id", middleware.AppointmentAccessControl(database), handlers.UpdateAppointmentEnhanced(database))
+		protected.PATCH("/appointments/:id", middleware.AppointmentAccessControl(database), handlers.UpdateAppointmentEnhanced(database))
 
 		// Task Management with Access Control
 		protected.GET("/tasks", middleware.TaskAccessControl(database), handlers.GetTasks(database))
