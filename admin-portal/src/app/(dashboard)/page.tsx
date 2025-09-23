@@ -504,10 +504,6 @@ const TrueDashboardPage = () => {
     fetchDashboardData();
   }, [isHydrated]);
 
-  if (loading) {
-    return <div className="flex justify-center items-center h-64"><Spin size="large" tip="Cargando resumen..." /></div>;
-  }
-
   // Quick actions based on user role
   const quickActions = useMemo(() => {
     const baseActions = [
@@ -561,10 +557,18 @@ const TrueDashboardPage = () => {
     return baseActions;
   }, [userRole, router]);
 
+  // CRITICAL FIX: No early returns to prevent React error #310
+  // All hooks must be called on every render, regardless of loading state
   return (
     <div className="space-y-6">
-      {/* Header with Actions - Enhanced Mobile */}
-      <div className="flex flex-col gap-4">
+      {loading ? (
+        <div className="flex justify-center items-center h-64">
+          <Spin size="large" tip="Cargando resumen..." />
+        </div>
+      ) : (
+        <>
+          {/* Header with Actions - Enhanced Mobile */}
+          <div className="flex flex-col gap-4">
         <div className="text-center sm:text-left">
           <Typography.Title level={1} className="!mb-2 !text-2xl sm:!text-3xl font-bold text-gray-800">
             Dashboard
@@ -761,6 +765,8 @@ const TrueDashboardPage = () => {
           </Suspense>
         </Col>
       </Row>
+        </>
+      )}
     </div>
   );
 };
