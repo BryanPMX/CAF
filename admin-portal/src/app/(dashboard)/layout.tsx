@@ -119,13 +119,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return ROLE_DISPLAY_CONFIG.client;
   }, [user?.role]);
 
-  if (loading) {
-    return <div className="flex items-center justify-center min-h-screen"><Spin size="large" /></div>;
-  }
-
+  // CRITICAL FIX: No early returns to prevent React error #310
+  // All hooks must be called on every render, regardless of loading state
   return (
     <ClientOnly fallback={<div className="flex items-center justify-center min-h-screen"><Spin size="large" /></div>}>
-      <Layout style={{ minHeight: '100vh' }}>
+      {loading ? (
+        <div className="flex items-center justify-center min-h-screen"><Spin size="large" /></div>
+      ) : (
+        <Layout style={{ minHeight: '100vh' }}>
         <Sider collapsible>
           <div className="flex flex-col items-start text-white py-4 px-4">
             <div className="flex items-center gap-3">
@@ -202,7 +203,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             {authChecked ? children : <div className="flex justify-center items-center h-64"><Spin size="large" /></div>}
           </Content>
         </Layout>
-      </Layout>
+        </Layout>
+      )}
     </ClientOnly>
   );
 }
