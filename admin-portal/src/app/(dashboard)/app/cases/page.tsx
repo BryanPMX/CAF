@@ -280,8 +280,19 @@ const CaseManagementPage = () => {
       if (error.name === 'AbortError') return;
       
       console.error('Failed to fetch cases:', error);
-      setError('Error al cargar los casos. Intente nuevamente.');
-      message.error('No se pudieron cargar los casos.');
+      
+      // Distinguish between server errors and empty datasets
+      if (error?.response?.status === 404 || error?.response?.status === 204) {
+        // Empty dataset - not an error, just no data
+        setCases([]);
+        setTotal(0);
+        setError(null);
+        setPerformanceMetrics(null);
+      } else {
+        // Actual server error
+        setError('Error al cargar los casos. Intente nuevamente.');
+        message.error('No se pudieron cargar los casos.');
+      }
     } finally {
       setLoading(false);
       setLoadingMore(false);
@@ -595,7 +606,27 @@ const CaseManagementPage = () => {
           }}
           scroll={{ x: 1200 }}
           locale={{ 
-            emptyText: loading ? 'Cargando casos...' : 'No hay casos para mostrar. ¡Crea el primero!' 
+            emptyText: loading ? 'Cargando casos...' : (
+              <div style={{ padding: '40px 20px', textAlign: 'center' }}>
+                <div style={{ fontSize: '48px', marginBottom: '16px', opacity: 0.3 }}>
+                  📁
+                </div>
+                <div style={{ fontSize: '16px', fontWeight: 500, marginBottom: '8px', color: '#666' }}>
+                  No hay casos registrados
+                </div>
+                <div style={{ fontSize: '14px', color: '#999', marginBottom: '20px' }}>
+                  Comienza creando tu primer caso para gestionar los servicios legales
+                </div>
+                <Button 
+                  type="primary" 
+                  icon={<PlusOutlined />}
+                  onClick={() => setIsModalVisible(true)}
+                  size="large"
+                >
+                  Crear Primer Caso
+                </Button>
+              </div>
+            )
           }}
           size="small"
         />
