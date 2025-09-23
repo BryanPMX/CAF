@@ -21,12 +21,14 @@ import { useRouter } from 'next/navigation';
 import { apiClient } from '../../lib/api';
 import { DashboardSummary, User, Case, Appointment, Office } from '../../lib/types';
 import { handleApiError, logApiSuccess } from '../../lib/logger';
+import { useHydrationSafe } from '@/hooks/useHydrationSafe';
 
 const { Title, Text } = Typography;
 const { TabPane } = Tabs;
 
 const AdminDashboard: React.FC = () => {
   const router = useRouter();
+  const isHydrated = useHydrationSafe();
   const [loading, setLoading] = useState(true);
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [recentUsers, setRecentUsers] = useState<User[]>([]);
@@ -36,10 +38,12 @@ const AdminDashboard: React.FC = () => {
   const [userRole, setUserRole] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!isHydrated) return; // Wait for hydration to complete
+    
     const role = localStorage.getItem('userRole');
     setUserRole(role);
     fetchDashboardData();
-  }, []);
+  }, [isHydrated]);
 
   const fetchDashboardData = async () => {
     try {

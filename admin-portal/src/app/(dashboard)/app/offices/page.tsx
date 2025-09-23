@@ -6,6 +6,7 @@ import { Button, Table, message, Spin, Popconfirm } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import { apiClient } from '@/app/lib/api';
 import OfficeModal from './components/OfficeModal';
+import { useHydrationSafe } from '@/hooks/useHydrationSafe';
 
 interface Office {
   id: number;
@@ -14,6 +15,7 @@ interface Office {
 }
 
 const OfficeManagementPage = () => {
+  const isHydrated = useHydrationSafe();
   const [offices, setOffices] = useState<Office[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -33,11 +35,13 @@ const OfficeManagementPage = () => {
   };
 
   useEffect(() => {
+    if (!isHydrated) return; // Wait for hydration to complete
+    
     // Get user role for RBAC
     const role = typeof window !== 'undefined' ? localStorage.getItem('userRole') : null;
     setUserRole(role);
     fetchOffices();
-  }, []);
+  }, [isHydrated]);
 
   const handleCreate = () => {
     setEditingOffice(null); // Ensure we are in "create" mode

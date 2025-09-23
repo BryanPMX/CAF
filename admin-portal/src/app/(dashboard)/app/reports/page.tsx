@@ -5,6 +5,7 @@ import { Card, Table, DatePicker, Select, Button, Space, Tag, Statistic, Row, Co
 import { DownloadOutlined, BarChartOutlined, FileExcelOutlined, FilePdfOutlined } from '@ant-design/icons';
 import { apiClient } from '@/app/lib/api';
 import { Office } from '@/app/lib/types';
+import { useHydrationSafe } from '@/hooks/useHydrationSafe';
 import dayjs from 'dayjs';
 
 const { RangePicker } = DatePicker;
@@ -52,6 +53,7 @@ interface ReportSummary {
 }
 
 const ReportsPage = () => {
+  const isHydrated = useHydrationSafe();
   const [loading, setLoading] = useState(false);
   const [reportType, setReportType] = useState<'cases' | 'appointments' | 'summary'>('summary');
   const [period, setPeriod] = useState<'daily' | 'weekly' | 'yearly'>('daily');
@@ -71,11 +73,11 @@ const ReportsPage = () => {
   const [role, setRole] = useState<string | null>(null);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const r = localStorage.getItem('userRole');
-      setRole(r);
-    }
-  }, []);
+    if (!isHydrated) return; // Wait for hydration to complete
+    
+    const r = localStorage.getItem('userRole');
+    setRole(r);
+  }, [isHydrated]);
 
   // Load offices when component mounts
   useEffect(() => {

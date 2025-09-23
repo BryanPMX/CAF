@@ -36,6 +36,7 @@ import {
 } from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
 import { apiClient } from '@/app/lib/api';
+import { useHydrationSafe } from '@/hooks/useHydrationSafe';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -102,6 +103,7 @@ interface ArchivedAppointment {
 
 const RecordsPage: React.FC = () => {
   const router = useRouter();
+  const isHydrated = useHydrationSafe();
   const [cases, setCases] = useState<ArchivedCase[]>([]);
   const [appointments, setAppointments] = useState<ArchivedAppointment[]>([]);
   const [stats, setStats] = useState<ArchiveStats | null>(null);
@@ -119,6 +121,8 @@ const RecordsPage: React.FC = () => {
 
   // Check user role and access permissions
   useEffect(() => {
+    if (!isHydrated) return; // Wait for hydration to complete
+    
     const checkAccess = () => {
       const role = localStorage.getItem('userRole');
       setUserRole(role);
@@ -139,7 +143,7 @@ const RecordsPage: React.FC = () => {
     // Load initial data
     loadStats();
     loadCases();
-  }, []);
+  }, [isHydrated]);
 
   // Load archive statistics
   const loadStats = async () => {
