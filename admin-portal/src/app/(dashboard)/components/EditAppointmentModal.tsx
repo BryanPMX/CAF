@@ -100,7 +100,7 @@ const EditAppointmentModal: React.FC<EditAppointmentModalProps> = ({
         updateData.status = values.status;
       }
 
-      await apiClient.put(`/admin/appointments/${appointment.id}`, updateData);
+      await apiClient.patch(`/admin/appointments/${appointment.id}`, updateData);
       
       message.success('Cita actualizada exitosamente');
       onSuccess();
@@ -138,7 +138,7 @@ const EditAppointmentModal: React.FC<EditAppointmentModalProps> = ({
     
     setCompletingAppointment(true);
     try {
-      await apiClient.put(`/admin/appointments/${appointment.id}`, {
+      await apiClient.patch(`/admin/appointments/${appointment.id}`, {
         status: 'completed'
       });
       

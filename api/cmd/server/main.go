@@ -326,6 +326,8 @@ func main() {
 		admin.DELETE("/offices/:id", handlers.DeleteOffice(database))
 
 		// Enhanced Case Management (Admin can override department restrictions)
+		admin.GET("/cases", handlers.GetCasesEnhanced(database))
+		admin.GET("/cases/:id", handlers.GetCaseByIDEnhanced(database))
 		admin.POST("/cases", handlers.CreateCaseEnhanced(database))
 		admin.PUT("/cases/:id", handlers.UpdateCase(database))
 		admin.DELETE("/cases/:id", handlers.DeleteCase(database))
@@ -339,12 +341,8 @@ func main() {
 		admin.GET("/optimized/users", performanceHandler.GetOptimizedUsers())
 		admin.GET("/performance/metrics", performanceHandler.GetPerformanceMetrics())
 
-		// Archive Management
+		// Case Completion
 		admin.POST("/cases/:id/complete", handlers.CompleteCase(database))
-		admin.GET("/archives", handlers.GetArchivedCases(database))
-		admin.GET("/archives/stats", handlers.GetArchiveStats(database))
-		admin.POST("/archives/:id/restore", handlers.RestoreArchivedCase(database))
-		admin.DELETE("/archives/:id/permanent", handlers.PermanentlyDeleteArchivedCase(database))
 
 		// Enhanced Task Management
 		admin.POST("/cases/:id/tasks", handlers.CreateTaskEnhanced(database))
@@ -362,9 +360,19 @@ func main() {
 		admin.GET("/documents/:eventId", handlers.GetDocument(database))
 
 		// Enhanced Appointment Management (Admin can override department restrictions)
+		admin.GET("/appointments", handlers.GetAppointmentsEnhanced(database))
 		admin.POST("/appointments", handlers.CreateAppointmentSmart(database))
 		admin.PATCH("/appointments/:id", handlers.UpdateAppointmentEnhanced(database))
 		admin.DELETE("/appointments/:id", handlers.DeleteAppointmentAdmin(database))
+
+		// Records Management (Archived Cases and Appointments)
+		admin.GET("/records/stats", handlers.GetRecordsArchiveStats(database))
+		admin.GET("/records/cases", handlers.GetRecordsArchivedCases(database))
+		admin.GET("/records/appointments", handlers.GetArchivedAppointments(database))
+		admin.POST("/records/cases/:id/restore", handlers.RestoreCase(database))
+		admin.POST("/records/appointments/:id/restore", handlers.RestoreAppointment(database))
+		admin.DELETE("/records/cases/:id", handlers.PermanentlyDeleteCase(database))
+		admin.DELETE("/records/appointments/:id", handlers.PermanentlyDeleteAppointment(database))
 
 		// Legacy admin endpoints removed - using enhanced handlers only
 

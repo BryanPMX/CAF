@@ -63,7 +63,7 @@ const AppointmentsPage = () => {
     try {
       setLoading(true);
       // Base list is protected route for any logged-in user; scoped by backend
-      const response = await apiClient.get('/appointments');
+      const response = await apiClient.get('/admin/appointments');
       // Appointments loaded successfully
       setAppointments(response.data);
       setFilteredAppointments(response.data);

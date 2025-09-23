@@ -257,7 +257,7 @@ const CaseManagementPage = () => {
         ...(caseTypeFilter && { title: caseTypeFilter }),
       } as Record<string, string>);
 
-      const response = await apiClient.get(`/optimized/cases?${params}`, {
+      const response = await apiClient.get(`/admin/optimized/cases?${params}`, {
         signal: abortControllerRef.current.signal
       });
 

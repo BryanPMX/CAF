@@ -50,7 +50,7 @@ const AnnouncementModal: React.FC<AnnouncementModalProps> = ({
       for (const file of fileList) {
         const fd = new FormData();
         fd.append('file', file as File);
-        const resp = await apiClient.post('/api/v1/admin/cases/0/documents', fd, { 
+        const resp = await apiClient.post('/admin/cases/0/documents', fd, { 
           headers: { 'Content-Type': 'multipart/form-data' } 
         });
         urls.push(resp.data.fileUrl || resp.data.file_url || resp.data.url);
@@ -78,10 +78,10 @@ const AnnouncementModal: React.FC<AnnouncementModalProps> = ({
       }
 
       if (editingAnnouncement?.id) {
-        await apiClient.patch(`/api/v1/admin/announcements/${editingAnnouncement.id}`, payload);
+        await apiClient.patch(`/admin/announcements/${editingAnnouncement.id}`, payload);
         message.success('Anuncio actualizado correctamente');
       } else {
-        await apiClient.post('/api/v1/admin/announcements', payload);
+        await apiClient.post('/admin/announcements', payload);
         message.success('Anuncio creado correctamente');
       }
 
