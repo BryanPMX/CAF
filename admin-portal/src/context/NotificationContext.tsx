@@ -202,7 +202,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     };
 
     checkAuthStatus();
-  }, [isHydrated, isAuthenticated]); // Run only once on mount
+  }, [isHydrated]); // Run only once on mount
 
   // Periodic refresh completely disabled to prevent infinite loops
   // TODO: Re-enable once the loop issue is resolved
