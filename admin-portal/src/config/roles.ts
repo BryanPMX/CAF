@@ -76,7 +76,7 @@ export const NAVIGATION_ITEMS = [
   {
     key: 'dashboard',
     label: 'Dashboard',
-    path: '/app',
+    path: '/',
     icon: 'DashboardOutlined',
     permissions: [STAFF_ROLES.ADMIN, STAFF_ROLES.OFFICE_MANAGER, STAFF_ROLES.LAWYER, STAFF_ROLES.PSYCHOLOGIST, STAFF_ROLES.RECEPTIONIST, STAFF_ROLES.EVENT_COORDINATOR],
   },
@@ -109,18 +109,18 @@ export const NAVIGATION_ITEMS = [
     permissions: [STAFF_ROLES.ADMIN],
   },
   {
-    key: 'files',
-    label: 'Archivos',
-    path: '/app/files',
-    icon: 'FolderOutlined',
-    permissions: [STAFF_ROLES.ADMIN],
+    key: 'reports',
+    label: 'Reportes',
+    path: '/app/reports',
+    icon: 'BarChartOutlined',
+    permissions: [STAFF_ROLES.ADMIN, STAFF_ROLES.OFFICE_MANAGER],
   },
   {
-    key: 'web-content',
-    label: 'Contenido Web',
-    path: '/app/web-content',
-    icon: 'GlobalOutlined',
-    permissions: [STAFF_ROLES.ADMIN, STAFF_ROLES.OFFICE_MANAGER, STAFF_ROLES.EVENT_COORDINATOR],
+    key: 'records',
+    label: 'Archivos',
+    path: '/app/records',
+    icon: 'FolderOutlined',
+    permissions: [STAFF_ROLES.ADMIN, STAFF_ROLES.OFFICE_MANAGER],
   },
 ] as const;
 

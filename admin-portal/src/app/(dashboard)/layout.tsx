@@ -16,6 +16,7 @@ import {
   type StaffRoleKey 
 } from '@/config/roles';
 import ClientOnly from '@/components/ClientOnly';
+import ErrorBoundary from '@/components/ErrorBoundary';
 
 // Destructure Layout components once
 const { Header, Sider, Content } = Layout;
@@ -122,11 +123,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   // CRITICAL FIX: No early returns to prevent React error #310
   // All hooks must be called on every render, regardless of loading state
   return (
-    <ClientOnly fallback={<div className="flex items-center justify-center min-h-screen"><Spin size="large" /></div>}>
-      {loading ? (
-        <div className="flex items-center justify-center min-h-screen"><Spin size="large" /></div>
-      ) : (
-        <Layout style={{ minHeight: '100vh' }}>
+    <ErrorBoundary>
+      <ClientOnly fallback={<div className="flex items-center justify-center min-h-screen"><Spin size="large" /></div>}>
+        {loading ? (
+          <div className="flex items-center justify-center min-h-screen"><Spin size="large" /></div>
+        ) : (
+          <Layout style={{ minHeight: '100vh' }}>
         <Sider collapsible>
           <div className="flex flex-col items-start text-white py-4 px-4">
             <div className="flex items-center gap-3">
@@ -204,8 +206,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </Content>
         </Layout>
         </Layout>
-      )}
-    </ClientOnly>
+        )}
+      </ClientOnly>
+    </ErrorBoundary>
   );
 }
 
