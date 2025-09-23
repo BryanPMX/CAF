@@ -711,12 +711,12 @@ const TrueDashboardPage = () => {
       </Row>
 
       {/* Charts and Analytics Section */}
-      {userRole && isValidRole(userRole) &&
-       PERMISSIONS.canSeeAdminWidgets(userRole as StaffRoleKey) && (
-        <Suspense fallback={<SectionLoading />}>
+      <Suspense fallback={<SectionLoading />}>
+        {userRole && isValidRole(userRole) &&
+         PERMISSIONS.canSeeAdminWidgets(userRole as StaffRoleKey) && (
           <DashboardCharts />
-        </Suspense>
-      )}
+        )}
+      </Suspense>
 
       {/* Announcements and Customization Section - Mobile Optimized */}
       <Row gutter={[16, 16]}>
@@ -737,22 +737,22 @@ const TrueDashboardPage = () => {
         </Col>
         
         <Col xs={24} lg={8}>
-          {userRole && isValidRole(userRole) &&
-           PERMISSIONS.canSeeOfficeManagerWidgets(userRole as StaffRoleKey) && (
-            <Card 
-              title={
-                <div className="flex items-center">
-                  <SettingOutlined className="mr-2 text-purple-500" />
-                  <span className="text-sm sm:text-base">Gestión de Anuncios</span>
-                </div>
-              }
-              className="h-full"
-            >
-              <Suspense fallback={<SectionLoading />}>
+          <Suspense fallback={<SectionLoading />}>
+            {userRole && isValidRole(userRole) &&
+             PERMISSIONS.canSeeOfficeManagerWidgets(userRole as StaffRoleKey) && (
+              <Card 
+                title={
+                  <div className="flex items-center">
+                    <SettingOutlined className="mr-2 text-purple-500" />
+                    <span className="text-sm sm:text-base">Gestión de Anuncios</span>
+                  </div>
+                }
+                className="h-full"
+              >
                 <AdminAnnouncementsManager />
-              </Suspense>
-            </Card>
-          )}
+              </Card>
+            )}
+          </Suspense>
         </Col>
 
         <Col xs={24} lg={8}>
