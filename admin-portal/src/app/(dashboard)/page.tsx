@@ -334,7 +334,7 @@ const RoleBasedDashboard: React.FC<{
       </Row>
 
       {/* Role-specific additional content */}
-      {PERMISSIONS.canSeeAdminWidgets(userRole) && (
+      {userRole && isValidRole(userRole) && PERMISSIONS.canSeeAdminWidgets(userRole as StaffRoleKey) && (
         <Row gutter={[16, 16]}>
           <Col xs={24} lg={12}>
             <Card title="Rendimiento del Sistema">
@@ -353,7 +353,7 @@ const RoleBasedDashboard: React.FC<{
               </div>
             </Card>
           </Col>
-          
+
           <Col xs={24} lg={12}>
             <Card title="Actividad Reciente">
               <Timeline>
@@ -373,7 +373,7 @@ const RoleBasedDashboard: React.FC<{
         </Row>
       )}
 
-      {PERMISSIONS.canSeeProfessionalWidgets(userRole) && (
+      {userRole && isValidRole(userRole) && PERMISSIONS.canSeeProfessionalWidgets(userRole as StaffRoleKey) && (
         <Row gutter={[16, 16]}>
           <Col xs={24} lg={12}>
             <Card title="Mi Rendimiento">
@@ -383,7 +383,7 @@ const RoleBasedDashboard: React.FC<{
                   <Typography.Text strong>12</Typography.Text>
                 </div>
                 <Progress percent={80} strokeColor="#52c41a" />
-                
+
                 <div className="flex justify-between">
                   <Typography.Text>Puntualidad</Typography.Text>
                   <Typography.Text strong>95%</Typography.Text>
@@ -392,7 +392,7 @@ const RoleBasedDashboard: React.FC<{
               </div>
             </Card>
           </Col>
-          
+
           <Col xs={24} lg={12}>
             <Card title="Logros Recientes">
               <Timeline>
