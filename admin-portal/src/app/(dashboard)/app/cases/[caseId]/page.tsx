@@ -188,7 +188,7 @@ const CaseDetailPage = () => {
       setLoading(true);
       
       // Single optimized API call with all necessary data
-      const response = await apiClient.get(`/cases/${caseId}`, { 
+      const response = await apiClient.get(`/admin/cases/${caseId}`, { 
         params: { 
           include: 'full' // Get all data in one request for better performance
         } 
@@ -242,7 +242,7 @@ const CaseDetailPage = () => {
     if (!caseId) return;
     try {
       setIsDeletingCase(true);
-      await apiClient.delete(`/cases/${caseId}` as string, {
+      await apiClient.delete(`/admin/cases/${caseId}` as string, {
         params: {
           force: force ? 'true' : undefined,
           reason: deleteReason || undefined,

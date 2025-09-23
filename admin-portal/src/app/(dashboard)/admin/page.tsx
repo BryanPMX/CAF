@@ -64,7 +64,7 @@ const AdminDashboard: React.FC = () => {
 
       // Fetch recent cases
       try {
-        const casesRes = await apiClient.get('/cases');
+        const casesRes = await apiClient.get('/admin/cases');
         setRecentCases(casesRes.data.slice(0, 5));
       } catch (error) {
         console.warn('Could not fetch cases:', error);
@@ -73,7 +73,7 @@ const AdminDashboard: React.FC = () => {
 
       // Fetch recent appointments
       try {
-        const appointmentsRes = await apiClient.get('/appointments');
+        const appointmentsRes = await apiClient.get('/admin/appointments');
         setRecentAppointments(appointmentsRes.data.slice(0, 5));
       } catch (error) {
         console.warn('Could not fetch appointments:', error);

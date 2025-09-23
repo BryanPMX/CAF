@@ -278,7 +278,7 @@ const CaseTimeline: React.FC<CaseTimelineProps> = ({ events, onRefresh }) => {
   // Delete comment handler
   const handleDeleteComment = useCallback(async (commentId: number) => {
     try {
-      await apiClient.delete(`/cases/comments/${commentId}`);
+      await apiClient.delete(`/admin/cases/comments/${commentId}`);
       message.success('Comentario eliminado exitosamente.');
       onRefresh();
     } catch (error: any) {
@@ -290,7 +290,7 @@ const CaseTimeline: React.FC<CaseTimelineProps> = ({ events, onRefresh }) => {
   // Delete document handler
   const handleDeleteDocument = useCallback(async (documentId: number) => {
     try {
-      await apiClient.delete(`/cases/documents/${documentId}`);
+      await apiClient.delete(`/admin/cases/documents/${documentId}`);
       message.success('Documento eliminado exitosamente.');
       onRefresh();
     } catch (error: any) {

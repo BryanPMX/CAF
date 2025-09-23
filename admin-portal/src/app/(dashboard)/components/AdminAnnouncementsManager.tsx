@@ -28,7 +28,7 @@ const AdminAnnouncementsManager: React.FC = () => {
   const load = async () => {
     setLoading(true);
     try {
-      const res = await apiClient.get('/api/v1/dashboard/announcements');
+      const res = await apiClient.get('/dashboard/announcements');
       setData(res.data.announcements || []);
     } catch (error) {
       console.error('Error loading announcements:', error);
@@ -63,7 +63,7 @@ const AdminAnnouncementsManager: React.FC = () => {
   };
 
   const remove = async (record: Announcement) => {
-    await apiClient.delete(`/api/v1/admin/announcements/${record.id}`);
+    await apiClient.delete(`/admin/announcements/${record.id}`);
     message.success('Anuncio eliminado');
     await load();
   };

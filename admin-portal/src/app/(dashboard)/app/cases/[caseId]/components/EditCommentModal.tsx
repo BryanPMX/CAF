@@ -52,7 +52,7 @@ const EditCommentModal: React.FC<EditCommentModalProps> = ({
 
     setLoading(true);
     try {
-      await apiClient.put(`/cases/comments/${comment.id}`, {
+      await apiClient.put(`/admin/cases/comments/${comment.id}`, {
         comment: values.commentText,
         visibility: values.visibility,
       });

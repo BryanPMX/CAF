@@ -52,7 +52,7 @@ const EditDocumentModal: React.FC<EditDocumentModalProps> = ({
 
     setLoading(true);
     try {
-      await apiClient.put(`/cases/documents/${document.id}`, {
+      await apiClient.put(`/admin/cases/documents/${document.id}`, {
         fileName: values.fileName,
         visibility: values.visibility,
       });
