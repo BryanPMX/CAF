@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { useHydrationSafe } from '@/hooks/useHydrationSafe';
 
 // Types for notification data
 export interface Notification {
@@ -46,6 +47,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const isHydrated = useHydrationSafe();
 
   // Calculate unread count from notifications
   useEffect(() => {
@@ -182,19 +184,25 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
 
   // Check for authentication status on mount only
   useEffect(() => {
-    const token = localStorage.getItem('authToken') || localStorage.getItem('token');
-    
-    if (token && !isAuthenticated) {
-      setIsAuthenticated(true);
-      // Temporarily disable automatic fetching to prevent loops
-      console.log('Authentication detected, but auto-fetch disabled');
-    } else if (!token && isAuthenticated) {
-      setIsAuthenticated(false);
-      setNotifications([]);
-      setUnreadCount(0);
-      setError(null);
-    }
-  }, []); // Run only once on mount
+    if (!isHydrated) return; // Wait for hydration to complete
+
+    const checkAuthStatus = () => {
+      const token = localStorage.getItem('authToken') || localStorage.getItem('token');
+      
+      if (token && !isAuthenticated) {
+        setIsAuthenticated(true);
+        // Temporarily disable automatic fetching to prevent loops
+        console.log('Authentication detected, but auto-fetch disabled');
+      } else if (!token && isAuthenticated) {
+        setIsAuthenticated(false);
+        setNotifications([]);
+        setUnreadCount(0);
+        setError(null);
+      }
+    };
+
+    checkAuthStatus();
+  }, [isHydrated, isAuthenticated]); // Run only once on mount
 
   // Periodic refresh completely disabled to prevent infinite loops
   // TODO: Re-enable once the loop issue is resolved
