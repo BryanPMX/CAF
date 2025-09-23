@@ -10,6 +10,7 @@ import { APPOINTMENT_STATUS_CONFIG, getValidAppointmentStatuses } from '@/config
 import AppointmentModal from '../../components/AppointmentModal';
 import EditAppointmentModal from '../../components/EditAppointmentModal';
 import SmartSearchBar from '../../components/SmartSearchBar';
+import { useHydrationSafe } from '@/hooks/useHydrationSafe';
 import dayjs from 'dayjs';
 import isBetween from 'dayjs/plugin/isBetween';
 
@@ -34,6 +35,7 @@ interface Appointment extends AppointmentType {
 
 const AppointmentsPage = () => {
   // --- State Management ---
+  const isHydrated = useHydrationSafe();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [filteredAppointments, setFilteredAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -50,10 +52,12 @@ const AppointmentsPage = () => {
 
   // --- Data Fetching & Role Management ---
   useEffect(() => {
+    if (!isHydrated) return; // Wait for hydration to complete
+    
     // Get the user's role from localStorage to control UI elements
     const role = localStorage.getItem('userRole');
     setUserRole(role);
-  }, []);
+  }, [isHydrated]);
 
   const fetchAppointments = async () => {
     try {
