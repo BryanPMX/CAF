@@ -319,7 +319,7 @@ func (h *PerformanceOptimizedHandler) GetOptimizedAppointmentByID() gin.HandlerF
 func (h *PerformanceOptimizedHandler) buildOptimizedCasesQuery(params PaginationParams, c *gin.Context) *gorm.DB {
 	query := h.db.Model(&models.Case{}).
 		Preload("Client", func(db *gorm.DB) *gorm.DB {
-			return db.Select("id, first_name, last_name, email, phone")
+			return db.Select("id, first_name, last_name, email")
 		}).
 		Preload("Office", func(db *gorm.DB) *gorm.DB {
 			return db.Select("id, name, address")

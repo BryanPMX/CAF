@@ -242,9 +242,12 @@ func (s *CaseService) CreateCase(c *gin.Context) (*models.Case, error) {
 
 	// Set audit fields
 	userID, _ := c.Get("userID")
-	userIDUint := userID.(uint)
-	caseData.CreatedBy = userIDUint
-	caseData.UpdatedBy = &userIDUint
+	userIDUint, err := strconv.ParseUint(userID.(string), 10, 32)
+	if err != nil {
+		return nil, fmt.Errorf("invalid user ID: %v", err)
+	}
+	caseData.CreatedBy = uint(userIDUint)
+	caseData.UpdatedBy = &[]uint{uint(userIDUint)}[0]
 
 	if err := s.db.Create(&caseData).Error; err != nil {
 		return nil, fmt.Errorf("failed to create case: %v", err)
