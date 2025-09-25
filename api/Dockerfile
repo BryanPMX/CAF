@@ -1,8 +1,18 @@
 # Multi-stage build for production optimization
-FROM ghcr.io/golang/go:1.23-bullseye AS builder
+FROM ubuntu:22.04 AS builder
 
-# Install necessary packages for building
-RUN apt-get update && apt-get install -y git ca-certificates && rm -rf /var/lib/apt/lists/*
+# Install Go 1.23 and necessary packages
+RUN apt-get update && \
+    apt-get install -y wget git ca-certificates && \
+    wget https://go.dev/dl/go1.23.0.linux-amd64.tar.gz && \
+    tar -C /usr/local -xzf go1.23.0.linux-amd64.tar.gz && \
+    rm go1.23.0.linux-amd64.tar.gz && \
+    rm -rf /var/lib/apt/lists/*
+
+# Set Go environment variables
+ENV PATH="/usr/local/go/bin:${PATH}"
+ENV GOPATH="/go"
+ENV GOCACHE="/go/cache"
 
 # Set the working directory
 WORKDIR /app
@@ -23,7 +33,7 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
     -o main ./cmd/server
 
 # Production stage
-FROM debian:bullseye-slim
+FROM debian:bookworm-slim
 
 # Install CA certificates and timezone data
 RUN apt-get update && apt-get install -y ca-certificates tzdata wget && \
