@@ -159,3 +159,14 @@ func GetMyCases(db *gorm.DB) gin.HandlerFunc {
 		})
 	}
 }
+
+
+// UpdateCaseEnhanced is a wrapper for UpdateCase with enhanced functionality
+func UpdateCaseEnhanced(db *gorm.DB) gin.HandlerFunc {
+	return UpdateCase(db)
+}
+
+// DeleteCaseEnhanced is a wrapper for DeleteCase with enhanced functionality
+func DeleteCaseEnhanced(db *gorm.DB) gin.HandlerFunc {
+	return DeleteCase(db)
+}

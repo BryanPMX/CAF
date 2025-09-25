@@ -422,6 +422,9 @@ func main() {
 		staff.GET("/cases", middleware.CaseAccessControl(database), handlers.GetCasesEnhanced(database))
 		staff.GET("/cases/:id", middleware.CaseAccessControl(database), handlers.GetCaseByIDEnhanced(database))
 		staff.GET("/cases/my", middleware.CaseAccessControl(database), handlers.GetMyCases(database))
+		staff.POST("/cases", middleware.CaseAccessControl(database), handlers.CreateCaseEnhanced(database))
+		staff.PUT("/cases/:id", middleware.CaseAccessControl(database), handlers.UpdateCaseEnhanced(database))
+		staff.DELETE("/cases/:id", middleware.CaseAccessControl(database), handlers.DeleteCaseEnhanced(database))
 
 		// Document access
 		staff.GET("/documents/:eventId", handlers.GetDocument(database))
@@ -430,8 +433,9 @@ func main() {
 		staff.GET("/appointments", middleware.AppointmentAccessControl(database), handlers.GetAppointmentsEnhanced(database))
 		staff.GET("/appointments/:id", middleware.AppointmentAccessControl(database), handlers.GetAppointmentByIDEnhanced(database))
 		staff.GET("/appointments/my", middleware.AppointmentAccessControl(database), handlers.GetMyAppointments(database))
-		staff.DELETE("/appointments/:id", middleware.AppointmentAccessControl(database), handlers.DeleteAppointmentEnhanced(database))
 		staff.POST("/appointments", handlers.CreateAppointmentSmart(database)) // Smart appointment creation
+		staff.PUT("/appointments/:id", middleware.AppointmentAccessControl(database), handlers.UpdateAppointmentEnhanced(database))
+		staff.DELETE("/appointments/:id", middleware.AppointmentAccessControl(database), handlers.DeleteAppointmentEnhanced(database))
 
 		// Client cases for appointment creation
 		staff.GET("/clients/:clientId/cases-for-appointment", handlers.GetClientCasesForAppointment(database))
