@@ -29,7 +29,7 @@ import {
   ClockCircleOutlined
 } from '@ant-design/icons';
 import { apiClient } from '@/app/lib/api';
-import { useAuth } from '@/app/hooks/useAuth';
+import { useAuth } from '@/hooks/useAuth';
 import { getCasesEndpoint } from '@/app/lib/api-endpoints';
 import CreateCaseModal from './components/CreateCaseModal';
 // Custom debounce implementation to avoid lodash dependency
