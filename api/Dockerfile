@@ -23,7 +23,7 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
     -o main ./cmd/server
 
 # Production stage
-FROM alpine:3.18
+FROM alpine:3.19
 
 # Install CA certificates for HTTPS requests to AWS
 RUN apk --no-cache add ca-certificates tzdata
