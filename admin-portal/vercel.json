@@ -1,10 +1,23 @@
 {
-  "buildCommand": "npm run build",
+  "buildCommand": "./scripts/vercel-build.sh",
   "outputDirectory": ".next",
   "framework": "nextjs",
   "installCommand": "npm install",
   "devCommand": "npm run dev",
   "regions": ["iad1"],
+  "functions": {
+    "admin-portal/src/app/api/**/*.ts": {
+      "runtime": "nodejs18.x"
+    }
+  },
+  "docker": {
+    "auth": {
+      "docker.io": {
+        "username": "$DOCKERHUB_USERNAME",
+        "password": "$DOCKERHUB_TOKEN"
+      }
+    }
+  },
   "env": {
     "NEXT_PUBLIC_API_URL": "https://api.caf-mexico.org/api/v1",
     "NODE_ENV": "production",
