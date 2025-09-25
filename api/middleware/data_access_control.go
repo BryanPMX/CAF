@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/BryanPMX/CAF/api/models"
@@ -20,6 +21,8 @@ func DataAccessControl(db *gorm.DB) gin.HandlerFunc {
 
 		var user models.User
 		if err := db.Preload("Office").First(&user, "id = ?", userID).Error; err != nil {
+			// Log the error for debugging
+			fmt.Printf("DataAccessControl: Failed to find user with ID %v: %v\n", userID, err)
 			c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "User not found"})
 			return
 		}
