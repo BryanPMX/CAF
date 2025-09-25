@@ -58,10 +58,14 @@ func EnhancedJWTAuth(jwtSecret string, sessionService *services.SessionService) 
 				return
 			}
 
-			// Step 5: Set user ID and session info in context
-			c.Set("userID", userID)
-			c.Set("sessionID", session.ID)
-			c.Set("session", session)
+		// Step 5: Set user ID and session info in context
+		c.Set("userID", userID)
+		c.Set("sessionID", session.ID)
+		c.Set("session", session)
+		
+		// Step 6: Set a temporary userRole that will be overwritten by DataAccessControl
+		// This prevents issues where handlers try to access userRole before DataAccessControl runs
+		c.Set("userRole", "pending") // Temporary value
 
 			c.Next()
 		} else {
