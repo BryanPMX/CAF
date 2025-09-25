@@ -138,7 +138,7 @@ func GetArchivedAppointments(db *gorm.DB) gin.HandlerFunc {
 
 		// Get archived appointments with relationships
 		var appointments []models.Appointment
-		err := query.Preload("Client").
+		err := query.Preload("Case.Client").
 			Preload("Office").
 			Preload("Staff").
 			Preload("Case").
@@ -336,7 +336,7 @@ func RestoreAppointment(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		// Load relationships for response
-		if err := db.Preload("Client").Preload("Office").Preload("Staff").Preload("Case").First(&appointment, appointment.ID).Error; err != nil {
+		if err := db.Preload("Case.Client").Preload("Office").Preload("Staff").Preload("Case").First(&appointment, appointment.ID).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"error":   "Failed to load appointment relationships",
 				"message": err.Error(),
