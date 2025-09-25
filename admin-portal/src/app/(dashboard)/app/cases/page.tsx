@@ -29,6 +29,8 @@ import {
   ClockCircleOutlined
 } from '@ant-design/icons';
 import { apiClient } from '@/app/lib/api';
+import { useAuth } from '@/app/hooks/useAuth';
+import { getCasesEndpoint } from '@/app/lib/api-endpoints';
 import CreateCaseModal from './components/CreateCaseModal';
 // Custom debounce implementation to avoid lodash dependency
 const debounce = <T extends (...args: any[]) => any>(func: T, wait: number): T => {
@@ -187,6 +189,9 @@ const getStageLabels = (category: string): { [key: string]: string } => {
 };
 
 const CaseManagementPage = () => {
+  // --- Auth & Role Management ---
+  const { user, isAuthenticated } = useAuth();
+  
   // --- State Management ---
   const [cases, setCases] = useState<Case[]>([]);
   const [loading, setLoading] = useState(true);
@@ -257,7 +262,9 @@ const CaseManagementPage = () => {
         ...(caseTypeFilter && { title: caseTypeFilter }),
       } as Record<string, string>);
 
-      const response = await apiClient.get(`/admin/optimized/cases?${params}`, {
+      // Use role-based API endpoint
+      const endpoint = user?.role ? getCasesEndpoint(user.role, 'list') : '/admin/optimized/cases';
+      const response = await apiClient.get(`${endpoint}?${params}`, {
         signal: abortControllerRef.current.signal
       });
 
