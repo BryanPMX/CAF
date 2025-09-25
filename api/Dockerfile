@@ -1,5 +1,5 @@
 # Multi-stage build for production optimization
-FROM golang:1.23-bullseye AS builder
+FROM ghcr.io/golang/go:1.23-bullseye AS builder
 
 # Install necessary packages for building
 RUN apt-get update && apt-get install -y git ca-certificates && rm -rf /var/lib/apt/lists/*
