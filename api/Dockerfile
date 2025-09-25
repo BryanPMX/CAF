@@ -23,14 +23,15 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
     -o main ./cmd/server
 
 # Production stage
-FROM alpine:3.19
+FROM debian:bullseye-slim
 
-# Install CA certificates for HTTPS requests to AWS
-RUN apk --no-cache add ca-certificates tzdata
+# Install CA certificates and timezone data
+RUN apt-get update && apt-get install -y ca-certificates tzdata wget && \
+    rm -rf /var/lib/apt/lists/*
 
 # Create non-root user for security
-RUN addgroup -g 1001 -S appgroup && \
-    adduser -u 1001 -S appuser -G appgroup
+RUN groupadd -g 1001 appgroup && \
+    useradd -u 1001 -g appgroup -s /bin/bash -m appuser
 
 WORKDIR /app
 
