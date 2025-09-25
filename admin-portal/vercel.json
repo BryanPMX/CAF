@@ -10,14 +10,6 @@
       "runtime": "nodejs18.x"
     }
   },
-  "docker": {
-    "auth": {
-      "docker.io": {
-        "username": "$DOCKERHUB_USERNAME",
-        "password": "$DOCKERHUB_TOKEN"
-      }
-    }
-  },
   "env": {
     "NEXT_PUBLIC_API_URL": "https://api.caf-mexico.org/api/v1",
     "NODE_ENV": "production",
