@@ -207,6 +207,7 @@ export interface SearchFilters {
   dateFrom?: string;
   dateTo?: string;
   dateRange?: [string, string];
+  role?: string;
 }
 
 // Select option interface
