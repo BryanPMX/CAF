@@ -485,7 +485,7 @@ func GetAppointmentByIDAdmin(db *gorm.DB) gin.HandlerFunc {
 		response := gin.H{
 			"appointment": appointment,
 			"case": func() gin.H {
-				if appointment.Case != nil {
+				if appointment.Case.ID != 0 {
 					return gin.H{
 						"id":          appointment.Case.ID,
 						"title":       appointment.Case.Title,
@@ -496,7 +496,7 @@ func GetAppointmentByIDAdmin(db *gorm.DB) gin.HandlerFunc {
 				return gin.H{"id": appointment.CaseID}
 			}(),
 			"staff": func() gin.H {
-				if appointment.Staff != nil {
+				if appointment.Staff.ID != 0 {
 					return gin.H{
 						"id":        appointment.Staff.ID,
 						"firstName": appointment.Staff.FirstName,
@@ -507,7 +507,7 @@ func GetAppointmentByIDAdmin(db *gorm.DB) gin.HandlerFunc {
 				return gin.H{"id": appointment.StaffID}
 			}(),
 			"client": func() gin.H {
-				if appointment.Case != nil && appointment.Case.Client != nil {
+				if appointment.Case.ID != 0 && appointment.Case.Client != nil {
 					return gin.H{
 						"id":        appointment.Case.Client.ID,
 						"firstName": appointment.Case.Client.FirstName,
