@@ -30,6 +30,7 @@ import {
 } from '@ant-design/icons';
 import { useAuth } from '@/hooks/useAuth';
 import { CaseService } from '@/services/caseService';
+import { EnhancedPaginatedResponse, Case as CaseType } from '@/app/lib/types';
 import CreateCaseModal from './components/CreateCaseModal';
 // Custom debounce implementation to avoid lodash dependency
 const debounce = <T extends (...args: any[]) => any>(func: T, wait: number): T => {
@@ -50,43 +51,21 @@ interface Office {
   name?: string;
 }
 
-interface Case {
-  id: number;
-  title: string;
-  status: string;
-  category: string;
+// Extended Case interface for the cases page with additional properties
+interface Case extends CaseType {
   currentStage: string;
-  docketNumber?: string;
-  court?: string;
   client?: Client | null;
   office?: Office | null;
-  createdAt: string;
-  updatedAt: string;
 }
 
-interface PaginatedResponse {
-  data: Case[];
-  pagination: {
-    page: number;
-    pageSize: number;
-    total: number;
-    totalPages: number;
-    hasNext: boolean;
-    hasPrev: boolean;
-  };
-  performance: {
-    queryTime: string;
-    cacheHit: boolean;
-    responseSize: number;
-  };
-}
+// PaginatedResponse interface is now imported from types
 
 // Performance-optimized cache manager
 class CaseCache {
-  private cache = new Map<string, { data: PaginatedResponse; timestamp: number }>();
+  private cache = new Map<string, { data: EnhancedPaginatedResponse<CaseType>; timestamp: number }>();
   private readonly TTL = 5 * 60 * 1000; // 5 minutes
 
-  set(key: string, data: PaginatedResponse): void {
+  set(key: string, data: EnhancedPaginatedResponse<CaseType>): void {
     this.cache.set(key, { data, timestamp: Date.now() });
     
     // Limit cache size
@@ -98,7 +77,7 @@ class CaseCache {
     }
   }
 
-  get(key: string): PaginatedResponse | null {
+  get(key: string): EnhancedPaginatedResponse<CaseType> | null {
     const entry = this.cache.get(key);
     if (!entry) return null;
     
@@ -192,7 +171,7 @@ const CaseManagementPage = () => {
   const { user, isAuthenticated } = useAuth();
   
   // --- State Management ---
-  const [cases, setCases] = useState<Case[]>([]);
+  const [cases, setCases] = useState<CaseType[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -255,7 +234,7 @@ const CaseManagementPage = () => {
 
 
       // Use centralized service layer with role-based endpoint routing
-      const data: PaginatedResponse = await CaseService.fetchCases(
+      const data: EnhancedPaginatedResponse<CaseType> = await CaseService.fetchCases(
         user?.role || 'client',
         {
           page,
@@ -373,11 +352,9 @@ const CaseManagementPage = () => {
       dataIndex: ['client', 'firstName'],
       key: 'client',
       width: 150,
-      render: (_: any, record: Case) => {
-        const first = record.client?.firstName || '';
-        const last = record.client?.lastName || '';
-        const full = `${first} ${last}`.trim();
-        return full || 'N/A';
+      render: (_: any, record: CaseType) => {
+        // For now, show client ID since the API doesn't return client details in the list
+        return record.clientId ? `Cliente ${record.clientId}` : 'N/A';
       },
     },
     {
@@ -385,16 +362,16 @@ const CaseManagementPage = () => {
       dataIndex: ['office', 'name'],
       key: 'office',
       width: 120,
-      render: (_: any, record: Case) => record.office?.name || 'N/A',
+      render: (_: any, record: CaseType) => record.officeId ? `Oficina ${record.officeId}` : 'N/A',
     },
     {
       title: 'Fase del Caso',
       dataIndex: 'currentStage',
       key: 'currentStage',
       width: 150,
-      render: (currentStage: string, record: Case) => {
-        const stageLabels = getStageLabels(record.category);
-        const stageLabel = stageLabels[currentStage] || currentStage;
+      render: (currentStage: string, record: CaseType) => {
+        // For now, show the stage as-is since currentStage might not be in the base Case type
+        const stageLabel = currentStage || 'N/A';
         
         let color = 'default';
         if (record.category === 'Familiar' || record.category === 'Civil') {
@@ -427,14 +404,14 @@ const CaseManagementPage = () => {
       key: 'createdAt',
       width: 120,
       render: (date: string) => new Date(date).toLocaleDateString(),
-      sorter: (a: Case, b: Case) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+      sorter: (a: CaseType, b: CaseType) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
     },
     {
       title: 'Acciones',
       key: 'actions',
       width: 100,
       fixed: 'right' as const,
-      render: (_: any, record: Case) => (
+      render: (_: any, record: CaseType) => (
         <Link href={`/app/cases/${record.id}`}>
           <Button icon={<EyeOutlined />} size="small">Ver</Button>
         </Link>

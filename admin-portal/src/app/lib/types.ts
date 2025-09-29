@@ -184,6 +184,24 @@ export interface PaginatedResponse<T> {
   totalPages: number;
 }
 
+// Enhanced paginated response with performance metrics
+export interface EnhancedPaginatedResponse<T> {
+  data: T[];
+  pagination: {
+    page: number;
+    pageSize: number;
+    total: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+  };
+  performance: {
+    queryTime: string;
+    cacheHit: boolean;
+    responseSize: number;
+  };
+}
+
 // API response wrapper (for backward compatibility)
 export interface ApiResponse<T = any> {
   success: boolean;
