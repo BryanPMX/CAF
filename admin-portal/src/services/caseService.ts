@@ -2,7 +2,7 @@
 // Centralized Case Data Access Layer
 
 import { apiClient } from '@/app/lib/api';
-import { UserRole, Case, PaginatedResponse, SearchFilters } from '@/app/lib/types';
+import { UserRole, Case, CaseDetails, PaginatedResponse, SearchFilters } from '@/app/lib/types';
 
 /**
  * Centralized service for all case-related data operations
@@ -60,13 +60,13 @@ export class CaseService {
    * @param userRole - The role of the current user
    * @param caseId - The ID of the case to fetch
    * @param include - Additional data to include (e.g., 'full' for complete case details)
-   * @returns Promise<Case>
+   * @returns Promise<CaseDetails>
    */
   static async fetchCaseById(
     userRole: UserRole,
     caseId: string,
     include?: string
-  ): Promise<Case> {
+  ): Promise<CaseDetails> {
     // Build query parameters
     const queryParams = new URLSearchParams();
     if (include) {
@@ -114,13 +114,13 @@ export class CaseService {
    * @param userRole - The role of the current user
    * @param caseId - The ID of the case to update
    * @param caseData - The updated case data
-   * @returns Promise<Case>
+   * @returns Promise<CaseDetails>
    */
   static async updateCase(
     userRole: UserRole,
     caseId: string,
     caseData: Partial<Case>
-  ): Promise<Case> {
+  ): Promise<CaseDetails> {
     // Determine endpoint based on role
     let endpoint: string;
     
@@ -194,13 +194,13 @@ export class CaseService {
    * @param userRole - The role of the current user
    * @param caseId - The ID of the case
    * @param stage - The new stage
-   * @returns Promise<Case>
+   * @returns Promise<CaseDetails>
    */
   static async updateCaseStage(
     userRole: UserRole,
     caseId: string,
     stage: string
-  ): Promise<Case> {
+  ): Promise<CaseDetails> {
     if (userRole !== 'admin') {
       throw new Error('Insufficient permissions to update case stage');
     }
@@ -215,13 +215,13 @@ export class CaseService {
    * @param userRole - The role of the current user
    * @param caseId - The ID of the case
    * @param staffId - The ID of the staff member to assign
-   * @returns Promise<Case>
+   * @returns Promise<CaseDetails>
    */
   static async assignStaffToCase(
     userRole: UserRole,
     caseId: string,
     staffId: number
-  ): Promise<Case> {
+  ): Promise<CaseDetails> {
     if (userRole !== 'admin') {
       throw new Error('Insufficient permissions to assign staff to case');
     }
@@ -235,12 +235,12 @@ export class CaseService {
    * Complete a case (admin only)
    * @param userRole - The role of the current user
    * @param caseId - The ID of the case
-   * @returns Promise<Case>
+   * @returns Promise<CaseDetails>
    */
   static async completeCase(
     userRole: UserRole,
     caseId: string
-  ): Promise<Case> {
+  ): Promise<CaseDetails> {
     if (userRole !== 'admin') {
       throw new Error('Insufficient permissions to complete case');
     }

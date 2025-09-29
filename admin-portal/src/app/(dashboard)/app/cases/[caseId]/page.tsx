@@ -10,6 +10,7 @@ import { ArrowLeftOutlined, PlusOutlined, EditOutlined, DeleteOutlined, CheckCir
 import { CaseService } from '@/services/caseService';
 import { TaskService } from '@/services/taskService';
 import { useAuth } from '@/hooks/useAuth';
+import { CaseDetails } from '@/app/lib/types';
 import CaseTimeline from './components/CaseTimeline';
 import AddCommentForm from './components/AddCommentForm';
 import UploadDocument from './components/UploadDocument';
@@ -53,23 +54,7 @@ interface CaseEvent {
   user: User;
 }
 
-interface CaseDetails {
-  id: number;
-  title: string;
-  status: string;
-  currentStage: string;
-  category: string;
-  description?: string;
-  docketNumber?: string;
-  court?: string;
-  isCompleted: boolean;
-  isArchived: boolean;
-  client: User;
-  office: { name: string };
-  appointments?: any[];
-  tasks?: Task[];
-  caseEvents?: CaseEvent[];
-}
+// CaseDetails interface is now imported from types
 
 // Define the stages and their Spanish labels, matching the backend configuration.
 const getCaseStages = (category: string) => {
