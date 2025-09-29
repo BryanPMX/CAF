@@ -1,0 +1,303 @@
+// admin-portal/src/services/caseService.ts
+// Centralized Case Data Access Layer
+
+import { apiClient } from '@/app/lib/api';
+import { UserRole, Case, PaginatedResponse, SearchFilters } from '@/app/lib/types';
+
+/**
+ * Centralized service for all case-related data operations
+ * Implements role-based endpoint routing to ensure correct API access
+ */
+export class CaseService {
+  /**
+   * Fetch cases based on user role
+   * @param userRole - The role of the current user
+   * @param params - Query parameters for filtering and pagination
+   * @returns Promise<PaginatedResponse<Case>>
+   */
+  static async fetchCases(
+    userRole: UserRole,
+    params: {
+      page?: number;
+      pageSize?: number;
+      search?: string;
+      filters?: SearchFilters;
+    } = {}
+  ): Promise<PaginatedResponse<Case>> {
+    const { page = 1, pageSize = 20, search, filters = {} } = params;
+    
+    // Build query parameters
+    const queryParams = new URLSearchParams({
+      page: page.toString(),
+      pageSize: pageSize.toString(),
+      ...(search && { search }),
+      ...(filters.status && { status: filters.status }),
+      ...(filters.category && { category: filters.category }),
+      ...(filters.department && { department: filters.department }),
+      ...(filters.assignedTo && { assignedTo: filters.assignedTo.toString() }),
+      ...(filters.officeId && { officeId: filters.officeId.toString() }),
+      ...(filters.dateFrom && { dateFrom: filters.dateFrom }),
+      ...(filters.dateTo && { dateTo: filters.dateTo }),
+    });
+
+    // Determine endpoint based on role
+    let endpoint: string;
+    
+    if (userRole === 'admin') {
+      // Admin users get optimized endpoint with full access
+      endpoint = `/admin/optimized/cases?${queryParams}`;
+    } else {
+      // All other roles use the protected endpoint with data scope filtering
+      endpoint = `/cases?${queryParams}`;
+    }
+
+    const response = await apiClient.get(endpoint);
+    return response.data;
+  }
+
+  /**
+   * Fetch a specific case by ID
+   * @param userRole - The role of the current user
+   * @param caseId - The ID of the case to fetch
+   * @param include - Additional data to include (e.g., 'full' for complete case details)
+   * @returns Promise<Case>
+   */
+  static async fetchCaseById(
+    userRole: UserRole,
+    caseId: string,
+    include?: string
+  ): Promise<Case> {
+    // Build query parameters
+    const queryParams = new URLSearchParams();
+    if (include) {
+      queryParams.append('include', include);
+    }
+
+    // Determine endpoint based on role
+    let endpoint: string;
+    
+    if (userRole === 'admin') {
+      endpoint = `/admin/cases/${caseId}?${queryParams}`;
+    } else {
+      endpoint = `/cases/${caseId}?${queryParams}`;
+    }
+
+    const response = await apiClient.get(endpoint);
+    return response.data;
+  }
+
+  /**
+   * Create a new case
+   * @param userRole - The role of the current user
+   * @param caseData - The case data to create
+   * @returns Promise<Case>
+   */
+  static async createCase(
+    userRole: UserRole,
+    caseData: Partial<Case>
+  ): Promise<Case> {
+    // Determine endpoint based on role
+    let endpoint: string;
+    
+    if (userRole === 'admin') {
+      endpoint = '/admin/cases';
+    } else {
+      endpoint = '/cases';
+    }
+
+    const response = await apiClient.post(endpoint, caseData);
+    return response.data;
+  }
+
+  /**
+   * Update an existing case
+   * @param userRole - The role of the current user
+   * @param caseId - The ID of the case to update
+   * @param caseData - The updated case data
+   * @returns Promise<Case>
+   */
+  static async updateCase(
+    userRole: UserRole,
+    caseId: string,
+    caseData: Partial<Case>
+  ): Promise<Case> {
+    // Determine endpoint based on role
+    let endpoint: string;
+    
+    if (userRole === 'admin') {
+      endpoint = `/admin/cases/${caseId}`;
+    } else {
+      endpoint = `/cases/${caseId}`;
+    }
+
+    const response = await apiClient.put(endpoint, caseData);
+    return response.data;
+  }
+
+  /**
+   * Delete a case
+   * @param userRole - The role of the current user
+   * @param caseId - The ID of the case to delete
+   * @returns Promise<void>
+   */
+  static async deleteCase(
+    userRole: UserRole,
+    caseId: string
+  ): Promise<void> {
+    // Determine endpoint based on role
+    let endpoint: string;
+    
+    if (userRole === 'admin') {
+      endpoint = `/admin/cases/${caseId}`;
+    } else {
+      endpoint = `/cases/${caseId}`;
+    }
+
+    await apiClient.delete(endpoint);
+  }
+
+  /**
+   * Fetch cases assigned to the current user
+   * @param userRole - The role of the current user
+   * @param params - Query parameters for filtering and pagination
+   * @returns Promise<PaginatedResponse<Case>>
+   */
+  static async fetchMyCases(
+    userRole: UserRole,
+    params: {
+      page?: number;
+      pageSize?: number;
+      search?: string;
+      filters?: SearchFilters;
+    } = {}
+  ): Promise<PaginatedResponse<Case>> {
+    const { page = 1, pageSize = 20, search, filters = {} } = params;
+    
+    // Build query parameters
+    const queryParams = new URLSearchParams({
+      page: page.toString(),
+      pageSize: pageSize.toString(),
+      ...(search && { search }),
+      ...(filters.status && { status: filters.status }),
+      ...(filters.category && { category: filters.category }),
+    });
+
+    // All roles use the same endpoint for "my cases"
+    const endpoint = `/cases/my?${queryParams}`;
+
+    const response = await apiClient.get(endpoint);
+    return response.data;
+  }
+
+  /**
+   * Update case stage (admin only)
+   * @param userRole - The role of the current user
+   * @param caseId - The ID of the case
+   * @param stage - The new stage
+   * @returns Promise<Case>
+   */
+  static async updateCaseStage(
+    userRole: UserRole,
+    caseId: string,
+    stage: string
+  ): Promise<Case> {
+    if (userRole !== 'admin') {
+      throw new Error('Insufficient permissions to update case stage');
+    }
+
+    const endpoint = `/admin/cases/${caseId}/stage`;
+    const response = await apiClient.patch(endpoint, { stage });
+    return response.data;
+  }
+
+  /**
+   * Assign staff to case (admin only)
+   * @param userRole - The role of the current user
+   * @param caseId - The ID of the case
+   * @param staffId - The ID of the staff member to assign
+   * @returns Promise<Case>
+   */
+  static async assignStaffToCase(
+    userRole: UserRole,
+    caseId: string,
+    staffId: number
+  ): Promise<Case> {
+    if (userRole !== 'admin') {
+      throw new Error('Insufficient permissions to assign staff to case');
+    }
+
+    const endpoint = `/admin/cases/${caseId}/assign`;
+    const response = await apiClient.post(endpoint, { staffId });
+    return response.data;
+  }
+
+  /**
+   * Complete a case (admin only)
+   * @param userRole - The role of the current user
+   * @param caseId - The ID of the case
+   * @returns Promise<Case>
+   */
+  static async completeCase(
+    userRole: UserRole,
+    caseId: string
+  ): Promise<Case> {
+    if (userRole !== 'admin') {
+      throw new Error('Insufficient permissions to complete case');
+    }
+
+    const endpoint = `/admin/cases/${caseId}/complete`;
+    const response = await apiClient.post(endpoint);
+    return response.data;
+  }
+
+  /**
+   * Get cases for a specific client
+   * @param userRole - The role of the current user
+   * @param clientId - The ID of the client
+   * @param params - Query parameters for filtering and pagination
+   * @returns Promise<PaginatedResponse<Case>>
+   */
+  static async fetchCasesForClient(
+    userRole: UserRole,
+    clientId: string,
+    params: {
+      page?: number;
+      pageSize?: number;
+    } = {}
+  ): Promise<PaginatedResponse<Case>> {
+    const { page = 1, pageSize = 20 } = params;
+    
+    // Build query parameters
+    const queryParams = new URLSearchParams({
+      page: page.toString(),
+      limit: pageSize.toString(),
+    });
+
+    // Determine endpoint based on role
+    let endpoint: string;
+    
+    if (userRole === 'admin') {
+      endpoint = `/admin/clients/${clientId}/cases?${queryParams}`;
+    } else {
+      // Staff and managers use the same endpoint
+      endpoint = `/clients/${clientId}/cases?${queryParams}`;
+    }
+
+    const response = await apiClient.get(endpoint);
+    return response.data;
+  }
+}
+
+// Export convenience functions for backward compatibility
+export const {
+  fetchCases,
+  fetchCaseById,
+  createCase,
+  updateCase,
+  deleteCase,
+  fetchMyCases,
+  updateCaseStage,
+  assignStaffToCase,
+  completeCase,
+  fetchCasesForClient,
+} = CaseService;
