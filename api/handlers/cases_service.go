@@ -310,14 +310,17 @@ func (s *CaseService) DeleteCase(caseID string, c *gin.Context) error {
 
 	// Set deletion fields
 	userID, _ := c.Get("userID")
-	userIDUint := userID.(uint)
+	userIDUint, err := strconv.ParseUint(userID.(string), 10, 32)
+	if err != nil {
+		return fmt.Errorf("invalid user ID: %v", err)
+	}
 	deletionReason := c.PostForm("reason")
 	if deletionReason == "" {
 		deletionReason = "Manual deletion"
 	}
 
 	now := time.Now()
-	caseData.DeletedBy = &userIDUint
+	caseData.DeletedBy = &[]uint{uint(userIDUint)}[0]
 	caseData.DeletionReason = deletionReason
 	caseData.DeletedAt = &now
 
