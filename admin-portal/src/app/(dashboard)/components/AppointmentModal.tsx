@@ -7,6 +7,7 @@ import { apiClient } from '@/app/lib/api';
 import { CASE_TYPES, findDepartmentByCaseType } from '@/app/lib/caseTaxonomy';
 import { ROLE_LABELS, DEPARTMENT_ROLE_MAPPING, getRoleLabel, getRolesForCaseCategory, isAdminRole, type StaffRoleKey } from '@/config/roles';
 import { APPOINTMENT_STATUS_CONFIG, getValidAppointmentStatuses } from '@/config/statuses';
+import { useAuth } from '@/hooks/useAuth';
 import dayjs from 'dayjs';
 
 const { Option } = Select;
@@ -34,6 +35,7 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ visible, onClose, o
   const watchedDepartment = Form.useWatch('department', form);
   const [loading, setLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
+  const { user } = useAuth();
   
   // --- State for data fetched from the API ---
   const [cases, setCases] = useState<Case[]>([]);
@@ -52,11 +54,10 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ visible, onClose, o
 
   // Fetch initial data (staff, offices) for the dropdowns when the modal opens
   useEffect(() => {
-    if (visible) {
+    if (visible && user?.role) {
       const fetchData = async () => {
         try {
-          const role = typeof window !== 'undefined' ? localStorage.getItem('userRole') : 'admin';
-          const base = role === 'office_manager' ? '/manager' : '/admin';
+          const base = user.role === 'office_manager' ? '/manager' : '/admin';
           const [staffRes, officesRes] = await Promise.all([
             apiClient.get(`${base}/users`),
             apiClient.get('/offices'),
@@ -95,7 +96,7 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ visible, onClose, o
         setCurrentStep(2); // Skip to appointment details
       }
     }
-  }, [visible, form, existingAppointment]);
+  }, [visible, form, existingAppointment, user]);
 
   // Fetch a client's existing cases whenever clientId changes
   useEffect(() => {
@@ -103,8 +104,7 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ visible, onClose, o
     if (clientId) {
       (async () => {
         try {
-          const role = typeof window !== 'undefined' ? localStorage.getItem('userRole') : 'admin';
-          const base = role === 'office_manager' ? '/manager' : '/admin';
+          const base = user?.role === 'office_manager' ? '/manager' : '/admin';
           
           console.log(`🔍 Fetching cases for client ${clientId} from: ${base}/clients/${clientId}/cases-for-appointment`);
           
@@ -154,8 +154,7 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ visible, onClose, o
     
     setIsSearching(true);
     try {
-      const role = typeof window !== 'undefined' ? localStorage.getItem('userRole') : 'admin';
-      const base = role === 'office_manager' ? '/manager' : '/admin';
+      const base = user?.role === 'office_manager' ? '/manager' : '/admin';
       const response = await apiClient.get(`${base}/users/search?q=${searchText}`);
       const formattedOptions = response.data.map((client: any) => ({
         value: `${client.firstName} ${client.lastName} (${client.email})`,
@@ -174,8 +173,7 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ visible, onClose, o
   // Load recent clients on modal open
   const loadRecentClients = async () => {
     try {
-      const role = typeof window !== 'undefined' ? localStorage.getItem('userRole') : 'admin';
-      const base = role === 'office_manager' ? '/manager' : '/admin';
+      const base = user?.role === 'office_manager' ? '/manager' : '/admin';
       const response = await apiClient.get(`${base}/users?limit=10&role=client`);
       const recentClientsPayload = Array.isArray(response.data)
         ? response.data
@@ -440,14 +438,14 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ visible, onClose, o
                 <Form.Item name="officeId" label="Oficina" rules={[{ required: true, message: 'Debe seleccionar una oficina' }]}>
                   <Select
                     placeholder="Seleccione una oficina"
-                    disabled={typeof window !== 'undefined' && localStorage.getItem('userRole') === 'office_manager'}
+                    disabled={user?.role === 'office_manager'}
                   >
                     {offices && offices.length > 0 && offices.map((o) => (
                       <Option key={o.id} value={o.id}>
                         {o.name}
                       </Option>
                     ))}
-                    {typeof window !== 'undefined' && localStorage.getItem('userRole') === 'office_manager' && (() => {
+                    {user?.role === 'office_manager' && (() => {
                       const officeId = localStorage.getItem('userOfficeId');
                       return officeId ? <Option key={officeId} value={Number(officeId)}>Mi Oficina</Option> : null;
                     })()}

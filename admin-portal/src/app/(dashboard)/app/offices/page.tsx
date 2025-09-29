@@ -7,6 +7,8 @@ import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import { apiClient } from '@/app/lib/api';
 import OfficeModal from './components/OfficeModal';
 import { useHydrationSafe } from '@/hooks/useHydrationSafe';
+import { useAuth } from '@/hooks/useAuth';
+import { OfficeService } from '@/services';
 
 interface Office {
   id: number;
@@ -16,6 +18,7 @@ interface Office {
 
 const OfficeManagementPage = () => {
   const isHydrated = useHydrationSafe();
+  const { user } = useAuth();
   const [offices, setOffices] = useState<Office[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -24,9 +27,16 @@ const OfficeManagementPage = () => {
 
   const fetchOffices = async () => {
     try {
+      // Wait for user to be loaded before fetching
+      if (!user?.role) {
+        console.log('User role not yet loaded, skipping fetch');
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
-      const response = await apiClient.get('/admin/offices');
-      setOffices(response.data);
+      const data = await OfficeService.fetchOffices(user.role);
+      setOffices(data);
     } catch (error) {
       message.error('No se pudieron cargar las oficinas.');
     } finally {
@@ -37,11 +47,11 @@ const OfficeManagementPage = () => {
   useEffect(() => {
     if (!isHydrated) return; // Wait for hydration to complete
     
-    // Get user role for RBAC
-    const role = typeof window !== 'undefined' ? localStorage.getItem('userRole') : null;
-    setUserRole(role);
+    if (user?.role) {
+      setUserRole(user.role);
+    }
     fetchOffices();
-  }, [isHydrated]);
+  }, [isHydrated, user]);
 
   const handleCreate = () => {
     setEditingOffice(null); // Ensure we are in "create" mode
@@ -55,8 +65,14 @@ const OfficeManagementPage = () => {
 
   const handleDelete = async (officeId: number) => {
     try {
+      // Wait for user to be loaded before deleting
+      if (!user?.role) {
+        message.error('Usuario no autenticado');
+        return;
+      }
+
       message.loading({ content: 'Eliminando...', key: 'deleteOffice' });
-      await apiClient.delete(`/admin/offices/${officeId}`);
+      await OfficeService.deleteOffice(user.role, officeId.toString());
       message.success({ content: 'Oficina eliminada exitosamente.', key: 'deleteOffice' });
       fetchOffices(); // Refresh the list
     } catch (error) {
