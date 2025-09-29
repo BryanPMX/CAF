@@ -444,11 +444,16 @@ func main() {
 		// Client cases for appointment creation
 		staff.GET("/clients/:clientId/cases-for-appointment", handlers.GetClientCasesForAppointment(database))
 
+		// Staff user management (office-scoped)
+		staff.GET("/users", handlers.GetUsers(database))
+		staff.GET("/users/:id", handlers.GetUserByID(database))
+
 		// Staff-specific task views
 		staff.GET("/tasks", middleware.TaskAccessControl(database), handlers.GetTasks(database))
 		staff.GET("/tasks/:id", middleware.TaskAccessControl(database), handlers.GetTaskByID(database))
 		staff.GET("/tasks/my", middleware.TaskAccessControl(database), handlers.GetMyTasks(database))
 		staff.POST("/tasks", middleware.TaskAccessControl(database), handlers.CreateTaskEnhanced(database))
+		staff.POST("/cases/:id/tasks", middleware.TaskAccessControl(database), handlers.CreateTaskEnhanced(database))
 		staff.PUT("/tasks/:id", middleware.TaskAccessControl(database), handlers.UpdateTaskEnhanced(database))
 		staff.DELETE("/tasks/:id", middleware.TaskAccessControl(database), handlers.DeleteTaskEnhanced(database))
 

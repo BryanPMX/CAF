@@ -53,8 +53,8 @@ type SmartAppointmentInput struct {
 	Status    string    `json:"status" binding:"required"`
 
 	// --- Department and Category Information ---
-	Department string `json:"department"` // Department for case creation and appointment categorization
-	Category   string `json:"category"`   // Category for appointment classification
+	Department string `json:"department" binding:"required"` // Department for case creation and appointment categorization
+	Category   string `json:"category" binding:"required"`   // Category for appointment classification
 }
 
 // CreateAppointmentSmart is the new, intelligent handler for creating appointments.
