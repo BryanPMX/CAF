@@ -469,17 +469,8 @@ func GetAppointmentByIDAdmin(db *gorm.DB) gin.HandlerFunc {
 		appointmentID := c.Param("id")
 		var appointment models.Appointment
 
-		// Use Joins to efficiently load appointment with all related data
-		query := db.Joins("LEFT JOIN cases ON appointments.case_id = cases.id").
-			Joins("LEFT JOIN users AS staff ON appointments.staff_id = staff.id").
-			Joins("LEFT JOIN users AS clients ON cases.client_id = clients.id").
-			Joins("LEFT JOIN offices ON appointments.office_id = offices.id").
-			Select("appointments.*, "+
-				"cases.id as case_id, cases.title as case_title, cases.description as case_description, cases.status as case_status, "+
-				"staff.id as staff_id, staff.first_name as staff_first_name, staff.last_name as staff_last_name, staff.email as staff_email, "+
-				"clients.id as client_id, clients.first_name as client_first_name, clients.last_name as client_last_name, clients.email as client_email, "+
-				"offices.id as office_id, offices.name as office_name, offices.address as office_address").
-			Where("appointments.id = ? AND appointments.deleted_at IS NULL", appointmentID)
+		// Use Preload to efficiently load appointment with all related data
+		query := db.Preload("Case").Preload("Case.Client").Preload("Staff").Where("id = ? AND deleted_at IS NULL", appointmentID)
 
 		if err := query.First(&appointment).Error; err != nil {
 			if err == gorm.ErrRecordNotFound {
@@ -493,28 +484,41 @@ func GetAppointmentByIDAdmin(db *gorm.DB) gin.HandlerFunc {
 		// Build comprehensive response with all nested data
 		response := gin.H{
 			"appointment": appointment,
-			"case": gin.H{
-				"id":          appointment.CaseID,
-				"title":       appointment.Case.Title,
-				"description": appointment.Case.Description,
-				"status":      appointment.Case.Status,
-			},
-			"staff": gin.H{
-				"id":         appointment.StaffID,
-				"firstName":  appointment.Staff.FirstName,
-				"lastName":   appointment.Staff.LastName,
-				"email":      appointment.Staff.Email,
-			},
-			"client": gin.H{
-				"id":        appointment.Case.ClientID,
-				"firstName": appointment.Case.Client.FirstName,
-				"lastName":  appointment.Case.Client.LastName,
-				"email":     appointment.Case.Client.Email,
-			},
+			"case": func() gin.H {
+				if appointment.Case != nil {
+					return gin.H{
+						"id":          appointment.Case.ID,
+						"title":       appointment.Case.Title,
+						"description": appointment.Case.Description,
+						"status":      appointment.Case.Status,
+					}
+				}
+				return gin.H{"id": appointment.CaseID}
+			}(),
+			"staff": func() gin.H {
+				if appointment.Staff != nil {
+					return gin.H{
+						"id":        appointment.Staff.ID,
+						"firstName": appointment.Staff.FirstName,
+						"lastName":  appointment.Staff.LastName,
+						"email":     appointment.Staff.Email,
+					}
+				}
+				return gin.H{"id": appointment.StaffID}
+			}(),
+			"client": func() gin.H {
+				if appointment.Case != nil && appointment.Case.Client != nil {
+					return gin.H{
+						"id":        appointment.Case.Client.ID,
+						"firstName": appointment.Case.Client.FirstName,
+						"lastName":  appointment.Case.Client.LastName,
+						"email":     appointment.Case.Client.Email,
+					}
+				}
+				return gin.H{}
+			}(),
 			"office": gin.H{
-				"id":      appointment.OfficeID,
-				"name":    appointment.Office.Name,
-				"address": appointment.Office.Address,
+				"id": appointment.OfficeID,
 			},
 		}
 
