@@ -71,6 +71,18 @@ export interface Case {
   updatedAt: string;
 }
 
+// Case details interface with expanded data
+export interface CaseDetails extends Case {
+  currentStage: string;
+  isCompleted: boolean;
+  isArchived: boolean;
+  client: User;
+  office: { name: string };
+  appointments?: any[];
+  tasks?: any[];
+  caseEvents?: any[];
+}
+
 // Appointment interface
 export interface Appointment {
   id: number;
