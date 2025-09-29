@@ -47,7 +47,8 @@ export class TaskService {
     }
 
     const response = await apiClient.get(endpoint);
-    return response.data;
+    // Admin optimized endpoints wrap data in a data property
+    return response.data.data || response.data;
   }
 
   /**
@@ -70,7 +71,8 @@ export class TaskService {
     }
 
     const response = await apiClient.get(endpoint);
-    return response.data;
+    // Admin optimized endpoints wrap data in a data property
+    return response.data.data || response.data;
   }
 
   /**
@@ -172,7 +174,8 @@ export class TaskService {
     const endpoint = `/tasks/my?${queryParams}`;
 
     const response = await apiClient.get(endpoint);
-    return response.data;
+    // Admin optimized endpoints wrap data in a data property
+    return response.data.data || response.data;
   }
 
   /**

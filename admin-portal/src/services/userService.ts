@@ -49,7 +49,8 @@ export class UserService {
     }
 
     const response = await apiClient.get(endpoint);
-    return response.data;
+    // Admin optimized endpoints wrap data in a data property
+    return response.data.data || response.data;
   }
 
   /**
@@ -74,7 +75,8 @@ export class UserService {
     }
 
     const response = await apiClient.get(endpoint);
-    return response.data;
+    // Admin optimized endpoints wrap data in a data property
+    return response.data.data || response.data;
   }
 
   /**
@@ -175,7 +177,8 @@ export class UserService {
 
     const endpoint = `/admin/users/search?q=${encodeURIComponent(searchTerm)}`;
     const response = await apiClient.get(endpoint);
-    return response.data;
+    // Admin optimized endpoints wrap data in a data property
+    return response.data.data || response.data;
   }
 
   /**
@@ -185,7 +188,8 @@ export class UserService {
   static async getCurrentUserProfile(): Promise<User> {
     const endpoint = '/profile';
     const response = await apiClient.get(endpoint);
-    return response.data;
+    // Admin optimized endpoints wrap data in a data property
+    return response.data.data || response.data;
   }
 }
 
