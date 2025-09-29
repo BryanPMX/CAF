@@ -202,8 +202,14 @@ const AppointmentsPage = () => {
 
   const handleDelete = async (appointmentId: number) => {
     try {
+      // Wait for user to be loaded before deleting
+      if (!user?.role) {
+        message.error('Usuario no autenticado');
+        return;
+      }
+
       message.loading({ content: 'Eliminando...', key: 'deleteAppt' });
-      await AppointmentService.deleteAppointment(user?.role || 'client', appointmentId.toString());
+      await AppointmentService.deleteAppointment(user.role, appointmentId.toString());
       message.success({ content: 'Cita eliminada exitosamente.', key: 'deleteAppt' });
       fetchAppointments(); // Refresh the list
     } catch (error) {

@@ -175,9 +175,16 @@ const CaseDetailPage = () => {
     try {
       setLoading(true);
       
+      // Wait for user to be loaded before fetching
+      if (!user?.role) {
+        console.log('User role not yet loaded, skipping fetch');
+        setLoading(false);
+        return;
+      }
+
       // Use centralized service layer with role-based endpoint routing
       const data = await CaseService.fetchCaseById(
-        user?.role || 'client',
+        user.role,
         caseId as string,
         'full' // Get all data in one request for better performance
       );
@@ -191,10 +198,10 @@ const CaseDetailPage = () => {
     }
   };
 
-  // The `useEffect` hook runs the fetch function once when the component is first mounted.
+  // The `useEffect` hook runs the fetch function once when the component is first mounted or when user changes.
   useEffect(() => {
     fetchCaseDetails();
-  }, [caseId]); // It re-runs if the caseId in the URL changes.
+  }, [caseId, user]); // It re-runs if the caseId in the URL changes or user changes.
 
   // Get user role from auth context
   useEffect(() => {
@@ -216,8 +223,14 @@ const CaseDetailPage = () => {
 
   const handleDeleteTask = async (taskId: number) => {
     try {
+      // Wait for user to be loaded before deleting
+      if (!user?.role) {
+        message.error('Usuario no autenticado');
+        return;
+      }
+
       message.loading({ content: 'Eliminando tarea...', key: 'deleteTask' });
-      await TaskService.deleteTask(user?.role || 'client', taskId.toString());
+      await TaskService.deleteTask(user.role, taskId.toString());
       message.success({ content: 'Tarea eliminada.', key: 'deleteTask' });
       fetchCaseDetails(); // Refresh the data to show the change.
     } catch (error) {
@@ -228,8 +241,14 @@ const CaseDetailPage = () => {
   const tryDeleteCase = async (force: boolean = false) => {
     if (!caseId) return;
     try {
+      // Wait for user to be loaded before deleting
+      if (!user?.role) {
+        message.error('Usuario no autenticado');
+        return;
+      }
+
       setIsDeletingCase(true);
-      await CaseService.deleteCase(user?.role || 'client', caseId as string);
+      await CaseService.deleteCase(user.role, caseId as string);
       message.success('Caso eliminado exitosamente');
       router.push('/app/cases');
     } catch (error: any) {

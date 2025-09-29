@@ -7,6 +7,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import { STAFF_ROLES, PERMISSIONS, getAllRoles } from '@/config/roles';
 import { useHydrationSafe } from '@/hooks/useHydrationSafe';
+import { useAuth } from '@/hooks/useAuth';
 import { apiClient } from '@/app/lib/api';
 import UserModal from './components/UserModal'; // Import our reusable modal
 
@@ -45,14 +46,21 @@ const UserManagementPage = () => {
   const [page, setPage] = useState<number>(1);
   const [pageSize, setPageSize] = useState<number>(20);
   const [total, setTotal] = useState<number>(0);
+  const { user } = useAuth();
 
   // --- Data Fetching ---
   // This function fetches the list of all users from our secure admin API endpoint.
   const fetchUsers = async () => {
     try {
+      // Wait for user to be loaded before fetching
+      if (!user?.role) {
+        console.log('User role not yet loaded, skipping fetch');
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
-      const role = typeof window !== 'undefined' ? localStorage.getItem('userRole') : STAFF_ROLES.ADMIN;
-      const base = role === STAFF_ROLES.OFFICE_MANAGER ? '/manager' : '/admin';
+      const base = user.role === STAFF_ROLES.OFFICE_MANAGER ? '/manager' : '/admin';
       const params: any = {};
       if (selectedOfficeId) params.officeId = selectedOfficeId;
       if (activity) params.activity = activity;
@@ -75,7 +83,9 @@ const UserManagementPage = () => {
   useEffect(() => {
     if (!isHydrated) return; // Wait for hydration to complete
     
-    setUserRole(typeof window !== 'undefined' ? localStorage.getItem('userRole') : null);
+    if (user?.role) {
+      setUserRole(user.role);
+    }
     // Initialize filters from URL or sessionStorage
     const officeFromUrl = searchParams.get('officeId');
     const activityFromUrl = searchParams.get('activity');
@@ -99,11 +109,10 @@ const UserManagementPage = () => {
     if (pageSizeFromUrl) setPageSize(Number(pageSizeFromUrl));
     fetchUsers();
     // Only admins can load office list for filtering
-    const role = typeof window !== 'undefined' ? localStorage.getItem('userRole') : null;
-    if (role && PERMISSIONS.canManageOffices(role as any)) {
+    if (user?.role && PERMISSIONS.canManageOffices(user.role as any)) {
       apiClient.get('/admin/offices').then(res => setOffices(res.data)).catch(() => {});
     }
-  }, [isHydrated]); // The empty dependency array `[]` ensures it only runs once.
+  }, [isHydrated, user]); // Re-run when user changes
 
   useEffect(() => {
     // Persist filters to sessionStorage and URL; refetch

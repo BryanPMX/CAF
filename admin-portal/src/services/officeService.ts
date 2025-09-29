@@ -2,7 +2,7 @@
 // Centralized Office Data Access Layer
 
 import { apiClient } from '@/app/lib/api';
-import { UserRole, Office, PaginatedResponse } from '@/app/lib/types';
+import { UserRole, Office } from '@/app/lib/types';
 
 /**
  * Centralized service for all office-related data operations
@@ -10,30 +10,21 @@ import { UserRole, Office, PaginatedResponse } from '@/app/lib/types';
  */
 export class OfficeService {
   /**
-   * Fetch offices based on user role
+   * Fetch all offices
    * @param userRole - The role of the current user
-   * @param params - Query parameters for filtering and pagination
-   * @returns Promise<PaginatedResponse<Office>>
+   * @returns Promise<Office[]>
    */
-  static async fetchOffices(
-    userRole: UserRole,
-    params: {
-      page?: number;
-      pageSize?: number;
-      search?: string;
-    } = {}
-  ): Promise<PaginatedResponse<Office>> {
-    const { page = 1, pageSize = 20, search } = params;
+  static async fetchOffices(userRole: UserRole): Promise<Office[]> {
+    // Determine endpoint based on role
+    let endpoint: string;
     
-    // Build query parameters
-    const queryParams = new URLSearchParams({
-      page: page.toString(),
-      pageSize: pageSize.toString(),
-      ...(search && { search }),
-    });
-
-    // All authenticated users can see offices list
-    const endpoint = `/offices?${queryParams}`;
+    if (userRole === 'admin') {
+      endpoint = '/admin/offices';
+    } else if (userRole === 'office_manager') {
+      endpoint = '/manager/offices';
+    } else {
+      endpoint = '/offices';
+    }
 
     const response = await apiClient.get(endpoint);
     return response.data;
@@ -45,18 +36,16 @@ export class OfficeService {
    * @param officeId - The ID of the office to fetch
    * @returns Promise<Office>
    */
-  static async fetchOfficeById(
-    userRole: UserRole,
-    officeId: string
-  ): Promise<Office> {
+  static async fetchOfficeById(userRole: UserRole, officeId: string): Promise<Office> {
     // Determine endpoint based on role
     let endpoint: string;
     
     if (userRole === 'admin') {
       endpoint = `/admin/offices/${officeId}`;
+    } else if (userRole === 'office_manager') {
+      endpoint = `/manager/offices/${officeId}`;
     } else {
-      // Other roles cannot access individual office details
-      throw new Error('Insufficient permissions to access office details');
+      endpoint = `/offices/${officeId}`;
     }
 
     const response = await apiClient.get(endpoint);
@@ -64,60 +53,68 @@ export class OfficeService {
   }
 
   /**
-   * Create a new office (admin only)
+   * Create a new office
    * @param userRole - The role of the current user
    * @param officeData - The office data to create
    * @returns Promise<Office>
    */
-  static async createOffice(
-    userRole: UserRole,
-    officeData: Partial<Office>
-  ): Promise<Office> {
-    if (userRole !== 'admin') {
+  static async createOffice(userRole: UserRole, officeData: Partial<Office>): Promise<Office> {
+    // Determine endpoint based on role
+    let endpoint: string;
+    
+    if (userRole === 'admin') {
+      endpoint = '/admin/offices';
+    } else if (userRole === 'office_manager') {
+      endpoint = '/manager/offices';
+    } else {
       throw new Error('Insufficient permissions to create offices');
     }
 
-    const endpoint = '/admin/offices';
     const response = await apiClient.post(endpoint, officeData);
     return response.data;
   }
 
   /**
-   * Update an existing office (admin only)
+   * Update an existing office
    * @param userRole - The role of the current user
    * @param officeId - The ID of the office to update
    * @param officeData - The updated office data
    * @returns Promise<Office>
    */
-  static async updateOffice(
-    userRole: UserRole,
-    officeId: string,
-    officeData: Partial<Office>
-  ): Promise<Office> {
-    if (userRole !== 'admin') {
+  static async updateOffice(userRole: UserRole, officeId: string, officeData: Partial<Office>): Promise<Office> {
+    // Determine endpoint based on role
+    let endpoint: string;
+    
+    if (userRole === 'admin') {
+      endpoint = `/admin/offices/${officeId}`;
+    } else if (userRole === 'office_manager') {
+      endpoint = `/manager/offices/${officeId}`;
+    } else {
       throw new Error('Insufficient permissions to update offices');
     }
 
-    const endpoint = `/admin/offices/${officeId}`;
     const response = await apiClient.patch(endpoint, officeData);
     return response.data;
   }
 
   /**
-   * Delete an office (admin only)
+   * Delete an office
    * @param userRole - The role of the current user
    * @param officeId - The ID of the office to delete
    * @returns Promise<void>
    */
-  static async deleteOffice(
-    userRole: UserRole,
-    officeId: string
-  ): Promise<void> {
-    if (userRole !== 'admin') {
+  static async deleteOffice(userRole: UserRole, officeId: string): Promise<void> {
+    // Determine endpoint based on role
+    let endpoint: string;
+    
+    if (userRole === 'admin') {
+      endpoint = `/admin/offices/${officeId}`;
+    } else if (userRole === 'office_manager') {
+      endpoint = `/manager/offices/${officeId}`;
+    } else {
       throw new Error('Insufficient permissions to delete offices');
     }
 
-    const endpoint = `/admin/offices/${officeId}`;
     await apiClient.delete(endpoint);
   }
 }

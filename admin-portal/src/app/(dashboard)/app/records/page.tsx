@@ -37,6 +37,8 @@ import {
 import { useRouter } from 'next/navigation';
 import { apiClient } from '@/app/lib/api';
 import { useHydrationSafe } from '@/hooks/useHydrationSafe';
+import { useAuth } from '@/hooks/useAuth';
+import { RecordService } from '@/services';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -104,6 +106,7 @@ interface ArchivedAppointment {
 const RecordsPage: React.FC = () => {
   const router = useRouter();
   const isHydrated = useHydrationSafe();
+  const { user } = useAuth();
   const [cases, setCases] = useState<ArchivedCase[]>([]);
   const [appointments, setAppointments] = useState<ArchivedAppointment[]>([]);
   const [stats, setStats] = useState<ArchiveStats | null>(null);
@@ -124,11 +127,15 @@ const RecordsPage: React.FC = () => {
     if (!isHydrated) return; // Wait for hydration to complete
     
     const checkAccess = () => {
-      const role = localStorage.getItem('userRole');
-      setUserRole(role);
+      if (!user?.role) {
+        setLoading(false);
+        return false;
+      }
+      
+      setUserRole(user.role);
 
       // Only admins and office managers can access archives
-      if (role !== 'admin' && role !== 'office_manager') {
+      if (user.role !== 'admin' && user.role !== 'office_manager') {
         setAccessDenied(true);
         setLoading(false);
         return false;
@@ -143,13 +150,19 @@ const RecordsPage: React.FC = () => {
     // Load initial data
     loadStats();
     loadCases();
-  }, [isHydrated]);
+  }, [isHydrated, user]);
 
   // Load archive statistics
   const loadStats = async () => {
     try {
-      const response = await apiClient.get('/admin/records/stats');
-      setStats(response.data);
+      // Wait for user to be loaded before fetching
+      if (!user?.role) {
+        console.log('User role not yet loaded, skipping stats fetch');
+        return;
+      }
+
+      const data = await RecordService.fetchStats(user.role);
+      setStats(data);
     } catch (error) {
       console.error('Error loading archive stats:', error);
       message.error('Error al cargar estadísticas de archivos');
@@ -159,18 +172,24 @@ const RecordsPage: React.FC = () => {
   // Load archived cases
   const loadCases = async () => {
     try {
+      // Wait for user to be loaded before fetching
+      if (!user?.role) {
+        console.log('User role not yet loaded, skipping cases fetch');
+        setLoadingCases(false);
+        setLoading(false);
+        return;
+      }
+
       setLoadingCases(true);
-      const params = new URLSearchParams({
-        page: currentPage.toString(),
-        limit: '20',
+      const data = await RecordService.fetchArchivedCases(user.role, {
+        page: currentPage,
+        limit: 20,
         type: archiveType,
-        ...(searchText && { search: searchText }),
       });
 
-      const response = await apiClient.get(`/admin/records/cases?${params}`);
-      setCases(response.data.cases);
-      setTotalPages(response.data.pagination.pages);
-      setTotalItems(response.data.pagination.total);
+      setCases(data.cases);
+      setTotalPages(data.pagination.pages);
+      setTotalItems(data.pagination.total);
     } catch (error) {
       console.error('Error loading archived cases:', error);
       message.error('Error al cargar casos archivados');
@@ -183,18 +202,23 @@ const RecordsPage: React.FC = () => {
   // Load archived appointments
   const loadAppointments = async () => {
     try {
+      // Wait for user to be loaded before fetching
+      if (!user?.role) {
+        console.log('User role not yet loaded, skipping appointments fetch');
+        setLoadingAppointments(false);
+        return;
+      }
+
       setLoadingAppointments(true);
-      const params = new URLSearchParams({
-        page: currentPage.toString(),
-        limit: '20',
+      const data = await RecordService.fetchArchivedAppointments(user.role, {
+        page: currentPage,
+        limit: 20,
         type: archiveType,
-        ...(searchText && { search: searchText }),
       });
 
-      const response = await apiClient.get(`/admin/records/appointments?${params}`);
-      setAppointments(response.data.appointments);
-      setTotalPages(response.data.pagination.pages);
-      setTotalItems(response.data.pagination.total);
+      setAppointments(data.appointments);
+      setTotalPages(data.pagination.pages);
+      setTotalItems(data.pagination.total);
     } catch (error) {
       console.error('Error loading archived appointments:', error);
       message.error('Error al cargar citas archivadas');
