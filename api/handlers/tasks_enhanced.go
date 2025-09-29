@@ -142,7 +142,7 @@ func GetTaskByID(db *gorm.DB) gin.HandlerFunc {
 		response := gin.H{
 			"task": task,
 			"case": func() gin.H {
-				if task.Case != nil {
+				if task.Case.ID != 0 {
 					return gin.H{
 						"id":          task.Case.ID,
 						"title":       task.Case.Title,
@@ -165,7 +165,7 @@ func GetTaskByID(db *gorm.DB) gin.HandlerFunc {
 				return gin.H{"id": task.AssignedToID}
 			}(),
 			"client": func() gin.H {
-				if task.Case != nil && task.Case.Client != nil {
+				if task.Case.ID != 0 && task.Case.Client != nil {
 					return gin.H{
 						"id":        task.Case.Client.ID,
 						"firstName": task.Case.Client.FirstName,
@@ -176,7 +176,7 @@ func GetTaskByID(db *gorm.DB) gin.HandlerFunc {
 				return gin.H{}
 			}(),
 			"office": func() gin.H {
-				if task.Case != nil {
+				if task.Case.ID != 0 {
 					return gin.H{
 						"id": task.Case.OfficeID,
 					}
