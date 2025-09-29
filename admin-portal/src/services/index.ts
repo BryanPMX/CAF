@@ -9,4 +9,4 @@ export * from './officeService';
 export * from './taskService';
 
 // Re-export types for convenience
-export type { UserRole, Case, CaseDetails, Appointment, User, Office, Task, PaginatedResponse, SearchFilters } from '@/app/lib/types';
+export type { UserRole, Case, CaseDetails, Appointment, User, Office, Task, PaginatedResponse, EnhancedPaginatedResponse, SearchFilters } from '@/app/lib/types';

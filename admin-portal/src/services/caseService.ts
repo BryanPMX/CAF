@@ -2,7 +2,7 @@
 // Centralized Case Data Access Layer
 
 import { apiClient } from '@/app/lib/api';
-import { UserRole, Case, CaseDetails, PaginatedResponse, SearchFilters } from '@/app/lib/types';
+import { UserRole, Case, CaseDetails, PaginatedResponse, EnhancedPaginatedResponse, SearchFilters } from '@/app/lib/types';
 
 /**
  * Centralized service for all case-related data operations
@@ -13,7 +13,7 @@ export class CaseService {
    * Fetch cases based on user role
    * @param userRole - The role of the current user
    * @param params - Query parameters for filtering and pagination
-   * @returns Promise<PaginatedResponse<Case>>
+   * @returns Promise<EnhancedPaginatedResponse<Case>>
    */
   static async fetchCases(
     userRole: UserRole,
@@ -23,7 +23,7 @@ export class CaseService {
       search?: string;
       filters?: SearchFilters;
     } = {}
-  ): Promise<PaginatedResponse<Case>> {
+  ): Promise<EnhancedPaginatedResponse<Case>> {
     const { page = 1, pageSize = 20, search, filters = {} } = params;
     
     // Build query parameters
@@ -160,7 +160,7 @@ export class CaseService {
    * Fetch cases assigned to the current user
    * @param userRole - The role of the current user
    * @param params - Query parameters for filtering and pagination
-   * @returns Promise<PaginatedResponse<Case>>
+   * @returns Promise<EnhancedPaginatedResponse<Case>>
    */
   static async fetchMyCases(
     userRole: UserRole,
@@ -170,7 +170,7 @@ export class CaseService {
       search?: string;
       filters?: SearchFilters;
     } = {}
-  ): Promise<PaginatedResponse<Case>> {
+  ): Promise<EnhancedPaginatedResponse<Case>> {
     const { page = 1, pageSize = 20, search, filters = {} } = params;
     
     // Build query parameters
@@ -255,7 +255,7 @@ export class CaseService {
    * @param userRole - The role of the current user
    * @param clientId - The ID of the client
    * @param params - Query parameters for filtering and pagination
-   * @returns Promise<PaginatedResponse<Case>>
+   * @returns Promise<EnhancedPaginatedResponse<Case>>
    */
   static async fetchCasesForClient(
     userRole: UserRole,
@@ -264,7 +264,7 @@ export class CaseService {
       page?: number;
       pageSize?: number;
     } = {}
-  ): Promise<PaginatedResponse<Case>> {
+  ): Promise<EnhancedPaginatedResponse<Case>> {
     const { page = 1, pageSize = 20 } = params;
     
     // Build query parameters
