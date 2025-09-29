@@ -14,7 +14,7 @@ export class ReportService {
    * @param userRole - The role of the current user
    * @returns Promise<any[]>
    */
-  static async fetchOffices(userRole: UserRole): Promise<any[]> {
+  static async fetchOfficesForReports(userRole: UserRole): Promise<any[]> {
     // All roles can access offices for filtering
     const response = await apiClient.get('/offices');
     return response.data;
@@ -174,7 +174,7 @@ export class ReportService {
 
 // Export convenience functions for backward compatibility
 export const {
-  fetchOffices,
+  fetchOfficesForReports,
   generateCasesReport,
   generateAppointmentsReport,
   generateSummaryReport,
