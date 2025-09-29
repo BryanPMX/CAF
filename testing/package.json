@@ -1,34 +1,26 @@
 {
-  "name": "caf-production-tests",
+  "name": "caf-crud-testing",
   "version": "1.0.0",
-  "description": "Production testing suite for CAF system",
+  "description": "Comprehensive CRUD testing suite for CAF system",
+  "main": "crud-automation.js",
   "scripts": {
-    "smoke-tests": "node smoke-tests.js",
-    "load-test": "artillery run load-test.yml",
-    "integration-tests": "node integration-tests.js",
-    "health-check": "./health-monitor.sh",
-    "websocket-test": "node websocket-tester.js basic",
-    "websocket-load": "node websocket-tester.js load",
-    "create-test-users": "node test-user-manager.js create",
-    "cleanup-test-users": "node test-user-manager.js cleanup",
-    "test-all": "npm run health-check && npm run smoke-tests",
-    "test-full": "npm run health-check && npm run smoke-tests && npm run integration-tests && npm run websocket-test",
-    "monitor": "./health-monitor.sh monitor",
-    "setup-testing": "npm run create-test-users && npm run test-full"
+    "test:crud": "node crud-automation.js",
+    "test:quick": "node quick-crud-test.js",
+    "test:performance": "node performance-test.js",
+    "test:demo": "node demo-test.js",
+    "test:all": "npm run test:crud && npm run test:quick && npm run test:performance"
   },
   "dependencies": {
-    "axios": "^1.6.7",
-    "chalk": "^4.1.2",
-    "dotenv": "^16.3.1",
-    "ws": "^8.18.3"
+    "axios": "^1.6.0"
   },
   "devDependencies": {
-    "artillery": "^2.0.0"
+    "nodemon": "^3.0.0"
   },
   "keywords": [
     "testing",
-    "production",
-    "health-check",
+    "crud",
+    "automation",
+    "api",
     "caf"
   ],
   "author": "CAF Development Team",
