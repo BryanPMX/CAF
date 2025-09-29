@@ -34,5 +34,5 @@ type SessionConfig struct {
 var DefaultSessionConfig = SessionConfig{
 	MaxConcurrentSessions: 3,           // Allow 3 concurrent sessions
 	SessionTimeout:        24 * time.Hour, // 24 hours total
-	InactivityTimeout:     2 * time.Hour,  // 2 hours of inactivity
+	InactivityTimeout:     24 * time.Hour, // 24 hours of inactivity (increased from 2 hours)
 }
