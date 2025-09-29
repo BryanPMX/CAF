@@ -350,10 +350,8 @@ func GetUserByID(db *gorm.DB) gin.HandlerFunc {
 		userID := c.Param("id")
 		var user models.User
 
-		// Use Joins to efficiently load user with office and case assignments
-		query := db.Joins("LEFT JOIN offices ON users.office_id = offices.id").
-			Select("users.*, offices.id as office_id, offices.name as office_name, offices.address as office_address").
-			Where("users.id = ? AND users.deleted_at IS NULL", userID)
+		// Use Preload to efficiently load user with office and case assignments
+		query := db.Preload("Office").Where("id = ? AND deleted_at IS NULL", userID)
 
 		if err := query.First(&user).Error; err != nil {
 			if err == gorm.ErrRecordNotFound {
@@ -374,11 +372,16 @@ func GetUserByID(db *gorm.DB) gin.HandlerFunc {
 		// Build response with all associated data
 		response := gin.H{
 			"user": user,
-			"office": gin.H{
-				"id":      user.OfficeID,
-				"name":    user.Office.Name,
-				"address": user.Office.Address,
-			},
+			"office": func() gin.H {
+				if user.Office != nil {
+					return gin.H{
+						"id":      user.Office.ID,
+						"name":    user.Office.Name,
+						"address": user.Office.Address,
+					}
+				}
+				return gin.H{"id": user.OfficeID}
+			}(),
 			"caseAssignments": caseAssignments,
 			"totalCases":      len(caseAssignments),
 		}
