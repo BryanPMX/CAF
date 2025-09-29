@@ -28,9 +28,8 @@ import {
   BarChartOutlined,
   ClockCircleOutlined
 } from '@ant-design/icons';
-import { apiClient } from '@/app/lib/api';
 import { useAuth } from '@/hooks/useAuth';
-import { getCasesEndpoint } from '@/app/lib/api-endpoints';
+import { CaseService } from '@/services/caseService';
 import CreateCaseModal from './components/CreateCaseModal';
 // Custom debounce implementation to avoid lodash dependency
 const debounce = <T extends (...args: any[]) => any>(func: T, wait: number): T => {
@@ -254,21 +253,20 @@ const CaseManagementPage = () => {
         setLoading(true);
       }
 
-      const params = new URLSearchParams({
-        page: page.toString(),
-        pageSize: pageSize.toString(),
-        ...(debouncedSearchText && { search: debouncedSearchText }),
-        ...(deptFilter && { category: deptFilter }),
-        ...(caseTypeFilter && { title: caseTypeFilter }),
-      } as Record<string, string>);
 
-      // Use role-based API endpoint
-      const endpoint = user?.role ? getCasesEndpoint(user.role, 'list') : '/admin/optimized/cases';
-      const response = await apiClient.get(`${endpoint}?${params}`, {
-        signal: abortControllerRef.current.signal
-      });
-
-      const data: PaginatedResponse = response.data;
+      // Use centralized service layer with role-based endpoint routing
+      const data: PaginatedResponse = await CaseService.fetchCases(
+        user?.role || 'client',
+        {
+          page,
+          pageSize,
+          search: debouncedSearchText,
+          filters: {
+            category: deptFilter,
+            status: caseTypeFilter,
+          }
+        }
+      );
       
       if (append) {
         setCases(prev => [...prev, ...data.data]);
@@ -305,7 +303,7 @@ const CaseManagementPage = () => {
       setLoadingMore(false);
       abortControllerRef.current = null;
     }
-  }, [pageSize, debouncedSearchText, deptFilter, caseTypeFilter, cache, generateCacheKey]);
+  }, [pageSize, debouncedSearchText, deptFilter, caseTypeFilter, cache, generateCacheKey, user?.role]);
 
   // Load initial data
   useEffect(() => {

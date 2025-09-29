@@ -7,7 +7,9 @@ import { Descriptions, Card, Table, Tag, Spin, message, Button, Empty, Row, Col,
 import type { TabsProps } from 'antd';
 import { useHydrationSafe } from '@/hooks/useHydrationSafe';
 import { ArrowLeftOutlined, PlusOutlined, EditOutlined, DeleteOutlined, CheckCircleOutlined } from '@ant-design/icons';
-import { apiClient } from '@/app/lib/api';
+import { CaseService } from '@/services/caseService';
+import { TaskService } from '@/services/taskService';
+import { useAuth } from '@/hooks/useAuth';
 import CaseTimeline from './components/CaseTimeline';
 import AddCommentForm from './components/AddCommentForm';
 import UploadDocument from './components/UploadDocument';
@@ -167,6 +169,7 @@ const CaseDetailPage = () => {
   const router = useRouter();
   const params = useParams();
   const isHydrated = useHydrationSafe();
+  const { user } = useAuth();
   const { caseId } = params;
 
   const [caseDetails, setCaseDetails] = useState<CaseDetails | null>(null);
@@ -187,14 +190,14 @@ const CaseDetailPage = () => {
     try {
       setLoading(true);
       
-      // Single optimized API call with all necessary data
-      const response = await apiClient.get(`/admin/cases/${caseId}`, { 
-        params: { 
-          include: 'full' // Get all data in one request for better performance
-        } 
-      });
+      // Use centralized service layer with role-based endpoint routing
+      const data = await CaseService.fetchCaseById(
+        user?.role || 'client',
+        caseId as string,
+        'full' // Get all data in one request for better performance
+      );
       
-      setCaseDetails(response.data);
+      setCaseDetails(data);
       setLoading(false);
       
     } catch (error) {
@@ -208,13 +211,12 @@ const CaseDetailPage = () => {
     fetchCaseDetails();
   }, [caseId]); // It re-runs if the caseId in the URL changes.
 
-  // Get user role from localStorage
+  // Get user role from auth context
   useEffect(() => {
-    if (!isHydrated) return; // Wait for hydration to complete
-    
-    const role = localStorage.getItem('userRole');
-    setUserRole(role);
-  }, [isHydrated]);
+    if (user?.role) {
+      setUserRole(user.role);
+    }
+  }, [user?.role]);
 
   // --- Event Handlers for Tasks ---
   const handleCreateTask = () => {
@@ -230,7 +232,7 @@ const CaseDetailPage = () => {
   const handleDeleteTask = async (taskId: number) => {
     try {
       message.loading({ content: 'Eliminando tarea...', key: 'deleteTask' });
-      await apiClient.delete(`/tasks/${taskId}`);
+      await TaskService.deleteTask(user?.role || 'client', taskId.toString());
       message.success({ content: 'Tarea eliminada.', key: 'deleteTask' });
       fetchCaseDetails(); // Refresh the data to show the change.
     } catch (error) {
@@ -242,12 +244,7 @@ const CaseDetailPage = () => {
     if (!caseId) return;
     try {
       setIsDeletingCase(true);
-      await apiClient.delete(`/admin/cases/${caseId}` as string, {
-        params: {
-          force: force ? 'true' : undefined,
-          reason: deleteReason || undefined,
-        },
-      });
+      await CaseService.deleteCase(user?.role || 'client', caseId as string);
       message.success('Caso eliminado exitosamente');
       router.push('/app/cases');
     } catch (error: any) {

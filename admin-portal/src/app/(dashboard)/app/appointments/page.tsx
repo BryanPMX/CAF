@@ -4,8 +4,10 @@
 import React, { useEffect, useState } from 'react';
 import { Table, Tag, message, Spin, Button, Popconfirm, Card, Statistic, Row, Col, Select, Space } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, CalendarOutlined, UserOutlined, ClockCircleOutlined } from '@ant-design/icons';
-import { apiClient } from '@/app/lib/api';
+import { AppointmentService } from '@/services/appointmentService';
+import { UserService } from '@/services/userService';
 import { Appointment as AppointmentType } from '@/app/lib/types';
+import { useAuth } from '@/hooks/useAuth';
 import { APPOINTMENT_STATUS_CONFIG, getValidAppointmentStatuses } from '@/config/statuses';
 import AppointmentModal from '../../components/AppointmentModal';
 import EditAppointmentModal from '../../components/EditAppointmentModal';
@@ -36,6 +38,7 @@ interface Appointment extends AppointmentType {
 const AppointmentsPage = () => {
   // --- State Management ---
   const isHydrated = useHydrationSafe();
+  const { user } = useAuth();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [filteredAppointments, setFilteredAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,21 +55,25 @@ const AppointmentsPage = () => {
 
   // --- Data Fetching & Role Management ---
   useEffect(() => {
-    if (!isHydrated) return; // Wait for hydration to complete
-    
-    // Get the user's role from localStorage to control UI elements
-    const role = localStorage.getItem('userRole');
-    setUserRole(role);
-  }, [isHydrated]);
+    if (user?.role) {
+      setUserRole(user.role);
+    }
+  }, [user?.role]);
 
   const fetchAppointments = async () => {
     try {
       setLoading(true);
-      // Base list is protected route for any logged-in user; scoped by backend
-      const response = await apiClient.get('/admin/appointments');
+      // Use centralized service layer with role-based endpoint routing
+      const data = await AppointmentService.fetchAppointments(
+        user?.role || 'client',
+        {
+          page: 1,
+          pageSize: 1000, // Get all appointments for now
+        }
+      );
       // Appointments loaded successfully
-      setAppointments(response.data);
-      setFilteredAppointments(response.data);
+      setAppointments(data.data);
+      setFilteredAppointments(data.data);
     } catch (error: any) {
       console.error('Failed to fetch appointments:', error);
       const errorMessage = error.response?.data?.error || error.message || 'No se pudieron cargar las citas.';
@@ -78,22 +85,18 @@ const AppointmentsPage = () => {
 
   const fetchSupportingData = async () => {
     try {
-      const role = typeof window !== 'undefined' ? localStorage.getItem('userRole') : 'admin';
-      const base = role === 'office_manager' ? '/manager' : '/admin';
-      const [staffRes, clientsRes] = await Promise.all([
-        apiClient.get(`${base}/users`),
-        apiClient.get(`${base}/users?role=client`)
-      ]);
+      const role = user?.role || 'client';
+      
+      // Only fetch users if user has permission
+      if (role === 'admin' || role === 'office_manager') {
+        const [staffData, clientsData] = await Promise.all([
+          UserService.fetchUsers(role, { page: 1, pageSize: 1000 }),
+          UserService.fetchUsers(role, { page: 1, pageSize: 1000, filters: { role: 'client' } })
+        ]);
 
-      const staffPayload = Array.isArray(staffRes.data)
-        ? staffRes.data
-        : (staffRes.data?.users || []);
-      const clientsPayload = Array.isArray(clientsRes.data)
-        ? clientsRes.data
-        : (clientsRes.data?.users || []);
-
-      setStaffList(staffPayload.filter((user: any) => user.role !== 'client'));
-      setClientList(clientsPayload);
+        setStaffList(staffData.data.filter((user: any) => user.role !== 'client'));
+        setClientList(clientsData.data);
+      }
     } catch (error) {
       console.error('Failed to fetch supporting data:', error);
     }
@@ -188,7 +191,7 @@ const AppointmentsPage = () => {
   const handleDelete = async (appointmentId: number) => {
     try {
       message.loading({ content: 'Eliminando...', key: 'deleteAppt' });
-      await apiClient.delete(`/admin/appointments/${appointmentId}`);
+      await AppointmentService.deleteAppointment(user?.role || 'client', appointmentId.toString());
       message.success({ content: 'Cita eliminada exitosamente.', key: 'deleteAppt' });
       fetchAppointments(); // Refresh the list
     } catch (error) {
