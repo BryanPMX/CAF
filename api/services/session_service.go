@@ -74,8 +74,10 @@ func (s *SessionService) CreateSession(userID uint, token string, c *gin.Context
 func (s *SessionService) ValidateSession(tokenHash string) (*models.Session, error) {
 	var session models.Session
 
+	// Use current time for consistent comparison
+	now := time.Now()
 	if err := s.db.Where("token_hash = ? AND is_active = ? AND expires_at > ?",
-		tokenHash, true, time.Now()).First(&session).Error; err != nil {
+		tokenHash, true, now).First(&session).Error; err != nil {
 		return nil, fmt.Errorf("session not found or expired: %w", err)
 	}
 
@@ -89,7 +91,6 @@ func (s *SessionService) ValidateSession(tokenHash string) (*models.Session, err
 	}
 
 	// Update last activity with current time
-	now := time.Now()
 	session.LastActivity = now
 	if err := s.db.Save(&session).Error; err != nil {
 		return nil, fmt.Errorf("failed to update session activity: %w", err)
