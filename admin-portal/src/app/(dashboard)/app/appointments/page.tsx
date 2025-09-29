@@ -62,10 +62,16 @@ const AppointmentsPage = () => {
 
   const fetchAppointments = async () => {
     try {
+      // Wait for user to be loaded before fetching
+      if (!user?.role) {
+        console.log('User role not yet loaded, skipping fetch');
+        return;
+      }
+
       setLoading(true);
       // Use centralized service layer with role-based endpoint routing
       const data = await AppointmentService.fetchAppointments(
-        user?.role || 'client',
+        user.role,
         {
           page: 1,
           pageSize: 1000, // Get all appointments for now
@@ -85,7 +91,13 @@ const AppointmentsPage = () => {
 
   const fetchSupportingData = async () => {
     try {
-      const role = user?.role || 'client';
+      // Wait for user to be loaded before fetching
+      if (!user?.role) {
+        console.log('User role not yet loaded, skipping supporting data fetch');
+        return;
+      }
+
+      const role = user.role;
       
       // Only fetch users if user has permission
       if (role === 'admin' || role === 'office_manager') {
@@ -102,11 +114,11 @@ const AppointmentsPage = () => {
     }
   };
 
-  // Fetch the data when the component first loads.
+  // Fetch the data when the component first loads or when user changes.
   useEffect(() => {
     fetchAppointments();
     fetchSupportingData();
-  }, []);
+  }, [user]);
 
   // Department and Case Type options
   const DEPARTMENTS = ['Familiar', 'Civil', 'Psicologia', 'Recursos'];

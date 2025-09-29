@@ -226,6 +226,13 @@ const CaseManagementPage = () => {
         return;
       }
 
+      // Wait for user to be loaded before fetching
+      if (!user?.role) {
+        console.log('User role not yet loaded, skipping fetch');
+        setLoading(false);
+        return;
+      }
+
       if (append) {
         setLoadingMore(true);
       } else {
@@ -235,7 +242,7 @@ const CaseManagementPage = () => {
 
       // Use centralized service layer with role-based endpoint routing
       const data: EnhancedPaginatedResponse<CaseType> = await CaseService.fetchCases(
-        user?.role || 'client',
+        user.role,
         {
           page,
           pageSize,
