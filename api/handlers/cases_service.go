@@ -316,9 +316,10 @@ func (s *CaseService) DeleteCase(caseID string, c *gin.Context) error {
 		deletionReason = "Manual deletion"
 	}
 
+	now := time.Now()
 	caseData.DeletedBy = &userIDUint
 	caseData.DeletionReason = deletionReason
-	caseData.DeletedAt = &time.Time{}
+	caseData.DeletedAt = &now
 
 	if err := s.db.Save(&caseData).Error; err != nil {
 		return fmt.Errorf("failed to delete case: %v", err)

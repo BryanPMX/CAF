@@ -323,6 +323,7 @@ func main() {
 		// Office Management
 		admin.POST("/offices", handlers.CreateOffice(database))
 		admin.GET("/offices", handlers.GetOffices(database))
+		admin.GET("/offices/:id", handlers.GetOfficeByID(database))
 		admin.PATCH("/offices/:id", handlers.UpdateOffice(database))
 		admin.DELETE("/offices/:id", handlers.DeleteOffice(database))
 
