@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -85,13 +86,23 @@ func GetTasks(db *gorm.DB) gin.HandlerFunc {
 	}
 }
 
-// GetTaskByID returns a specific task with access control
+// GetTaskByID returns a specific task with access control and all associated data
 func GetTaskByID(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		taskID := c.Param("id")
 		var task models.Task
 
-		query := db.Preload("AssignedTo").Preload("Case").Preload("Comments.User")
+		// Use Joins to efficiently load task with all related data
+		query := db.Joins("LEFT JOIN cases ON tasks.case_id = cases.id").
+			Joins("LEFT JOIN users AS assigned_to ON tasks.assigned_to_id = assigned_to.id").
+			Joins("LEFT JOIN users AS clients ON cases.client_id = clients.id").
+			Joins("LEFT JOIN offices ON cases.office_id = offices.id").
+			Select("tasks.*, "+
+				"cases.id as case_id, cases.title as case_title, cases.description as case_description, cases.status as case_status, cases.category as case_category, "+
+				"assigned_to.id as assigned_to_id, assigned_to.first_name as assigned_to_first_name, assigned_to.last_name as assigned_to_last_name, assigned_to.email as assigned_to_email, "+
+				"clients.id as client_id, clients.first_name as client_first_name, clients.last_name as client_last_name, clients.email as client_email, "+
+				"offices.id as office_id, offices.name as office_name, offices.address as office_address").
+			Where("tasks.id = ? AND tasks.deleted_at IS NULL", taskID)
 
 		// Apply access control
 		userRole, _ := c.Get("userRole")
@@ -104,19 +115,19 @@ func GetTaskByID(db *gorm.DB) gin.HandlerFunc {
 			userIDUint, _ := strconv.ParseUint(userID.(string), 10, 32)
 
 			// Tasks assigned to the user
-			query = query.Where("assigned_to_id = ?", userIDUint)
+			query = query.Where("tasks.assigned_to_id = ?", userIDUint)
 
 			// Or tasks from cases where the user is assigned
-			query = query.Or("case_id IN (SELECT case_id FROM user_case_assignments WHERE user_id = ?)", userIDUint)
+			query = query.Or("tasks.case_id IN (SELECT case_id FROM user_case_assignments WHERE user_id = ?)", userIDUint)
 
 			// Apply office scoping
 			if officeScopeID != nil {
-				query = query.Joins("INNER JOIN cases ON cases.id = tasks.case_id AND cases.office_id = ?", officeScopeID)
+				query = query.Where("cases.office_id = ?", officeScopeID)
 			}
 
 			// Apply department filtering if available
 			if userDepartment != nil {
-				query = query.Joins("INNER JOIN cases ON cases.id = tasks.case_id AND cases.category = ?", userDepartment)
+				query = query.Where("cases.category = ?", userDepartment)
 			}
 		}
 
@@ -129,7 +140,45 @@ func GetTaskByID(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		c.JSON(http.StatusOK, task)
+		// Load task comments with user information
+		var comments []models.TaskComment
+		if err := db.Preload("User").Where("task_id = ? AND deleted_at IS NULL", task.ID).Order("created_at ASC").Find(&comments).Error; err != nil {
+			// Log error but don't fail the request
+			log.Printf("Warning: Failed to load comments for task %d: %v", task.ID, err)
+		}
+
+		// Build comprehensive response with all nested data
+		response := gin.H{
+			"task": task,
+			"case": gin.H{
+				"id":          task.CaseID,
+				"title":       task.Case.Title,
+				"description": task.Case.Description,
+				"status":      task.Case.Status,
+				"category":    task.Case.Category,
+			},
+			"assignedTo": gin.H{
+				"id":        task.AssignedToID,
+				"firstName": task.AssignedTo.FirstName,
+				"lastName":  task.AssignedTo.LastName,
+				"email":     task.AssignedTo.Email,
+			},
+			"client": gin.H{
+				"id":        task.Case.ClientID,
+				"firstName": task.Case.Client.FirstName,
+				"lastName":  task.Case.Client.LastName,
+				"email":     task.Case.Client.Email,
+			},
+			"office": gin.H{
+				"id":      task.Case.OfficeID,
+				"name":    task.Case.Office.Name,
+				"address": task.Case.Office.Address,
+			},
+			"comments":    comments,
+			"totalComments": len(comments),
+		}
+
+		c.JSON(http.StatusOK, response)
 	}
 }
 
