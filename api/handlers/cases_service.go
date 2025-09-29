@@ -278,11 +278,14 @@ func (s *CaseService) UpdateCase(caseID string, c *gin.Context) (*models.Case, e
 
 	// Update fields
 	userID, _ := c.Get("userID")
-	userIDUint := userID.(uint)
+	userIDUint, err := strconv.ParseUint(userID.(string), 10, 32)
+	if err != nil {
+		return nil, fmt.Errorf("invalid user ID: %v", err)
+	}
 	updateData.ID = caseData.ID
 	updateData.CreatedAt = caseData.CreatedAt
 	updateData.CreatedBy = caseData.CreatedBy
-	updateData.UpdatedBy = &userIDUint
+	updateData.UpdatedBy = &[]uint{uint(userIDUint)}[0]
 
 	if err := s.db.Save(&updateData).Error; err != nil {
 		return nil, fmt.Errorf("failed to update case: %v", err)
