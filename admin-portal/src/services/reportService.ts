@@ -54,7 +54,8 @@ export class ReportService {
     }
 
     const response = await apiClient.get(endpoint);
-    return response.data;
+    // Admin optimized endpoints wrap data in a data property
+    return response.data.data || response.data;
   }
 
   /**
@@ -91,7 +92,8 @@ export class ReportService {
     }
 
     const response = await apiClient.get(endpoint);
-    return response.data;
+    // Admin optimized endpoints wrap data in a data property
+    return response.data.data || response.data;
   }
 
   /**
@@ -126,7 +128,8 @@ export class ReportService {
     }
 
     const response = await apiClient.get(endpoint);
-    return response.data;
+    // Admin optimized endpoints wrap data in a data property
+    return response.data.data || response.data;
   }
 
   /**
