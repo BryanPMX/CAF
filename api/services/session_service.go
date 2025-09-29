@@ -50,15 +50,16 @@ func (s *SessionService) CreateSession(userID uint, token string, c *gin.Context
 	// Hash the token for storage (we don't store the actual token)
 	tokenHash := s.HashToken(token)
 
-	// Create new session
+	// Create new session with current time
+	now := time.Now()
 	session := &models.Session{
 		UserID:       userID,
 		TokenHash:    tokenHash,
 		DeviceInfo:   deviceInfo,
 		IPAddress:    ipAddress,
 		UserAgent:    userAgent,
-		LastActivity: time.Now(),
-		ExpiresAt:    time.Now().Add(s.config.SessionTimeout),
+		LastActivity: now,
+		ExpiresAt:    now.Add(s.config.SessionTimeout),
 		IsActive:     true,
 	}
 
@@ -79,6 +80,7 @@ func (s *SessionService) ValidateSession(tokenHash string) (*models.Session, err
 	}
 
 	// Check inactivity timeout
+	// Only check inactivity if the session has been active for more than the timeout period
 	if time.Since(session.LastActivity) > s.config.InactivityTimeout {
 		// Mark session as inactive
 		session.IsActive = false
@@ -86,8 +88,9 @@ func (s *SessionService) ValidateSession(tokenHash string) (*models.Session, err
 		return nil, fmt.Errorf("session expired due to inactivity")
 	}
 
-	// Update last activity
-	session.LastActivity = time.Now()
+	// Update last activity with current time
+	now := time.Now()
+	session.LastActivity = now
 	if err := s.db.Save(&session).Error; err != nil {
 		return nil, fmt.Errorf("failed to update session activity: %w", err)
 	}
