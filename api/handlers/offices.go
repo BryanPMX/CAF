@@ -17,6 +17,21 @@ type OfficeInput struct {
 
 // --- CRUD Handlers for Offices ---
 
+// GetOfficeByID retrieves a single office by its ID
+func GetOfficeByID(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		officeID := c.Param("id")
+		var office models.Office
+
+		if err := db.Where("id = ?", officeID).First(&office).Error; err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Office not found"})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{"data": office})
+	}
+}
+
 // CreateOffice is an admin-only handler to add a new office location.
 func CreateOffice(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
