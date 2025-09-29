@@ -315,6 +315,7 @@ func main() {
 		// User Management
 		admin.POST("/users", handlers.CreateUser(database))
 		admin.GET("/users", handlers.GetUsers(database))
+		admin.GET("/users/:id", handlers.GetUserByID(database))
 		admin.PATCH("/users/:id", handlers.UpdateUser(database))
 		admin.DELETE("/users/:id", handlers.DeleteUser(database))
 		admin.DELETE("/users/:id/permanent", handlers.PermanentDeleteUser(database))
@@ -345,6 +346,7 @@ func main() {
 		admin.POST("/cases/:id/complete", handlers.CompleteCase(database))
 
 		// Enhanced Task Management
+		admin.GET("/tasks/:id", handlers.GetTaskByID(database))
 		admin.POST("/cases/:id/tasks", handlers.CreateTaskEnhanced(database))
 		admin.PATCH("/tasks/:id", handlers.UpdateTaskEnhanced(database))
 		admin.DELETE("/tasks/:id", handlers.DeleteTaskEnhanced(database))
@@ -361,6 +363,7 @@ func main() {
 
 		// Enhanced Appointment Management (Admin can override department restrictions)
 		admin.GET("/appointments", handlers.GetAppointmentsEnhanced(database))
+		admin.GET("/appointments/:id", handlers.GetAppointmentByIDAdmin(database))
 		admin.POST("/appointments", handlers.CreateAppointmentSmart(database))
 		admin.PATCH("/appointments/:id", handlers.UpdateAppointmentEnhanced(database))
 		admin.DELETE("/appointments/:id", handlers.DeleteAppointmentAdmin(database))

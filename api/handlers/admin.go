@@ -2,6 +2,7 @@
 package handlers
 
 import (
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -147,7 +148,10 @@ func GetUsers(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Initialize with empty slice to prevent null JSON response
 		users := make([]models.User, 0)
-		query := db.Preload("Office").Order("created_at desc")
+		// CRITICAL FIX: Use Joins instead of Preload to eliminate N+1 query problem
+		query := db.Joins("LEFT JOIN offices ON users.office_id = offices.id").
+			Select("users.*, offices.id as office_id, offices.name as office_name, offices.address as office_address").
+			Order("users.created_at desc")
 		countQ := db.Model(&models.User{})
 
 		// Restrict to requester's office for non-admin roles when office scope is available
@@ -337,6 +341,49 @@ func SearchClients(db *gorm.DB) gin.HandlerFunc {
 			Find(&clients)
 
 		c.JSON(http.StatusOK, clients)
+	}
+}
+
+// GetUserByID retrieves a single user by their ID with all associated data
+func GetUserByID(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		userID := c.Param("id")
+		var user models.User
+
+		// Use Joins to efficiently load user with office and case assignments
+		query := db.Joins("LEFT JOIN offices ON users.office_id = offices.id").
+			Select("users.*, offices.id as office_id, offices.name as office_name, offices.address as office_address").
+			Where("users.id = ? AND users.deleted_at IS NULL", userID)
+
+		if err := query.First(&user).Error; err != nil {
+			if err == gorm.ErrRecordNotFound {
+				c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+				return
+			}
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve user"})
+			return
+		}
+
+		// Load case assignments for this user
+		var caseAssignments []models.UserCaseAssignment
+		if err := db.Preload("Case").Where("user_id = ?", user.ID).Find(&caseAssignments).Error; err != nil {
+			// Log error but don't fail the request
+			log.Printf("Warning: Failed to load case assignments for user %d: %v", user.ID, err)
+		}
+
+		// Build response with all associated data
+		response := gin.H{
+			"user": user,
+			"office": gin.H{
+				"id":      user.OfficeID,
+				"name":    user.Office.Name,
+				"address": user.Office.Address,
+			},
+			"caseAssignments": caseAssignments,
+			"totalCases":      len(caseAssignments),
+		}
+
+		c.JSON(http.StatusOK, response)
 	}
 }
 
