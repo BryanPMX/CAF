@@ -46,9 +46,12 @@ export class CaseService {
     if (userRole === 'admin') {
       // Admin users get optimized endpoint with full access
       endpoint = `/admin/optimized/cases?${queryParams}`;
+    } else if (userRole === 'office_manager') {
+      // Office managers use manager endpoints
+      endpoint = `/manager/cases?${queryParams}`;
     } else {
-      // All other roles use the protected endpoint with data scope filtering
-      endpoint = `/cases?${queryParams}`;
+      // Staff roles use staff endpoints
+      endpoint = `/staff/cases?${queryParams}`;
     }
 
     const response = await apiClient.get(endpoint);
@@ -79,8 +82,10 @@ export class CaseService {
     
     if (userRole === 'admin') {
       endpoint = `/admin/cases/${caseId}?${queryParams}`;
+    } else if (userRole === 'office_manager') {
+      endpoint = `/manager/cases/${caseId}?${queryParams}`;
     } else {
-      endpoint = `/cases/${caseId}?${queryParams}`;
+      endpoint = `/staff/cases/${caseId}?${queryParams}`;
     }
 
     const response = await apiClient.get(endpoint);
@@ -103,8 +108,10 @@ export class CaseService {
     
     if (userRole === 'admin') {
       endpoint = '/admin/cases';
+    } else if (userRole === 'office_manager') {
+      endpoint = '/manager/cases';
     } else {
-      endpoint = '/cases';
+      endpoint = '/staff/cases';
     }
 
     const response = await apiClient.post(endpoint, caseData);
@@ -128,8 +135,10 @@ export class CaseService {
     
     if (userRole === 'admin') {
       endpoint = `/admin/cases/${caseId}`;
+    } else if (userRole === 'office_manager') {
+      endpoint = `/manager/cases/${caseId}`;
     } else {
-      endpoint = `/cases/${caseId}`;
+      endpoint = `/staff/cases/${caseId}`;
     }
 
     const response = await apiClient.put(endpoint, caseData);
@@ -151,8 +160,10 @@ export class CaseService {
     
     if (userRole === 'admin') {
       endpoint = `/admin/cases/${caseId}`;
+    } else if (userRole === 'office_manager') {
+      endpoint = `/manager/cases/${caseId}`;
     } else {
-      endpoint = `/cases/${caseId}`;
+      endpoint = `/staff/cases/${caseId}`;
     }
 
     await apiClient.delete(endpoint);
@@ -281,9 +292,10 @@ export class CaseService {
     
     if (userRole === 'admin') {
       endpoint = `/admin/clients/${clientId}/cases?${queryParams}`;
+    } else if (userRole === 'office_manager') {
+      endpoint = `/manager/clients/${clientId}/cases?${queryParams}`;
     } else {
-      // Staff and managers use the same endpoint
-      endpoint = `/clients/${clientId}/cases?${queryParams}`;
+      endpoint = `/staff/clients/${clientId}/cases?${queryParams}`;
     }
 
     const response = await apiClient.get(endpoint);

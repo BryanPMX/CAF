@@ -39,10 +39,10 @@ func main() {
 	// --- Step 2.5: Initialize Rate Limiters ---
 	log.Println("INFO: Initializing rate limiters...")
 	middleware.InitializeRateLimiters(
-		cfg.RateLimitRequests,           // General requests per minute
-		cfg.RateLimitRequests/2,         // Auth requests per minute (half of general)
-		cfg.RateLimitRequests/20,        // Contact requests per hour (1/20th of general)
-		cfg.RateLimitRequests*2,         // Admin requests per minute (double general)
+		cfg.RateLimitRequests,    // General requests per minute
+		cfg.RateLimitRequests/2,  // Auth requests per minute (half of general)
+		cfg.RateLimitRequests/20, // Contact requests per hour (1/20th of general)
+		cfg.RateLimitRequests*2,  // Admin requests per minute (double general)
 	)
 
 	// --- Step 3: Run Database Migrations ---
@@ -230,6 +230,8 @@ func main() {
 	{
 		// Universal dashboard summary for all authenticated users
 		protected.GET("/dashboard-summary", handlers.GetDashboardSummary(database))
+		// Recent activity endpoint for dashboard
+		protected.GET("/recent-activity", handlers.GetRecentActivity(database))
 		// Dashboard content for all users
 		protected.GET("/dashboard/announcements", handlers.GetAnnouncements(database))
 		protected.GET("/dashboard/notes", handlers.GetNotes(database))
@@ -447,6 +449,8 @@ func main() {
 
 		// Client cases for appointment creation
 		staff.GET("/clients/:clientId/cases-for-appointment", handlers.GetClientCasesForAppointment(database))
+		// Client cases endpoint
+		staff.GET("/clients/:clientId/cases", handlers.GetCasesForClient(database))
 
 		// Staff user management (office-scoped)
 		staff.GET("/users", handlers.GetUsers(database))
@@ -478,11 +482,26 @@ func main() {
 		// Offices list for selection (we can return all so manager can pick among offices only where needed?)
 		// Keep offices list admin-only for now; creation modal already requires picking an office from list.
 
+		// Case Management for Office Managers
+		officeManager.GET("/cases", middleware.CaseAccessControl(database), handlers.GetCasesEnhanced(database))
+		officeManager.GET("/cases/:id", middleware.CaseAccessControl(database), handlers.GetCaseByIDEnhanced(database))
+		officeManager.GET("/cases/my", middleware.CaseAccessControl(database), handlers.GetMyCases(database))
+		officeManager.POST("/cases", middleware.CaseAccessControl(database), handlers.CreateCaseEnhanced(database))
+		officeManager.PUT("/cases/:id", middleware.CaseAccessControl(database), handlers.UpdateCase(database))
+		officeManager.DELETE("/cases/:id", middleware.CaseAccessControl(database), handlers.DeleteCase(database))
+
 		// Client cases for appointment creation
 		officeManager.GET("/clients/:clientId/cases-for-appointment", handlers.GetClientCasesForAppointment(database))
+		// Client cases endpoint
+		officeManager.GET("/clients/:clientId/cases", handlers.GetCasesForClient(database))
 
-		// Smart appointment creation for office managers
+		// Appointment Management for Office Managers
+		officeManager.GET("/appointments", middleware.AppointmentAccessControl(database), handlers.GetAppointmentsEnhanced(database))
+		officeManager.GET("/appointments/:id", middleware.AppointmentAccessControl(database), handlers.GetAppointmentByIDEnhanced(database))
+		officeManager.GET("/appointments/my", middleware.AppointmentAccessControl(database), handlers.GetMyAppointments(database))
 		officeManager.POST("/appointments", handlers.CreateAppointmentSmart(database))
+		officeManager.PATCH("/appointments/:id", middleware.AppointmentAccessControl(database), handlers.UpdateAppointmentEnhanced(database))
+		officeManager.DELETE("/appointments/:id", middleware.AppointmentAccessControl(database), handlers.DeleteAppointmentEnhanced(database))
 
 		// Reports (scoped by office via DataAccessControl)
 		reportsHandler := handlers.NewReportsHandler(database)

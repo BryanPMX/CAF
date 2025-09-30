@@ -327,8 +327,8 @@ func GetRecentActivity(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		c.JSON(http.StatusOK, gin.H{
-			"activities": activities,
-			"total":      len(activities),
+			"data":  activities,
+			"total": len(activities),
 		})
 	}
 }
