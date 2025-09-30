@@ -33,7 +33,7 @@ func (rl *RateLimiter) Allow(key string) bool {
 	defer rl.mutex.Unlock()
 
 	// Use explicit UTC time for consistent rate limiting
-	now := time.Now().UTC()
+	now := time.Now().UTC().UTC()
 	cutoff := now.Add(-rl.window)
 
 	// Get existing requests for this key
@@ -67,7 +67,7 @@ func (rl *RateLimiter) GetRemainingRequests(key string) int {
 	rl.mutex.RLock()
 	defer rl.mutex.RUnlock()
 
-	now := time.Now()
+	now := time.Now().UTC()
 	cutoff := now.Add(-rl.window)
 
 	requests, exists := rl.requests[key]
@@ -91,7 +91,7 @@ func (rl *RateLimiter) GetResetTime(key string) time.Time {
 	rl.mutex.RLock()
 	defer rl.mutex.RUnlock()
 
-	now := time.Now()
+	now := time.Now().UTC()
 	cutoff := now.Add(-rl.window)
 
 	requests, exists := rl.requests[key]
@@ -121,7 +121,7 @@ func (rl *RateLimiter) Cleanup() {
 	rl.mutex.Lock()
 	defer rl.mutex.Unlock()
 
-	now := time.Now()
+	now := time.Now().UTC()
 	cutoff := now.Add(-rl.window * 2) // Keep some buffer
 
 	for key, requests := range rl.requests {
