@@ -100,7 +100,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const fetchUserDetails = useCallback(async (userId: number): Promise<AuthUser | null> => {
     try {
       const response = await apiClient.get(`/admin/users/${userId}`);
-      const userData = response.data.data || response.data;
+      // Backend returns: { user: {...}, office: {...}, caseAssignments: [...] }
+      // We need to extract the user object from the response
+      const userData = response.data.user || response.data.data || response.data;
       
       return {
         id: userData.id,
