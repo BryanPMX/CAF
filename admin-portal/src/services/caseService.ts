@@ -55,8 +55,8 @@ export class CaseService {
     }
 
     const response = await apiClient.get(endpoint);
-    // Admin optimized endpoints wrap data in a data property
-    return response.data.data || response.data;
+    // Return the full response structure with data, pagination, and performance
+    return response.data;
   }
 
   /**
@@ -90,7 +90,7 @@ export class CaseService {
 
     const response = await apiClient.get(endpoint);
     // Backend returns case wrapped in a data property for admin endpoints
-    return response.data.data || response.data;
+    return response.data;
   }
 
   /**
@@ -199,8 +199,8 @@ export class CaseService {
     const endpoint = `/cases/my?${queryParams}`;
 
     const response = await apiClient.get(endpoint);
-    // Admin optimized endpoints wrap data in a data property
-    return response.data.data || response.data;
+    // Return the full response structure with data, pagination, and performance
+    return response.data;
   }
 
   /**
@@ -299,8 +299,8 @@ export class CaseService {
     }
 
     const response = await apiClient.get(endpoint);
-    // Admin optimized endpoints wrap data in a data property
-    return response.data.data || response.data;
+    // Return the full response structure with data, pagination, and performance
+    return response.data;
   }
 }
 

@@ -28,7 +28,7 @@ export class OfficeService {
 
     const response = await apiClient.get(endpoint);
     // Admin optimized endpoints wrap data in a data property
-    return response.data.data || response.data;
+    return response.data;
   }
 
   /**
@@ -51,7 +51,7 @@ export class OfficeService {
 
     const response = await apiClient.get(endpoint);
     // Admin optimized endpoints wrap data in a data property
-    return response.data.data || response.data;
+    return response.data;
   }
 
   /**
