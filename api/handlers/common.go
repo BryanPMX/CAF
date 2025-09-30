@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/BryanPMX/CAF/api/middleware"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -270,7 +271,7 @@ func ApplyAccessControl(query *gorm.DB, c *gin.Context, entityType string) *gorm
 	}
 
 	// For staff users, include items they're assigned to
-	if userRole == "staff" && userID != "" {
+	if middleware.IsStaffRole(userRole) && userID != "" {
 		userIDUint, err := strconv.ParseUint(userID, 10, 32)
 		if err != nil {
 			logger.LogError(err, "Invalid user ID in access control", map[string]interface{}{

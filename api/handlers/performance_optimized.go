@@ -11,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/BryanPMX/CAF/api/middleware"
 	"github.com/BryanPMX/CAF/api/models"
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis/v8"
@@ -557,7 +558,7 @@ func (h *PerformanceOptimizedHandler) applyAccessControl(query *gorm.DB, c *gin.
 	}
 
 	// For staff users, include items they're assigned to
-	if userRole == "staff" {
+	if userRoleStr, ok := userRole.(string); ok && middleware.IsStaffRole(userRoleStr) {
 		userID, _ := c.Get("userID")
 		if userID != nil {
 			userIDStr, ok := userID.(string)

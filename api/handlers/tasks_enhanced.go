@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/BryanPMX/CAF/api/config"
+	"github.com/BryanPMX/CAF/api/middleware"
 	"github.com/BryanPMX/CAF/api/models"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -214,7 +215,7 @@ func CreateTaskEnhanced(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		// Check case access permissions
-		if user.Role == "staff" {
+		if middleware.IsStaffRole(user.Role) {
 			// Check if user is assigned to this case
 			var assignment models.UserCaseAssignment
 			if err := db.Where("user_id = ? AND case_id = ?", user.ID, input.CaseID).First(&assignment).Error; err != nil {
@@ -294,7 +295,7 @@ func UpdateTaskEnhanced(db *gorm.DB) gin.HandlerFunc {
 		var task models.Task
 		query := db.Preload("Case")
 
-		if user.Role == "staff" {
+		if middleware.IsStaffRole(user.Role) {
 			// Staff users can only update tasks assigned to them or from cases they're assigned to
 			userID, _ := c.Get("userID")
 			userIDUint, _ := strconv.ParseUint(userID.(string), 10, 32)
@@ -360,7 +361,7 @@ func DeleteTaskEnhanced(db *gorm.DB) gin.HandlerFunc {
 		var task models.Task
 		query := db.Preload("Case")
 
-		if user.Role == "staff" {
+		if middleware.IsStaffRole(user.Role) {
 			// Staff users can only delete tasks assigned to them or from cases they're assigned to
 			userID, _ := c.Get("userID")
 			userIDUint, _ := strconv.ParseUint(userID.(string), 10, 32)
@@ -428,7 +429,7 @@ func CreateTaskComment(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		// Apply access control
-		if user.Role == "staff" {
+		if middleware.IsStaffRole(user.Role) {
 			// Check if user is assigned to this task or the case
 			if task.AssignedToID == nil || *task.AssignedToID != user.ID {
 				var assignment models.UserCaseAssignment

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/BryanPMX/CAF/api/config"
+	"github.com/BryanPMX/CAF/api/middleware"
 	"github.com/BryanPMX/CAF/api/models"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -157,7 +158,7 @@ func CreateAppointmentEnhanced(db *gorm.DB) gin.HandlerFunc {
 		user := currentUser.(models.User)
 
 		// Validate department compatibility for staff users
-		if user.Role == "staff" && user.Department != nil {
+		if middleware.IsStaffRole(user.Role) && user.Department != nil {
 			if input.Department != *user.Department {
 				c.JSON(http.StatusBadRequest, gin.H{"error": "Appointment department must match your department"})
 				return
@@ -172,7 +173,7 @@ func CreateAppointmentEnhanced(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		// Check case access permissions
-		if user.Role == "staff" {
+		if middleware.IsStaffRole(user.Role) {
 			// Check if user is assigned to this case
 			var assignment models.UserCaseAssignment
 			if err := db.Where("user_id = ? AND case_id = ?", user.ID, input.CaseID).First(&assignment).Error; err != nil {
@@ -227,7 +228,7 @@ func UpdateAppointmentEnhanced(db *gorm.DB) gin.HandlerFunc {
 		var appointment models.Appointment
 		query := db.Preload("Case")
 
-		if user.Role == "staff" {
+		if middleware.IsStaffRole(user.Role) {
 			// Staff users can only update appointments they're assigned to or from their department
 			if user.Department != nil {
 				query = query.Where("department = ?", user.Department)
@@ -295,7 +296,7 @@ func DeleteAppointmentEnhanced(db *gorm.DB) gin.HandlerFunc {
 		var appointment models.Appointment
 		query := db.Preload("Case").Preload("Staff")
 
-		if user.Role == "staff" {
+		if middleware.IsStaffRole(user.Role) {
 			// Staff users can only delete appointments they're assigned to or from their department
 			if user.Department != nil {
 				query = query.Where("department = ?", user.Department)
