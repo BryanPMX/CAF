@@ -3,13 +3,22 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { jwtDecode } from 'jwt-decode';
+import Cookies from 'js-cookie';
 import { AuthUser, UserRole } from '@/app/lib/types';
 
 // Storage keys constants
 const STORAGE_KEYS = {
   AUTH_TOKEN: 'authToken',
   USER_DATA: 'userData',
+  USER_ROLE: 'userRole',
 } as const;
+
+// Cookie configuration
+const COOKIE_CONFIG = {
+  expires: 1, // 1 day
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: 'strict' as const,
+};
 
 // JWT payload interface
 interface JWTPayload {
@@ -98,10 +107,40 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     const initializeAuth = () => {
       try {
-        const token = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
+        const token = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN) || Cookies.get(STORAGE_KEYS.AUTH_TOKEN);
         const userData = localStorage.getItem(STORAGE_KEYS.USER_DATA);
         
-        if (!token || !userData) {
+        if (!token) {
+          setState({
+            user: null,
+            isLoading: false,
+            isAuthenticated: false,
+            error: null,
+          });
+          return;
+        }
+
+        // If we have a token but no userData, try to get role from cookie
+        let parsedUserData;
+        if (userData) {
+          parsedUserData = JSON.parse(userData);
+        } else {
+          const userRole = Cookies.get(STORAGE_KEYS.USER_ROLE);
+          if (userRole) {
+            // Create minimal user data from token and cookie
+            const decodedUser = decodeToken(token);
+            if (decodedUser) {
+              parsedUserData = {
+                id: decodedUser.id,
+                role: userRole as UserRole,
+                firstName: undefined,
+                lastName: undefined,
+              };
+            }
+          }
+        }
+
+        if (!parsedUserData) {
           setState({
             user: null,
             isLoading: false,
@@ -117,6 +156,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           // Invalid or expired token
           localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
           localStorage.removeItem(STORAGE_KEYS.USER_DATA);
+          Cookies.remove(STORAGE_KEYS.AUTH_TOKEN);
+          Cookies.remove(STORAGE_KEYS.USER_ROLE);
           setState({
             user: null,
             isLoading: false,
@@ -125,9 +166,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           });
           return;
         }
-
-        // Parse stored user data
-        const parsedUserData = JSON.parse(userData);
         
         // Set authenticated state using stored data
         setState({
@@ -141,6 +179,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         console.error('Auth initialization error:', error);
         localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
         localStorage.removeItem(STORAGE_KEYS.USER_DATA);
+        Cookies.remove(STORAGE_KEYS.AUTH_TOKEN);
+        Cookies.remove(STORAGE_KEYS.USER_ROLE);
         setState({
           user: null,
           isLoading: false,
@@ -157,9 +197,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Login function - THE SINGLE AUTHORITATIVE METHOD FOR SETTING AUTH STATE
   const login = useCallback((userData: AuthUser, token: string) => {
     try {
-      // CRITICAL: Store both token and user data atomically
+      // CRITICAL: Store both token and user data atomically in localStorage
       localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, token);
       localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(userData));
+      
+      // CRITICAL: Also set cookies for server-side middleware access
+      Cookies.set(STORAGE_KEYS.AUTH_TOKEN, token, COOKIE_CONFIG);
+      Cookies.set(STORAGE_KEYS.USER_ROLE, userData.role, COOKIE_CONFIG);
       
       // CRITICAL: Update state immediately and synchronously
       setState({
@@ -186,6 +230,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // CRITICAL: Clear storage atomically
       localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
       localStorage.removeItem(STORAGE_KEYS.USER_DATA);
+      
+      // CRITICAL: Also clear cookies
+      Cookies.remove(STORAGE_KEYS.AUTH_TOKEN);
+      Cookies.remove(STORAGE_KEYS.USER_ROLE);
       
       // CRITICAL: Update state immediately and synchronously
       setState({
