@@ -7,7 +7,7 @@ import { PlusOutlined, EditOutlined, DeleteOutlined, CalendarOutlined, UserOutli
 import { AppointmentService } from '@/services/appointmentService';
 import { UserService } from '@/services/userService';
 import { Appointment as AppointmentType } from '@/app/lib/types';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/context/AuthContext';
 import { APPOINTMENT_STATUS_CONFIG, getValidAppointmentStatuses } from '@/config/statuses';
 import AppointmentModal from '../../components/AppointmentModal';
 import EditAppointmentModal from '../../components/EditAppointmentModal';
@@ -55,23 +55,23 @@ const AppointmentsPage = () => {
 
   // --- Data Fetching & Role Management ---
   useEffect(() => {
-    if (user?.role) {
+    // User role is guaranteed to be available by the parent layout
+    if (user) {
       setUserRole(user.role);
     }
-  }, [user?.role]);
+  }, [user]);
 
   const fetchAppointments = async () => {
     try {
       // Wait for user to be loaded before fetching
-      if (!user?.role) {
-        console.log('User role not yet loaded, skipping fetch');
-        return;
-      }
+      // User role is guaranteed to be available by the parent layout
+      // No need to check for user?.role since the dashboard layout ensures it exists
 
       setLoading(true);
       // Use centralized service layer with role-based endpoint routing
+      // User role is guaranteed to be available by the parent layout
       const data = await AppointmentService.fetchAppointments(
-        user.role,
+        user!.role,
         {
           page: 1,
           pageSize: 1000, // Get all appointments for now
@@ -92,12 +92,11 @@ const AppointmentsPage = () => {
   const fetchSupportingData = async () => {
     try {
       // Wait for user to be loaded before fetching
-      if (!user?.role) {
-        console.log('User role not yet loaded, skipping supporting data fetch');
-        return;
-      }
+      // User role is guaranteed to be available by the parent layout
+      // No need to check for user?.role since the dashboard layout ensures it exists
 
-      const role = user.role;
+      // User role is guaranteed to be available by the parent layout
+      const role = user!.role;
       
       // Only fetch users if user has permission
       if (role === 'admin' || role === 'office_manager') {
@@ -203,13 +202,14 @@ const AppointmentsPage = () => {
   const handleDelete = async (appointmentId: number) => {
     try {
       // Wait for user to be loaded before deleting
-      if (!user?.role) {
+      // User role is guaranteed to be available by the parent layout
+      if (!user) {
         message.error('Usuario no autenticado');
         return;
       }
 
       message.loading({ content: 'Eliminando...', key: 'deleteAppt' });
-      await AppointmentService.deleteAppointment(user.role, appointmentId.toString());
+      await AppointmentService.deleteAppointment(user!.role, appointmentId.toString());
       message.success({ content: 'Cita eliminada exitosamente.', key: 'deleteAppt' });
       fetchAppointments(); // Refresh the list
     } catch (error) {

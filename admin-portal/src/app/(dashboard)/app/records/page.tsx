@@ -37,7 +37,7 @@ import {
 import { useRouter } from 'next/navigation';
 import { apiClient } from '@/app/lib/api';
 import { useHydrationSafe } from '@/hooks/useHydrationSafe';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/context/AuthContext';
 import { RecordService } from '@/services';
 
 const { Title, Text } = Typography;

@@ -1,9 +1,9 @@
 {
-  "timestamp": "2025-09-30T01:07:13.569Z",
+  "timestamp": "2025-09-30T01:33:55.050Z",
   "summary": {
     "total": 52,
-    "passed": 1,
-    "failed": 42,
+    "passed": 7,
+    "failed": 36,
     "skipped": 9
   },
   "roles": {
@@ -33,7 +33,7 @@
         "actual": 201,
         "response": {
           "data": {
-            "id": 15,
+            "id": 20,
             "clientId": 7,
             "officeId": 2,
             "court": "",
@@ -57,8 +57,8 @@
             "archivedAt": null,
             "archivedBy": null,
             "archiveReason": "",
-            "createdAt": "2025-09-30T01:07:14.451205Z",
-            "updatedAt": "2025-09-30T01:07:14.451205Z",
+            "createdAt": "2025-09-30T01:33:55.729988Z",
+            "updatedAt": "2025-09-30T01:33:55.729988Z",
             "createdBy": 1,
             "updatedBy": 1,
             "client": {
@@ -69,9 +69,9 @@
               "role": "client",
               "officeId": 2,
               "isActive": true,
-              "lastLogin": "2025-09-29T22:46:48.082999Z",
+              "lastLogin": "2025-09-30T01:07:21.542166Z",
               "createdAt": "2025-09-23T22:31:47.644478Z",
-              "updatedAt": "2025-09-29T22:46:48.084084Z"
+              "updatedAt": "2025-09-30T01:07:21.546907Z"
             },
             "office": {
               "id": 2,
@@ -91,21 +91,17 @@
       }
     },
     {
-      "test": "admin Cases READ",
-      "details": {
-        "error": "Authentication error for admin: Authentication failed: Failed to create session"
-      }
-    },
-    {
       "test": "admin Appointments CREATE",
       "details": {
-        "error": "Authentication error for admin: Authentication failed: Failed to create session"
-      }
-    },
-    {
-      "test": "admin Appointments READ",
-      "details": {
-        "error": "Authentication error for admin: Authentication failed: Failed to create session"
+        "expected": 200,
+        "actual": 201,
+        "response": {
+          "id": 14,
+          "message": "Appointment created successfully",
+          "startTime": "2025-10-05T10:00:00Z",
+          "status": "scheduled",
+          "title": "Test Appointment - admin"
+        }
       }
     },
     {
@@ -114,7 +110,7 @@
         "expected": 200,
         "actual": 201,
         "response": {
-          "id": 4,
+          "id": 5,
           "caseId": 1,
           "case": {
             "id": 0,
@@ -161,57 +157,61 @@
           "dueDate": "2025-10-20T00:00:00Z",
           "status": "pending",
           "completedAt": null,
-          "createdAt": "2025-09-30T01:07:15.196219601Z",
-          "updatedAt": "2025-09-30T01:07:15.196219601Z"
+          "createdAt": "2025-09-30T01:33:56.636767895Z",
+          "updatedAt": "2025-09-30T01:33:56.636767895Z"
         }
       }
     },
     {
       "test": "admin Tasks READ",
       "details": {
-        "error": "Authentication error for admin: Authentication failed: Failed to create session"
+        "expected": 200,
+        "actual": 404,
+        "response": ""
       }
     },
     {
       "test": "admin Tasks READ",
       "details": {
-        "error": "Authentication error for admin: Authentication failed: Failed to create session"
+        "expected": 200,
+        "actual": 500,
+        "response": {
+          "error": "Failed to retrieve task"
+        }
       }
     },
     {
       "test": "admin Users CREATE",
       "details": {
-        "error": "Authentication error for admin: Authentication failed: Failed to create session"
-      }
-    },
-    {
-      "test": "admin Users READ",
-      "details": {
-        "error": "Authentication error for admin: Authentication failed: Failed to create session"
+        "expected": 200,
+        "actual": 201,
+        "response": {
+          "id": 13,
+          "firstName": "Test",
+          "lastName": "User - admin",
+          "email": "testuser-1759196036993@example.com",
+          "role": "lawyer",
+          "officeId": 2,
+          "isActive": true,
+          "lastLogin": null,
+          "createdAt": "2025-09-30T01:33:57.338669855Z",
+          "updatedAt": "2025-09-30T01:33:57.338669855Z"
+        }
       }
     },
     {
       "test": "admin Offices CREATE",
       "details": {
-        "error": "Authentication error for admin: Authentication failed: Failed to create session"
-      }
-    },
-    {
-      "test": "admin Archive READ",
-      "details": {
-        "error": "Authentication error for admin: Authentication failed: Failed to create session"
-      }
-    },
-    {
-      "test": "admin Archive READ",
-      "details": {
-        "error": "Authentication error for admin: Authentication failed: Failed to create session"
-      }
-    },
-    {
-      "test": "admin Archive READ",
-      "details": {
-        "error": "Authentication error for admin: Authentication failed: Failed to create session"
+        "expected": 200,
+        "actual": 201,
+        "response": {
+          "id": 6,
+          "name": "Test Office - admin",
+          "address": "123 Test Street - admin",
+          "createdAt": "2025-09-30T01:33:57.808157328Z",
+          "updatedAt": "2025-09-30T01:33:57.808157328Z",
+          "code": ""
+        }
       }
     },
     {
@@ -235,31 +235,49 @@
     {
       "test": "psychologist Appointments CREATE",
       "details": {
-        "error": "Authentication error for psychologist: Authentication failed: Failed to create session"
+        "expected": 200,
+        "actual": 403,
+        "response": {
+          "error": "Access denied: insufficient permissions"
+        }
       }
     },
     {
       "test": "psychologist Appointments READ",
       "details": {
-        "error": "Authentication error for psychologist: Authentication failed: Failed to create session"
+        "expected": 200,
+        "actual": 404,
+        "response": ""
       }
     },
     {
       "test": "psychologist Tasks CREATE",
       "details": {
-        "error": "Authentication error for psychologist: Authentication failed: Failed to create session"
+        "expected": 200,
+        "actual": 403,
+        "response": {
+          "error": "Access denied: insufficient permissions"
+        }
       }
     },
     {
       "test": "psychologist Tasks READ",
       "details": {
-        "error": "Authentication error for psychologist: Authentication failed: Failed to create session"
+        "expected": 200,
+        "actual": 403,
+        "response": {
+          "error": "Access denied: insufficient permissions"
+        }
       }
     },
     {
       "test": "psychologist Tasks READ",
       "details": {
-        "error": "Authentication error for psychologist: Authentication failed: Failed to create session"
+        "expected": 200,
+        "actual": 403,
+        "response": {
+          "error": "Access denied: insufficient permissions"
+        }
       }
     },
     {
@@ -275,13 +293,21 @@
     {
       "test": "psychologist Role Specific READ",
       "details": {
-        "error": "Authentication error for psychologist: Authentication failed: Failed to create session"
+        "expected": 200,
+        "actual": 403,
+        "response": {
+          "error": "Access denied: insufficient permissions"
+        }
       }
     },
     {
       "test": "psychologist Role Specific READ",
       "details": {
-        "error": "Authentication error for psychologist: Authentication failed: Failed to create session"
+        "expected": 200,
+        "actual": 403,
+        "response": {
+          "error": "Access denied: insufficient permissions"
+        }
       }
     },
     {
@@ -297,13 +323,19 @@
     {
       "test": "lawyer Cases READ",
       "details": {
-        "error": "Authentication error for lawyer: Authentication failed: Failed to create session"
+        "expected": 200,
+        "actual": 404,
+        "response": ""
       }
     },
     {
       "test": "lawyer Appointments CREATE",
       "details": {
-        "error": "Authentication error for lawyer: Authentication failed: Failed to create session"
+        "expected": 200,
+        "actual": 403,
+        "response": {
+          "error": "Access denied: insufficient permissions"
+        }
       }
     },
     {
@@ -317,37 +349,61 @@
     {
       "test": "lawyer Tasks CREATE",
       "details": {
-        "error": "Authentication error for lawyer: Authentication failed: Failed to create session"
+        "expected": 200,
+        "actual": 403,
+        "response": {
+          "error": "Access denied: insufficient permissions"
+        }
       }
     },
     {
       "test": "lawyer Tasks READ",
       "details": {
-        "error": "Authentication error for lawyer: Authentication failed: Failed to create session"
+        "expected": 200,
+        "actual": 403,
+        "response": {
+          "error": "Access denied: insufficient permissions"
+        }
       }
     },
     {
       "test": "lawyer Tasks READ",
       "details": {
-        "error": "Authentication error for lawyer: Authentication failed: Failed to create session"
+        "expected": 200,
+        "actual": 403,
+        "response": {
+          "error": "Access denied: insufficient permissions"
+        }
       }
     },
     {
       "test": "lawyer Role Specific READ",
       "details": {
-        "error": "Authentication error for lawyer: Authentication failed: Failed to create session"
+        "expected": 200,
+        "actual": 403,
+        "response": {
+          "error": "Access denied: insufficient permissions"
+        }
       }
     },
     {
       "test": "lawyer Role Specific READ",
       "details": {
-        "error": "Authentication error for lawyer: Authentication failed: Failed to create session"
+        "expected": 200,
+        "actual": 403,
+        "response": {
+          "error": "Access denied: insufficient permissions"
+        }
       }
     },
     {
       "test": "lawyer Role Specific READ",
       "details": {
-        "error": "Authentication error for lawyer: Authentication failed: Failed to create session"
+        "expected": 200,
+        "actual": 403,
+        "response": {
+          "error": "Access denied: insufficient permissions"
+        }
       }
     },
     {
@@ -363,25 +419,37 @@
     {
       "test": "client Cases READ",
       "details": {
-        "error": "Authentication error for client: Authentication failed: Failed to create session"
+        "expected": 200,
+        "actual": 404,
+        "response": ""
       }
     },
     {
       "test": "client Appointments CREATE",
       "details": {
-        "error": "Authentication error for client: Authentication failed: Failed to create session"
+        "expected": 200,
+        "actual": 403,
+        "response": {
+          "error": "Access denied: insufficient permissions"
+        }
       }
     },
     {
       "test": "client Appointments READ",
       "details": {
-        "error": "Authentication error for client: Authentication failed: Failed to create session"
+        "expected": 200,
+        "actual": 404,
+        "response": ""
       }
     },
     {
       "test": "client Tasks CREATE",
       "details": {
-        "error": "Authentication error for client: Authentication failed: Failed to create session"
+        "expected": 200,
+        "actual": 403,
+        "response": {
+          "error": "Access denied: insufficient permissions"
+        }
       }
     },
     {
@@ -397,19 +465,31 @@
     {
       "test": "client Tasks READ",
       "details": {
-        "error": "Authentication error for client: Authentication failed: Failed to create session"
+        "expected": 200,
+        "actual": 403,
+        "response": {
+          "error": "Access denied: insufficient permissions"
+        }
       }
     },
     {
       "test": "client Role Specific READ",
       "details": {
-        "error": "Authentication error for client: Authentication failed: Failed to create session"
+        "expected": 200,
+        "actual": 403,
+        "response": {
+          "error": "Access denied for client role"
+        }
       }
     },
     {
       "test": "client Role Specific READ",
       "details": {
-        "error": "Authentication error for client: Authentication failed: Failed to create session"
+        "expected": 200,
+        "actual": 403,
+        "response": {
+          "error": "Access denied for client role"
+        }
       }
     }
   ]

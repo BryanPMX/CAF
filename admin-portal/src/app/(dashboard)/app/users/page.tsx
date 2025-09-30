@@ -7,7 +7,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import { STAFF_ROLES, PERMISSIONS, getAllRoles } from '@/config/roles';
 import { useHydrationSafe } from '@/hooks/useHydrationSafe';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/context/AuthContext';
 import { apiClient } from '@/app/lib/api';
 import UserModal from './components/UserModal'; // Import our reusable modal
 
@@ -53,14 +53,12 @@ const UserManagementPage = () => {
   const fetchUsers = async () => {
     try {
       // Wait for user to be loaded before fetching
-      if (!user?.role) {
-        console.log('User role not yet loaded, skipping fetch');
-        setLoading(false);
-        return;
-      }
+      // User role is guaranteed to be available by the parent layout
+      // No need to check for user?.role since the dashboard layout ensures it exists
 
       setLoading(true);
-      const base = user.role === STAFF_ROLES.OFFICE_MANAGER ? '/manager' : '/admin';
+      // User role is guaranteed to be available by the parent layout
+      const base = user!.role === STAFF_ROLES.OFFICE_MANAGER ? '/manager' : '/admin';
       const params: any = {};
       if (selectedOfficeId) params.officeId = selectedOfficeId;
       if (activity) params.activity = activity;
@@ -83,7 +81,8 @@ const UserManagementPage = () => {
   useEffect(() => {
     if (!isHydrated) return; // Wait for hydration to complete
     
-    if (user?.role) {
+    // User role is guaranteed to be available by the parent layout
+    if (user) {
       setUserRole(user.role);
     }
     // Initialize filters from URL or sessionStorage
@@ -109,7 +108,8 @@ const UserManagementPage = () => {
     if (pageSizeFromUrl) setPageSize(Number(pageSizeFromUrl));
     fetchUsers();
     // Only admins can load office list for filtering
-    if (user?.role && PERMISSIONS.canManageOffices(user.role as any)) {
+    // User role is guaranteed to be available by the parent layout
+    if (user && PERMISSIONS.canManageOffices(user.role as any)) {
       apiClient.get('/admin/offices').then(res => setOffices(res.data)).catch(() => {});
     }
   }, [isHydrated, user]); // Re-run when user changes

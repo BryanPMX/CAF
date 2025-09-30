@@ -9,7 +9,7 @@ import { useHydrationSafe } from '@/hooks/useHydrationSafe';
 import { ArrowLeftOutlined, PlusOutlined, EditOutlined, DeleteOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import { CaseService } from '@/services/caseService';
 import { TaskService } from '@/services/taskService';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/context/AuthContext';
 import { CaseDetails } from '@/app/lib/types';
 import CaseTimeline from './components/CaseTimeline';
 import AddCommentForm from './components/AddCommentForm';
@@ -176,15 +176,13 @@ const CaseDetailPage = () => {
       setLoading(true);
       
       // Wait for user to be loaded before fetching
-      if (!user?.role) {
-        console.log('User role not yet loaded, skipping fetch');
-        setLoading(false);
-        return;
-      }
+      // User role is guaranteed to be available by the parent layout
+      // No need to check for user?.role since the dashboard layout ensures it exists
 
       // Use centralized service layer with role-based endpoint routing
+      // User role is guaranteed to be available by the parent layout
       const data = await CaseService.fetchCaseById(
-        user.role,
+        user!.role,
         caseId as string,
         'full' // Get all data in one request for better performance
       );
@@ -205,10 +203,11 @@ const CaseDetailPage = () => {
 
   // Get user role from auth context
   useEffect(() => {
-    if (user?.role) {
+    // User role is guaranteed to be available by the parent layout
+    if (user) {
       setUserRole(user.role);
     }
-  }, [user?.role]);
+  }, [user]);
 
   // --- Event Handlers for Tasks ---
   const handleCreateTask = () => {
@@ -224,13 +223,14 @@ const CaseDetailPage = () => {
   const handleDeleteTask = async (taskId: number) => {
     try {
       // Wait for user to be loaded before deleting
-      if (!user?.role) {
+      // User role is guaranteed to be available by the parent layout
+      if (!user) {
         message.error('Usuario no autenticado');
         return;
       }
 
       message.loading({ content: 'Eliminando tarea...', key: 'deleteTask' });
-      await TaskService.deleteTask(user.role, taskId.toString());
+      await TaskService.deleteTask(user!.role, taskId.toString());
       message.success({ content: 'Tarea eliminada.', key: 'deleteTask' });
       fetchCaseDetails(); // Refresh the data to show the change.
     } catch (error) {
@@ -242,13 +242,14 @@ const CaseDetailPage = () => {
     if (!caseId) return;
     try {
       // Wait for user to be loaded before deleting
-      if (!user?.role) {
+      // User role is guaranteed to be available by the parent layout
+      if (!user) {
         message.error('Usuario no autenticado');
         return;
       }
 
       setIsDeletingCase(true);
-      await CaseService.deleteCase(user.role, caseId as string);
+      await CaseService.deleteCase(user!.role, caseId as string);
       message.success('Caso eliminado exitosamente');
       router.push('/app/cases');
     } catch (error: any) {
