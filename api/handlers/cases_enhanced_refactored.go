@@ -13,7 +13,7 @@ import (
 func GetCasesEnhanced(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		caseService := NewCaseService(db)
-		
+
 		cases, total, err := caseService.GetCases(c)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
@@ -57,10 +57,10 @@ func GetCaseByIDEnhanced(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		caseService := NewCaseService(db)
-		
+
 		// Check if light mode is requested
 		light := c.Query("light") == "true"
-		
+
 		caseData, err := caseService.GetCaseByID(caseID, light)
 		if err != nil {
 			c.JSON(http.StatusNotFound, gin.H{
@@ -78,7 +78,7 @@ func GetCaseByIDEnhanced(db *gorm.DB) gin.HandlerFunc {
 func CreateCaseEnhanced(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		caseService := NewCaseService(db)
-		
+
 		caseData, err := caseService.CreateCase(c)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{
@@ -102,7 +102,7 @@ func UpdateCase(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		caseService := NewCaseService(db)
-		
+
 		caseData, err := caseService.UpdateCase(caseID, c)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{
@@ -126,7 +126,7 @@ func DeleteCase(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		caseService := NewCaseService(db)
-		
+
 		err := caseService.DeleteCase(caseID, c)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{
@@ -144,7 +144,7 @@ func DeleteCase(db *gorm.DB) gin.HandlerFunc {
 func GetMyCases(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		caseService := NewCaseService(db)
-		
+
 		cases, total, err := caseService.GetMyCases(c)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
@@ -177,7 +177,6 @@ func GetMyCases(db *gorm.DB) gin.HandlerFunc {
 		})
 	}
 }
-
 
 // UpdateCaseEnhanced is a wrapper for UpdateCase with enhanced functionality
 func UpdateCaseEnhanced(db *gorm.DB) gin.HandlerFunc {

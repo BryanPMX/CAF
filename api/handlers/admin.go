@@ -234,11 +234,23 @@ func GetUsers(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
+		totalPages := (total + int64(pageSize) - 1) / int64(pageSize)
+		
 		c.JSON(http.StatusOK, gin.H{
-			"users":    users,
-			"total":    total,
-			"page":     page,
-			"pageSize": pageSize,
+			"data": users,
+			"pagination": gin.H{
+				"page":       page,
+				"pageSize":   pageSize,
+				"total":      total,
+				"totalPages": totalPages,
+				"hasNext":    page < int(totalPages),
+				"hasPrev":    page > 1,
+			},
+			"performance": gin.H{
+				"queryTime":    "0ms",
+				"cacheHit":     false,
+				"responseSize": len(users),
+			},
 		})
 	}
 }

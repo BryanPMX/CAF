@@ -56,7 +56,8 @@ const AdminDashboard: React.FC = () => {
       // Fetch recent users (only for admin and office managers)
       try {
         const usersRes = await apiClient.get('/admin/users');
-        setRecentUsers(usersRes.data.slice(0, 5));
+        const usersData = usersRes.data.data || usersRes.data;
+        setRecentUsers(Array.isArray(usersData) ? usersData.slice(0, 5) : []);
       } catch (error) {
         console.warn('Could not fetch users:', error);
         setRecentUsers([]);
@@ -65,7 +66,8 @@ const AdminDashboard: React.FC = () => {
       // Fetch recent cases
       try {
         const casesRes = await apiClient.get('/admin/cases');
-        setRecentCases(casesRes.data.slice(0, 5));
+        const casesData = casesRes.data.data || casesRes.data;
+        setRecentCases(Array.isArray(casesData) ? casesData.slice(0, 5) : []);
       } catch (error) {
         console.warn('Could not fetch cases:', error);
         setRecentCases([]);
@@ -74,7 +76,8 @@ const AdminDashboard: React.FC = () => {
       // Fetch recent appointments
       try {
         const appointmentsRes = await apiClient.get('/admin/appointments');
-        setRecentAppointments(appointmentsRes.data.slice(0, 5));
+        const appointmentsData = appointmentsRes.data.data || appointmentsRes.data;
+        setRecentAppointments(Array.isArray(appointmentsData) ? appointmentsData.slice(0, 5) : []);
       } catch (error) {
         console.warn('Could not fetch appointments:', error);
         setRecentAppointments([]);
