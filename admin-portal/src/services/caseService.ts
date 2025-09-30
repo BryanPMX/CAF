@@ -89,8 +89,8 @@ export class CaseService {
     }
 
     const response = await apiClient.get(endpoint);
-    // Backend returns case wrapped in a data property for admin endpoints
-    return response.data;
+    // Backend returns case wrapped in a data property: { data: caseData }
+    return response.data.data || response.data;
   }
 
   /**
