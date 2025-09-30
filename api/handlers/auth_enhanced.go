@@ -44,12 +44,12 @@ func EnhancedLogin(db *gorm.DB, jwtSecret string, sessionService *services.Sessi
 			return
 		}
 
-		// Step 4: Generate JWT Token
-		expirationTime := time.Now().Add(24 * time.Hour)
+		// Step 4: Generate JWT Token with explicit UTC time
+		expirationTime := time.Now().UTC().Add(24 * time.Hour)
 		claims := &jwt.RegisteredClaims{
 			Subject:   strconv.FormatUint(uint64(user.ID), 10),
 			ExpiresAt: jwt.NewNumericDate(expirationTime),
-			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			IssuedAt:  jwt.NewNumericDate(time.Now().UTC()),
 		}
 
 		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -202,12 +202,12 @@ func RefreshToken(db *gorm.DB, jwtSecret string, sessionService *services.Sessio
 			return
 		}
 
-		// Generate new token
-		expirationTime := time.Now().Add(24 * time.Hour)
+		// Generate new token with explicit UTC time
+		expirationTime := time.Now().UTC().Add(24 * time.Hour)
 		claims := &jwt.RegisteredClaims{
 			Subject:   strconv.FormatUint(uint64(userIDUint), 10),
 			ExpiresAt: jwt.NewNumericDate(expirationTime),
-			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			IssuedAt:  jwt.NewNumericDate(time.Now().UTC()),
 		}
 
 		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -220,7 +220,7 @@ func RefreshToken(db *gorm.DB, jwtSecret string, sessionService *services.Sessio
 		// Update session with new token hash and extended expiration
 		targetSession.TokenHash = sessionService.HashToken(tokenString)
 		targetSession.ExpiresAt = expirationTime
-		targetSession.LastActivity = time.Now()
+		targetSession.LastActivity = time.Now().UTC()
 
 		if err := db.Save(targetSession).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update session"})

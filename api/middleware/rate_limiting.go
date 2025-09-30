@@ -32,7 +32,8 @@ func (rl *RateLimiter) Allow(key string) bool {
 	rl.mutex.Lock()
 	defer rl.mutex.Unlock()
 
-	now := time.Now()
+	// Use explicit UTC time for consistent rate limiting
+	now := time.Now().UTC()
 	cutoff := now.Add(-rl.window)
 
 	// Get existing requests for this key
@@ -139,32 +140,46 @@ func (rl *RateLimiter) Cleanup() {
 	}
 }
 
-// Global rate limiters for different endpoints
+// Global rate limiters for different endpoints - will be configured via environment
 var (
-	// General API rate limiter: 100 requests per minute
-	GeneralRateLimiter = NewRateLimiter(time.Minute, 100)
+	// General API rate limiter - configurable via environment
+	GeneralRateLimiter *RateLimiter
 	
-	// Auth rate limiter: 5 requests per minute (for login attempts)
-	AuthRateLimiter = NewRateLimiter(time.Minute, 5)
+	// Auth rate limiter - configurable via environment  
+	AuthRateLimiter *RateLimiter
 	
-	// Contact form rate limiter: 3 requests per hour
-	ContactRateLimiter = NewRateLimiter(time.Hour, 3)
+	// Contact form rate limiter - configurable via environment
+	ContactRateLimiter *RateLimiter
 	
-	// Admin operations rate limiter: 200 requests per minute
-	AdminRateLimiter = NewRateLimiter(time.Minute, 200)
+	// Admin operations rate limiter - configurable via environment
+	AdminRateLimiter *RateLimiter
 )
 
-// Start cleanup routine
-func init() {
+// InitializeRateLimiters initializes rate limiters with configuration values
+func InitializeRateLimiters(requestsPerMinute, authRequestsPerMinute, contactRequestsPerHour, adminRequestsPerMinute int) {
+	GeneralRateLimiter = NewRateLimiter(time.Minute, requestsPerMinute)
+	AuthRateLimiter = NewRateLimiter(time.Minute, authRequestsPerMinute)
+	ContactRateLimiter = NewRateLimiter(time.Hour, contactRequestsPerHour)
+	AdminRateLimiter = NewRateLimiter(time.Minute, adminRequestsPerMinute)
+	
+	// Start cleanup routine
 	go func() {
 		ticker := time.NewTicker(5 * time.Minute)
 		defer ticker.Stop()
 		
 		for range ticker.C {
-			GeneralRateLimiter.Cleanup()
-			AuthRateLimiter.Cleanup()
-			ContactRateLimiter.Cleanup()
-			AdminRateLimiter.Cleanup()
+			if GeneralRateLimiter != nil {
+				GeneralRateLimiter.Cleanup()
+			}
+			if AuthRateLimiter != nil {
+				AuthRateLimiter.Cleanup()
+			}
+			if ContactRateLimiter != nil {
+				ContactRateLimiter.Cleanup()
+			}
+			if AdminRateLimiter != nil {
+				AdminRateLimiter.Cleanup()
+			}
 		}
 	}()
 }
