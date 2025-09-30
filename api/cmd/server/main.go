@@ -14,7 +14,6 @@ import (
 	"github.com/BryanPMX/CAF/api/handlers"
 	"github.com/BryanPMX/CAF/api/middleware"
 	"github.com/BryanPMX/CAF/api/models"
-	"github.com/BryanPMX/CAF/api/services"
 	"github.com/BryanPMX/CAF/api/storage"
 
 	// External packages (dependencies)
@@ -70,13 +69,9 @@ func main() {
 
 	log.Println("INFO: Database migrations completed successfully")
 
-	// --- Step 2.6: Initialize Session Service ---
-	sessionService := services.NewSessionService(database, models.SessionConfig{
-		MaxConcurrentSessions: 5,
-		SessionTimeout:        24 * time.Hour,
-		InactivityTimeout:     30 * time.Minute,
-	})
-	log.Println("INFO: Session service initialized successfully")
+	// --- Step 2.6: Session Service Deprecated ---
+	// Session service is no longer needed in stateless JWT system
+	log.Println("INFO: Using stateless JWT authentication (no session service required)")
 
 	// --- Step 2.7: Initialize Performance Optimized Handler ---
 	performanceHandler := handlers.NewPerformanceOptimizedHandler(database, nil) // nil for Redis - can be configured later
@@ -157,11 +152,11 @@ func main() {
 	public := r.Group("/api/v1")
 	{
 		public.POST("/register", middleware.ValidateUserRegistration(), handlers.Register(database))
-		public.POST("/login", middleware.AuthRateLimit(), handlers.EnhancedLogin(database, cfg.JWTSecret, sessionService))
+		public.POST("/login", middleware.AuthRateLimit(), handlers.EnhancedLogin(database, cfg.JWTSecret))
 	}
 
 	// WebSocket endpoint for per-user notifications (token via query param)
-	r.GET("/ws", handlers.NotificationsWebSocket(cfg.JWTSecret, sessionService))
+	r.GET("/ws", handlers.NotificationsWebSocket(cfg.JWTSecret))
 
 	// Health check endpoints - Basic health check that doesn't depend on external services
 	r.GET("/health", func(c *gin.Context) {
@@ -229,7 +224,7 @@ func main() {
 	// Group 2: Protected Routes (Requires any valid login token)
 	// Enhanced with comprehensive data access control
 	protected := r.Group("/api/v1")
-	protected.Use(middleware.EnhancedJWTAuth(cfg.JWTSecret, sessionService))
+	protected.Use(middleware.EnhancedJWTAuth(cfg.JWTSecret))
 	protected.Use(middleware.DataAccessControl(database)) // NEW: Enhanced access control
 	protected.Use(middleware.DenyClients())               // Block clients from staff/admin APIs
 	{
@@ -317,7 +312,7 @@ func main() {
 
 	// Group 3: Admin-Only Routes (Requires a login token from a user with the 'admin' role)
 	admin := r.Group("/api/v1/admin")
-	admin.Use(middleware.EnhancedJWTAuth(cfg.JWTSecret, sessionService))
+	admin.Use(middleware.EnhancedJWTAuth(cfg.JWTSecret))
 	admin.Use(middleware.RoleAuth(database, "admin"))
 	admin.Use(middleware.DataAccessControl(database)) // Admin also gets enhanced context
 	{
@@ -415,7 +410,7 @@ func main() {
 
 	// Group 4: Staff-Specific Routes (Enhanced access control for staff members)
 	staff := r.Group("/api/v1/staff")
-	staff.Use(middleware.EnhancedJWTAuth(cfg.JWTSecret, sessionService))
+	staff.Use(middleware.EnhancedJWTAuth(cfg.JWTSecret))
 	staff.Use(middleware.RoleAuth(database, "staff"))
 	staff.Use(middleware.DataAccessControl(database))
 	{
@@ -474,7 +469,7 @@ func main() {
 
 	// Group 5: Office Manager Routes (role: office_manager)
 	officeManager := r.Group("/api/v1/manager")
-	officeManager.Use(middleware.EnhancedJWTAuth(cfg.JWTSecret, sessionService))
+	officeManager.Use(middleware.EnhancedJWTAuth(cfg.JWTSecret))
 	officeManager.Use(middleware.RoleAuth(database, "office_manager"))
 	officeManager.Use(middleware.DataAccessControl(database))
 	{

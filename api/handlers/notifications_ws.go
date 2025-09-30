@@ -4,7 +4,6 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/BryanPMX/CAF/api/services"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/net/websocket"
@@ -17,8 +16,8 @@ var (
 )
 
 // NotificationsWebSocket handles per-user WebSocket connections.
-// Auth via JWT token passed as query param `token`.
-func NotificationsWebSocket(jwtSecret string, sessionService *services.SessionService) gin.HandlerFunc {
+// Auth via JWT token passed as query param `token` (stateless).
+func NotificationsWebSocket(jwtSecret string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Validate JWT from query param
 		tokenStr := c.Query("token")
@@ -47,12 +46,8 @@ func NotificationsWebSocket(jwtSecret string, sessionService *services.SessionSe
 			return
 		}
 
-		// Validate session via hashed token
-		hash := sessionService.HashToken(tokenStr)
-		if _, err := sessionService.ValidateSession(hash); err != nil {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid session"})
-			return
-		}
+		// In stateless JWT system, token validation is sufficient
+		// No additional session validation needed
 
 		handler := websocket.Handler(func(conn *websocket.Conn) {
 			registerConn(userID, conn)
