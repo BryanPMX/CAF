@@ -504,7 +504,8 @@ const CaseDetailPage = () => {
         onClose={() => setCompleteCaseModalVisible(false)}
         onSuccess={() => {
           message.success('Caso completado exitosamente');
-          router.push('/app/cases');
+          // Force refresh the cases list by adding a timestamp parameter
+          router.push('/app/cases?refresh=' + Date.now());
         }}
         caseId={parseInt(caseId as string)}
         caseTitle={caseDetails.title}
