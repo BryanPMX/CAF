@@ -46,9 +46,12 @@ export class AppointmentService {
     if (userRole === 'admin') {
       // Admin users get optimized endpoint with full access
       endpoint = `/admin/optimized/appointments?${queryParams}`;
+    } else if (userRole === 'office_manager') {
+      // Office managers use manager endpoints
+      endpoint = `/manager/appointments?${queryParams}`;
     } else {
-      // All other roles use the protected endpoint with data scope filtering
-      endpoint = `/appointments?${queryParams}`;
+      // Staff roles use staff endpoints
+      endpoint = `/staff/appointments?${queryParams}`;
     }
 
     const response = await apiClient.get(endpoint);

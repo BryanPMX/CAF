@@ -1,5 +1,5 @@
 {
-  "timestamp": "2025-09-30T01:33:55.050Z",
+  "timestamp": "2025-09-30T02:00:32.585Z",
   "summary": {
     "total": 52,
     "passed": 7,
@@ -33,7 +33,7 @@
         "actual": 201,
         "response": {
           "data": {
-            "id": 20,
+            "id": 23,
             "clientId": 7,
             "officeId": 2,
             "court": "",
@@ -57,8 +57,8 @@
             "archivedAt": null,
             "archivedBy": null,
             "archiveReason": "",
-            "createdAt": "2025-09-30T01:33:55.729988Z",
-            "updatedAt": "2025-09-30T01:33:55.729988Z",
+            "createdAt": "2025-09-30T02:00:33.375493Z",
+            "updatedAt": "2025-09-30T02:00:33.375493Z",
             "createdBy": 1,
             "updatedBy": 1,
             "client": {
@@ -69,9 +69,9 @@
               "role": "client",
               "officeId": 2,
               "isActive": true,
-              "lastLogin": "2025-09-30T01:07:21.542166Z",
+              "lastLogin": "2025-09-30T01:34:05.751176Z",
               "createdAt": "2025-09-23T22:31:47.644478Z",
-              "updatedAt": "2025-09-30T01:07:21.546907Z"
+              "updatedAt": "2025-09-30T01:34:05.751668Z"
             },
             "office": {
               "id": 2,
@@ -96,7 +96,7 @@
         "expected": 200,
         "actual": 201,
         "response": {
-          "id": 14,
+          "id": 17,
           "message": "Appointment created successfully",
           "startTime": "2025-10-05T10:00:00Z",
           "status": "scheduled",
@@ -110,7 +110,7 @@
         "expected": 200,
         "actual": 201,
         "response": {
-          "id": 5,
+          "id": 6,
           "caseId": 1,
           "case": {
             "id": 0,
@@ -157,8 +157,8 @@
           "dueDate": "2025-10-20T00:00:00Z",
           "status": "pending",
           "completedAt": null,
-          "createdAt": "2025-09-30T01:33:56.636767895Z",
-          "updatedAt": "2025-09-30T01:33:56.636767895Z"
+          "createdAt": "2025-09-30T02:00:34.425508076Z",
+          "updatedAt": "2025-09-30T02:00:34.425508076Z"
         }
       }
     },
@@ -186,16 +186,16 @@
         "expected": 200,
         "actual": 201,
         "response": {
-          "id": 13,
+          "id": 14,
           "firstName": "Test",
           "lastName": "User - admin",
-          "email": "testuser-1759196036993@example.com",
+          "email": "testuser-1759197634800@example.com",
           "role": "lawyer",
           "officeId": 2,
           "isActive": true,
           "lastLogin": null,
-          "createdAt": "2025-09-30T01:33:57.338669855Z",
-          "updatedAt": "2025-09-30T01:33:57.338669855Z"
+          "createdAt": "2025-09-30T02:00:35.14994784Z",
+          "updatedAt": "2025-09-30T02:00:35.14994784Z"
         }
       }
     },
@@ -203,14 +203,9 @@
       "test": "admin Offices CREATE",
       "details": {
         "expected": 200,
-        "actual": 201,
+        "actual": 500,
         "response": {
-          "id": 6,
-          "name": "Test Office - admin",
-          "address": "123 Test Street - admin",
-          "createdAt": "2025-09-30T01:33:57.808157328Z",
-          "updatedAt": "2025-09-30T01:33:57.808157328Z",
-          "code": ""
+          "error": "Failed to create office."
         }
       }
     },
