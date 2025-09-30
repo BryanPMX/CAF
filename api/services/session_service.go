@@ -103,8 +103,9 @@ func (s *SessionService) ValidateSession(tokenHash string) (*models.Session, err
 func (s *SessionService) GetActiveSessions(userID uint) ([]models.Session, error) {
 	var sessions []models.Session = make([]models.Session, 0)
 
+	now := time.Now().UTC()
 	if err := s.db.Where("user_id = ? AND is_active = ? AND expires_at > ?",
-		userID, true, time.Now()).Order("last_activity ASC").Find(&sessions).Error; err != nil {
+		userID, true, now).Order("last_activity ASC").Find(&sessions).Error; err != nil {
 		return nil, err
 	}
 
