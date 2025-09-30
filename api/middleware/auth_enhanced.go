@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/BryanPMX/CAF/api/services"
 	"github.com/gin-gonic/gin"
@@ -26,13 +27,15 @@ func EnhancedJWTAuth(jwtSecret string, sessionService *services.SessionService) 
 			return
 		}
 
-		// Step 2: Parse and validate the JWT token
+		// Step 2: Parse and validate the JWT token with explicit UTC time validation
 		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 			}
 			return []byte(jwtSecret), nil
-		})
+		}, jwt.WithTimeFunc(func() time.Time {
+			return time.Now().UTC() // CRITICAL: Use UTC for token validation
+		}))
 
 		if err != nil || !token.Valid {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})
