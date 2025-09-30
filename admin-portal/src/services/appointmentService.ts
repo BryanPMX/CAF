@@ -154,8 +154,10 @@ export class AppointmentService {
     
     if (userRole === 'admin') {
       endpoint = `/admin/appointments/${appointmentId}`;
+    } else if (userRole === 'office_manager') {
+      endpoint = `/manager/appointments/${appointmentId}`;
     } else {
-      endpoint = `/appointments/${appointmentId}`;
+      endpoint = `/staff/appointments/${appointmentId}`;
     }
 
     await apiClient.delete(endpoint);
