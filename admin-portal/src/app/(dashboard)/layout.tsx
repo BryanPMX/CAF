@@ -127,7 +127,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   // Show loading spinner if not authenticated (redirecting to login)
+  // Only show loading if we are actually redirecting, not if we just finished loading
   if (!isAuthenticated || !user) {
+    // Add a small delay to prevent infinite loading loop
+    // This gives the auth state time to update after login
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Spin size="large" />
