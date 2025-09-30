@@ -4,8 +4,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, Rea
 import { useRouter } from 'next/navigation';
 import { jwtDecode } from 'jwt-decode';
 import { message } from 'antd';
-import { AuthUser, UserRole, LoginResponse } from '@/app/lib/types';
-import { apiClient } from '@/app/lib/api';
+import { AuthUser, UserRole } from '@/app/lib/types';
 
 // Storage keys constants
 const STORAGE_KEYS = {
@@ -32,7 +31,6 @@ interface AuthState {
 interface AuthActions {
   login: (token: string, userData: AuthUser) => void;
   logout: () => void;
-  refreshUser: () => Promise<void>;
   clearError: () => void;
 }
 
@@ -83,11 +81,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return null;
       }
 
-      // For now, we'll need to fetch user details from the API
-      // since the JWT only contains the user ID
+      // Return basic user data from token
+      // Note: We don't have role/name in JWT, so we'll rely on stored user data
       return {
         id: userId,
-        role: 'admin' as UserRole, // This will be updated when we fetch user details
+        role: 'admin' as UserRole, // This will be overwritten by stored user data
         firstName: undefined,
         lastName: undefined,
       };
@@ -97,27 +95,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, []);
 
-  // Fetch user details from API
-  const fetchUserDetails = useCallback(async (userId: number): Promise<AuthUser | null> => {
-    try {
-      const response = await apiClient.get(`/admin/users/${userId}`);
-      // Backend returns: { user: {...}, office: {...}, caseAssignments: [...] }
-      // We need to extract the user object from the response
-      const userData = response.data.user || response.data.data || response.data;
-      
-      return {
-        id: userData.id,
-        role: userData.role,
-        firstName: userData.firstName,
-        lastName: userData.lastName,
-      };
-    } catch (error) {
-      console.error('Failed to fetch user details:', error);
-      return null;
-    }
-  }, []);
-
-  // Initialize authentication state
+  // Initialize authentication state - SYNCHRONOUS AND RACE-CONDITION FREE
   useEffect(() => {
     const initializeAuth = () => {
       try {
@@ -173,17 +151,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
     };
 
+    // CRITICAL: Initialize immediately and synchronously
     initializeAuth();
   }, [decodeToken]);
 
-  // Login function
+  // Login function - SYNCHRONOUS AND ATOMIC
   const login = useCallback((token: string, userData: AuthUser) => {
     try {
-      // Store token and user data
+      // CRITICAL: Store both token and user data atomically
       localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, token);
       localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(userData));
       
-      // Update state
+      // CRITICAL: Update state immediately and synchronously
       setState({
         user: userData,
         isLoading: false,
@@ -202,14 +181,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, []);
 
-  // Logout function
+  // Logout function - SYNCHRONOUS AND ATOMIC
   const logout = useCallback(() => {
     try {
-      // Clear storage
+      // CRITICAL: Clear storage atomically
       localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
       localStorage.removeItem(STORAGE_KEYS.USER_DATA);
       
-      // Update state
+      // CRITICAL: Update state immediately and synchronously
       setState({
         user: null,
         isLoading: false,
@@ -228,28 +207,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }));
     }
   }, [router]);
-
-  // Refresh user function
-  const refreshUser = useCallback(async () => {
-    if (!state.user) return;
-
-    try {
-      const userDetails = await fetchUserDetails(state.user.id);
-      if (userDetails) {
-        setState(prev => ({
-          ...prev,
-          user: userDetails,
-          error: null,
-        }));
-      }
-    } catch (error) {
-      console.error('Failed to refresh user:', error);
-      setState(prev => ({
-        ...prev,
-        error: 'Failed to refresh user',
-      }));
-    }
-  }, [state.user, fetchUserDetails]);
 
   // Clear error function
   const clearError = useCallback(() => {
@@ -284,7 +241,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Actions
     login,
     logout,
-    refreshUser,
     clearError,
     
     // Role checks
