@@ -87,10 +87,7 @@ apiClient.interceptors.response.use(
       // Clear auth data and redirect to login
       Cookies.remove('authToken');
       localStorage.removeItem('authToken');
-      localStorage.removeItem('userRole');
-      localStorage.removeItem('userID');
-      localStorage.removeItem('userFirstName');
-      localStorage.removeItem('userLastName');
+      localStorage.removeItem('userData');
       
       if (typeof window !== 'undefined') {
         window.location.href = '/login';
