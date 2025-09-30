@@ -1,9 +1,10 @@
 // admin-portal/src/app/layout.tsx
 // This is the root layout for the entire application.
-// It sets up the basic HTML structure.
+// It sets up the basic HTML structure and provides global context.
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import { AuthProvider } from "@/context/AuthContext";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -27,7 +28,9 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning={true}>
       <body className={inter.className} suppressHydrationWarning={true}>
         <ErrorBoundary>
-          {children}
+          <AuthProvider>
+            {children}
+          </AuthProvider>
         </ErrorBoundary>
       </body>
     </html>

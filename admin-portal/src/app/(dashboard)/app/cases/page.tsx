@@ -28,7 +28,7 @@ import {
   BarChartOutlined,
   ClockCircleOutlined
 } from '@ant-design/icons';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/context/AuthContext';
 import { CaseService } from '@/services/caseService';
 import { EnhancedPaginatedResponse, Case as CaseType } from '@/app/lib/types';
 import CreateCaseModal from './components/CreateCaseModal';
@@ -226,12 +226,8 @@ const CaseManagementPage = () => {
         return;
       }
 
-      // Wait for user to be loaded before fetching
-      if (!user?.role) {
-        console.log('User role not yet loaded, skipping fetch');
-        setLoading(false);
-        return;
-      }
+      // User role is guaranteed to be available by the parent layout
+      // No need to check for user?.role since the dashboard layout ensures it exists
 
       if (append) {
         setLoadingMore(true);
@@ -241,8 +237,9 @@ const CaseManagementPage = () => {
 
 
       // Use centralized service layer with role-based endpoint routing
+      // User role is guaranteed to be available by the parent layout
       const data: EnhancedPaginatedResponse<CaseType> = await CaseService.fetchCases(
-        user.role,
+        user!.role,
         {
           page,
           pageSize,
@@ -289,7 +286,7 @@ const CaseManagementPage = () => {
       setLoadingMore(false);
       abortControllerRef.current = null;
     }
-  }, [pageSize, debouncedSearchText, deptFilter, caseTypeFilter, cache, generateCacheKey, user?.role]);
+  }, [pageSize, debouncedSearchText, deptFilter, caseTypeFilter, cache, generateCacheKey, user]);
 
   // Load initial data
   useEffect(() => {

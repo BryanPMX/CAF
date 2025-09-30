@@ -7,7 +7,7 @@ import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import { apiClient } from '@/app/lib/api';
 import OfficeModal from './components/OfficeModal';
 import { useHydrationSafe } from '@/hooks/useHydrationSafe';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/context/AuthContext';
 import { OfficeService } from '@/services';
 
 interface Office {

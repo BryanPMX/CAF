@@ -7,7 +7,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { Layout, Menu, Spin, Button, Space, Alert } from 'antd';
 import Image from 'next/image';
 import { LogoutOutlined } from '@ant-design/icons';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/context/AuthContext';
 import { UserRole } from '@/app/lib/types';
 import { 
   getNavigationItemsForRole, 
@@ -37,28 +37,25 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pathname = usePathname();
   const { 
     user, 
-    loading, 
+    isLoading, 
+    isAuthenticated,
     logout, 
     isAdmin, 
-    isStaff, 
-    error: authError 
+    isStaff
   } = useAuth();
-  const [authChecked, setAuthChecked] = useState(false);
   const [profileError, setProfileError] = useState<string | null>(null);
 
-  // Minimal authentication check - no API calls at all
+  // Authentication check using the new centralized auth context
   useEffect(() => {
-    if (loading) return; // Wait for auth to complete
+    // Wait for auth state to be initialized
+    if (isLoading) return;
     
-    if (!user) {
-      // No user, redirect to login using Next.js router
+    // If not authenticated, redirect to login
+    if (!isAuthenticated || !user) {
       router.replace('/login');
       return;
     }
-
-    // Immediately set auth checked without any API calls or redirects
-    setAuthChecked(true);
-  }, [user, loading, router]); // Minimal dependencies
+  }, [isLoading, isAuthenticated, user, router]);
 
   // Helper function to check if user should be redirected based on role
   const checkRoleBasedRedirect = useCallback((role: UserRole, currentPath: string): string | null => {
@@ -120,15 +117,28 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return ROLE_DISPLAY_CONFIG.client;
   }, [user?.role]);
 
-  // CRITICAL FIX: No early returns to prevent React error #310
-  // All hooks must be called on every render, regardless of loading state
+  // Show loading spinner while auth state is being initialized
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Spin size="large" />
+      </div>
+    );
+  }
+
+  // Show loading spinner if not authenticated (redirecting to login)
+  if (!isAuthenticated || !user) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Spin size="large" />
+      </div>
+    );
+  }
+
   return (
     <ErrorBoundary>
       <ClientOnly fallback={<div className="flex items-center justify-center min-h-screen"><Spin size="large" /></div>}>
-        {loading ? (
-          <div className="flex items-center justify-center min-h-screen"><Spin size="large" /></div>
-        ) : (
-          <Layout style={{ minHeight: '100vh' }}>
+        <Layout style={{ minHeight: '100vh' }}>
         <Sider collapsible>
           <div className="flex flex-col items-start text-white py-4 px-4">
             <div className="flex items-center gap-3">
@@ -179,17 +189,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </Header>
           
           <Content style={{ margin: '24px', background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)', borderRadius: '12px', padding: '24px', boxShadow: '0 2px 12px rgba(0, 0, 0, 0.08)' }}>
-            {authError && (
-              <Alert
-                message="Authentication Error"
-                description={authError}
-                type="error"
-                showIcon
-                className="mb-4"
-                closable
-              />
-            )}
-            
             {profileError && (
               <Alert
                 message="Profile Error"
@@ -202,11 +201,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               />
             )}
             
-            {authChecked ? children : <div className="flex justify-center items-center h-64"><Spin size="large" /></div>}
+            {children}
           </Content>
         </Layout>
         </Layout>
-        )}
       </ClientOnly>
     </ErrorBoundary>
   );

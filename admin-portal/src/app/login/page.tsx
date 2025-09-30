@@ -8,7 +8,7 @@ import Image from 'next/image';
 import { apiClient } from '@/app/lib/api';
 import { LoginFormData, UserRole } from '@/app/lib/types';
 import { handleApiError, logApiSuccess } from '@/app/lib/logger';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/context/AuthContext';
 import ClientOnly from '@/components/ClientOnly';
 import { logVersionInfo, isCorrectDomain } from '@/app/lib/version';
 
