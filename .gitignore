@@ -93,4 +93,6 @@ vercel-secure.json
 *.p8
 *.crt
 *.cer
-secrets/
+secrets/volume/cache/*.pem
+volume/cache/*.key
+volume/cache/*.crt
