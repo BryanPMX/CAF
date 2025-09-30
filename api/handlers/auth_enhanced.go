@@ -6,22 +6,21 @@ import (
 	"time"
 
 	"github.com/BryanPMX/CAF/api/models"
-	"github.com/BryanPMX/CAF/api/services"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
-// EnhancedLoginInput includes device information for session tracking
+// EnhancedLoginInput includes device information for stateless authentication
 type EnhancedLoginInput struct {
 	Email    string `json:"email" binding:"required,email"`
 	Password string `json:"password" binding:"required"`
 	DeviceID string `json:"deviceId,omitempty"` // Optional device identifier
 }
 
-// EnhancedLogin handles user authentication with session management
-func EnhancedLogin(db *gorm.DB, jwtSecret string, sessionService *services.SessionService) gin.HandlerFunc {
+// EnhancedLogin handles user authentication with stateless JWT tokens
+func EnhancedLogin(db *gorm.DB, jwtSecret string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var input EnhancedLoginInput
 		var user models.User
@@ -44,7 +43,7 @@ func EnhancedLogin(db *gorm.DB, jwtSecret string, sessionService *services.Sessi
 			return
 		}
 
-		// Step 4: Generate JWT Token with explicit UTC time
+		// Step 4: Generate JWT Token with explicit UTC time (24-hour expiration)
 		expirationTime := time.Now().UTC().Add(24 * time.Hour)
 		claims := &jwt.RegisteredClaims{
 			Subject:   strconv.FormatUint(uint64(user.ID), 10),
@@ -59,25 +58,14 @@ func EnhancedLogin(db *gorm.DB, jwtSecret string, sessionService *services.Sessi
 			return
 		}
 
-		// Step 5: Mark last login and Create Session
-		now := time.Now()
+		// Step 5: Mark last login (no session creation needed)
+		now := time.Now().UTC()
 		_ = db.Model(&user).Update("last_login", &now).Error
-		session, err := sessionService.CreateSession(user.ID, tokenString, c)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create session"})
-			return
-		}
 
-		// Step 6: Return Token and Session Info
+		// Step 6: Return Token and User Info (stateless)
 		c.JSON(http.StatusOK, gin.H{
-			"token": tokenString,
-			"session": gin.H{
-				"id":           session.ID,
-				"deviceInfo":   session.DeviceInfo,
-				"ipAddress":    session.IPAddress,
-				"expiresAt":    session.ExpiresAt,
-				"lastActivity": session.LastActivity,
-			},
+			"token":     tokenString,
+			"expiresAt": expirationTime,
 			"user": gin.H{
 				"id":        user.ID,
 				"email":     user.Email,
@@ -89,120 +77,59 @@ func EnhancedLogin(db *gorm.DB, jwtSecret string, sessionService *services.Sessi
 	}
 }
 
-// LogoutInput defines the data structure for logout requests
-type LogoutInput struct {
-	SessionID uint `json:"sessionId" binding:"required"`
-}
-
-// Logout handles user logout and session revocation
-func Logout(sessionService *services.SessionService) gin.HandlerFunc {
+// Logout handles user logout (stateless - client should discard token)
+func Logout() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var input LogoutInput
-		userID, _ := c.Get("userID")
-		userIDUint, _ := strconv.ParseUint(userID.(string), 10, 32)
-
-		if err := c.ShouldBindJSON(&input); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-
-		// Revoke the specific session
-		if err := sessionService.RevokeSession(input.SessionID, uint(userIDUint)); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-
+		// In a stateless JWT system, logout is handled client-side
+		// The client simply discards the token
+		// We can optionally maintain a token blacklist for enhanced security
 		c.JSON(http.StatusOK, gin.H{"message": "Logged out successfully"})
 	}
 }
 
-// LogoutAll handles logout from all devices
-func LogoutAll(sessionService *services.SessionService) gin.HandlerFunc {
+// LogoutAll handles logout from all devices (stateless - client should discard token)
+func LogoutAll() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		userID, _ := c.Get("userID")
-		userIDUint, _ := strconv.ParseUint(userID.(string), 10, 32)
-
-		if err := sessionService.RevokeAllUserSessions(uint(userIDUint)); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to logout from all devices"})
-			return
-		}
-
+		// In a stateless JWT system, logout is handled client-side
+		// The client simply discards the token
+		// We can optionally maintain a token blacklist for enhanced security
 		c.JSON(http.StatusOK, gin.H{"message": "Logged out from all devices successfully"})
 	}
 }
 
-// GetActiveSessions returns all active sessions for the authenticated user
-func GetActiveSessions(sessionService *services.SessionService) gin.HandlerFunc {
+// GetActiveSessions returns token information for the authenticated user (stateless)
+func GetActiveSessions() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userID, _ := c.Get("userID")
-		userIDUint, _ := strconv.ParseUint(userID.(string), 10, 32)
-
-		sessions, err := sessionService.GetActiveSessions(uint(userIDUint))
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch sessions"})
-			return
-		}
-
-		// Convert sessions to response format (exclude sensitive data)
-		var sessionResponses []gin.H
-		for _, session := range sessions {
-			sessionResponses = append(sessionResponses, gin.H{
-				"id":           session.ID,
-				"deviceInfo":   session.DeviceInfo,
-				"ipAddress":    session.IPAddress,
-				"userAgent":    session.UserAgent,
-				"lastActivity": session.LastActivity,
-				"expiresAt":    session.ExpiresAt,
-				"createdAt":    session.CreatedAt,
-			})
-		}
-
+		
+		// In a stateless system, we return basic token info
+		// The client manages its own token state
 		c.JSON(http.StatusOK, gin.H{
-			"sessions": sessionResponses,
-			"count":    len(sessionResponses),
+			"message": "Stateless authentication - client manages token state",
+			"userId":  userID,
 		})
 	}
 }
 
 // RefreshTokenInput defines the data structure for token refresh requests
 type RefreshTokenInput struct {
-	SessionID uint `json:"sessionId" binding:"required"`
+	// No session ID needed in stateless system
 }
 
-// RefreshToken extends the session and returns a new token
-func RefreshToken(db *gorm.DB, jwtSecret string, sessionService *services.SessionService) gin.HandlerFunc {
+// RefreshToken generates a new token for the authenticated user (stateless)
+func RefreshToken(db *gorm.DB, jwtSecret string) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var input RefreshTokenInput
 		userID, _ := c.Get("userID")
 		userIDUint, _ := strconv.ParseUint(userID.(string), 10, 32)
 
-		if err := c.ShouldBindJSON(&input); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		// Verify user still exists in database
+		var user models.User
+		if err := db.First(&user, userIDUint).Error; err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found"})
 			return
 		}
 
-		// Validate the session exists and is active
-		sessions, err := sessionService.GetActiveSessions(uint(userIDUint))
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to validate session"})
-			return
-		}
-
-		// Find the specific session
-		var targetSession *models.Session
-		for _, session := range sessions {
-			if session.ID == input.SessionID {
-				targetSession = &session
-				break
-			}
-		}
-
-		if targetSession == nil {
-			c.JSON(http.StatusNotFound, gin.H{"error": "Session not found"})
-			return
-		}
-
-		// Generate new token with explicit UTC time
+		// Generate new token with explicit UTC time (24-hour expiration)
 		expirationTime := time.Now().UTC().Add(24 * time.Hour)
 		claims := &jwt.RegisteredClaims{
 			Subject:   strconv.FormatUint(uint64(userIDUint), 10),
@@ -214,16 +141,6 @@ func RefreshToken(db *gorm.DB, jwtSecret string, sessionService *services.Sessio
 		tokenString, err := token.SignedString([]byte(jwtSecret))
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate new token"})
-			return
-		}
-
-		// Update session with new token hash and extended expiration
-		targetSession.TokenHash = sessionService.HashToken(tokenString)
-		targetSession.ExpiresAt = expirationTime
-		targetSession.LastActivity = time.Now().UTC()
-
-		if err := db.Save(targetSession).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update session"})
 			return
 		}
 

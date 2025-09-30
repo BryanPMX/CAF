@@ -1,0 +1,416 @@
+{
+  "timestamp": "2025-09-30T01:07:13.569Z",
+  "summary": {
+    "total": 52,
+    "passed": 1,
+    "failed": 42,
+    "skipped": 9
+  },
+  "roles": {
+    "admin": {
+      "email": "admin@caf.org",
+      "tests": []
+    },
+    "psychologist": {
+      "email": "barmen@caf.org",
+      "tests": []
+    },
+    "lawyer": {
+      "email": "jperezsosa@caf.org",
+      "tests": []
+    },
+    "client": {
+      "email": "bpere151@my.epcc.edu",
+      "tests": []
+    }
+  },
+  "sections": {},
+  "errors": [
+    {
+      "test": "admin Cases CREATE",
+      "details": {
+        "expected": 200,
+        "actual": 201,
+        "response": {
+          "data": {
+            "id": 15,
+            "clientId": 7,
+            "officeId": 2,
+            "court": "",
+            "docketNumber": "",
+            "fee": 0,
+            "title": "Test Case - admin",
+            "description": "Test case created by admin",
+            "status": "open",
+            "currentStage": "intake",
+            "category": "Familiar",
+            "priority": "medium",
+            "primaryStaffId": null,
+            "isCompleted": false,
+            "completedAt": null,
+            "completedBy": null,
+            "completionNote": "",
+            "deletedAt": null,
+            "deletedBy": null,
+            "deletionReason": "",
+            "isArchived": false,
+            "archivedAt": null,
+            "archivedBy": null,
+            "archiveReason": "",
+            "createdAt": "2025-09-30T01:07:14.451205Z",
+            "updatedAt": "2025-09-30T01:07:14.451205Z",
+            "createdBy": 1,
+            "updatedBy": 1,
+            "client": {
+              "id": 7,
+              "firstName": "Bryan",
+              "lastName": "Perez",
+              "email": "bpere151@my.epcc.edu",
+              "role": "client",
+              "officeId": 2,
+              "isActive": true,
+              "lastLogin": "2025-09-29T22:46:48.082999Z",
+              "createdAt": "2025-09-23T22:31:47.644478Z",
+              "updatedAt": "2025-09-29T22:46:48.084084Z"
+            },
+            "office": {
+              "id": 2,
+              "name": "CAF Zaragoza",
+              "address": "Calle Aguascalientes 107 Oriente",
+              "createdAt": "2025-09-23T00:09:32.171717Z",
+              "updatedAt": "2025-09-23T00:09:32.171717Z",
+              "code": ""
+            },
+            "primaryStaff": null,
+            "appointments": null,
+            "tasks": null,
+            "caseEvents": null,
+            "assignedStaff": null
+          }
+        }
+      }
+    },
+    {
+      "test": "admin Cases READ",
+      "details": {
+        "error": "Authentication error for admin: Authentication failed: Failed to create session"
+      }
+    },
+    {
+      "test": "admin Appointments CREATE",
+      "details": {
+        "error": "Authentication error for admin: Authentication failed: Failed to create session"
+      }
+    },
+    {
+      "test": "admin Appointments READ",
+      "details": {
+        "error": "Authentication error for admin: Authentication failed: Failed to create session"
+      }
+    },
+    {
+      "test": "admin Tasks CREATE",
+      "details": {
+        "expected": 200,
+        "actual": 201,
+        "response": {
+          "id": 4,
+          "caseId": 1,
+          "case": {
+            "id": 0,
+            "clientId": null,
+            "officeId": 0,
+            "court": "",
+            "docketNumber": "",
+            "fee": 0,
+            "title": "",
+            "description": "",
+            "status": "",
+            "currentStage": "",
+            "category": "",
+            "priority": "",
+            "primaryStaffId": null,
+            "isCompleted": false,
+            "completedAt": null,
+            "completedBy": null,
+            "completionNote": "",
+            "deletedAt": null,
+            "deletedBy": null,
+            "deletionReason": "",
+            "isArchived": false,
+            "archivedAt": null,
+            "archivedBy": null,
+            "archiveReason": "",
+            "createdAt": "0001-01-01T00:00:00Z",
+            "updatedAt": "0001-01-01T00:00:00Z",
+            "createdBy": 0,
+            "updatedBy": null,
+            "client": null,
+            "office": null,
+            "primaryStaff": null,
+            "appointments": null,
+            "tasks": null,
+            "caseEvents": null,
+            "assignedStaff": null
+          },
+          "AssignedToID": 1,
+          "assignedTo": null,
+          "title": "Test Task - admin",
+          "description": "",
+          "priority": "medium",
+          "dueDate": "2025-10-20T00:00:00Z",
+          "status": "pending",
+          "completedAt": null,
+          "createdAt": "2025-09-30T01:07:15.196219601Z",
+          "updatedAt": "2025-09-30T01:07:15.196219601Z"
+        }
+      }
+    },
+    {
+      "test": "admin Tasks READ",
+      "details": {
+        "error": "Authentication error for admin: Authentication failed: Failed to create session"
+      }
+    },
+    {
+      "test": "admin Tasks READ",
+      "details": {
+        "error": "Authentication error for admin: Authentication failed: Failed to create session"
+      }
+    },
+    {
+      "test": "admin Users CREATE",
+      "details": {
+        "error": "Authentication error for admin: Authentication failed: Failed to create session"
+      }
+    },
+    {
+      "test": "admin Users READ",
+      "details": {
+        "error": "Authentication error for admin: Authentication failed: Failed to create session"
+      }
+    },
+    {
+      "test": "admin Offices CREATE",
+      "details": {
+        "error": "Authentication error for admin: Authentication failed: Failed to create session"
+      }
+    },
+    {
+      "test": "admin Archive READ",
+      "details": {
+        "error": "Authentication error for admin: Authentication failed: Failed to create session"
+      }
+    },
+    {
+      "test": "admin Archive READ",
+      "details": {
+        "error": "Authentication error for admin: Authentication failed: Failed to create session"
+      }
+    },
+    {
+      "test": "admin Archive READ",
+      "details": {
+        "error": "Authentication error for admin: Authentication failed: Failed to create session"
+      }
+    },
+    {
+      "test": "psychologist Cases CREATE",
+      "details": {
+        "expected": 200,
+        "actual": 403,
+        "response": {
+          "error": "Access denied: insufficient permissions"
+        }
+      }
+    },
+    {
+      "test": "psychologist Cases READ",
+      "details": {
+        "expected": 200,
+        "actual": 404,
+        "response": ""
+      }
+    },
+    {
+      "test": "psychologist Appointments CREATE",
+      "details": {
+        "error": "Authentication error for psychologist: Authentication failed: Failed to create session"
+      }
+    },
+    {
+      "test": "psychologist Appointments READ",
+      "details": {
+        "error": "Authentication error for psychologist: Authentication failed: Failed to create session"
+      }
+    },
+    {
+      "test": "psychologist Tasks CREATE",
+      "details": {
+        "error": "Authentication error for psychologist: Authentication failed: Failed to create session"
+      }
+    },
+    {
+      "test": "psychologist Tasks READ",
+      "details": {
+        "error": "Authentication error for psychologist: Authentication failed: Failed to create session"
+      }
+    },
+    {
+      "test": "psychologist Tasks READ",
+      "details": {
+        "error": "Authentication error for psychologist: Authentication failed: Failed to create session"
+      }
+    },
+    {
+      "test": "psychologist Role Specific READ",
+      "details": {
+        "expected": 200,
+        "actual": 403,
+        "response": {
+          "error": "Access denied: insufficient permissions"
+        }
+      }
+    },
+    {
+      "test": "psychologist Role Specific READ",
+      "details": {
+        "error": "Authentication error for psychologist: Authentication failed: Failed to create session"
+      }
+    },
+    {
+      "test": "psychologist Role Specific READ",
+      "details": {
+        "error": "Authentication error for psychologist: Authentication failed: Failed to create session"
+      }
+    },
+    {
+      "test": "lawyer Cases CREATE",
+      "details": {
+        "expected": 200,
+        "actual": 403,
+        "response": {
+          "error": "Access denied: insufficient permissions"
+        }
+      }
+    },
+    {
+      "test": "lawyer Cases READ",
+      "details": {
+        "error": "Authentication error for lawyer: Authentication failed: Failed to create session"
+      }
+    },
+    {
+      "test": "lawyer Appointments CREATE",
+      "details": {
+        "error": "Authentication error for lawyer: Authentication failed: Failed to create session"
+      }
+    },
+    {
+      "test": "lawyer Appointments READ",
+      "details": {
+        "expected": 200,
+        "actual": 404,
+        "response": ""
+      }
+    },
+    {
+      "test": "lawyer Tasks CREATE",
+      "details": {
+        "error": "Authentication error for lawyer: Authentication failed: Failed to create session"
+      }
+    },
+    {
+      "test": "lawyer Tasks READ",
+      "details": {
+        "error": "Authentication error for lawyer: Authentication failed: Failed to create session"
+      }
+    },
+    {
+      "test": "lawyer Tasks READ",
+      "details": {
+        "error": "Authentication error for lawyer: Authentication failed: Failed to create session"
+      }
+    },
+    {
+      "test": "lawyer Role Specific READ",
+      "details": {
+        "error": "Authentication error for lawyer: Authentication failed: Failed to create session"
+      }
+    },
+    {
+      "test": "lawyer Role Specific READ",
+      "details": {
+        "error": "Authentication error for lawyer: Authentication failed: Failed to create session"
+      }
+    },
+    {
+      "test": "lawyer Role Specific READ",
+      "details": {
+        "error": "Authentication error for lawyer: Authentication failed: Failed to create session"
+      }
+    },
+    {
+      "test": "client Cases CREATE",
+      "details": {
+        "expected": 200,
+        "actual": 403,
+        "response": {
+          "error": "Access denied: insufficient permissions"
+        }
+      }
+    },
+    {
+      "test": "client Cases READ",
+      "details": {
+        "error": "Authentication error for client: Authentication failed: Failed to create session"
+      }
+    },
+    {
+      "test": "client Appointments CREATE",
+      "details": {
+        "error": "Authentication error for client: Authentication failed: Failed to create session"
+      }
+    },
+    {
+      "test": "client Appointments READ",
+      "details": {
+        "error": "Authentication error for client: Authentication failed: Failed to create session"
+      }
+    },
+    {
+      "test": "client Tasks CREATE",
+      "details": {
+        "error": "Authentication error for client: Authentication failed: Failed to create session"
+      }
+    },
+    {
+      "test": "client Tasks READ",
+      "details": {
+        "expected": 200,
+        "actual": 403,
+        "response": {
+          "error": "Access denied: insufficient permissions"
+        }
+      }
+    },
+    {
+      "test": "client Tasks READ",
+      "details": {
+        "error": "Authentication error for client: Authentication failed: Failed to create session"
+      }
+    },
+    {
+      "test": "client Role Specific READ",
+      "details": {
+        "error": "Authentication error for client: Authentication failed: Failed to create session"
+      }
+    },
+    {
+      "test": "client Role Specific READ",
+      "details": {
+        "error": "Authentication error for client: Authentication failed: Failed to create session"
+      }
+    }
+  ]
+}

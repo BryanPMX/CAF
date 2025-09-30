@@ -6,13 +6,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/BryanPMX/CAF/api/services"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 )
 
-// EnhancedJWTAuth is a middleware that validates JWT tokens and sessions
-func EnhancedJWTAuth(jwtSecret string, sessionService *services.SessionService) gin.HandlerFunc {
+// EnhancedJWTAuth is a stateless middleware that validates JWT tokens
+// This is a pure JWT-based authentication system with no database session tracking
+func EnhancedJWTAuth(jwtSecret string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Step 1: Extract the token from the Authorization header
 		authHeader := c.GetHeader("Authorization")
@@ -42,7 +42,7 @@ func EnhancedJWTAuth(jwtSecret string, sessionService *services.SessionService) 
 			return
 		}
 
-		// Step 3: Extract claims and validate session
+		// Step 3: Extract claims and set user context (stateless)
 		if claims, ok := token.Claims.(jwt.MapClaims); ok {
 			userID, ok := claims["sub"].(string)
 			if !ok {
@@ -50,25 +50,12 @@ func EnhancedJWTAuth(jwtSecret string, sessionService *services.SessionService) 
 				return
 			}
 
-			// Step 4: Validate the session exists and is active
-			tokenHash := sessionService.HashToken(tokenString)
-			session, err := sessionService.ValidateSession(tokenHash)
-			if err != nil {
-				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-					"error":   "Session invalid or expired",
-					"details": err.Error(),
-				})
-				return
-			}
-
-		// Step 5: Set user ID and session info in context
-		c.Set("userID", userID)
-		c.Set("sessionID", session.ID)
-		c.Set("session", session)
-		
-		// Step 6: Set a temporary userRole that will be overwritten by DataAccessControl
-		// This prevents issues where handlers try to access userRole before DataAccessControl runs
-		c.Set("userRole", "pending") // Temporary value
+			// Step 4: Set user ID in context (no database session tracking)
+			c.Set("userID", userID)
+			
+			// Step 5: Set a temporary userRole that will be overwritten by DataAccessControl
+			// This prevents issues where handlers try to access userRole before DataAccessControl runs
+			c.Set("userRole", "pending") // Temporary value
 
 			c.Next()
 		} else {
@@ -77,8 +64,9 @@ func EnhancedJWTAuth(jwtSecret string, sessionService *services.SessionService) 
 	}
 }
 
-// SessionRateLimit middleware prevents rapid session creation (anti-spam)
-func SessionRateLimit(sessionService *services.SessionService) gin.HandlerFunc {
+// SessionRateLimit middleware prevents rapid authentication attempts (anti-spam)
+// Note: This is now stateless and doesn't require session service
+func SessionRateLimit() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// This could be enhanced with Redis-based rate limiting
 		// For now, we'll use a simple approach
@@ -88,7 +76,7 @@ func SessionRateLimit(sessionService *services.SessionService) gin.HandlerFunc {
 			return
 		}
 
-		// Check if user has too many recent session attempts
+		// Check if user has too many recent authentication attempts
 		// This is a basic implementation - consider using Redis for production
 		c.Next()
 	}
