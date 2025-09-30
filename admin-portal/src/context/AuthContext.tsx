@@ -62,6 +62,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     error: null,
   });
 
+  // Flag to prevent re-initialization after login
+  const [isInitialized, setIsInitialized] = useState(false);
+
   // Helper function to decode JWT and extract user data
   const decodeToken = useCallback((token: string): AuthUser | null => {
     try {
@@ -97,6 +100,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   // Initialize authentication state - SYNCHRONOUS AND RACE-CONDITION FREE
   useEffect(() => {
+    // Prevent re-initialization if already initialized
+    if (isInitialized) return;
+
     const initializeAuth = () => {
       try {
         const token = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
@@ -109,6 +115,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             isAuthenticated: false,
             error: null,
           });
+          setIsInitialized(true);
           return;
         }
 
@@ -124,6 +131,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             isAuthenticated: false,
             error: null,
           });
+          setIsInitialized(true);
           return;
         }
 
@@ -137,6 +145,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           isAuthenticated: true,
           error: null,
         });
+        setIsInitialized(true);
 
       } catch (error) {
         console.error('Auth initialization error:', error);
@@ -148,12 +157,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           isAuthenticated: false,
           error: 'Authentication initialization failed',
         });
+        setIsInitialized(true);
       }
     };
 
     // CRITICAL: Initialize immediately and synchronously
     initializeAuth();
-  }, [decodeToken]);
+  }, [decodeToken, isInitialized]);
 
   // Login function - SYNCHRONOUS AND ATOMIC
   const login = useCallback((token: string, userData: AuthUser) => {
@@ -170,7 +180,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         error: null,
       });
 
-      message.success('¡Bienvenido al Sistema CAF!');
+      // Mark as initialized to prevent re-initialization
+      setIsInitialized(true);
+
+      // Note: Success message is shown by the login page, not here
+      // This prevents duplicate success messages
     } catch (error) {
       console.error('Login error:', error);
       setState(prev => ({
@@ -195,6 +209,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         isAuthenticated: false,
         error: null,
       });
+
+      // Reset initialization flag
+      setIsInitialized(false);
       
       // Redirect to login
       router.replace('/login');
