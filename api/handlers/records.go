@@ -408,6 +408,16 @@ func PermanentlyDeleteCase(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
+		// Delete user case assignments (many-to-many relationship)
+		if err := tx.Unscoped().Where("case_id = ?", caseID).Delete(&models.UserCaseAssignment{}).Error; err != nil {
+			tx.Rollback()
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error":   "Failed to delete user case assignments",
+				"message": err.Error(),
+			})
+			return
+		}
+
 		// Finally, permanently delete the case
 		if err := tx.Unscoped().Delete(&caseData).Error; err != nil {
 			tx.Rollback()
