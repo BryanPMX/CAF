@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/BryanPMX/CAF/api/middleware"
 	"github.com/BryanPMX/CAF/api/models"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -100,7 +101,7 @@ func AssignStaffToCase(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		if staff.Role != "staff" && staff.Role != "office_manager" && staff.Role != "admin" {
+		if !middleware.IsStaffRole(staff.Role) && staff.Role != "office_manager" && staff.Role != "admin" {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "User cannot be assigned to cases"})
 			return
 		}

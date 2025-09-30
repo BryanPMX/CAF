@@ -9,6 +9,17 @@ import (
 	"gorm.io/gorm"
 )
 
+// IsStaffRole checks if a role is considered a staff role
+func IsStaffRole(role string) bool {
+	staffRoles := []string{"lawyer", "psychologist", "receptionist", "event_coordinator"}
+	for _, staffRole := range staffRoles {
+		if role == staffRole {
+			return true
+		}
+	}
+	return false
+}
+
 // RoleAuth is a middleware that checks if the authenticated user has a specific role.
 // It should be used AFTER the JWTAuth middleware.
 func RoleAuth(db *gorm.DB, requiredRole string) gin.HandlerFunc {
@@ -28,8 +39,18 @@ func RoleAuth(db *gorm.DB, requiredRole string) gin.HandlerFunc {
 			return
 		}
 
-		// Step 3: Compare the user's role with the required role.
-		if user.Role != requiredRole {
+		// Step 3: Check if user has the required role or is part of staff roles
+		hasAccess := false
+		
+		if requiredRole == "staff" {
+			// For staff routes, check if user has any staff role
+			hasAccess = IsStaffRole(user.Role)
+		} else {
+			// For specific roles, do exact match
+			hasAccess = user.Role == requiredRole
+		}
+
+		if !hasAccess {
 			// If the roles do not match, the user is forbidden from accessing this resource.
 			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "Access denied: insufficient permissions"})
 			return
