@@ -253,14 +253,14 @@ const CaseManagementPage = () => {
       );
       
       if (append) {
-        setCases(prev => [...prev, ...data.data]);
+        setCases(prev => [...prev, ...(data.data || [])]);
       } else {
-        setCases(data.data);
+        setCases(data.data || []);
         cache.set(cacheKey, data);
       }
       
-      setTotal(data.pagination.total);
-      setPerformanceMetrics(data.performance);
+      setTotal(data.pagination?.total || 0);
+      setPerformanceMetrics(data.performance || null);
       setCurrentPage(page);
       setLastRefresh(new Date());
       setError(null);
