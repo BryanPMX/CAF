@@ -23,13 +23,13 @@ const { Header, Sider, Content } = Layout;
 
 // Role display configuration - now using centralized role definitions
 const ROLE_DISPLAY_CONFIG = {
-  [STAFF_ROLES.ADMIN]: { label: 'Administrador', color: 'bg-red-100 text-red-800' },
-  [STAFF_ROLES.OFFICE_MANAGER]: { label: 'Gerente de Oficina', color: 'bg-blue-100 text-blue-800' },
-  [STAFF_ROLES.LAWYER]: { label: 'Abogado/a', color: 'bg-green-100 text-green-800' },
-  [STAFF_ROLES.PSYCHOLOGIST]: { label: 'Psicólogo/a', color: 'bg-purple-100 text-purple-800' },
-  [STAFF_ROLES.RECEPTIONIST]: { label: 'Recepcionista', color: 'bg-orange-100 text-orange-800' },
-  [STAFF_ROLES.EVENT_COORDINATOR]: { label: 'Coordinador/a de Eventos', color: 'bg-yellow-100 text-yellow-800' },
-  client: { label: 'Cliente', color: 'bg-gray-100 text-gray-800' },
+  'admin': { label: 'Administrador', color: 'bg-red-100 text-red-800' },
+  'office_manager': { label: 'Gerente de Oficina', color: 'bg-blue-100 text-blue-800' },
+  'lawyer': { label: 'Abogado/a', color: 'bg-green-100 text-green-800' },
+  'psychologist': { label: 'Psicólogo/a', color: 'bg-purple-100 text-purple-800' },
+  'receptionist': { label: 'Recepcionista', color: 'bg-orange-100 text-orange-800' },
+  'event_coordinator': { label: 'Coordinador/a de Eventos', color: 'bg-yellow-100 text-yellow-800' },
+  'client': { label: 'Cliente', color: 'bg-gray-100 text-gray-800' },
 } as const;
 
 export default function DashboardLayout({ children }: { children: React.ReactNode; }) {
@@ -91,11 +91,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const navigationItems = getNavigationItemsForRole(staffRole);
     
     // Convert navigation items to Ant Design menu format
-    return navigationItems.map(item => ({
-      key: item.key,
-      icon: React.createElement(require('@ant-design/icons')[item.icon]),
-      label: <Link href={item.path}>{item.label}</Link>,
-    }));
+     return navigationItems.map(item => ({
+       key: item.key,
+       icon: React.createElement(require('@ant-design/icons')[item.icon || 'HomeOutlined']),
+       label: <Link href={item.path}>{item.label}</Link>,
+     }));
   }, [user?.role]);
 
   // Get role display configuration using centralized role definitions
@@ -103,11 +103,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (!user?.role) return null;
     
     // Check if it's a staff role first
-    if (Object.values(STAFF_ROLES).includes(user.role as StaffRoleKey)) {
-      const roleDef = getRoleDefinition(user.role as StaffRoleKey);
+    if (Object.keys(STAFF_ROLES).includes(user.role)) {
+      const roleDef = getRoleDefinition(user.role);
       return {
         label: roleDef.spanishName,
-        color: ROLE_DISPLAY_CONFIG[user.role as StaffRoleKey]?.color || 'bg-gray-100 text-gray-800'
+        color: ROLE_DISPLAY_CONFIG[user.role as keyof typeof ROLE_DISPLAY_CONFIG]?.color || 'bg-gray-100 text-gray-800'
       };
     }
     

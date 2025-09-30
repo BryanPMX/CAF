@@ -208,7 +208,7 @@ const AdminDashboard: React.FC = () => {
         <div className="flex justify-between items-center mb-4">
           <div>
             <h1 className="text-3xl font-bold text-gray-800">Admin Dashboard</h1>
-            <p className="text-gray-600">Welcome back! Here's what's happening with your system.</p>
+            <p className="text-gray-600">Welcome back! Here&apos;s what&apos;s happening with your system.</p>
           </div>
           <Space>
             <Button 

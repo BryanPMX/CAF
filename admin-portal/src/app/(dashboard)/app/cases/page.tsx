@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import Link from 'next/link';
+import { CASE_STATUSES, CASE_STATUS_DISPLAY_NAMES, CASE_STATUS_OPTIONS } from '@/config/statuses';
 import { 
   Table, 
   message, 
@@ -119,7 +120,7 @@ const getCaseStages = (category: string) => {
     "document_review", 
     "action_plan", 
     "resolution", 
-    "closed"
+    CASE_STATUSES.CLOSED
   ];
 };
 
@@ -141,7 +142,7 @@ const getStageLabels = (category: string): { [key: string]: string } => {
       "document_review": "Revisión de Documentos",
       "action_plan": "Plan de Acción",
       "resolution": "Resolución",
-      "closed": "Cerrado",
+      [CASE_STATUSES.CLOSED]: CASE_STATUS_DISPLAY_NAMES[CASE_STATUSES.CLOSED],
     };
   }
   
@@ -152,7 +153,7 @@ const getStageLabels = (category: string): { [key: string]: string } => {
       "document_review": "Revisión de Documentos",
       "action_plan": "Plan de Acción",
       "resolution": "Resolución",
-      "closed": "Cerrado",
+      [CASE_STATUSES.CLOSED]: CASE_STATUS_DISPLAY_NAMES[CASE_STATUSES.CLOSED],
     };
   }
   
@@ -162,7 +163,7 @@ const getStageLabels = (category: string): { [key: string]: string } => {
     "document_review": "Revisión de Documentos",
     "action_plan": "Plan de Acción",
     "resolution": "Resolución",
-    "closed": "Cerrado",
+      [CASE_STATUSES.CLOSED]: "Cerrado",
   };
 };
 

@@ -806,7 +806,7 @@ const ReportsPage = () => {
               <div className="text-center py-8 text-gray-500">
                 <BarChartOutlined style={{ fontSize: '48px', marginBottom: '16px' }} />
                 <div className="text-lg">No hay datos para mostrar</div>
-                <div className="text-sm">Seleccione un rango de fechas y haga clic en "Generar Reporte" para ver los datos</div>
+                <div className="text-sm">Seleccione un rango de fechas y haga clic en &quot;Generar Reporte&quot; para ver los datos</div>
               </div>
             </Card>
           )}

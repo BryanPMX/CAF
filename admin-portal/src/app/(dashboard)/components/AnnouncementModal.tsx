@@ -213,7 +213,7 @@ const AnnouncementModal: React.FC<AnnouncementModalProps> = ({
               <Select 
                 mode="multiple" 
                 placeholder="Seleccionar roles..." 
-                options={getAllRoles().map(role => ({ label: role.spanishName, value: role.key }))}
+                 options={getAllRoles().map(role => ({ label: role.label, value: role.value }))}
               />
             </Form.Item>
           </Col>

@@ -170,7 +170,7 @@ const DashboardCharts: React.FC = () => {
             >
               <Option value="cases">Casos</Option>
               <Option value="appointments">Citas</Option>
-              <Option value="staff">Personal</Option>
+              <Option value="users">Personal</Option>
             </Select>
             
             <RangePicker

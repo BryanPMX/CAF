@@ -1,166 +1,118 @@
 // admin-portal/src/config/statuses.ts
-// Centralized status definitions for the CAF Admin Portal
-// This file serves as the single source of truth for all status values
+// Centralized status configuration - single source of truth for frontend
 
-import { TagProps } from 'antd';
+// Case Statuses
+export const CASE_STATUSES = {
+  OPEN: 'open',
+  IN_PROGRESS: 'in_progress',
+  CLOSED: 'closed',
+  PENDING: 'pending',
+  ARCHIVED: 'archived',
+} as const;
 
-// Appointment status type - matches backend exactly
-export type AppointmentStatus = 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'no_show';
+export type CaseStatus = typeof CASE_STATUSES[keyof typeof CASE_STATUSES];
 
-// Case status type - matches backend exactly
-export type CaseStatus = 'open' | 'in_progress' | 'closed' | 'pending' | 'archived';
+export const CASE_STATUS_DISPLAY_NAMES = {
+  [CASE_STATUSES.OPEN]: 'Abierto',
+  [CASE_STATUSES.IN_PROGRESS]: 'En Progreso',
+  [CASE_STATUSES.CLOSED]: 'Cerrado',
+  [CASE_STATUSES.PENDING]: 'Pendiente',
+  [CASE_STATUSES.ARCHIVED]: 'Archivado',
+} as const;
 
-// Task status type - matches backend exactly
-export type TaskStatus = 'pending' | 'in_progress' | 'completed' | 'cancelled';
+export const CASE_STATUS_OPTIONS = Object.entries(CASE_STATUS_DISPLAY_NAMES).map(([value, label]) => ({
+  value,
+  label,
+}));
 
-// Appointment status configuration
-export const APPOINTMENT_STATUS_CONFIG: Record<AppointmentStatus, {
-  label: string;
-  color: TagProps['color'];
-  description: string;
-}> = {
-  pending: {
-    label: 'Pendiente',
-    color: 'orange',
-    description: 'Nueva solicitud que no ha sido revisada por el personal'
-  },
-  confirmed: {
-    label: 'Confirmada',
-    color: 'blue',
-    description: 'Cita programada y confirmada con el cliente'
-  },
-  completed: {
-    label: 'Completada',
-    color: 'green',
-    description: 'La cita se realizó y está finalizada'
-  },
-  cancelled: {
-    label: 'Cancelada',
-    color: 'red',
-    description: 'La cita fue cancelada antes de realizarse'
-  },
-  no_show: {
-    label: 'No se presentó',
-    color: 'volcano',
-    description: 'El cliente no se presentó a la cita confirmada'
-  }
+// Appointment Statuses
+export const APPOINTMENT_STATUSES = {
+  PENDING: 'pending',
+  CONFIRMED: 'confirmed',
+  COMPLETED: 'completed',
+  CANCELLED: 'cancelled',
+  NO_SHOW: 'no_show',
+} as const;
+
+export type AppointmentStatus = typeof APPOINTMENT_STATUSES[keyof typeof APPOINTMENT_STATUSES];
+
+export const APPOINTMENT_STATUS_DISPLAY_NAMES = {
+  [APPOINTMENT_STATUSES.PENDING]: 'Pendiente',
+  [APPOINTMENT_STATUSES.CONFIRMED]: 'Confirmada',
+  [APPOINTMENT_STATUSES.COMPLETED]: 'Completada',
+  [APPOINTMENT_STATUSES.CANCELLED]: 'Cancelada',
+  [APPOINTMENT_STATUSES.NO_SHOW]: 'No se presentó',
+} as const;
+
+export const APPOINTMENT_STATUS_OPTIONS = Object.entries(APPOINTMENT_STATUS_DISPLAY_NAMES).map(([value, label]) => ({
+  value,
+  label,
+}));
+
+// Task Statuses
+export const TASK_STATUSES = {
+  PENDING: 'pending',
+  IN_PROGRESS: 'in_progress',
+  COMPLETED: 'completed',
+  CANCELLED: 'cancelled',
+} as const;
+
+export type TaskStatus = typeof TASK_STATUSES[keyof typeof TASK_STATUSES];
+
+export const TASK_STATUS_DISPLAY_NAMES = {
+  [TASK_STATUSES.PENDING]: 'Pendiente',
+  [TASK_STATUSES.IN_PROGRESS]: 'En Progreso',
+  [TASK_STATUSES.COMPLETED]: 'Completada',
+  [TASK_STATUSES.CANCELLED]: 'Cancelada',
+} as const;
+
+export const TASK_STATUS_OPTIONS = Object.entries(TASK_STATUS_DISPLAY_NAMES).map(([value, label]) => ({
+  value,
+  label,
+}));
+
+// Helper functions
+export const getCaseStatusDisplayName = (status: string): string => {
+  return CASE_STATUS_DISPLAY_NAMES[status as CaseStatus] || status;
 };
 
-// Case status configuration
-export const CASE_STATUS_CONFIG: Record<CaseStatus, {
-  label: string;
-  color: TagProps['color'];
-  description: string;
-}> = {
-  open: {
-    label: 'Abierto',
-    color: 'blue',
-    description: 'Caso activo en proceso'
-  },
-  in_progress: {
-    label: 'En Progreso',
+export const getAppointmentStatusDisplayName = (status: string): string => {
+  return APPOINTMENT_STATUS_DISPLAY_NAMES[status as AppointmentStatus] || status;
+};
+
+export const getTaskStatusDisplayName = (status: string): string => {
+  return TASK_STATUS_DISPLAY_NAMES[status as TaskStatus] || status;
+};
+
+// Additional exports for backward compatibility
+export const APPOINTMENT_STATUS_CONFIG = {
+  [APPOINTMENT_STATUSES.PENDING]: {
+    label: APPOINTMENT_STATUS_DISPLAY_NAMES[APPOINTMENT_STATUSES.PENDING],
     color: 'orange',
-    description: 'Caso siendo procesado activamente'
+    icon: 'clock-circle',
   },
-  closed: {
-    label: 'Cerrado',
+  [APPOINTMENT_STATUSES.CONFIRMED]: {
+    label: APPOINTMENT_STATUS_DISPLAY_NAMES[APPOINTMENT_STATUSES.CONFIRMED],
+    color: 'blue',
+    icon: 'check-circle',
+  },
+  [APPOINTMENT_STATUSES.COMPLETED]: {
+    label: APPOINTMENT_STATUS_DISPLAY_NAMES[APPOINTMENT_STATUSES.COMPLETED],
     color: 'green',
-    description: 'Caso completado exitosamente'
+    icon: 'check-circle',
   },
-  pending: {
-    label: 'Pendiente',
-    color: 'yellow',
-    description: 'Caso esperando acción'
+  [APPOINTMENT_STATUSES.CANCELLED]: {
+    label: APPOINTMENT_STATUS_DISPLAY_NAMES[APPOINTMENT_STATUSES.CANCELLED],
+    color: 'red',
+    icon: 'close-circle',
   },
-  archived: {
-    label: 'Archivado',
+  [APPOINTMENT_STATUSES.NO_SHOW]: {
+    label: APPOINTMENT_STATUS_DISPLAY_NAMES[APPOINTMENT_STATUSES.NO_SHOW],
     color: 'gray',
-    description: 'Caso archivado para referencia histórica'
-  }
-};
-
-// Task status configuration
-export const TASK_STATUS_CONFIG: Record<TaskStatus, {
-  label: string;
-  color: TagProps['color'];
-  description: string;
-}> = {
-  pending: {
-    label: 'Pendiente',
-    color: 'orange',
-    description: 'Tarea creada pero no iniciada'
+    icon: 'exclamation-circle',
   },
-  in_progress: {
-    label: 'En Progreso',
-    color: 'blue',
-    description: 'Tarea siendo trabajada activamente'
-  },
-  completed: {
-    label: 'Completada',
-    color: 'green',
-    description: 'Tarea finalizada exitosamente'
-  },
-  cancelled: {
-    label: 'Cancelada',
-    color: 'red',
-    description: 'Tarea cancelada sin completar'
-  }
 };
 
-// Utility functions
-export const getAppointmentStatusConfig = (status: AppointmentStatus) => {
-  return APPOINTMENT_STATUS_CONFIG[status];
-};
-
-export const getCaseStatusConfig = (status: CaseStatus) => {
-  return CASE_STATUS_CONFIG[status];
-};
-
-export const getTaskStatusConfig = (status: TaskStatus) => {
-  return TASK_STATUS_CONFIG[status];
-};
-
-// Get all valid appointment statuses
-export const getValidAppointmentStatuses = (): AppointmentStatus[] => {
-  return Object.keys(APPOINTMENT_STATUS_CONFIG) as AppointmentStatus[];
-};
-
-// Get all valid case statuses
-export const getValidCaseStatuses = (): CaseStatus[] => {
-  return Object.keys(CASE_STATUS_CONFIG) as CaseStatus[];
-};
-
-// Get all valid task statuses
-export const getValidTaskStatuses = (): TaskStatus[] => {
-  return Object.keys(TASK_STATUS_CONFIG) as TaskStatus[];
-};
-
-// Validation functions
-export const isValidAppointmentStatus = (status: string): status is AppointmentStatus => {
-  return status in APPOINTMENT_STATUS_CONFIG;
-};
-
-export const isValidCaseStatus = (status: string): status is CaseStatus => {
-  return status in CASE_STATUS_CONFIG;
-};
-
-export const isValidTaskStatus = (status: string): status is TaskStatus => {
-  return status in TASK_STATUS_CONFIG;
-};
-
-// Status transition helpers
-export const getValidAppointmentStatusTransitions = (currentStatus: AppointmentStatus): AppointmentStatus[] => {
-  const transitions: Record<AppointmentStatus, AppointmentStatus[]> = {
-    pending: ['confirmed', 'cancelled'],
-    confirmed: ['completed', 'cancelled', 'no_show'],
-    completed: [], // Terminal state
-    cancelled: [], // Terminal state
-    no_show: ['confirmed'] // Can reschedule
-  };
-  
-  return transitions[currentStatus] || [];
-};
-
-export const canTransitionTo = (from: AppointmentStatus, to: AppointmentStatus): boolean => {
-  return getValidAppointmentStatusTransitions(from).includes(to);
+export const getValidAppointmentStatuses = (): string[] => {
+  return Object.values(APPOINTMENT_STATUSES);
 };

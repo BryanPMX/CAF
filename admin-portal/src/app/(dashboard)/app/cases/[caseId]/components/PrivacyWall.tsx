@@ -91,7 +91,7 @@ export const PrivacyWall: React.FC<PrivacyWallProps> = ({
         
         <Space direction="vertical" size="small">
           <Tag color={getTagColor()} icon={React.createElement(getIcon())}>
-            {CASE_DOCUMENT_PERMISSIONS[documentType as keyof typeof CASE_DOCUMENT_PERMISSIONS]?.label || 'Documento Restringido'}
+            {CASE_DOCUMENT_TYPES[documentType as keyof typeof CASE_DOCUMENT_TYPES] || 'Documento Restringido'}
           </Tag>
           
           <Text type="secondary" className="text-xs">
@@ -167,7 +167,7 @@ export const CaseDocumentFilter: React.FC<CaseDocumentFilterProps> = ({
                 </div>
                 <Tag color={doc.type === CASE_DOCUMENT_TYPES.LEGAL ? 'blue' : 
                            doc.type === CASE_DOCUMENT_TYPES.PSYCHOLOGICAL ? 'purple' : 'default'}>
-                  {CASE_DOCUMENT_PERMISSIONS[doc.type as keyof typeof CASE_DOCUMENT_PERMISSIONS]?.label || 'General'}
+                   {CASE_DOCUMENT_TYPES[doc.type as keyof typeof CASE_DOCUMENT_TYPES] || 'General'}
                 </Tag>
               </div>
             </Card>
@@ -218,7 +218,7 @@ export const CaseCommentFilter: React.FC<CaseCommentFilterProps> = ({
                   <Text strong>{comment.author}</Text>
                   <Tag color={comment.type === CASE_DOCUMENT_TYPES.LEGAL ? 'blue' : 
                              comment.type === CASE_DOCUMENT_TYPES.PSYCHOLOGICAL ? 'purple' : 'default'}>
-                    {CASE_DOCUMENT_PERMISSIONS[comment.type as keyof typeof CASE_DOCUMENT_PERMISSIONS]?.label || 'General'}
+                     {CASE_DOCUMENT_TYPES[comment.type as keyof typeof CASE_DOCUMENT_TYPES] || 'General'}
                   </Tag>
                 </div>
                 <Text>{comment.text}</Text>
