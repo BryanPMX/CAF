@@ -4,15 +4,18 @@ package config
 import (
 	"fmt"
 	"os"
+	"strconv"
 
 	"github.com/joho/godotenv"
 )
 
 // Config holds all configuration for the application.
 type Config struct {
-	DatabaseURL string
-	Port        string
-	JWTSecret   string
+	DatabaseURL           string
+	Port                  string
+	JWTSecret             string
+	RateLimitRequests     int
+	RateLimitDurationMinutes int
 }
 
 // New creates a new Config instance populated from environment variables.
@@ -43,9 +46,26 @@ func New() (*Config, error) {
 	databaseURL := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=%s",
 		dbUser, dbPassword, dbHost, dbPort, dbName, dbSSLMode)
 
+	// Rate limiting configuration with sensible defaults
+	rateLimitRequests := 100
+	if rl := os.Getenv("RATE_LIMIT_REQUESTS"); rl != "" {
+		if parsed, err := strconv.Atoi(rl); err == nil {
+			rateLimitRequests = parsed
+		}
+	}
+	
+	rateLimitDurationMinutes := 1
+	if rld := os.Getenv("RATE_LIMIT_DURATION_MINUTES"); rld != "" {
+		if parsed, err := strconv.Atoi(rld); err == nil {
+			rateLimitDurationMinutes = parsed
+		}
+	}
+
 	return &Config{
-		DatabaseURL: databaseURL,
-		Port:        os.Getenv("PORT"),
-		JWTSecret:   os.Getenv("JWT_SECRET"),
+		DatabaseURL:           databaseURL,
+		Port:                  os.Getenv("PORT"),
+		JWTSecret:             os.Getenv("JWT_SECRET"),
+		RateLimitRequests:     rateLimitRequests,
+		RateLimitDurationMinutes: rateLimitDurationMinutes,
 	}, nil
 }

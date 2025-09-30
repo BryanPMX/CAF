@@ -50,8 +50,8 @@ func (s *SessionService) CreateSession(userID uint, token string, c *gin.Context
 	// Hash the token for storage (we don't store the actual token)
 	tokenHash := s.HashToken(token)
 
-	// Create new session with current time
-	now := time.Now()
+	// Create new session with explicit UTC time to prevent timezone issues
+	now := time.Now().UTC()
 	session := &models.Session{
 		UserID:       userID,
 		TokenHash:    tokenHash,
@@ -74,8 +74,8 @@ func (s *SessionService) CreateSession(userID uint, token string, c *gin.Context
 func (s *SessionService) ValidateSession(tokenHash string) (*models.Session, error) {
 	var session models.Session
 
-	// Use current time for consistent comparison
-	now := time.Now()
+	// Use explicit UTC time for consistent comparison to prevent timezone issues
+	now := time.Now().UTC()
 	if err := s.db.Where("token_hash = ? AND is_active = ? AND expires_at > ?",
 		tokenHash, true, now).First(&session).Error; err != nil {
 		return nil, fmt.Errorf("session not found or expired: %w", err)
@@ -90,7 +90,7 @@ func (s *SessionService) ValidateSession(tokenHash string) (*models.Session, err
 		return nil, fmt.Errorf("session expired due to inactivity")
 	}
 
-	// Update last activity with current time
+	// Update last activity with explicit UTC time to prevent timezone issues
 	session.LastActivity = now
 	if err := s.db.Save(&session).Error; err != nil {
 		return nil, fmt.Errorf("failed to update session activity: %w", err)
@@ -141,8 +141,10 @@ func (s *SessionService) RevokeAllUserSessions(userID uint) error {
 
 // CleanupExpiredSessions removes expired sessions from the database
 func (s *SessionService) CleanupExpiredSessions() error {
+	// Use explicit UTC time for consistent cleanup
+	now := time.Now().UTC()
 	if err := s.db.Where("expires_at < ? OR (is_active = ? AND last_activity < ?)",
-		time.Now(), true, time.Now().Add(-s.config.InactivityTimeout)).
+		now, true, now.Add(-s.config.InactivityTimeout)).
 		Delete(&models.Session{}).Error; err != nil {
 		return fmt.Errorf("failed to cleanup expired sessions: %w", err)
 	}

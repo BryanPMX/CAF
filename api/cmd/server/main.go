@@ -37,7 +37,16 @@ func main() {
 		log.Fatalf("FATAL: Could not connect to the database: %v", err)
 	}
 
-	// --- Step 2.5: Run Database Migrations ---
+	// --- Step 2.5: Initialize Rate Limiters ---
+	log.Println("INFO: Initializing rate limiters...")
+	middleware.InitializeRateLimiters(
+		cfg.RateLimitRequests,           // General requests per minute
+		cfg.RateLimitRequests/2,         // Auth requests per minute (half of general)
+		cfg.RateLimitRequests/20,        // Contact requests per hour (1/20th of general)
+		cfg.RateLimitRequests*2,         // Admin requests per minute (double general)
+	)
+
+	// --- Step 3: Run Database Migrations ---
 	log.Println("INFO: Running database migrations...")
 
 	// Initialize migration manager
