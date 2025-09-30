@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { CASE_STATUSES, CASE_STATUS_DISPLAY_NAMES } from '@/config/statuses';
 import { 
   Card, 
   Table, 
@@ -631,7 +632,7 @@ const RecordsPage: React.FC = () => {
               style={{ width: '100%' }}
             >
               <Option value="all">Todos los archivos</Option>
-              <Option value="completed">Completados</Option>
+              <Option value={CASE_STATUSES.CLOSED}>Completados</Option>
               <Option value="deleted">Eliminados manualmente</Option>
             </Select>
           </Col>

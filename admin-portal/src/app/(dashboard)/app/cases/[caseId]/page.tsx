@@ -2,6 +2,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { CASE_STATUSES, CASE_STATUS_DISPLAY_NAMES } from '@/config/statuses';
+import { STAFF_ROLES, CASE_DOCUMENT_TYPES, PERMISSIONS, type StaffRoleKey } from '@/config/roles';
 import { useParams, useRouter } from 'next/navigation';
 import { Descriptions, Card, Table, Tag, Spin, message, Button, Empty, Row, Col, Tabs, Popconfirm, Modal, Input } from 'antd';
 import type { TabsProps } from 'antd';
@@ -20,12 +22,6 @@ import EditStageModal from './components/EditStageModal';
 import EditCaseModal from './components/EditCaseModal';
 import CompleteCaseModal from './components/CompleteCaseModal';
 import PrivacyWall, { DocumentTab, CaseDocumentFilter, CaseCommentFilter } from './components/PrivacyWall';
-import { 
-  PERMISSIONS, 
-  CASE_DOCUMENT_TYPES, 
-  STAFF_ROLES,
-  type StaffRoleKey 
-} from '@/config/roles';
 
 // --- Define the detailed data structures (TypeScript interfaces) for this page ---
 interface User {
@@ -76,7 +72,7 @@ const getCaseStages = (category: string) => {
     "document_review", 
     "action_plan", 
     "resolution", 
-    "closed"
+    CASE_STATUSES.CLOSED
   ];
 };
 
@@ -100,7 +96,7 @@ const getStageLabels = (category: string): { [key: string]: string } => {
       "document_review": "Revisión de Documentos",
       "action_plan": "Plan de Acción",
       "resolution": "Resolución",
-      "closed": "Cerrado",
+      [CASE_STATUSES.CLOSED]: "Cerrado",
     };
   }
   
@@ -112,7 +108,7 @@ const getStageLabels = (category: string): { [key: string]: string } => {
       "document_review": "Revisión de Documentos",
       "action_plan": "Plan de Acción",
       "resolution": "Resolución",
-      "closed": "Cerrado",
+      [CASE_STATUSES.CLOSED]: "Cerrado",
     };
   }
   
@@ -123,7 +119,7 @@ const getStageLabels = (category: string): { [key: string]: string } => {
     "document_review": "Revisión de Documentos",
     "action_plan": "Plan de Acción",
     "resolution": "Resolución",
-    "closed": "Cerrado",
+    [CASE_STATUSES.CLOSED]: "Cerrado",
   };
 };
 
@@ -132,7 +128,7 @@ const STATUS_LABELS: { [key: string]: string } = {
   "open": "Abierto",
   "active": "Activo",
   "resolved": "Resuelto",
-  "closed": "Cerrado",
+      [CASE_STATUSES.CLOSED]: CASE_STATUS_DISPLAY_NAMES[CASE_STATUSES.CLOSED],
   "pending": "Pendiente",
   "cancelled": "Cancelado",
   "deleted": "Eliminado",
@@ -316,9 +312,9 @@ const CaseDetailPage = () => {
   ];
 
   // Get user role for permission checking
-  const staffRole = userRole && Object.values(STAFF_ROLES).includes(userRole as StaffRoleKey) 
+  const staffRole = userRole && Object.keys(STAFF_ROLES).includes(userRole as StaffRoleKey) 
     ? userRole as StaffRoleKey 
-    : STAFF_ROLES.RECEPTIONIST; // Default fallback
+    : 'receptionist'; // Default fallback
 
   const tabItems: TabsProps['items'] = [
     {
@@ -349,7 +345,7 @@ const CaseDetailPage = () => {
       children: (
         <div>
           <div className="text-right mb-4">
-            {PERMISSIONS.canManageUsers(staffRole) && (
+            {(PERMISSIONS[staffRole as keyof typeof PERMISSIONS]?.includes('manage_users') || PERMISSIONS[staffRole as keyof typeof PERMISSIONS]?.includes('*')) && (
               <Button type="primary" icon={<PlusOutlined />} onClick={handleCreateTask}>
                 Crear Tarea
               </Button>
@@ -413,7 +409,7 @@ const CaseDetailPage = () => {
                 Completar Caso
               </Button>
             )}
-            {PERMISSIONS.canManageUsers(staffRole) && (
+            {(PERMISSIONS[staffRole as keyof typeof PERMISSIONS]?.includes('manage_users') || PERMISSIONS[staffRole as keyof typeof PERMISSIONS]?.includes('*')) && (
               <Button 
                 type="primary" 
                 icon={<EditOutlined />}
@@ -452,7 +448,7 @@ const CaseDetailPage = () => {
           <Descriptions.Item label="Etapa del Proceso">
             <div className="flex items-center justify-between">
               <span>{getStageLabels(caseDetails.category)[caseDetails.currentStage] || caseDetails.currentStage}</span>
-              {PERMISSIONS.canManageUsers(staffRole) && (
+              {(PERMISSIONS[staffRole as keyof typeof PERMISSIONS]?.includes('manage_users') || PERMISSIONS[staffRole as keyof typeof PERMISSIONS]?.includes('*')) && (
                 <Button icon={<EditOutlined />} size="small" onClick={() => setIsStageModalVisible(true)}>
                   Actualizar Etapa
                 </Button>

@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/BryanPMX/CAF/api/config"
 	"github.com/BryanPMX/CAF/api/models"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -13,9 +14,10 @@ import (
 
 // validTaskStatuses strictly limits task statuses allowed in the system
 var validTaskStatuses = map[string]bool{
-	"pending":     true,
-	"in_progress": true,
-	"completed":   true,
+	string(config.TaskStatusPending):    true,
+	string(config.TaskStatusInProgress): true,
+	string(config.TaskStatusCompleted):  true,
+	string(config.TaskStatusCancelled):  true,
 }
 
 // CreateTaskInput defines the structure for creating a new task
@@ -46,7 +48,7 @@ func GetTasks(db *gorm.DB) gin.HandlerFunc {
 		userDepartment, _ := c.Get("userDepartment")
 		officeScopeID, _ := c.Get("officeScopeID")
 
-		if userRole == "staff" {
+		if userRole == config.RoleLawyer || userRole == config.RolePsychologist || userRole == config.RoleReceptionist {
 			// Staff users see tasks assigned to them or from cases they're assigned to
 			userID, _ := c.Get("userID")
 			userIDUint, _ := strconv.ParseUint(userID.(string), 10, 32)
@@ -100,7 +102,7 @@ func GetTaskByID(db *gorm.DB) gin.HandlerFunc {
 		userDepartment, _ := c.Get("userDepartment")
 		officeScopeID, _ := c.Get("officeScopeID")
 
-		if userRole == "staff" {
+		if userRole == config.RoleLawyer || userRole == config.RolePsychologist || userRole == config.RoleReceptionist {
 			// Staff users can only access tasks assigned to them or from cases they're assigned to
 			userID, _ := c.Get("userID")
 			userIDUint, _ := strconv.ParseUint(userID.(string), 10, 32)

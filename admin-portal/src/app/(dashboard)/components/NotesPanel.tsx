@@ -102,8 +102,8 @@ const NotesPanel: React.FC = () => {
                     renderItem={(n) => (
                       <List.Item
                         actions={[
-                          <Button size="small" onClick={() => updateNote(n)}>Guardar</Button>,
-                          <Button size="small" danger onClick={() => deleteNote(n.id)}>Eliminar</Button>,
+                          <Button key="save" size="small" onClick={() => updateNote(n)}>Guardar</Button>,
+                          <Button key="delete" size="small" danger onClick={() => deleteNote(n.id)}>Eliminar</Button>,
                         ]}
                       >
                         <Input.TextArea

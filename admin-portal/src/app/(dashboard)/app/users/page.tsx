@@ -58,7 +58,7 @@ const UserManagementPage = () => {
 
       setLoading(true);
       // User role is guaranteed to be available by the parent layout
-      const base = user!.role === STAFF_ROLES.OFFICE_MANAGER ? '/manager' : '/admin';
+       const base = user!.role === 'office_manager' ? '/manager' : '/admin';
       const params: any = {};
       if (selectedOfficeId) params.officeId = selectedOfficeId;
       if (activity) params.activity = activity;
@@ -109,7 +109,7 @@ const UserManagementPage = () => {
     fetchUsers();
     // Only admins can load office list for filtering
     // User role is guaranteed to be available by the parent layout
-    if (user && PERMISSIONS.canManageOffices(user.role as any)) {
+     if (user && (PERMISSIONS[user.role as keyof typeof PERMISSIONS]?.includes('manage_offices') || PERMISSIONS[user.role as keyof typeof PERMISSIONS]?.includes('*'))) {
       apiClient.get('/admin/offices').then(res => setOffices(res.data)).catch(() => {});
     }
   }, [isHydrated, user]); // Re-run when user changes
@@ -271,7 +271,7 @@ const UserManagementPage = () => {
                   style={{ minWidth: 200 }}
                   value={roleFilter}
                   onChange={(v: string | undefined) => setRoleFilter(v)}
-                  options={getAllRoles().map(role => ({ label: role.spanishName, value: role.key }))}
+                   options={getAllRoles().map(role => ({ label: role.label, value: role.value }))}
                 />
                 <input
                   placeholder="Buscar por nombre o correo"

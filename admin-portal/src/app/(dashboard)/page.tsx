@@ -322,11 +322,11 @@ const RoleBasedDashboard: React.FC<{
       {/* Role-specific widgets */}
       <Row gutter={[16, 16]}>
         {availableWidgets.map((widget) => {
-          const WidgetComponent = widgetComponents[widget.key as keyof typeof widgetComponents];
+           const WidgetComponent = widgetComponents[widget as keyof typeof widgetComponents];
           if (!WidgetComponent) return null;
           
           return (
-            <Col xs={24} sm={12} md={8} lg={6} key={widget.key}>
+            <Col xs={24} sm={12} md={8} lg={6} key={widget}>
               <WidgetComponent />
             </Col>
           );
@@ -334,7 +334,7 @@ const RoleBasedDashboard: React.FC<{
       </Row>
 
       {/* Role-specific additional content */}
-      {userRole && isValidRole(userRole) && PERMISSIONS.canSeeAdminWidgets(userRole as StaffRoleKey) && (
+       {userRole && isValidRole(userRole) && (PERMISSIONS[userRole as keyof typeof PERMISSIONS]?.includes('*') || PERMISSIONS[userRole as keyof typeof PERMISSIONS]?.includes('admin_widgets')) && (
         <Row gutter={[16, 16]}>
           <Col xs={24} lg={12}>
             <Card title="Rendimiento del Sistema">
@@ -373,7 +373,7 @@ const RoleBasedDashboard: React.FC<{
         </Row>
       )}
 
-      {userRole && isValidRole(userRole) && PERMISSIONS.canSeeProfessionalWidgets(userRole as StaffRoleKey) && (
+       {userRole && isValidRole(userRole) && (PERMISSIONS[userRole as keyof typeof PERMISSIONS]?.includes('*') || PERMISSIONS[userRole as keyof typeof PERMISSIONS]?.includes('professional_widgets')) && (
         <Row gutter={[16, 16]}>
           <Col xs={24} lg={12}>
             <Card title="Mi Rendimiento">
@@ -533,7 +533,7 @@ const TrueDashboardPage = () => {
         if (userRole && isValidRole(userRole)) {
           const staffRole = userRole as StaffRoleKey;
       
-      if (PERMISSIONS.canManageUsers(staffRole)) {
+       if (PERMISSIONS[staffRole as keyof typeof PERMISSIONS]?.includes('manage_users') || PERMISSIONS[staffRole as keyof typeof PERMISSIONS]?.includes('*')) {
         baseActions.push({
           label: 'Gestión de Usuarios',
           icon: <TeamOutlined />,
@@ -543,7 +543,7 @@ const TrueDashboardPage = () => {
         });
       }
       
-      if (PERMISSIONS.canManageOffices(staffRole)) {
+       if (PERMISSIONS[staffRole as keyof typeof PERMISSIONS]?.includes('manage_offices') || PERMISSIONS[staffRole as keyof typeof PERMISSIONS]?.includes('*')) {
         baseActions.push({
           label: 'Gestión de Oficinas',
           icon: <BarChartOutlined />,
@@ -716,8 +716,8 @@ const TrueDashboardPage = () => {
 
       {/* Charts and Analytics Section */}
       <Suspense fallback={<SectionLoading />}>
-        {userRole && isValidRole(userRole) &&
-         PERMISSIONS.canSeeAdminWidgets(userRole as StaffRoleKey) && (
+         {userRole && isValidRole(userRole) &&
+          (PERMISSIONS[userRole as keyof typeof PERMISSIONS]?.includes('*') || PERMISSIONS[userRole as keyof typeof PERMISSIONS]?.includes('admin_widgets')) && (
           <DashboardCharts />
         )}
       </Suspense>
@@ -742,8 +742,8 @@ const TrueDashboardPage = () => {
         
         <Col xs={24} lg={8}>
           <Suspense fallback={<SectionLoading />}>
-            {userRole && isValidRole(userRole) &&
-             PERMISSIONS.canSeeOfficeManagerWidgets(userRole as StaffRoleKey) && (
+             {userRole && isValidRole(userRole) &&
+              (PERMISSIONS[userRole as keyof typeof PERMISSIONS]?.includes('*') || PERMISSIONS[userRole as keyof typeof PERMISSIONS]?.includes('office_manager_widgets')) && (
               <Card 
                 title={
                   <div className="flex items-center">

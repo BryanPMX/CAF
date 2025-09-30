@@ -5,8 +5,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Modal, Form, Input, Button, message, Select, DatePicker, Radio, AutoComplete, Steps, Spin, Typography } from 'antd';
 import { apiClient } from '@/app/lib/api';
 import { CASE_TYPES, findDepartmentByCaseType } from '@/app/lib/caseTaxonomy';
-import { ROLE_LABELS, DEPARTMENT_ROLE_MAPPING, getRoleLabel, getRolesForCaseCategory, isAdminRole, type StaffRoleKey } from '@/config/roles';
-import { APPOINTMENT_STATUS_CONFIG, getValidAppointmentStatuses } from '@/config/statuses';
+import { USER_ROLES, getRoleDisplayName, isAdminRole, getRolesForCaseCategory, StaffRoleKey } from '@/config/roles';
+import { APPOINTMENT_STATUSES, APPOINTMENT_STATUS_DISPLAY_NAMES, APPOINTMENT_STATUS_OPTIONS } from '@/config/statuses';
 import { useAuth } from '@/context/AuthContext';
 import dayjs from 'dayjs';
 
@@ -409,7 +409,7 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ visible, onClose, o
                     <div style={{ fontSize: '11px', color: '#495057' }}>
                       <strong>Opciones disponibles:</strong>
                       <br />
-                      • Seleccione "Caso Nuevo" para crear un caso fresco
+                      • Seleccione &quot;Caso Nuevo&quot; para crear un caso fresco
                       <br />
                       • Verifique en la sección de Casos si existen casos archivados
                     </div>
@@ -471,7 +471,7 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ visible, onClose, o
                 filterOption={(input, option) => (option?.children as unknown as string)?.toLowerCase().includes(input.toLowerCase())}
               >
                 {filteredStaffList.map((s) => (
-                  <Option key={s.id} value={s.id}>{`${s.firstName} ${s.lastName} (${getRoleLabel(s.role as StaffRoleKey)})`}</Option>
+                  <Option key={s.id} value={s.id}>{`${s.firstName} ${s.lastName} (${getRoleDisplayName(s.role)})`}</Option>
                 ))}
               </Select>
             </Form.Item>
@@ -493,16 +493,13 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ visible, onClose, o
                 disabledDate={(current) => current && current < dayjs().startOf('day')}
               />
             </Form.Item>
-            <Form.Item name="status" label="Estado" rules={[{ required: true }]} initialValue="confirmed">
+            <Form.Item name="status" label="Estado" rules={[{ required: true }]} initialValue={APPOINTMENT_STATUSES.CONFIRMED}>
               <Select>
-                {getValidAppointmentStatuses().map(status => {
-                  const config = APPOINTMENT_STATUS_CONFIG[status];
-                  return (
-                    <Option key={status} value={status}>
-                      {config.label}
+                {APPOINTMENT_STATUS_OPTIONS.map(option => (
+                  <Option key={option.value} value={option.value}>
+                      {option.label}
                     </Option>
-                  );
-                })}
+                ))}
               </Select>
             </Form.Item>
           </>

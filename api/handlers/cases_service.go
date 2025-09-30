@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/BryanPMX/CAF/api/config"
 	"github.com/BryanPMX/CAF/api/models"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -46,7 +47,7 @@ func (qb *CaseQueryBuilder) ApplyAccessControl(c *gin.Context) *CaseQueryBuilder
 	officeScopeID, _ := c.Get("officeScopeID")
 
 	// Admin users see all cases
-	if userRole == "admin" {
+	if userRole == config.RoleAdmin {
 		return qb
 	}
 

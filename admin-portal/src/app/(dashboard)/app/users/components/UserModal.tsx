@@ -4,7 +4,7 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, Form, Input, Select, Button, message } from 'antd';
 import { apiClient } from '@/app/lib/api';
-import { STAFF_ROLES, getRoleByValue, requiresOffice, canManageUsers, getAllRoles, type StaffRoleKey } from '@/config/roles';
+import { STAFF_ROLES, requiresOffice, getAllRoles, type StaffRoleKey } from '@/config/roles';
 
 const { Option } = Select;
 
@@ -156,8 +156,8 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
         <Form.Item name="role" label="Rol" rules={[{ required: true, message: 'Seleccione un rol' }]}>
           <Select placeholder="Asignar un rol" onChange={handleRoleChange}>
             {getAllRoles().map((role) => (
-              <Option key={role.key} value={role.key}>
-                {role.spanishName}
+               <Option key={role.value} value={role.value}>
+                 {role.label}
               </Option>
             ))}
           </Select>

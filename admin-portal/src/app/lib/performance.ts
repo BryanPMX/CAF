@@ -203,10 +203,10 @@ export function createOptimizedHandler<T extends Event>(
   handler: (event: T) => void,
   options: { passive?: boolean; once?: boolean } = {}
 ) {
-  return useCallback((event: T) => {
+  return (event: T) => {
     if (options.passive) {
       event.preventDefault = () => {};
     }
     handler(event);
-  }, [handler, options.passive, options.once]);
+  };
 }
