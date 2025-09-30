@@ -427,7 +427,7 @@ const CaseDetailPage = () => {
               ? `${caseDetails.client.firstName} ${caseDetails.client.lastName}`
               : 'Cliente eliminado o no disponible'}
           </Descriptions.Item>
-          <Descriptions.Item label="Oficina">{caseDetails.office.name}</Descriptions.Item>
+          <Descriptions.Item label="Oficina">{caseDetails.office?.name || 'No asignada'}</Descriptions.Item>
           <Descriptions.Item label="Departamento">{caseDetails.category}</Descriptions.Item>
           <Descriptions.Item label="Número de Expediente">
             {caseDetails.docketNumber || '-'}
