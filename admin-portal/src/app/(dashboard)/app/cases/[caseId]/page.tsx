@@ -247,7 +247,8 @@ const CaseDetailPage = () => {
       setIsDeletingCase(true);
       await CaseService.deleteCase(user!.role, caseId as string);
       message.success('Caso eliminado exitosamente');
-      router.push('/app/cases');
+      // Force refresh the cases list by adding a timestamp parameter
+      router.push('/app/cases?refresh=' + Date.now());
     } catch (error: any) {
       const status = error?.response?.status;
       const data = error?.response?.data;
