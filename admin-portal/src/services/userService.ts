@@ -50,7 +50,7 @@ export class UserService {
 
     const response = await apiClient.get(endpoint);
     // Admin optimized endpoints wrap data in a data property
-    return response.data.data || response.data;
+    return response.data;
   }
 
   /**
@@ -76,7 +76,7 @@ export class UserService {
 
     const response = await apiClient.get(endpoint);
     // Admin optimized endpoints wrap data in a data property
-    return response.data.data || response.data;
+    return response.data;
   }
 
   /**
@@ -178,7 +178,7 @@ export class UserService {
     const endpoint = `/admin/users/search?q=${encodeURIComponent(searchTerm)}`;
     const response = await apiClient.get(endpoint);
     // Admin optimized endpoints wrap data in a data property
-    return response.data.data || response.data;
+    return response.data;
   }
 
   /**
@@ -189,7 +189,7 @@ export class UserService {
     const endpoint = '/profile';
     const response = await apiClient.get(endpoint);
     // Admin optimized endpoints wrap data in a data property
-    return response.data.data || response.data;
+    return response.data;
   }
 }
 
