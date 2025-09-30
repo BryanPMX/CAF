@@ -45,17 +45,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   } = useAuth();
   const [profileError, setProfileError] = useState<string | null>(null);
 
-  // Authentication check using the new centralized auth context
+  // Robust authentication guard - prevents infinite loading loops
   useEffect(() => {
-    // Wait for auth state to be initialized
-    if (isLoading) return;
-    
-    // If not authenticated, redirect to login
-    if (!isAuthenticated || !user) {
+    // CRITICAL: Only redirect if we're not loading AND not authenticated
+    // This prevents race conditions and infinite loading loops
+    if (!isLoading && !isAuthenticated) {
       router.replace('/login');
       return;
     }
-  }, [isLoading, isAuthenticated, user, router]);
+  }, [isLoading, isAuthenticated, router]);
 
   // Helper function to check if user should be redirected based on role
   const checkRoleBasedRedirect = useCallback((role: UserRole, currentPath: string): string | null => {
@@ -117,7 +115,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return ROLE_DISPLAY_CONFIG.client;
   }, [user?.role]);
 
-  // Show loading spinner while auth state is being initialized
+  // CRITICAL: Show loading spinner while auth state is being initialized
+  // This prevents any child pages from rendering before auth state is known
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -126,11 +125,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     );
   }
 
-  // Show loading spinner if not authenticated (redirecting to login)
-  // Only show loading if we are actually redirecting, not if we just finished loading
-  if (!isAuthenticated || !user) {
-    // Add a small delay to prevent infinite loading loop
-    // This gives the auth state time to update after login
+  // CRITICAL: Only redirect if we're not loading AND not authenticated
+  // This is the correct, race-condition-free pattern
+  if (!isLoading && !isAuthenticated) {
+    // Show loading while redirecting to prevent flash of content
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Spin size="large" />
