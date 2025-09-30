@@ -313,10 +313,17 @@ func (s *CaseService) DeleteCase(caseID string, c *gin.Context) error {
 	}
 
 	// Set deletion fields
-	userID, _ := c.Get("userID")
-	userIDUint, err := strconv.ParseUint(userID.(string), 10, 32)
+	userID, exists := c.Get("userID")
+	if !exists {
+		return fmt.Errorf("user ID not found in context")
+	}
+	userIDStr, ok := userID.(string)
+	if !ok {
+		return fmt.Errorf("user ID is not a string")
+	}
+	userIDUint, err := strconv.ParseUint(userIDStr, 10, 32)
 	if err != nil {
-		return fmt.Errorf("invalid user ID: %v", err)
+		return fmt.Errorf("invalid user ID format: %v", err)
 	}
 	deletionReason := c.PostForm("reason")
 	if deletionReason == "" {
