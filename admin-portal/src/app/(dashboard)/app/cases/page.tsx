@@ -219,7 +219,8 @@ const CaseManagementPage = () => {
       const cachedData = cache.get(cacheKey);
       
       if (cachedData && !append) {
-        setCases(cachedData.data || []);
+        const cachedCases = Array.isArray(cachedData.data) ? cachedData.data : [];
+        setCases(cachedCases);
         setTotal(cachedData.pagination?.total || 0);
         setPerformanceMetrics(cachedData.performance || null);
         setLoading(false);
@@ -253,9 +254,11 @@ const CaseManagementPage = () => {
       );
       
       if (append) {
-        setCases(prev => [...prev, ...(data.data || [])]);
+        const newCases = Array.isArray(data.data) ? data.data : [];
+        setCases(prev => [...prev, ...newCases]);
       } else {
-        setCases(data.data || []);
+        const casesData = Array.isArray(data.data) ? data.data : [];
+        setCases(casesData);
         cache.set(cacheKey, data);
       }
       
@@ -578,7 +581,7 @@ const CaseManagementPage = () => {
       <Card>
         <Table
           columns={columns}
-          dataSource={cases}
+          dataSource={Array.isArray(cases) ? cases : []}
           rowKey="id"
           loading={loading}
           pagination={{
