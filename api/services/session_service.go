@@ -81,9 +81,9 @@ func (s *SessionService) ValidateSession(tokenHash string) (*models.Session, err
 		return nil, fmt.Errorf("session not found or expired: %w", err)
 	}
 
-	// Check inactivity timeout
+	// Check inactivity timeout using UTC time to prevent timezone issues
 	// Only check inactivity if the session has been active for more than the timeout period
-	if time.Since(session.LastActivity) > s.config.InactivityTimeout {
+	if now.Sub(session.LastActivity) > s.config.InactivityTimeout {
 		// Mark session as inactive
 		session.IsActive = false
 		s.db.Save(&session)
