@@ -219,9 +219,9 @@ const CaseManagementPage = () => {
       const cachedData = cache.get(cacheKey);
       
       if (cachedData && !append) {
-        setCases(cachedData.data);
-        setTotal(cachedData.pagination.total);
-        setPerformanceMetrics(cachedData.performance);
+        setCases(cachedData.data || []);
+        setTotal(cachedData.pagination?.total || 0);
+        setPerformanceMetrics(cachedData.performance || null);
         setLoading(false);
         setError(null);
         return;
