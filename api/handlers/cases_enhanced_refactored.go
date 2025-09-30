@@ -29,11 +29,20 @@ func GetCasesEnhanced(db *gorm.DB) gin.HandlerFunc {
 		totalPages := (total + int64(limit) - 1) / int64(limit)
 
 		c.JSON(http.StatusOK, gin.H{
-			"data":       cases,
-			"total":      total,
-			"page":       page,
-			"limit":      limit,
-			"totalPages": totalPages,
+			"data": cases,
+			"pagination": gin.H{
+				"page":       page,
+				"pageSize":   limit,
+				"total":      total,
+				"totalPages": totalPages,
+				"hasNext":    page < int(totalPages),
+				"hasPrev":    page > 1,
+			},
+			"performance": gin.H{
+				"queryTime":    "0ms",
+				"cacheHit":     false,
+				"responseSize": len(cases),
+			},
 		})
 	}
 }
@@ -151,11 +160,20 @@ func GetMyCases(db *gorm.DB) gin.HandlerFunc {
 		totalPages := (total + int64(limit) - 1) / int64(limit)
 
 		c.JSON(http.StatusOK, gin.H{
-			"data":       cases,
-			"total":      total,
-			"page":       page,
-			"limit":      limit,
-			"totalPages": totalPages,
+			"data": cases,
+			"pagination": gin.H{
+				"page":       page,
+				"pageSize":   limit,
+				"total":      total,
+				"totalPages": totalPages,
+				"hasNext":    page < int(totalPages),
+				"hasPrev":    page > 1,
+			},
+			"performance": gin.H{
+				"queryTime":    "0ms",
+				"cacheHit":     false,
+				"responseSize": len(cases),
+			},
 		})
 	}
 }
