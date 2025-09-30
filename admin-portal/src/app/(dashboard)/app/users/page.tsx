@@ -67,9 +67,9 @@ const UserManagementPage = () => {
       params.page = page;
       params.pageSize = pageSize;
       const response = await apiClient.get(`${base}/users`, { params });
-      const data = response.data?.users ? response.data : { users: response.data, total: response.data?.length || 0, page: 1, pageSize: response.data?.length || 0 };
-      setUsers(data.users);
-      setTotal(data.total || 0);
+      const data = response.data;
+      setUsers(data.data || []);
+      setTotal(data.pagination?.total || 0);
     } catch (error) {
       message.error('No se pudieron cargar los usuarios.');
     } finally {

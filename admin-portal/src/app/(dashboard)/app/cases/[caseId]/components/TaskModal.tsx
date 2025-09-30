@@ -42,8 +42,8 @@ const TaskModal: React.FC<TaskModalProps> = ({ visible, caseId, onClose, onSucce
       const fetchStaff = async () => {
         try {
           const response = await apiClient.get('/admin/users');
-          // The API returns { users: [...], total: ..., page: ..., pageSize: ... }
-          const users = response.data.users || response.data;
+          // The API returns { data: [...], pagination: {...} }
+          const users = response.data.data || [];
           const staff = users.filter((user: any) => user.role !== 'client');
           // Staff data loaded successfully
           setStaffList(staff);
