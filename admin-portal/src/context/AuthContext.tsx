@@ -10,6 +10,7 @@ import { apiClient } from '@/app/lib/api';
 // Storage keys constants
 const STORAGE_KEYS = {
   AUTH_TOKEN: 'authToken',
+  USER_DATA: 'userData',
 } as const;
 
 // JWT payload interface
@@ -118,11 +119,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   // Initialize authentication state
   useEffect(() => {
-    const initializeAuth = async () => {
+    const initializeAuth = () => {
       try {
         const token = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
+        const userData = localStorage.getItem(STORAGE_KEYS.USER_DATA);
         
-        if (!token) {
+        if (!token || !userData) {
           setState({
             user: null,
             isLoading: false,
@@ -132,11 +134,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           return;
         }
 
-        // Decode token to get user ID
+        // Decode token to verify it's still valid
         const decodedUser = decodeToken(token);
         if (!decodedUser) {
           // Invalid or expired token
           localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+          localStorage.removeItem(STORAGE_KEYS.USER_DATA);
           setState({
             user: null,
             isLoading: false,
@@ -146,23 +149,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           return;
         }
 
-        // Fetch complete user details
-        const userDetails = await fetchUserDetails(decodedUser.id);
-        if (!userDetails) {
-          // Failed to fetch user details
-          localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
-          setState({
-            user: null,
-            isLoading: false,
-            isAuthenticated: false,
-            error: 'Failed to fetch user details',
-          });
-          return;
-        }
-
-        // Set authenticated state
+        // Parse stored user data
+        const parsedUserData = JSON.parse(userData);
+        
+        // Set authenticated state using stored data
         setState({
-          user: userDetails,
+          user: parsedUserData,
           isLoading: false,
           isAuthenticated: true,
           error: null,
@@ -171,6 +163,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       } catch (error) {
         console.error('Auth initialization error:', error);
         localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+        localStorage.removeItem(STORAGE_KEYS.USER_DATA);
         setState({
           user: null,
           isLoading: false,
@@ -181,13 +174,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     };
 
     initializeAuth();
-  }, [decodeToken, fetchUserDetails]);
+  }, [decodeToken]);
 
   // Login function
   const login = useCallback((token: string, userData: AuthUser) => {
     try {
-      // Store token
+      // Store token and user data
       localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, token);
+      localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(userData));
       
       // Update state
       setState({
@@ -213,6 +207,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       // Clear storage
       localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+      localStorage.removeItem(STORAGE_KEYS.USER_DATA);
       
       // Update state
       setState({
