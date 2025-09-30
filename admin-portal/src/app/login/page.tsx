@@ -49,7 +49,7 @@ export default function LoginPage() {
     }
   }, [isAuthenticated, router]);
 
-  // CRITICAL: Synchronous and race-condition-free login handler
+  // Centralized login orchestrator - delegates all state management to AuthContext
   const handleLogin = useCallback(async (values: LoginFormData) => {
     setLoading(true);
     clearError();
@@ -59,20 +59,23 @@ export default function LoginPage() {
       const response = await apiClient.post('/login', values);
       
       if (response.data.token && response.data.user) {
-        // Step 2: CRITICAL - Call login function synchronously
-        // This will atomically store token and user data in localStorage
+        // Step 2: CRITICAL - Delegate state management to AuthContext
+        // AuthContext.login() is the single authoritative method for setting auth state
+        // It will atomically store token and user data in localStorage
         // and update the React state immediately
-        login(response.data.token, response.data.user);
+        login(response.data.user, response.data.token);
         
         // Step 3: Log success
         logApiSuccess('User logged in successfully', 'LoginPage', { email: values.email });
+        
+        // Step 4: Show the single, correct welcome message
         message.success('¡Bienvenido al Sistema CAF!');
         
-        // Step 4: CRITICAL - Determine redirect path
+        // Step 5: Determine redirect path based on user role
         const userRole = response.data.user?.role as UserRole;
         const redirectPath = ROLE_REDIRECTS[userRole] || '/';
         
-        // Step 5: CRITICAL - Redirect immediately after state is updated
+        // Step 6: Redirect immediately after state is updated
         // No setTimeout, no delays, no race conditions
         router.push(redirectPath);
         

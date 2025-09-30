@@ -3,7 +3,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { jwtDecode } from 'jwt-decode';
-import { message } from 'antd';
 import { AuthUser, UserRole } from '@/app/lib/types';
 
 // Storage keys constants
@@ -29,7 +28,7 @@ interface AuthState {
 
 // Auth actions interface
 interface AuthActions {
-  login: (token: string, userData: AuthUser) => void;
+  login: (userData: AuthUser, token: string) => void;
   logout: () => void;
   clearError: () => void;
 }
@@ -61,9 +60,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     isAuthenticated: false,
     error: null,
   });
-
-  // Flag to prevent re-initialization after login
-  const [isInitialized, setIsInitialized] = useState(false);
 
   // Helper function to decode JWT and extract user data
   const decodeToken = useCallback((token: string): AuthUser | null => {
@@ -98,11 +94,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, []);
 
-  // Initialize authentication state - SYNCHRONOUS AND RACE-CONDITION FREE
+  // Initialize authentication state - ONLY runs on initial app load
   useEffect(() => {
-    // Prevent re-initialization if already initialized
-    if (isInitialized) return;
-
     const initializeAuth = () => {
       try {
         const token = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
@@ -115,7 +108,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             isAuthenticated: false,
             error: null,
           });
-          setIsInitialized(true);
           return;
         }
 
@@ -131,7 +123,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             isAuthenticated: false,
             error: null,
           });
-          setIsInitialized(true);
           return;
         }
 
@@ -145,7 +136,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           isAuthenticated: true,
           error: null,
         });
-        setIsInitialized(true);
 
       } catch (error) {
         console.error('Auth initialization error:', error);
@@ -157,16 +147,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           isAuthenticated: false,
           error: 'Authentication initialization failed',
         });
-        setIsInitialized(true);
       }
     };
 
-    // CRITICAL: Initialize immediately and synchronously
+    // Initialize immediately and synchronously
     initializeAuth();
-  }, [decodeToken, isInitialized]);
+  }, [decodeToken]); // Only run once on mount
 
-  // Login function - SYNCHRONOUS AND ATOMIC
-  const login = useCallback((token: string, userData: AuthUser) => {
+  // Login function - THE SINGLE AUTHORITATIVE METHOD FOR SETTING AUTH STATE
+  const login = useCallback((userData: AuthUser, token: string) => {
     try {
       // CRITICAL: Store both token and user data atomically
       localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, token);
@@ -180,18 +169,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         error: null,
       });
 
-      // Mark as initialized to prevent re-initialization
-      setIsInitialized(true);
-
-      // Note: Success message is shown by the login page, not here
-      // This prevents duplicate success messages
+      // No user feedback here - AuthContext is a silent background service
+      // All user feedback is handled by UI components
     } catch (error) {
       console.error('Login error:', error);
       setState(prev => ({
         ...prev,
         error: 'Login failed',
       }));
-      message.error('Error al iniciar sesión');
     }
   }, []);
 
@@ -209,13 +194,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         isAuthenticated: false,
         error: null,
       });
-
-      // Reset initialization flag
-      setIsInitialized(false);
       
       // Redirect to login
       router.replace('/login');
-      message.success('Sesión cerrada exitosamente');
     } catch (error) {
       console.error('Logout error:', error);
       setState(prev => ({
