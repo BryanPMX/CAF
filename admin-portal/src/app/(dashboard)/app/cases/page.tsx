@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { CASE_STATUSES, CASE_STATUS_DISPLAY_NAMES, CASE_STATUS_OPTIONS } from '@/config/statuses';
 import { 
   Table, 
@@ -170,6 +171,7 @@ const getStageLabels = (category: string): { [key: string]: string } => {
 const CaseManagementPage = () => {
   // --- Auth & Role Management ---
   const { user, isAuthenticated } = useAuth();
+  const searchParams = useSearchParams();
   
   // --- State Management ---
   const [cases, setCases] = useState<CaseType[]>([]);
@@ -296,6 +298,16 @@ const CaseManagementPage = () => {
   useEffect(() => {
     fetchCases(1);
   }, [fetchCases]);
+
+  // Handle refresh parameter from case deletion
+  useEffect(() => {
+    const refreshParam = searchParams.get('refresh');
+    if (refreshParam) {
+      // Clear cache and refresh data when coming from case deletion
+      cache.clear();
+      fetchCases(1);
+    }
+  }, [searchParams, cache, fetchCases]);
 
   // Handle search changes
   useEffect(() => {
