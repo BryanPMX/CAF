@@ -157,18 +157,18 @@ export const canViewDocumentType = (userRole: string, documentType: string): boo
 
 export const getNavigationItemsForRole = (role: string) => {
   const baseItems = [
-    { key: 'dashboard', label: 'Dashboard', path: '/dashboard', icon: 'DashboardOutlined' },
-    { key: 'cases', label: 'Cases', path: '/cases', icon: 'FileTextOutlined' },
-    { key: 'appointments', label: 'Appointments', path: '/appointments', icon: 'CalendarOutlined' },
+    { key: 'dashboard', label: 'Dashboard', path: '/', icon: 'DashboardOutlined' },
+    { key: 'cases', label: 'Cases', path: '/app/cases', icon: 'FileTextOutlined' },
+    { key: 'appointments', label: 'Appointments', path: '/app/appointments', icon: 'CalendarOutlined' },
   ];
 
   if (isAdminRole(role)) {
     return [
       ...baseItems,
-      { key: 'users', label: 'Users', path: '/users', icon: 'UserOutlined' },
-      { key: 'offices', label: 'Offices', path: '/offices', icon: 'BankOutlined' },
-      { key: 'records', label: 'Records', path: '/records', icon: 'FileOutlined' },
-      { key: 'reports', label: 'Reports', path: '/reports', icon: 'BarChartOutlined' },
+      { key: 'users', label: 'Users', path: '/app/users', icon: 'UserOutlined' },
+      { key: 'offices', label: 'Offices', path: '/app/offices', icon: 'BankOutlined' },
+      { key: 'records', label: 'Records', path: '/app/records', icon: 'FileOutlined' },
+      { key: 'reports', label: 'Reports', path: '/app/reports', icon: 'BarChartOutlined' },
       { key: 'admin', label: 'Admin', path: '/admin', icon: 'SettingOutlined' },
     ];
   }
@@ -176,9 +176,9 @@ export const getNavigationItemsForRole = (role: string) => {
   if (isManagementRole(role)) {
     return [
       ...baseItems,
-      { key: 'users', label: 'Users', path: '/users', icon: 'UserOutlined' },
-      { key: 'records', label: 'Records', path: '/records', icon: 'FileOutlined' },
-      { key: 'reports', label: 'Reports', path: '/reports', icon: 'BarChartOutlined' },
+      { key: 'users', label: 'Users', path: '/app/users', icon: 'UserOutlined' },
+      { key: 'records', label: 'Records', path: '/app/records', icon: 'FileOutlined' },
+      { key: 'reports', label: 'Reports', path: '/app/reports', icon: 'BarChartOutlined' },
     ];
   }
 
