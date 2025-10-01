@@ -25,7 +25,6 @@ import {
   PlusOutlined, 
   EyeOutlined, 
   SearchOutlined,
-  ReloadOutlined,
   FilterOutlined,
   BarChartOutlined,
   ClockCircleOutlined
@@ -305,6 +304,7 @@ const CaseManagementPage = () => {
     if (refreshParam) {
       // Clear cache and refresh data when coming from case deletion
       cache.clear();
+      setCurrentPage(1);
       fetchCases(1);
     }
   }, [searchParams, cache, fetchCases]);
@@ -318,7 +318,7 @@ const CaseManagementPage = () => {
   useEffect(() => {
     setCurrentPage(1);
     fetchCases(1);
-  }, [deptFilter, caseTypeFilter]);
+  }, [deptFilter, caseTypeFilter, fetchCases]);
 
   // Load more data (infinite scroll)
   const handleLoadMore = useCallback(() => {
@@ -523,22 +523,13 @@ const CaseManagementPage = () => {
             Total: {total} casos • Última actualización: {lastRefresh.toLocaleTimeString()}
           </p>
         </div>
-        <Space>
-          <Button 
-            icon={<ReloadOutlined />} 
-            onClick={handleRefresh}
-            loading={loading}
-          >
-            Actualizar
-          </Button>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => setIsModalVisible(true)}
-          >
-            Crear Caso
-          </Button>
-        </Space>
+        <Button
+          type="primary"
+          icon={<PlusOutlined />}
+          onClick={() => setIsModalVisible(true)}
+        >
+          Crear Caso
+        </Button>
       </div>
 
       {/* Filters */}
@@ -640,7 +631,9 @@ const CaseManagementPage = () => {
         onClose={() => setIsModalVisible(false)}
         onSuccess={() => {
           setIsModalVisible(false);
-          handleRefresh();
+          cache.clear();
+          setCurrentPage(1);
+          fetchCases(1);
         }}
       />
     </div>
