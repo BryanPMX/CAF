@@ -398,6 +398,16 @@ func PermanentlyDeleteCase(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
+		// Delete task comments first (they reference tasks)
+		if err := tx.Unscoped().Where("task_id IN (SELECT id FROM tasks WHERE case_id = ?)", caseID).Delete(&models.TaskComment{}).Error; err != nil {
+			tx.Rollback()
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error":   "Failed to delete task comments",
+				"message": err.Error(),
+			})
+			return
+		}
+
 		// Delete tasks associated with the case
 		if err := tx.Unscoped().Where("case_id = ?", caseID).Delete(&models.Task{}).Error; err != nil {
 			tx.Rollback()
@@ -434,6 +444,7 @@ func PermanentlyDeleteCase(db *gorm.DB) gin.HandlerFunc {
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"error":   "Failed to permanently delete case",
 				"message": err.Error(),
+				"caseId":  caseID,
 			})
 			return
 		}
