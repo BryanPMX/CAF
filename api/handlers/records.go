@@ -418,6 +418,16 @@ func PermanentlyDeleteCase(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
+		// Delete audit logs related to this case
+		if err := tx.Unscoped().Where("entity_type = ? AND entity_id = ?", "case", caseID).Delete(&models.AuditLog{}).Error; err != nil {
+			tx.Rollback()
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error":   "Failed to delete case audit logs",
+				"message": err.Error(),
+			})
+			return
+		}
+
 		// Finally, permanently delete the case
 		if err := tx.Unscoped().Delete(&caseData).Error; err != nil {
 			tx.Rollback()
