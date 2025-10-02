@@ -29,25 +29,36 @@ func UpdateCaseStage(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		// Validate stage
-		validStages := map[string]bool{
-			"intake":      true,
-			"assessment":  true,
-			"active":      true,
-			"review":      true,
-			"closed":      true,
-			"archived":    true,
-		}
-
-		if !validStages[request.Stage] {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid stage"})
-			return
-		}
-
-		// Find and update case
+		// Find the case first to get its category for stage validation
 		var caseData models.Case
 		if err := db.First(&caseData, caseID).Error; err != nil {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Case not found"})
+			return
+		}
+
+		// Validate stage based on case category
+		var validStages map[string]bool
+		if caseData.Category == "Familiar" || caseData.Category == "Civil" {
+			validStages = map[string]bool{
+				"etapa_inicial":         true,
+				"notificacion":          true,
+				"audiencia_preliminar":  true,
+				"audiencia_juicio":      true,
+				"sentencia":             true,
+			}
+		} else {
+			validStages = map[string]bool{
+				"intake":              true,
+				"initial_consultation": true,
+				"document_review":      true,
+				"action_plan":          true,
+				"resolution":          true,
+				"closed":              true,
+			}
+		}
+
+		if !validStages[request.Stage] {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid stage for this case category"})
 			return
 		}
 

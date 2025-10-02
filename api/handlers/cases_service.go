@@ -34,9 +34,9 @@ func (s *CaseService) NewCaseQueryBuilder() *CaseQueryBuilder {
 	}
 }
 
-// ExcludeArchived excludes archived cases from the query
+// ExcludeArchived excludes archived and soft-deleted cases from the query
 func (qb *CaseQueryBuilder) ExcludeArchived() *CaseQueryBuilder {
-	qb.query = qb.query.Where("is_archived = ?", false)
+	qb.query = qb.query.Where("is_archived = ? AND deleted_at IS NULL", false)
 	return qb
 }
 
@@ -238,7 +238,12 @@ func (s *CaseService) CreateCase(c *gin.Context) (*models.Case, error) {
 		caseData.Priority = "medium"
 	}
 	if caseData.CurrentStage == "" {
-		caseData.CurrentStage = "intake"
+		// Set initial stage based on case category
+		if caseData.Category == "Familiar" || caseData.Category == "Civil" {
+			caseData.CurrentStage = "etapa_inicial"
+		} else {
+			caseData.CurrentStage = "intake"
+		}
 	}
 
 	// Set audit fields
