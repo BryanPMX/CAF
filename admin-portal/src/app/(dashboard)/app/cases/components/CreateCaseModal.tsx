@@ -68,23 +68,22 @@ const CreateCaseModal: React.FC<CreateCaseModalProps> = ({ visible, onClose, onS
       return;
     }
     try {
-      const role = typeof window !== 'undefined' ? localStorage.getItem('userRole') : 'admin';
-      const base = role === 'office_manager' ? '/manager' : '/admin';
-      const response = await apiClient.get(`${base}/users?role=client`);
-      const allUsers: Client[] = Array.isArray(response.data) ? response.data : (response.data?.users || []);
-      const filteredClients = allUsers
-        .filter(user => 
-          `${user.firstName} ${user.lastName}`.toLowerCase().includes(searchText.toLowerCase()) ||
-          user.email.toLowerCase().includes(searchText.toLowerCase())
-        )
-        .map(client => ({
-          value: `${client.firstName} ${client.lastName} (${client.email})`,
-          label: `${client.firstName} ${client.lastName} (${client.email})`,
-          key: client.id,
-        }));
-      setClientOptions(filteredClients);
+      console.log('Searching clients with:', searchText);
+      // Use the proper client search endpoint
+      const response = await apiClient.get(`/admin/users/search?q=${encodeURIComponent(searchText)}`);
+      console.log('SearchClients response:', response.data);
+      
+      const clients: Client[] = Array.isArray(response.data) ? response.data : [];
+      const clientOptions = clients.map(client => ({
+        value: `${client.firstName} ${client.lastName} (${client.email})`,
+        label: `${client.firstName} ${client.lastName} (${client.email})`,
+        key: client.id,
+      }));
+      console.log('Mapped client options:', clientOptions);
+      setClientOptions(clientOptions);
     } catch (error) {
       console.error("Client search failed:", error);
+      message.error('Error al buscar clientes. Intente nuevamente.');
     }
   };
 
