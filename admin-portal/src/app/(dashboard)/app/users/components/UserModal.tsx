@@ -178,33 +178,27 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
               : []
           }
         >
-          {selectedRole === USER_ROLES.CLIENT ? (
-            <Select placeholder="Los clientes no requieren oficina" disabled>
-              <Option value={null}>No aplica</Option>
-            </Select>
-          ) : (
-            <Select
-              placeholder={selectedRole ? "Seleccione una oficina" : "Primero seleccione un rol"}
-              allowClear
-              disabled={
-                (typeof window !== 'undefined' && localStorage.getItem('userRole') === 'office_manager') ||
-                !selectedRole
-              }
-              showSearch
-              filterOption={(input, option) =>
-                option?.children?.toString().toLowerCase().includes(input.toLowerCase()) ?? false
-              }
-            >
-              {offices.map(office => (
-                <Option key={office.id} value={office.id}>
-                  {office.name}
-                </Option>
-              ))}
-            </Select>
-          )}
+          <Select
+            placeholder={selectedRole ? "Seleccione una oficina" : "Primero seleccione un rol"}
+            allowClear
+            disabled={
+              (typeof window !== 'undefined' && localStorage.getItem('userRole') === 'office_manager') ||
+              !selectedRole
+            }
+            showSearch
+            filterOption={(input, option) =>
+              option?.children?.toString().toLowerCase().includes(input.toLowerCase()) ?? false
+            }
+          >
+            {offices.map(office => (
+              <Option key={office.id} value={office.id}>
+                {office.name}
+              </Option>
+            ))}
+          </Select>
         </Form.Item>
         {/* Helper text and status messages */}
-        {selectedRole && selectedRole !== USER_ROLES.CLIENT && requiresOffice(selectedRole as StaffRoleKey) && (
+        {selectedRole && requiresOffice(selectedRole as StaffRoleKey) && (
           <div style={{ color: '#666', fontSize: '12px', marginTop: '-16px', marginBottom: '8px' }}>
             ℹ️ Requerido para {selectedRole === USER_ROLES.EVENT_COORDINATOR ? 'coordinadores de eventos' : 'personal'}
           </div>

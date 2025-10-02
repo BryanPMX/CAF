@@ -79,6 +79,7 @@ var VALID_ROLES = []string{
 	RolePsychologist,
 	RoleReceptionist,
 	RoleEventCoordinator,
+	"client", // Add client role as valid
 }
 
 // Role validation functions
