@@ -44,8 +44,8 @@ export class CaseService {
     let endpoint: string;
     
     if (userRole === 'admin') {
-      // Admin users get optimized endpoint with full access
-      endpoint = `/admin/optimized/cases?${queryParams}`;
+      // Admin users use standard admin endpoint for consistency
+      endpoint = `/admin/cases?${queryParams}`;
     } else if (userRole === 'office_manager') {
       // Office managers use manager endpoints
       endpoint = `/manager/cases?${queryParams}`;

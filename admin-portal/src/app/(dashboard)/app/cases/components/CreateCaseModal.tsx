@@ -127,7 +127,8 @@ const CreateCaseModal: React.FC<CreateCaseModalProps> = ({ visible, onClose, onS
         payload.email = values.email;
       }
       
-      await apiClient.post('/admin/cases', payload);
+      const response = await apiClient.post('/admin/cases', payload);
+      console.log('Case created successfully:', response.data);
       
       message.success({ content: '¡Caso creado exitosamente!', key: 'createCase' });
       onSuccess();
