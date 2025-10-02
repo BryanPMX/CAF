@@ -448,7 +448,6 @@ const CaseDetailPage = () => {
           </Descriptions.Item>
           <Descriptions.Item label="Etapa del Proceso">
             <div className="flex items-center justify-between">
-              <span>{getStageLabels(caseDetails.category)[caseDetails.currentStage] || caseDetails.currentStage}</span>
               {(PERMISSIONS[staffRole as keyof typeof PERMISSIONS]?.includes('manage_users') || PERMISSIONS[staffRole as keyof typeof PERMISSIONS]?.includes('*')) && (
                 <Button icon={<EditOutlined />} size="small" onClick={() => setIsStageModalVisible(true)}>
                   Actualizar Etapa
@@ -480,9 +479,9 @@ const CaseDetailPage = () => {
         onClose={() => setIsStageModalVisible(false)}
         onSuccess={fetchCaseDetails}
         caseId={caseId as string}
-        currentStage={caseDetails.currentStage}
-        allStages={getCaseStages(caseDetails.category)}
-        stageLabels={getStageLabels(caseDetails.category)}
+        currentStage={caseDetails?.currentStage || ''}
+        allStages={caseDetails ? getCaseStages(caseDetails.category) : []}
+        stageLabels={caseDetails ? getStageLabels(caseDetails.category) : {}}
       />
 
       <EditCaseModal
