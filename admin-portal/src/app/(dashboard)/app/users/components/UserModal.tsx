@@ -198,11 +198,6 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
           </Select>
         </Form.Item>
         {/* Helper text and status messages */}
-        {selectedRole && requiresOffice(selectedRole as StaffRoleKey) && (
-          <div style={{ color: '#666', fontSize: '12px', marginTop: '-16px', marginBottom: '8px' }}>
-            ℹ️ Requerido para {selectedRole === USER_ROLES.EVENT_COORDINATOR ? 'coordinadores de eventos' : 'personal'}
-          </div>
-        )}
         {!selectedRole && (
           <div style={{ color: '#999', fontSize: '12px', marginTop: '-16px', marginBottom: '8px' }}>
             ℹ️ Seleccione un rol primero para asignar una oficina
