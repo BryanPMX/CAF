@@ -189,6 +189,11 @@ func IsManagementRole(role string) bool {
 	return role == RoleAdmin || role == RoleOfficeManager
 }
 
+// RequiresOffice checks if a role requires office assignment
+func RequiresOffice(role string) bool {
+	return role == RoleOfficeManager || role == RoleLawyer || role == RolePsychologist || role == RoleReceptionist || role == RoleEventCoordinator
+}
+
 // GetRoleHierarchyLevel returns the hierarchy level of a role (lower number = higher access)
 func GetRoleHierarchyLevel(role string) int {
 	switch role {
