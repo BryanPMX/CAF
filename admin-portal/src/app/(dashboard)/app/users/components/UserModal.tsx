@@ -4,7 +4,7 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, Form, Input, Select, Button, message } from 'antd';
 import { apiClient } from '@/app/lib/api';
-import { STAFF_ROLES, requiresOffice, getAllRoles, type StaffRoleKey } from '@/config/roles';
+import { STAFF_ROLES, requiresOffice, getAllRoles, USER_ROLES, type StaffRoleKey } from '@/config/roles';
 
 const { Option } = Select;
 
@@ -46,7 +46,9 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
           const role = typeof window !== 'undefined' ? localStorage.getItem('userRole') : 'admin';
           // Check if the current user can manage users (admin or office_manager)
           if (role === 'admin' || role === 'office_manager') {
-            const response = await apiClient.get('/admin/offices');
+            // Use appropriate endpoint based on role - admins use admin endpoint, others use protected endpoint
+            const endpoint = role === 'admin' ? '/admin/offices' : '/offices';
+            const response = await apiClient.get(endpoint);
             console.log('Offices loaded:', response.data);
             setOffices(response.data);
           } else {
@@ -114,8 +116,8 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
   // Handle role selection change
   const handleRoleChange = (roleValue: string) => {
     setSelectedRole(roleValue);
-    // Clear office selection if the new role doesn't require an office
-    if (!requiresOffice(roleValue as StaffRoleKey)) {
+    // Only clear office selection if the role is client
+    if (roleValue === USER_ROLES.CLIENT) {
       form.setFieldsValue({ officeId: undefined });
     }
   };
@@ -162,11 +164,20 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
             ))}
           </Select>
         </Form.Item>
-        {/* The office dropdown is only shown for roles that require office assignment. */}
-        {selectedRole && requiresOffice(selectedRole as StaffRoleKey) && (
-          <Form.Item name="officeId" label="Oficina" rules={[{ required: true, message: 'Debe asignar una oficina al personal' }]}>
+        {/* The office dropdown is shown for all roles except clients */}
+        {selectedRole && selectedRole !== USER_ROLES.CLIENT && (
+          <Form.Item 
+            name="officeId" 
+            label="Oficina" 
+            rules={
+              requiresOffice(selectedRole as StaffRoleKey) 
+                ? [{ required: true, message: 'Debe asignar una oficina al personal' }]
+                : []
+            }
+          >
             <Select
-              placeholder="Seleccione una oficina"
+              placeholder="Seleccione una oficina (opcional)"
+              allowClear
               disabled={typeof window !== 'undefined' && localStorage.getItem('userRole') === 'office_manager'}
             >
               {offices.map(office => (
@@ -178,6 +189,11 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
             {offices.length === 0 && (
               <div style={{ color: 'red', fontSize: '12px', marginTop: '4px' }}>
                 ⚠️ No hay oficinas disponibles. Contacte al administrador.
+              </div>
+            )}
+            {requiresOffice(selectedRole as StaffRoleKey) && (
+              <div style={{ color: '#666', fontSize: '12px', marginTop: '4px' }}>
+                ℹ️ Requerido para {selectedRole === USER_ROLES.EVENT_COORDINATOR ? 'coordinadores de eventos' : 'personal'}
               </div>
             )}
           </Form.Item>

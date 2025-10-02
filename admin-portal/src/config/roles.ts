@@ -104,7 +104,7 @@ export const STAFF_ROLES = {
 
 export const PERMISSIONS = {
   [USER_ROLES.ADMIN]: ['*'], // Admin has all permissions
-  [USER_ROLES.OFFICE_MANAGER]: ['cases.read', 'cases.write', 'appointments.read', 'appointments.write', 'users.read'],
+  [USER_ROLES.OFFICE_MANAGER]: ['cases.read', 'cases.write', 'appointments.read', 'appointments.write', 'users.read', 'manage_offices'],
   [USER_ROLES.LAWYER]: ['cases.read', 'cases.write', 'appointments.read', 'appointments.write', 'documents.read'],
   [USER_ROLES.PSYCHOLOGIST]: ['cases.read', 'cases.write', 'appointments.read', 'appointments.write', 'documents.read'],
   [USER_ROLES.RECEPTIONIST]: ['cases.read', 'appointments.read', 'appointments.write', 'users.read'],

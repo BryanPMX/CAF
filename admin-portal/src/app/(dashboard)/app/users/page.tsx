@@ -18,6 +18,7 @@ interface User {
   lastName: string;
   email: string;
   role: string;
+  officeId?: number; // officeId for form editing
   office?: { name: string }; // The office is optional, as clients won't have one.
 }
 
@@ -68,6 +69,7 @@ const UserManagementPage = () => {
       params.pageSize = pageSize;
       const response = await apiClient.get(`${base}/users`, { params });
       const data = response.data;
+      console.log('Users API response:', data);
       setUsers(data.data || []);
       setTotal(data.pagination?.total || 0);
     } catch (error) {
@@ -110,7 +112,9 @@ const UserManagementPage = () => {
     // Only admins can load office list for filtering
     // User role is guaranteed to be available by the parent layout
      if (user && (PERMISSIONS[user.role as keyof typeof PERMISSIONS]?.includes('manage_offices') || PERMISSIONS[user.role as keyof typeof PERMISSIONS]?.includes('*'))) {
-      apiClient.get('/admin/offices').then(res => setOffices(res.data)).catch(() => {});
+      // Use appropriate endpoint based on user role
+      const endpoint = user.role === 'admin' ? '/admin/offices' : '/offices';
+      apiClient.get(endpoint).then(res => setOffices(res.data)).catch(() => {});
     }
   }, [isHydrated, user]); // Re-run when user changes
 
@@ -161,6 +165,7 @@ const UserManagementPage = () => {
 
   // Opens the modal in "edit" mode by passing the selected user's data.
   const handleEdit = (user: User) => {
+    console.log('Edit user data:', user);
     setEditingUser(user);
     setIsModalVisible(true);
   };
