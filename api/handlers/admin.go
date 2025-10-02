@@ -148,10 +148,8 @@ func GetUsers(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Initialize with empty slice to prevent null JSON response
 		users := make([]models.User, 0)
-		// CRITICAL FIX: Use Joins instead of Preload to eliminate N+1 query problem
-		query := db.Select("users.*, offices.id as office_id, offices.name as office_name, offices.address as office_address").
-			Joins("LEFT JOIN offices ON users.office_id = offices.id").
-			Order("users.created_at desc")
+		// Use Preload to properly load office relationship and ensure nested JSON structure
+		query := db.Preload("Office").Order("users.created_at desc")
 		countQ := db.Model(&models.User{})
 
 		// Restrict to requester's office for non-admin roles when office scope is available
@@ -277,15 +275,21 @@ func UpdateUser(db *gorm.DB) gin.HandlerFunc {
 		// Validate the incoming JSON data.
 		var input UpdateUserInput
 		if err := c.ShouldBindJSON(&input); err != nil {
+			log.Printf("UpdateUser validation error: %v", err)
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
+		
+		log.Printf("UpdateUser processing: Role=%s, OfficeID=%v", input.Role, input.OfficeID)
 
 		// Perform the same role and office validation as in CreateUser using centralized config
 		if err := config.ValidateRole(input.Role); err != nil {
+			log.Printf("UpdateUser role validation error: %v", err)
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
+		
+		log.Printf("UpdateUser role validation passed for role: %s", input.Role)
 		// For update operations, only enforce office requirement for non-admin, non-client staff
 		// Allow admins to have no office, and allow clearing office for existing users in transition
 		if input.Role != "client" && input.Role != config.RoleAdmin && config.RequiresOffice(input.Role) && input.OfficeID == nil {
