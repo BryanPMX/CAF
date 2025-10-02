@@ -149,8 +149,8 @@ func GetUsers(db *gorm.DB) gin.HandlerFunc {
 		// Initialize with empty slice to prevent null JSON response
 		users := make([]models.User, 0)
 		// CRITICAL FIX: Use Joins instead of Preload to eliminate N+1 query problem
-		query := db.Joins("LEFT JOIN offices ON users.office_id = offices.id").
-			Select("users.*, offices.id as office_id, offices.name as office_name, offices.address as office_address").
+		query := db.Select("users.*, offices.id as office_id, offices.name as office_name, offices.address as office_address").
+			Joins("LEFT JOIN offices ON users.office_id = offices.id").
 			Order("users.created_at desc")
 		countQ := db.Model(&models.User{})
 
