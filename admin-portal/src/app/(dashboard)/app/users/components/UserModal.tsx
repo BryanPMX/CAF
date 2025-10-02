@@ -40,14 +40,16 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
   // This `useEffect` hook runs whenever the modal becomes visible or the user to be edited changes.
   useEffect(() => {
     if (visible) {
-      // Fetch offices for admins and office managers
+      // Fetch offices for admins and office managers - run always when modal opens
       const fetchOffices = async () => {
         try {
           const role = typeof window !== 'undefined' ? localStorage.getItem('userRole') : 'admin';
+          console.log('Fetching offices for role:', role);
           // Check if the current user can manage users (admin or office_manager)
           if (role === 'admin' || role === 'office_manager') {
             // Use appropriate endpoint based on role - admins use admin endpoint, others use protected endpoint
             const endpoint = role === 'admin' ? '/admin/offices' : '/offices';
+            console.log('Fetching offices from endpoint:', endpoint);
             const response = await apiClient.get(endpoint);
             console.log('Offices loaded:', response.data);
             setOffices(response.data);
@@ -60,6 +62,8 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
           setOffices([]);
         }
       };
+      
+      // Always fetch offices when modal opens, regardless of current role selection
       fetchOffices();
 
       // If we are editing an existing user, populate the form with their data.
@@ -164,21 +168,32 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
             ))}
           </Select>
         </Form.Item>
-        {/* The office dropdown is shown for all roles except clients */}
-        {selectedRole && selectedRole !== USER_ROLES.CLIENT && (
-          <Form.Item 
-            name="officeId" 
-            label="Oficina" 
-            rules={
-              requiresOffice(selectedRole as StaffRoleKey) 
-                ? [{ required: true, message: 'Debe asignar una oficina al personal' }]
-                : []
-            }
-          >
+        {/* Office assignment field - always visible */}
+        <Form.Item 
+          name="officeId" 
+          label="Oficina"
+          rules={
+            selectedRole && requiresOffice(selectedRole as StaffRoleKey) 
+              ? [{ required: true, message: 'Debe asignar una oficina al personal' }]
+              : []
+          }
+        >
+          {selectedRole === USER_ROLES.CLIENT ? (
+            <Select placeholder="Los clientes no requieren oficina" disabled>
+              <Option value={null}>No aplica</Option>
+            </Select>
+          ) : (
             <Select
-              placeholder="Seleccione una oficina (opcional)"
+              placeholder={selectedRole ? "Seleccione una oficina" : "Primero seleccione un rol"}
               allowClear
-              disabled={typeof window !== 'undefined' && localStorage.getItem('userRole') === 'office_manager'}
+              disabled={
+                (typeof window !== 'undefined' && localStorage.getItem('userRole') === 'office_manager') ||
+                !selectedRole
+              }
+              showSearch
+              filterOption={(input, option) =>
+                option?.children?.toString().toLowerCase().includes(input.toLowerCase()) ?? false
+              }
             >
               {offices.map(office => (
                 <Option key={office.id} value={office.id}>
@@ -186,17 +201,23 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
                 </Option>
               ))}
             </Select>
-            {offices.length === 0 && (
-              <div style={{ color: 'red', fontSize: '12px', marginTop: '4px' }}>
-                ⚠️ No hay oficinas disponibles. Contacte al administrador.
-              </div>
-            )}
-            {requiresOffice(selectedRole as StaffRoleKey) && (
-              <div style={{ color: '#666', fontSize: '12px', marginTop: '4px' }}>
-                ℹ️ Requerido para {selectedRole === USER_ROLES.EVENT_COORDINATOR ? 'coordinadores de eventos' : 'personal'}
-              </div>
-            )}
-          </Form.Item>
+          )}
+        </Form.Item>
+        {/* Helper text and status messages */}
+        {selectedRole && selectedRole !== USER_ROLES.CLIENT && requiresOffice(selectedRole as StaffRoleKey) && (
+          <div style={{ color: '#666', fontSize: '12px', marginTop: '-16px', marginBottom: '8px' }}>
+            ℹ️ Requerido para {selectedRole === USER_ROLES.EVENT_COORDINATOR ? 'coordinadores de eventos' : 'personal'}
+          </div>
+        )}
+        {!selectedRole && (
+          <div style={{ color: '#999', fontSize: '12px', marginTop: '-16px', marginBottom: '8px' }}>
+            ℹ️ Seleccione un rol primero para asignar una oficina
+          </div>
+        )}
+        {offices.length === 0 && (
+          <div style={{ color: 'red', fontSize: '12px', marginTop: '-16px', marginBottom: '8px' }}>
+            ⚠️ No hay oficinas disponibles. contacte al administrador.
+          </div>
         )}
       </Form>
     </Modal>
