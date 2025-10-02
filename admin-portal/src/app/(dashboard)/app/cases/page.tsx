@@ -254,6 +254,13 @@ const CaseManagementPage = () => {
         }
       );
       
+      console.log('Fetched cases data:', {
+        data: data.data,
+        pagination: data.pagination,
+        totalCases: Array.isArray(data.data) ? data.data.length : 0,
+        endpoint: user!.role === 'admin' ? '/admin/optimized/cases' : 'other'
+      });
+      
       if (append) {
         const newCases = Array.isArray(data.data) ? data.data : [];
         setCases(prev => [...prev, ...newCases]);
