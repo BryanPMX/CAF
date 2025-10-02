@@ -41,7 +41,7 @@ func CreateUser(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		// Enforce that all non-client users must be assigned to an office, except admins
-		if input.Role != "client" && input.Role != config.RoleAdmin && input.OfficeID == nil {
+		if input.Role != "client" && input.Role != config.RoleAdmin && config.RequiresOffice(input.Role) && input.OfficeID == nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "An office must be assigned to all staff members (admins are exempt)."})
 			return
 		}
@@ -286,8 +286,10 @@ func UpdateUser(db *gorm.DB) gin.HandlerFunc {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		if input.Role != "client" && input.Role != config.RoleAdmin && input.OfficeID == nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "An office must be assigned to all staff members."})
+		// For update operations, only enforce office requirement for non-admin, non-client staff
+		// Allow admins to have no office, and allow clearing office for existing users in transition
+		if input.Role != "client" && input.Role != config.RoleAdmin && config.RequiresOffice(input.Role) && input.OfficeID == nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "An office must be assigned to all staff members (except admins)."})
 			return
 		}
 
