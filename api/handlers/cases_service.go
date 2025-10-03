@@ -3,6 +3,7 @@ package handlers
 
 import (
 	"fmt"
+	"log"
 	"strconv"
 	"time"
 
@@ -282,27 +283,35 @@ func (s *CaseService) UpdateCase(caseID string, c *gin.Context) (*models.Case, e
 		return nil, fmt.Errorf("invalid request data: %v", err)
 	}
 
+	// Log the received update data for debugging
+	log.Printf("UpdateCase: Received data for case %s: %+v", caseID, updateData)
+
 	// Set audit fields
 	userID, _ := c.Get("userID")
 	userIDUint, err := strconv.ParseUint(userID.(string), 10, 32)
 	if err != nil {
 		return nil, fmt.Errorf("invalid user ID: %v", err)
 	}
-	updateData["updated_by"] = uint(userIDUint)
+	updateData["updatedBy"] = uint(userIDUint)
 
 	// Update only the provided fields
 	if err := s.db.Model(&caseData).Updates(updateData).Error; err != nil {
+		log.Printf("UpdateCase: Database update error: %v", err)
 		return nil, fmt.Errorf("failed to update case: %v", err)
 	}
+
+	log.Printf("UpdateCase: Successfully updated case %s", caseID)
 
 	// Invalidate cache
 	invalidateCache(caseID)
 
 	// Load relationships for response
 	if err := s.db.Preload("Client").Preload("Office").Preload("PrimaryStaff").First(&caseData, caseData.ID).Error; err != nil {
+		log.Printf("UpdateCase: Failed to load relationships: %v", err)
 		return nil, fmt.Errorf("failed to load case relationships: %v", err)
 	}
 
+	log.Printf("UpdateCase: Successfully loaded case with relationships for %s", caseID)
 	return &caseData, nil
 }
 

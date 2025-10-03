@@ -64,12 +64,16 @@ const EditCaseModal: React.FC<EditCaseModalProps> = ({
         payload.court = values.court;
       }
 
-      await apiClient.put(`/admin/cases/${caseId}`, payload);
+      console.log('EditCaseModal: Sending payload:', payload);
+      const response = await apiClient.put(`/admin/cases/${caseId}`, payload);
+      console.log('EditCaseModal: Response received:', response.data);
       
       message.success({ content: '¡Caso actualizado exitosamente!', key: 'updateCase' });
       onSuccess();
       onClose();
     } catch (error: any) {
+      console.error('EditCaseModal: Update error:', error);
+      console.error('EditCaseModal: Error response:', error.response?.data);
       const errorMessage = error.response?.data?.error || error.message || 'Ocurrió un error al actualizar el caso.';
       message.error({ content: errorMessage, key: 'updateCase' });
     } finally {
