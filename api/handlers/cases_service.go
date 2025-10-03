@@ -276,36 +276,34 @@ func (s *CaseService) UpdateCase(caseID string, c *gin.Context) (*models.Case, e
 		return nil, fmt.Errorf("case not found: %v", err)
 	}
 
-	// Bind update data
-	var updateData models.Case
+	// Create a map to hold the update data
+	var updateData map[string]interface{}
 	if err := c.ShouldBindJSON(&updateData); err != nil {
 		return nil, fmt.Errorf("invalid request data: %v", err)
 	}
 
-	// Update fields
+	// Set audit fields
 	userID, _ := c.Get("userID")
 	userIDUint, err := strconv.ParseUint(userID.(string), 10, 32)
 	if err != nil {
 		return nil, fmt.Errorf("invalid user ID: %v", err)
 	}
-	updateData.ID = caseData.ID
-	updateData.CreatedAt = caseData.CreatedAt
-	updateData.CreatedBy = caseData.CreatedBy
-	updateData.UpdatedBy = &[]uint{uint(userIDUint)}[0]
+	updateData["updated_by"] = uint(userIDUint)
 
-	if err := s.db.Save(&updateData).Error; err != nil {
+	// Update only the provided fields
+	if err := s.db.Model(&caseData).Updates(updateData).Error; err != nil {
 		return nil, fmt.Errorf("failed to update case: %v", err)
 	}
 
 	// Invalidate cache
 	invalidateCache(caseID)
 
-	// Load relationships
-	if err := s.db.Preload("Client").Preload("Office").Preload("PrimaryStaff").First(&updateData, updateData.ID).Error; err != nil {
+	// Load relationships for response
+	if err := s.db.Preload("Client").Preload("Office").Preload("PrimaryStaff").First(&caseData, caseData.ID).Error; err != nil {
 		return nil, fmt.Errorf("failed to load case relationships: %v", err)
 	}
 
-	return &updateData, nil
+	return &caseData, nil
 }
 
 // DeleteCase soft deletes a case
