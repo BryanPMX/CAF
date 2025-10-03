@@ -490,11 +490,11 @@ const CaseDetailPage = () => {
         onSuccess={fetchCaseDetails}
         caseId={caseId as string}
         caseData={{
-          title: caseDetails.title,
-          category: caseDetails.category,
-          docketNumber: caseDetails.docketNumber,
-          court: caseDetails.court,
-          description: caseDetails.description || '',
+          title: caseDetails?.title || '',
+          category: caseDetails?.category || '',
+          docketNumber: caseDetails?.docketNumber || '',
+          court: caseDetails?.court || '',
+          description: caseDetails?.description || '',
         }}
       />
 
