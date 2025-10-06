@@ -183,6 +183,8 @@ const CaseDetailPage = () => {
         'full' // Get all data in one request for better performance
       );
       
+      console.log('Case details fetched:', data);
+      console.log('Current stage:', data.currentStage);
       setCaseDetails(data);
       setLoading(false);
       

@@ -33,11 +33,14 @@ const EditStageModal: React.FC<EditStageModalProps> = ({ visible, caseId, curren
     message.loading({ content: 'Guardando...', key: 'updateStage' });
 
     try {
-      await apiClient.patch(`/admin/cases/${caseId}/stage`, { stage: values.stage });
+      console.log('Updating stage to:', values.stage);
+      const response = await apiClient.patch(`/admin/cases/${caseId}/stage`, { stage: values.stage });
+      console.log('Stage update response:', response.data);
       message.success({ content: '¡Etapa actualizada exitosamente!', key: 'updateStage' });
       onSuccess();
       onClose();
     } catch (error) {
+      console.error('Stage update error:', error);
       message.error({ content: 'No se pudo actualizar la etapa.', key: 'updateStage' });
     } finally {
       setLoading(false);
