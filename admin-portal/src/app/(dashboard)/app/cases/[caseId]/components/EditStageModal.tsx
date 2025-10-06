@@ -33,15 +33,33 @@ const EditStageModal: React.FC<EditStageModalProps> = ({ visible, caseId, curren
     message.loading({ content: 'Guardando...', key: 'updateStage' });
 
     try {
+      console.log('=== STAGE UPDATE DEBUG ===');
       console.log('Updating stage to:', values.stage);
-      const response = await apiClient.patch(`/admin/cases/${caseId}/stage`, { stage: values.stage });
+      console.log('Case ID:', caseId);
+      console.log('Full URL will be:', `/admin/cases/${caseId}/stage`);
+      
+      const requestData = { stage: values.stage };
+      console.log('Request data:', requestData);
+      
+      const response = await apiClient.patch(`/admin/cases/${caseId}/stage`, requestData);
       console.log('Stage update response:', response.data);
+      console.log('Response status:', response.status);
+      console.log('=== STAGE UPDATE SUCCESS ===');
+      
       message.success({ content: '¡Etapa actualizada exitosamente!', key: 'updateStage' });
       onSuccess();
       onClose();
-    } catch (error) {
-      console.error('Stage update error:', error);
-      message.error({ content: 'No se pudo actualizar la etapa.', key: 'updateStage' });
+    } catch (error: any) {
+      console.error('=== STAGE UPDATE ERROR ===');
+      console.error('Error object:', error);
+      console.error('Error response:', error.response);
+      console.error('Error status:', error.response?.status);
+      console.error('Error data:', error.response?.data);
+      console.error('Error message:', error.message);
+      console.error('=== END ERROR DEBUG ===');
+      
+      const errorMessage = error.response?.data?.error || error.message || 'No se pudo actualizar la etapa.';
+      message.error({ content: errorMessage, key: 'updateStage' });
     } finally {
       setLoading(false);
     }
