@@ -18,7 +18,7 @@ type Case struct {
 	Title          string  `json:"title" gorm:"not null"`
 	Description    string  `json:"description"`
 	Status         string  `json:"status" gorm:"default:'open'"`
-	CurrentStage   string  `json:"currentStage" gorm:"column:current_stage;default:'intake'"`
+	CurrentStage   string  `json:"currentStage" gorm:"column:current_stage"`
 	Category       string  `json:"category"`
 	Priority       string  `json:"priority" gorm:"default:'medium'"`
 	PrimaryStaffID *uint   `json:"primaryStaffId" gorm:"column:primary_staff_id"`
