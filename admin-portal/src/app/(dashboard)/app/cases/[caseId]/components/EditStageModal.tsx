@@ -47,8 +47,15 @@ const EditStageModal: React.FC<EditStageModalProps> = ({ visible, caseId, curren
       console.log('=== STAGE UPDATE SUCCESS ===');
       
       message.success({ content: '¡Etapa actualizada exitosamente!', key: 'updateStage' });
-      onSuccess();
+      
+      // Close modal first
       onClose();
+      
+      // Wait a moment for backend to process the update, then refresh data
+      setTimeout(() => {
+        console.log('=== TRIGGERING DATA REFRESH AFTER STAGE UPDATE ===');
+        onSuccess();
+      }, 500); // 500ms delay to ensure backend has processed the update
     } catch (error: any) {
       console.error('=== STAGE UPDATE ERROR ===');
       console.error('Error object:', error);

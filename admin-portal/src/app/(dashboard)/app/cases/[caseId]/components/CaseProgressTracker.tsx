@@ -17,8 +17,15 @@ const CaseProgressTracker: React.FC<CaseProgressTrackerProps> = ({ allStages, cu
 
   // Update display stage when currentStage prop changes
   useEffect(() => {
+    console.log('=== CASE PROGRESS TRACKER STAGE UPDATE ===');
+    console.log('Previous display stage:', displayStage);
+    console.log('New current stage prop:', currentStage);
+    console.log('Stage changed:', displayStage !== currentStage);
+    
     setDisplayStage(currentStage);
-  }, [currentStage]);
+    
+    console.log('Updated display stage to:', currentStage);
+  }, [currentStage, displayStage]);
 
   // Find the index of the current stage in the ordered list.
   const currentStageIndex = allStages.indexOf(displayStage);

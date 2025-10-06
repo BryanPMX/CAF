@@ -166,7 +166,7 @@ const CaseDetailPage = () => {
   const [userRole, setUserRole] = useState<string | null>(null);
 
   // --- Data Fetching ---
-  const fetchCaseDetails = async () => {
+  const fetchCaseDetails = async (forceRefresh: boolean = false) => {
     if (!caseId) return;
     try {
       setLoading(true);
@@ -175,20 +175,30 @@ const CaseDetailPage = () => {
       // User role is guaranteed to be available by the parent layout
       // No need to check for user?.role since the dashboard layout ensures it exists
 
+      console.log('=== FETCHING CASE DETAILS ===');
+      console.log('Case ID:', caseId);
+      console.log('Force refresh:', forceRefresh);
+      console.log('User role:', user?.role);
+      
       // Use centralized service layer with role-based endpoint routing
       // User role is guaranteed to be available by the parent layout
       const data = await CaseService.fetchCaseById(
         user!.role,
         caseId as string,
-        'full' // Get all data in one request for better performance
+        forceRefresh ? 'full&_t=' + Date.now() : 'full' // Add cache-busting timestamp if force refresh
       );
       
-      console.log('Case details fetched:', data);
-      console.log('Current stage:', data.currentStage);
+      console.log('=== CASE DETAILS FETCHED ===');
+      console.log('Case details:', data);
+      console.log('Current stage from API:', data.currentStage);
+      console.log('Previous stage in state:', caseDetails?.currentStage);
+      
       setCaseDetails(data);
       setLoading(false);
       
     } catch (error) {
+      console.error('=== FETCH CASE DETAILS ERROR ===');
+      console.error('Error:', error);
       message.error('No se pudo cargar los detalles del caso.');
       setLoading(false);
     }
@@ -479,7 +489,7 @@ const CaseDetailPage = () => {
       <EditStageModal
         visible={isStageModalVisible}
         onClose={() => setIsStageModalVisible(false)}
-        onSuccess={fetchCaseDetails}
+        onSuccess={() => fetchCaseDetails(true)} // Force refresh after stage update
         caseId={caseId as string}
         currentStage={caseDetails?.currentStage || ''}
         allStages={caseDetails ? getCaseStages(caseDetails.category) : []}
