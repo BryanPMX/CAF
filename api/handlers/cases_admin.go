@@ -64,7 +64,23 @@ func UpdateCaseStage(db *gorm.DB) gin.HandlerFunc {
 
 		// Update stage and audit fields
 		userID, _ := c.Get("userID")
-		userIDUint := userID.(uint)
+		var userIDUint uint
+		
+		// Handle both string and uint types for userID
+		switch v := userID.(type) {
+		case string:
+			parsedID, err := strconv.ParseUint(v, 10, 32)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid user ID format"})
+				return
+			}
+			userIDUint = uint(parsedID)
+		case uint:
+			userIDUint = v
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid user ID type"})
+			return
+		}
 		
 		caseData.CurrentStage = request.Stage
 		caseData.UpdatedBy = &userIDUint
