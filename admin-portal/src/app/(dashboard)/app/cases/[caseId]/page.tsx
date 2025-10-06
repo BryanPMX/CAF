@@ -192,6 +192,9 @@ const CaseDetailPage = () => {
       console.log('Case details:', data);
       console.log('Current stage from API:', data.currentStage);
       console.log('Previous stage in state:', caseDetails?.currentStage);
+      console.log('Case category:', data.category);
+      console.log('Available stages for this category:', getCaseStages(data.category));
+      console.log('Stage changed:', caseDetails?.currentStage !== data.currentStage);
       
       setCaseDetails(data);
       setLoading(false);

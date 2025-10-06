@@ -34,9 +34,12 @@ const EditStageModal: React.FC<EditStageModalProps> = ({ visible, caseId, curren
 
     try {
       console.log('=== STAGE UPDATE DEBUG ===');
+      console.log('Current stage before update:', currentStage);
       console.log('Updating stage to:', values.stage);
       console.log('Case ID:', caseId);
       console.log('Full URL will be:', `/admin/cases/${caseId}/stage`);
+      console.log('All available stages:', allStages);
+      console.log('Stage labels:', stageLabels);
       
       const requestData = { stage: values.stage };
       console.log('Request data:', requestData);
