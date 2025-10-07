@@ -80,28 +80,55 @@ func CaseAccessControl(db *gorm.DB) gin.HandlerFunc {
 				return
 			}
 
-			// Check if user is assigned to this specific case
-			var assignment models.UserCaseAssignment
-			err := db.Where("user_id = ? AND case_id = ?", currentUser.ID, caseID).First(&assignment).Error
-			if err != nil {
-				// User is not assigned to this case, check department compatibility
-				var caseRecord models.Case
-				if err := db.Select("category, office_id").First(&caseRecord, caseID).Error; err != nil {
-					c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "Case not found"})
-					return
-				}
+			// Get case details to check access
+			var caseRecord models.Case
+			if err := db.Select("category, office_id, primary_staff_id").First(&caseRecord, caseID).Error; err != nil {
+				c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "Case not found"})
+				return
+			}
 
-				// Check office access
-				if currentUser.OfficeID != nil && *currentUser.OfficeID != caseRecord.OfficeID {
-					c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "Access denied: Case belongs to different office"})
-					return
-				}
+			// Check multiple access conditions (same logic as ApplyAccessControl)
+			hasAccess := false
 
-				// Check department compatibility
-				if currentUser.Department != nil && *currentUser.Department != caseRecord.Category {
-					c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "Access denied: Case category not compatible with user department"})
-					return
+			// 1. Check if user is primary staff
+			if caseRecord.PrimaryStaffID != nil && *caseRecord.PrimaryStaffID == currentUser.ID {
+				hasAccess = true
+			}
+
+			// 2. Check office and department compatibility
+			if !hasAccess && currentUser.OfficeID != nil && currentUser.Department != nil {
+				if *currentUser.OfficeID == caseRecord.OfficeID && *currentUser.Department == caseRecord.Category {
+					hasAccess = true
 				}
+			} else if !hasAccess && currentUser.OfficeID != nil {
+				if *currentUser.OfficeID == caseRecord.OfficeID {
+					hasAccess = true
+				}
+			} else if !hasAccess && currentUser.Department != nil {
+				if *currentUser.Department == caseRecord.Category {
+					hasAccess = true
+				}
+			}
+
+			// 3. Check if user has assigned tasks for this case
+			if !hasAccess {
+				var taskCount int64
+				if err := db.Model(&models.Task{}).Where("case_id = ? AND assigned_to_id = ? AND deleted_at IS NULL", caseID, currentUser.ID).Count(&taskCount).Error; err == nil && taskCount > 0 {
+					hasAccess = true
+				}
+			}
+
+			// 4. Check UserCaseAssignment table (legacy support)
+			if !hasAccess {
+				var assignment models.UserCaseAssignment
+				if err := db.Where("user_id = ? AND case_id = ?", currentUser.ID, caseID).First(&assignment).Error; err == nil {
+					hasAccess = true
+				}
+			}
+
+			if !hasAccess {
+				c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "Access denied: You don't have permission to access this case"})
+				return
 			}
 		}
 
