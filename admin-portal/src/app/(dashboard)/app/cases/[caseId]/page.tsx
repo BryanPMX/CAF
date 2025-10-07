@@ -235,6 +235,22 @@ const CaseDetailPage = () => {
     }
   };
 
+  const handleCompleteTask = async (taskId: number) => {
+    try {
+      if (!user) {
+        message.error('Usuario no autenticado');
+        return;
+      }
+
+      message.loading({ content: 'Completando tarea...', key: 'completeTask' });
+      await TaskService.updateTask(user.role, taskId.toString(), { status: 'completed' });
+      message.success({ content: 'Tarea completada exitosamente.', key: 'completeTask' });
+      fetchCaseDetails(); // Refresh the data to show the change.
+    } catch (error) {
+      message.error({ content: 'No se pudo completar la tarea.', key: 'completeTask' });
+    }
+  };
+
   const tryDeleteCase = async (force: boolean = false) => {
     if (!caseId) return;
     try {
@@ -302,14 +318,44 @@ const CaseDetailPage = () => {
     {
       title: 'Acciones',
       key: 'actions',
-      render: (_: any, record: Task) => (
-        <span className="space-x-2">
-          <Button size="small" icon={<EditOutlined />} onClick={() => handleEditTask(record)} />
-          <Popconfirm title="¿Eliminar esta tarea?" onConfirm={() => handleDeleteTask(record.id)}>
-            <Button size="small" icon={<DeleteOutlined />} danger />
-          </Popconfirm>
-        </span>
-      ),
+      render: (_: any, record: Task) => {
+        // Check if current user is assigned to this task
+        const isAssignedToThisTask = user && record.assignedToId === user.id;
+        
+        if (canOnlyViewTasks && isAssignedToThisTask) {
+          // Assigned staff can only mark their own tasks as completed
+          return (
+            <span className="space-x-2">
+              {record.status !== 'completed' && (
+                <Button 
+                  size="small" 
+                  icon={<CheckCircleOutlined />} 
+                  type="primary"
+                  onClick={() => handleCompleteTask(record.id)}
+                >
+                  Completar
+                </Button>
+              )}
+              {record.status === 'completed' && (
+                <Tag color="green">Completada</Tag>
+              )}
+            </span>
+          );
+        } else if (canManageCase) {
+          // Management staff can edit and delete tasks
+          return (
+            <span className="space-x-2">
+              <Button size="small" icon={<EditOutlined />} onClick={() => handleEditTask(record)} />
+              <Popconfirm title="¿Eliminar esta tarea?" onConfirm={() => handleDeleteTask(record.id)}>
+                <Button size="small" icon={<DeleteOutlined />} danger />
+              </Popconfirm>
+            </span>
+          );
+        } else {
+          // No actions for other users
+          return <span>-</span>;
+        }
+      },
     },
   ];
 
@@ -317,6 +363,15 @@ const CaseDetailPage = () => {
   const staffRole = userRole && Object.keys(STAFF_ROLES).includes(userRole as StaffRoleKey) 
     ? userRole as StaffRoleKey 
     : 'receptionist'; // Default fallback
+
+  // Check if current user is assigned staff (has tasks assigned to them) vs primary staff
+  const isAssignedStaff = user && caseDetails?.tasks?.some(task => task.assignedToId === user.id);
+  const isPrimaryStaff = user && caseDetails?.primaryStaff?.id === user.id;
+  const isManagementStaff = userRole === 'admin' || userRole === 'office_manager';
+  
+  // Determine permission level
+  const canManageCase = isManagementStaff || isPrimaryStaff;
+  const canOnlyViewTasks = isAssignedStaff && !canManageCase;
 
   const tabItems: TabsProps['items'] = [
     {
@@ -347,7 +402,7 @@ const CaseDetailPage = () => {
       children: (
         <div>
           <div className="text-right mb-4">
-            {(PERMISSIONS[staffRole as keyof typeof PERMISSIONS]?.includes('manage_users') || PERMISSIONS[staffRole as keyof typeof PERMISSIONS]?.includes('*')) && (
+            {canManageCase && (PERMISSIONS[staffRole as keyof typeof PERMISSIONS]?.includes('manage_users') || PERMISSIONS[staffRole as keyof typeof PERMISSIONS]?.includes('*')) && (
               <Button type="primary" icon={<PlusOutlined />} onClick={handleCreateTask}>
                 Crear Tarea
               </Button>
@@ -384,17 +439,19 @@ const CaseDetailPage = () => {
         >
           Volver a todos los casos
         </Button>
-        <Popconfirm 
-          title="¿Eliminar este caso?"
-          description="Esta acción archivará el caso y cancelará citas/tareas relacionadas."
-          onConfirm={handleDeleteCase}
-          okText="Sí"
-          cancelText="No"
-        >
-          <Button danger icon={<DeleteOutlined />} loading={isDeletingCase}>
-            Eliminar Caso
-          </Button>
-        </Popconfirm>
+        {canManageCase && (
+          <Popconfirm 
+            title="¿Eliminar este caso?"
+            description="Esta acción archivará el caso y cancelará citas/tareas relacionadas."
+            onConfirm={handleDeleteCase}
+            okText="Sí"
+            cancelText="No"
+          >
+            <Button danger icon={<DeleteOutlined />} loading={isDeletingCase}>
+              Eliminar Caso
+            </Button>
+          </Popconfirm>
+        )}
       </div>
 
       <Card className="mb-6">
@@ -411,7 +468,7 @@ const CaseDetailPage = () => {
                 Completar Caso
               </Button>
             )}
-            {(PERMISSIONS[staffRole as keyof typeof PERMISSIONS]?.includes('manage_users') || PERMISSIONS[staffRole as keyof typeof PERMISSIONS]?.includes('*')) && (
+            {canManageCase && (PERMISSIONS[staffRole as keyof typeof PERMISSIONS]?.includes('manage_users') || PERMISSIONS[staffRole as keyof typeof PERMISSIONS]?.includes('*')) && (
               <Button 
                 type="primary" 
                 icon={<EditOutlined />}
@@ -449,7 +506,7 @@ const CaseDetailPage = () => {
           </Descriptions.Item>
           <Descriptions.Item label="Etapa del Proceso">
             <div className="flex items-center justify-between">
-              {(PERMISSIONS[staffRole as keyof typeof PERMISSIONS]?.includes('manage_users') || PERMISSIONS[staffRole as keyof typeof PERMISSIONS]?.includes('*')) && (
+              {canManageCase && (PERMISSIONS[staffRole as keyof typeof PERMISSIONS]?.includes('manage_users') || PERMISSIONS[staffRole as keyof typeof PERMISSIONS]?.includes('*')) && (
                 <Button icon={<EditOutlined />} size="small" onClick={() => setIsStageModalVisible(true)}>
                   Actualizar Etapa
                 </Button>

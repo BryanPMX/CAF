@@ -119,7 +119,7 @@ export class TaskService {
       endpoint = `/tasks/${taskId}`;
     }
 
-    const response = await apiClient.put(endpoint, taskData);
+    const response = await apiClient.patch(endpoint, taskData);
     return response.data;
   }
 
