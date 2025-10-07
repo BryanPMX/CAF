@@ -4,7 +4,8 @@
 import React, { useState } from 'react';
 import { Upload, Button, message, Radio } from 'antd';
 import { UploadOutlined } from '@ant-design/icons';
-import { apiClient } from '@/app/lib/api';
+import { DocumentService } from '@/services/documentService';
+import { useAuth } from '@/context/AuthContext';
 
 interface UploadDocumentProps {
   caseId: string;
@@ -15,23 +16,23 @@ const UploadDocument: React.FC<UploadDocumentProps> = ({ caseId, onSuccess }) =>
   const [fileList, setFileList] = useState<any[]>([]);
   const [uploading, setUploading] = useState(false);
   const [visibility, setVisibility] = useState('internal');
+  const { user } = useAuth();
 
   const handleUpload = async () => {
-    const formData = new FormData();
     if (fileList.length === 0) {
       message.error('Por favor, seleccione un archivo para subir.');
       return;
     }
-    formData.append('file', fileList[0]);
-    formData.append('visibility', visibility);
+
+    if (!user) {
+      message.error('Usuario no autenticado');
+      return;
+    }
+
     setUploading(true);
 
     try {
-      await apiClient.post(`/admin/cases/${caseId}/documents`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+      await DocumentService.uploadDocument(user.role, caseId, fileList[0], visibility);
       setFileList([]);
       message.success('Archivo subido exitosamente.');
       onSuccess();
