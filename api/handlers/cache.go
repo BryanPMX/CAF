@@ -3,7 +3,6 @@ package handlers
 
 import (
 	"fmt"
-	"log"
 	"sync"
 	"time"
 
@@ -86,13 +85,8 @@ func invalidateCache(caseID string) {
 	lightKey := generateCacheKey(caseID, true)
 	fullKey := generateCacheKey(caseID, false)
 
-	// Log cache invalidation for debugging
-	log.Printf("CACHE: Invalidating cache for case %s (keys: %s, %s)", caseID, lightKey, fullKey)
-
 	delete(caseCache.data, lightKey)
 	delete(caseCache.data, fullKey)
-
-	log.Printf("CACHE: Cache invalidated for case %s", caseID)
 }
 
 // clearExpiredCache removes expired entries from cache
