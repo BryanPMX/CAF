@@ -40,20 +40,20 @@ func UpdateCaseStage(db *gorm.DB) gin.HandlerFunc {
 		var validStages map[string]bool
 		if caseData.Category == "Familiar" || caseData.Category == "Civil" {
 			validStages = map[string]bool{
-				"etapa_inicial":         true,
-				"notificacion":          true,
-				"audiencia_preliminar":  true,
-				"audiencia_juicio":      true,
-				"sentencia":             true,
+				"etapa_inicial":        true,
+				"notificacion":         true,
+				"audiencia_preliminar": true,
+				"audiencia_juicio":     true,
+				"sentencia":            true,
 			}
 		} else {
 			validStages = map[string]bool{
-				"intake":              true,
+				"intake":               true,
 				"initial_consultation": true,
 				"document_review":      true,
 				"action_plan":          true,
-				"resolution":          true,
-				"closed":              true,
+				"resolution":           true,
+				"closed":               true,
 			}
 		}
 
@@ -65,7 +65,7 @@ func UpdateCaseStage(db *gorm.DB) gin.HandlerFunc {
 		// Update stage and audit fields
 		userID, _ := c.Get("userID")
 		var userIDUint uint
-		
+
 		// Handle both string and uint types for userID
 		switch v := userID.(type) {
 		case string:
@@ -81,7 +81,7 @@ func UpdateCaseStage(db *gorm.DB) gin.HandlerFunc {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid user ID type"})
 			return
 		}
-		
+
 		caseData.CurrentStage = request.Stage
 		caseData.UpdatedBy = &userIDUint
 
@@ -146,7 +146,7 @@ func AssignStaffToCase(db *gorm.DB) gin.HandlerFunc {
 		// Update assignment and audit fields
 		userID, _ := c.Get("userID")
 		userIDUint := userID.(uint)
-		
+
 		caseData.PrimaryStaffID = &request.StaffID
 		caseData.UpdatedBy = &userIDUint
 
