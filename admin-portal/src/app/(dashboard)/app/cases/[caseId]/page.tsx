@@ -175,11 +175,6 @@ const CaseDetailPage = () => {
       // User role is guaranteed to be available by the parent layout
       // No need to check for user?.role since the dashboard layout ensures it exists
 
-      console.log('=== FETCHING CASE DETAILS ===');
-      console.log('Case ID:', caseId);
-      console.log('Force refresh:', forceRefresh);
-      console.log('User role:', user?.role);
-      
       // Use centralized service layer with role-based endpoint routing
       // User role is guaranteed to be available by the parent layout
       const data = await CaseService.fetchCaseById(
@@ -188,20 +183,11 @@ const CaseDetailPage = () => {
         forceRefresh ? 'full&_t=' + Date.now() : 'full' // Add cache-busting timestamp if force refresh
       );
       
-      console.log('=== CASE DETAILS FETCHED ===');
-      console.log('Case details:', data);
-      console.log('Current stage from API:', data.currentStage);
-      console.log('Previous stage in state:', caseDetails?.currentStage);
-      console.log('Case category:', data.category);
-      console.log('Available stages for this category:', getCaseStages(data.category));
-      console.log('Stage changed:', caseDetails?.currentStage !== data.currentStage);
-      
       setCaseDetails(data);
       setLoading(false);
       
     } catch (error) {
-      console.error('=== FETCH CASE DETAILS ERROR ===');
-      console.error('Error:', error);
+      console.error('Error fetching case details:', error);
       message.error('No se pudo cargar los detalles del caso.');
       setLoading(false);
     }

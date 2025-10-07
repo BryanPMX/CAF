@@ -42,16 +42,6 @@ apiClient.interceptors.request.use(
       });
     }
     
-    // Always log stage update requests for debugging
-    if (config.url?.includes('/stage')) {
-      console.log('🎯 STAGE UPDATE REQUEST:', {
-        method: config.method?.toUpperCase(),
-        fullURL: (config.baseURL || '') + (config.url || ''),
-        endpoint: config.url,
-        baseURL: config.baseURL,
-        data: config.data,
-      });
-    }
     
     // Add auth token if available
     const token = Cookies.get('authToken') || localStorage.getItem('authToken');
@@ -78,15 +68,6 @@ apiClient.interceptors.response.use(
       });
     }
     
-    // Always log stage update responses for debugging
-    if (response.config.url?.includes('/stage')) {
-      console.log('🎯 STAGE UPDATE RESPONSE:', {
-        status: response.status,
-        url: response.config.url,
-        method: response.config.method?.toUpperCase(),
-        data: response.data,
-      });
-    }
 
     return response;
   },
@@ -103,18 +84,6 @@ apiClient.interceptors.response.use(
       });
     }
     
-    // Always log stage update errors for debugging
-    if (error.config?.url?.includes('/stage')) {
-      console.log('🎯 STAGE UPDATE ERROR:', {
-        status: error.response?.status,
-        url: error.config?.url,
-        method: error.config?.method?.toUpperCase(),
-        message: error.message,
-        baseURL: error.config?.baseURL,
-        fullURL: (error.config?.baseURL || '') + (error.config?.url || ''),
-        responseData: error.response?.data,
-      });
-    }
 
     // Handle authentication errors
     if (error.response?.status === 401) {
