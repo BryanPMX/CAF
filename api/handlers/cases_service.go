@@ -46,6 +46,7 @@ func (qb *CaseQueryBuilder) ApplyAccessControl(c *gin.Context) *CaseQueryBuilder
 	userRole, _ := c.Get("userRole")
 	userDepartment, _ := c.Get("userDepartment")
 	officeScopeID, _ := c.Get("officeScopeID")
+	userID, _ := c.Get("userID")
 
 	// Admin users see all cases
 	if userRole == config.RoleAdmin {
@@ -54,18 +55,45 @@ func (qb *CaseQueryBuilder) ApplyAccessControl(c *gin.Context) *CaseQueryBuilder
 
 	// Client users see only their own cases
 	if userRole == "client" {
-		userID, _ := c.Get("userID")
 		qb.query = qb.query.Where("client_id = ?", userID)
 		return qb
 	}
 
-	// Staff-like users see cases from their office and department
-	if officeScopeID != nil {
-		qb.query = qb.query.Where("office_id = ?", officeScopeID)
+	// Staff-like users see cases from:
+	// 1. Their office and department (existing logic)
+	// 2. Cases where they are assigned as primary staff
+	// 3. Cases where they have assigned tasks
+	var conditions []string
+	var args []interface{}
+
+	// Office and department conditions
+	if officeScopeID != nil && userDepartment != nil {
+		conditions = append(conditions, "(office_id = ? AND category = ?)")
+		args = append(args, officeScopeID, userDepartment)
+	} else if officeScopeID != nil {
+		conditions = append(conditions, "office_id = ?")
+		args = append(args, officeScopeID)
+	} else if userDepartment != nil {
+		conditions = append(conditions, "category = ?")
+		args = append(args, userDepartment)
 	}
 
-	if userDepartment != nil {
-		qb.query = qb.query.Where("category = ?", userDepartment)
+	// Primary staff assignment
+	conditions = append(conditions, "primary_staff_id = ?")
+	args = append(args, userID)
+
+	// Cases with assigned tasks
+	conditions = append(conditions, "id IN (SELECT DISTINCT case_id FROM tasks WHERE assigned_to_id = ? AND deleted_at IS NULL)")
+	args = append(args, userID)
+
+	// Combine all conditions with OR
+	if len(conditions) > 0 {
+		condition := "(" + conditions[0]
+		for i := 1; i < len(conditions); i++ {
+			condition += " OR " + conditions[i]
+		}
+		condition += ")"
+		qb.query = qb.query.Where(condition, args...)
 	}
 
 	return qb
