@@ -78,6 +78,7 @@ export interface CaseDetails extends Case {
   isArchived: boolean;
   client: User;
   office: { name: string };
+  primaryStaff?: User;
   appointments?: any[];
   tasks?: any[];
   caseEvents?: any[];
