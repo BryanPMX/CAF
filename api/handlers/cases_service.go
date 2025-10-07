@@ -199,13 +199,10 @@ func (s *CaseService) GetCases(c *gin.Context) ([]models.Case, int64, error) {
 func (s *CaseService) GetCaseByID(caseID string, light bool) (*models.Case, error) {
 	var caseData models.Case
 
-	// Check cache first (now that we've confirmed cache invalidation works)
-	if cached, found := getFromCache(caseID, light); found {
-		log.Printf("GetCaseByID: Retrieved case %s from cache with stage: %s", caseID, cached.CurrentStage)
-		return cached, nil
-	}
-	
-	log.Printf("GetCaseByID: Cache miss for case %s, fetching from database", caseID)
+	// MULTI-INSTANCE ISSUE: Cache invalidation only works on one ECS instance
+	// Since we have multiple instances, cache invalidation doesn't work across instances
+	// TEMPORARILY DISABLE CACHING until we implement distributed cache (Redis)
+	log.Printf("GetCaseByID: Fetching case %s directly from database (multi-instance cache disabled)", caseID)
 	
 	query := s.db.Preload("Client").Preload("Office").Preload("PrimaryStaff")
 
@@ -222,8 +219,8 @@ func (s *CaseService) GetCaseByID(caseID string, light bool) (*models.Case, erro
 
 	log.Printf("GetCaseByID: Retrieved case %s from database with stage: %s", caseID, caseData.CurrentStage)
 
-	// Cache the result (now that we know cache invalidation works properly)
-	setCache(caseID, light, &caseData)
+	// MULTI-INSTANCE ISSUE: Don't cache since invalidation doesn't work across instances
+	// setCache(caseID, light, &caseData)
 
 	return &caseData, nil
 }
