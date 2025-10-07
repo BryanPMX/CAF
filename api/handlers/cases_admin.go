@@ -2,6 +2,7 @@
 package handlers
 
 import (
+	"log"
 	"net/http"
 	"strconv"
 
@@ -85,19 +86,27 @@ func UpdateCaseStage(db *gorm.DB) gin.HandlerFunc {
 		caseData.CurrentStage = request.Stage
 		caseData.UpdatedBy = &userIDUint
 
+		log.Printf("UpdateCaseStage: Updating case %s stage to: %s", caseID, request.Stage)
+
 		if err := db.Save(&caseData).Error; err != nil {
+			log.Printf("UpdateCaseStage: Database save failed for case %s: %v", caseID, err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update case stage"})
 			return
 		}
 
+		log.Printf("UpdateCaseStage: Successfully saved case %s with stage: %s", caseID, request.Stage)
+
 		// Invalidate cache after successful update
 		invalidateCache(caseID)
 
-		// Load relationships for response
+		// Load relationships for response - VERIFY THE STAGE WAS ACTUALLY SAVED
 		if err := db.Preload("Client").Preload("Office").Preload("PrimaryStaff").First(&caseData, caseData.ID).Error; err != nil {
+			log.Printf("UpdateCaseStage: Failed to reload case %s: %v", caseID, err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load case data"})
 			return
 		}
+
+		log.Printf("UpdateCaseStage: Reloaded case %s from database with stage: %s", caseID, caseData.CurrentStage)
 
 		c.JSON(http.StatusOK, gin.H{
 			"message": "Case stage updated successfully",
