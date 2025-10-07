@@ -204,7 +204,9 @@ func (s *CaseService) GetCaseByID(caseID string, light bool) (*models.Case, erro
 		return cached, nil
 	}
 	
-	query := s.db.Preload("Client").Preload("Office").Preload("PrimaryStaff")
+	query := s.db.Preload("Client").Preload("Office").Preload("PrimaryStaff").Preload("Tasks.AssignedTo", func(db *gorm.DB) *gorm.DB {
+		return db.Order("created_at DESC")
+	})
 
 	// Add case events if not light mode
 	if !light {

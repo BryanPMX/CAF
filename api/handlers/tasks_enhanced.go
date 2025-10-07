@@ -250,6 +250,9 @@ func CreateTaskEnhanced(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
+		// Invalidate case cache since case now has new tasks
+		invalidateCache(strconv.FormatUint(uint64(input.CaseID), 10))
+
 		// Generate notification for the assigned user if task is assigned
 		if input.AssignedToID != nil {
 			// Get case title for the notification message
@@ -344,6 +347,9 @@ func UpdateTaskEnhanced(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
+		// Invalidate case cache since task was updated
+		invalidateCache(strconv.FormatUint(uint64(task.CaseID), 10))
+
 		c.JSON(http.StatusOK, task)
 	}
 }
@@ -387,6 +393,9 @@ func DeleteTaskEnhanced(db *gorm.DB) gin.HandlerFunc {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete task"})
 			return
 		}
+
+		// Invalidate case cache since task was deleted
+		invalidateCache(strconv.FormatUint(uint64(task.CaseID), 10))
 
 		c.JSON(http.StatusOK, gin.H{
 			"message": "Task deleted successfully",
