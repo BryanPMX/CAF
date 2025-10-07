@@ -245,9 +245,9 @@ const CaseDetailPage = () => {
       message.loading({ content: 'Completando tarea...', key: 'completeTask' });
       await TaskService.updateTask(user.role, taskId.toString(), { status: 'completed' });
       message.success({ content: 'Tarea completada exitosamente.', key: 'completeTask' });
-      fetchCaseDetails(); // Refresh the data to show the change.
+      fetchCaseDetails(true); // Force refresh the data to show the change.
     } catch (error) {
-      message.error({ content: 'No se pudo completar la tarea.', key: 'completeTask' });
+      message.error({ content: 'No se pudo completar la tarea. Por favor, intente nuevamente.', key: 'completeTask' });
     }
   };
 
@@ -301,19 +301,28 @@ const CaseDetailPage = () => {
       title: 'Asignado a', 
       dataIndex: 'assignedTo', 
       key: 'assignedTo',
-      render: (user: User) => user ? `${user.firstName} ${user.lastName}` : 'N/A'
+      render: (user: User) => user ? `${user.firstName} ${user.lastName}` : 'No asignado'
     },
     { 
       title: 'Fecha Límite', 
       dataIndex: 'dueDate', 
       key: 'dueDate',
-      render: (date: string | null) => date ? new Date(date).toLocaleDateString() : 'N/A'
+      render: (date: string | null) => date ? new Date(date).toLocaleDateString('es-MX') : 'Sin fecha límite'
     },
     { 
       title: 'Estado', 
       dataIndex: 'status', 
       key: 'status',
-      render: (status: string) => <Tag color={status === 'completed' ? 'green' : 'orange'}>{status.toUpperCase()}</Tag>
+      render: (status: string) => {
+        const statusLabels: { [key: string]: string } = {
+          'pending': 'PENDIENTE',
+          'in_progress': 'EN PROGRESO',
+          'completed': 'COMPLETADA',
+          'cancelled': 'CANCELADA'
+        };
+        const label = statusLabels[status] || status.toUpperCase();
+        return <Tag color={status === 'completed' ? 'green' : 'orange'}>{label}</Tag>;
+      }
     },
     {
       title: 'Acciones',
@@ -333,11 +342,11 @@ const CaseDetailPage = () => {
                   type="primary"
                   onClick={() => handleCompleteTask(record.id)}
                 >
-                  Completar
+                  Completar Tarea
                 </Button>
               )}
               {record.status === 'completed' && (
-                <Tag color="green">Completada</Tag>
+                <Tag color="green">COMPLETADA</Tag>
               )}
             </span>
           );
@@ -413,7 +422,7 @@ const CaseDetailPage = () => {
             dataSource={caseDetails?.tasks || []}
             rowKey="id"
             pagination={false}
-            locale={{ emptyText: 'No hay tareas asociadas a este caso.' }}
+            locale={{ emptyText: 'No se encontraron tareas asociadas a este caso.' }}
           />
         </div>
       ),

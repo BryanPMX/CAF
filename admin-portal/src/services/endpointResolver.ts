@@ -17,7 +17,7 @@ export class EndpointResolver {
       prefix: '/manager',
     },
     default: {
-      prefix: '',
+      prefix: '', // Staff and other roles use protected routes (no prefix)
     },
   } as const;
 
