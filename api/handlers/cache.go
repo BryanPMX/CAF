@@ -45,7 +45,7 @@ func getFromCache(caseID string, light bool) (*models.Case, bool) {
 
 	key := generateCacheKey(caseID, light)
 	entry, exists := caseCache.data[key]
-	
+
 	if !exists {
 		return nil, false
 	}
@@ -85,13 +85,13 @@ func invalidateCache(caseID string) {
 	// Remove both light and full versions
 	lightKey := generateCacheKey(caseID, true)
 	fullKey := generateCacheKey(caseID, false)
-	
+
 	// Log cache invalidation for debugging
 	log.Printf("CACHE: Invalidating cache for case %s (keys: %s, %s)", caseID, lightKey, fullKey)
-	
+
 	delete(caseCache.data, lightKey)
 	delete(caseCache.data, fullKey)
-	
+
 	log.Printf("CACHE: Cache invalidated for case %s", caseID)
 }
 
@@ -124,7 +124,7 @@ func init() {
 	go func() {
 		ticker := time.NewTicker(10 * time.Minute)
 		defer ticker.Stop()
-		
+
 		for {
 			select {
 			case <-ticker.C:
