@@ -90,6 +90,9 @@ func UpdateCaseStage(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
+		// Invalidate cache after successful update
+		invalidateCache(caseID)
+
 		// Load relationships for response
 		if err := db.Preload("Client").Preload("Office").Preload("PrimaryStaff").First(&caseData, caseData.ID).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load case data"})
