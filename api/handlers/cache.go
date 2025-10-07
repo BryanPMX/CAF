@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/BryanPMx/CAF/api/models"
+	"github.com/BryanPMX/CAF/api/models"
 )
 
 // CaseCacheEntry represents a cached case item with expiration
