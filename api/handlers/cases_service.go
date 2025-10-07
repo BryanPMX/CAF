@@ -199,9 +199,13 @@ func (s *CaseService) GetCases(c *gin.Context) ([]models.Case, int64, error) {
 func (s *CaseService) GetCaseByID(caseID string, light bool) (*models.Case, error) {
 	var caseData models.Case
 
-	// TEMPORARILY DISABLE CACHING TO ISOLATE STAGE BOUNCING ISSUE
-	// TODO: Re-enable caching once stage bouncing is resolved
-	log.Printf("GetCaseByID: Fetching case %s directly from database (cache disabled)", caseID)
+	// Check cache first (now that we've confirmed cache invalidation works)
+	if cached, found := getFromCache(caseID, light); found {
+		log.Printf("GetCaseByID: Retrieved case %s from cache with stage: %s", caseID, cached.CurrentStage)
+		return cached, nil
+	}
+	
+	log.Printf("GetCaseByID: Cache miss for case %s, fetching from database", caseID)
 	
 	query := s.db.Preload("Client").Preload("Office").Preload("PrimaryStaff")
 
@@ -218,8 +222,8 @@ func (s *CaseService) GetCaseByID(caseID string, light bool) (*models.Case, erro
 
 	log.Printf("GetCaseByID: Retrieved case %s from database with stage: %s", caseID, caseData.CurrentStage)
 
-	// TEMPORARILY DISABLED: Cache the result
-	// setCache(caseID, light, &caseData)
+	// Cache the result (now that we know cache invalidation works properly)
+	setCache(caseID, light, &caseData)
 
 	return &caseData, nil
 }
