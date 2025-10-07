@@ -3,7 +3,8 @@
 
 import React, { useState } from 'react';
 import { Form, Input, Button, Radio, message } from 'antd';
-import { apiClient } from '@/app/lib/api';
+import { CommentService, CommentCreateRequest } from '@/services/commentService';
+import { useAuth } from '@/context/AuthContext';
 
 interface AddCommentFormProps {
   caseId: string;
@@ -13,14 +14,21 @@ interface AddCommentFormProps {
 const AddCommentForm: React.FC<AddCommentFormProps> = ({ caseId, onSuccess }) => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
+  const { user } = useAuth();
 
   const handleAddComment = async (values: any) => {
+    if (!user) {
+      message.error('Usuario no autenticado');
+      return;
+    }
+
     setLoading(true);
     try {
-      await apiClient.post(`/admin/cases/${caseId}/comments`, {
+      const commentData: CommentCreateRequest = {
         comment: values.commentText,
         visibility: values.visibility,
-      });
+      };
+      await CommentService.createComment(user.role, caseId, commentData);
       message.success('Comentario añadido exitosamente.');
       form.resetFields();
       onSuccess(); // Trigger the refresh

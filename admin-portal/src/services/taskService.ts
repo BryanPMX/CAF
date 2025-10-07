@@ -3,6 +3,7 @@
 
 import { apiClient } from '@/app/lib/api';
 import { UserRole, Task, PaginatedResponse, SearchFilters } from '@/app/lib/types';
+import { EndpointResolver } from './endpointResolver';
 
 /**
  * Centralized service for all task-related data operations
@@ -110,16 +111,12 @@ export class TaskService {
     taskId: string,
     taskData: Partial<Task>
   ): Promise<Task> {
-    // Determine endpoint based on role
-    let endpoint: string;
-    
-    if (userRole === 'admin') {
-      endpoint = `/admin/tasks/${taskId}`;
-    } else {
-      endpoint = `/tasks/${taskId}`;
-    }
+    const endpoint = EndpointResolver.getResourceEndpoint(userRole, 'tasks', taskId);
 
-    const response = await apiClient.patch(endpoint, taskData);
+    // Admin uses PATCH, protected routes use PUT
+    const response = userRole === 'admin' 
+      ? await apiClient.patch(endpoint, taskData)
+      : await apiClient.put(endpoint, taskData);
     return response.data;
   }
 
