@@ -587,7 +587,7 @@ func (h *PerformanceOptimizedHandler) applyAccessControl(query *gorm.DB, c *gin.
 			}
 		}
 	}
-	
+
 	return query
 }
 
