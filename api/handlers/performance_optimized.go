@@ -331,7 +331,7 @@ func (h *PerformanceOptimizedHandler) buildOptimizedCasesQuery(params Pagination
 		Where("is_archived = ? AND deleted_at IS NULL", false)
 
 	// Apply access control
-	h.applyAccessControl(query, c)
+	query = h.applyAccessControl(query, c)
 
 	// Apply search with full-text search capabilities
 	if params.Search != "" {
@@ -412,7 +412,7 @@ func (h *PerformanceOptimizedHandler) buildOptimizedAppointmentsQuery(params Pag
 		Where("deleted_at IS NULL")
 
 	// Apply access control
-	h.applyAccessControl(query, c)
+	query = h.applyAccessControl(query, c)
 
 	// Apply search
 	if params.Search != "" {
@@ -480,7 +480,7 @@ func (h *PerformanceOptimizedHandler) buildOptimizedUsersQuery(params Pagination
 		Where("deleted_at IS NULL")
 
 	// Apply access control
-	h.applyAccessControl(query, c)
+	query = h.applyAccessControl(query, c)
 
 	// Apply search
 	if params.Search != "" {
@@ -538,13 +538,13 @@ func (h *PerformanceOptimizedHandler) buildOptimizedUsersQuery(params Pagination
 }
 
 // applyAccessControl applies role-based access control to queries
-func (h *PerformanceOptimizedHandler) applyAccessControl(query *gorm.DB, c *gin.Context) {
+func (h *PerformanceOptimizedHandler) applyAccessControl(query *gorm.DB, c *gin.Context) *gorm.DB {
 	userRole, _ := c.Get("userRole")
 	userDepartment, _ := c.Get("userDepartment")
 	officeScopeID, _ := c.Get("officeScopeID")
 
 	if userRole == "admin" {
-		return // Admins see everything
+		return query // Admins see everything
 	}
 
 	// Apply office scope restriction
@@ -566,7 +566,7 @@ func (h *PerformanceOptimizedHandler) applyAccessControl(query *gorm.DB, c *gin.
 				userIDUint, err := strconv.ParseUint(userIDStr, 10, 32)
 				if err != nil {
 					log.Printf("Invalid user ID: %s", userIDStr)
-					return
+					return query
 				}
 
 				// Apply staff-specific restrictions based on entity type
@@ -587,6 +587,8 @@ func (h *PerformanceOptimizedHandler) applyAccessControl(query *gorm.DB, c *gin.
 			}
 		}
 	}
+	
+	return query
 }
 
 // parsePaginationParams extracts pagination parameters from request
