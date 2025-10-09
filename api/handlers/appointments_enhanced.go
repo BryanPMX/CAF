@@ -35,7 +35,10 @@ func GetAppointmentsEnhanced(db *gorm.DB) gin.HandlerFunc {
 		userDepartment, _ := c.Get("userDepartment")
 		officeScopeID, _ := c.Get("officeScopeID")
 
-		if (userRole != "admin" && userRole != "client") || officeScopeID != nil {
+		// Office managers see ALL appointments in their office (they manage the entire office)
+		if userRole == config.RoleOfficeManager && officeScopeID != nil {
+			query = query.Joins("INNER JOIN cases ON cases.id = appointments.case_id AND cases.office_id = ?", officeScopeID)
+		} else if (userRole != config.RoleAdmin && userRole != "client") || officeScopeID != nil {
 			// Staff-like users see appointments from their office and department
 			if officeScopeID != nil {
 				query = query.Joins("INNER JOIN cases ON cases.id = appointments.case_id AND cases.office_id = ?", officeScopeID)
@@ -115,7 +118,10 @@ func GetAppointmentByIDEnhanced(db *gorm.DB) gin.HandlerFunc {
 		userDepartment, _ := c.Get("userDepartment")
 		officeScopeID, _ := c.Get("officeScopeID")
 
-		if (userRole != "admin" && userRole != "client") || officeScopeID != nil {
+		// Office managers can access ALL appointments in their office
+		if userRole == config.RoleOfficeManager && officeScopeID != nil {
+			query = query.Joins("INNER JOIN cases ON cases.id = appointments.case_id AND cases.office_id = ?", officeScopeID)
+		} else if (userRole != config.RoleAdmin && userRole != "client") || officeScopeID != nil {
 			// Staff-like users can only access appointments from their office and department
 			if officeScopeID != nil {
 				query = query.Joins("INNER JOIN cases ON cases.id = appointments.case_id AND cases.office_id = ?", officeScopeID)
@@ -157,8 +163,8 @@ func CreateAppointmentEnhanced(db *gorm.DB) gin.HandlerFunc {
 		currentUser, _ := c.Get("currentUser")
 		user := currentUser.(models.User)
 
-		// Validate department compatibility for staff users
-		if middleware.IsStaffRole(user.Role) && user.Department != nil {
+		// Validate department compatibility for staff users (office managers can create appointments for any department)
+		if middleware.IsStaffRole(user.Role) && user.Role != config.RoleOfficeManager && user.Department != nil {
 			if input.Department != *user.Department {
 				c.JSON(http.StatusBadRequest, gin.H{"error": "Appointment department must match your department"})
 				return
@@ -229,11 +235,16 @@ func UpdateAppointmentEnhanced(db *gorm.DB) gin.HandlerFunc {
 		query := db.Preload("Case")
 
 		if middleware.IsStaffRole(user.Role) {
-			// Staff users can only update appointments they're assigned to or from their department
-			if user.Department != nil {
-				query = query.Where("department = ?", user.Department)
+			// Office managers can update all appointments in their office
+			if user.Role == config.RoleOfficeManager && user.OfficeID != nil {
+				query = query.Joins("INNER JOIN cases ON cases.id = appointments.case_id AND cases.office_id = ?", user.OfficeID)
+			} else {
+				// Other staff users can only update appointments they're assigned to or from their department
+				if user.Department != nil {
+					query = query.Where("department = ?", user.Department)
+				}
+				query = query.Or("staff_id = ?", user.ID)
 			}
-			query = query.Or("staff_id = ?", user.ID)
 		}
 
 		if err := query.First(&appointment, appointmentID).Error; err != nil {
@@ -297,11 +308,16 @@ func DeleteAppointmentEnhanced(db *gorm.DB) gin.HandlerFunc {
 		query := db.Preload("Case").Preload("Staff")
 
 		if middleware.IsStaffRole(user.Role) {
-			// Staff users can only delete appointments they're assigned to or from their department
-			if user.Department != nil {
-				query = query.Where("department = ?", user.Department)
+			// Office managers can delete all appointments in their office
+			if user.Role == config.RoleOfficeManager && user.OfficeID != nil {
+				query = query.Joins("INNER JOIN cases ON cases.id = appointments.case_id AND cases.office_id = ?", user.OfficeID)
+			} else {
+				// Other staff users can only delete appointments they're assigned to or from their department
+				if user.Department != nil {
+					query = query.Where("department = ?", user.Department)
+				}
+				query = query.Or("staff_id = ?", user.ID)
 			}
-			query = query.Or("staff_id = ?", user.ID)
 		}
 
 		if err := query.First(&appointment, appointmentID).Error; err != nil {

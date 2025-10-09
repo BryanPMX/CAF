@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/BryanPMX/CAF/api/config"
 	"github.com/BryanPMX/CAF/api/models"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -34,7 +35,7 @@ func DataAccessControl(db *gorm.DB) gin.HandlerFunc {
 		c.Set("userOfficeID", user.OfficeID)
 
 		// Admin users have full access
-		if user.Role == "admin" {
+		if user.Role == config.RoleAdmin {
 			c.Next()
 			return
 		}
@@ -65,7 +66,27 @@ func CaseAccessControl(db *gorm.DB) gin.HandlerFunc {
 		currentUser := user.(models.User)
 
 		// Admin users have access to all cases
-		if currentUser.Role == "admin" {
+		if currentUser.Role == config.RoleAdmin {
+			c.Next()
+			return
+		}
+
+		// Office managers have access to all cases in their office
+		if currentUser.Role == config.RoleOfficeManager {
+			caseID := c.Param("id")
+			if caseID != "" {
+				// For specific case access, verify it belongs to their office
+				var caseRecord models.Case
+				if err := db.Select("office_id").First(&caseRecord, caseID).Error; err != nil {
+					c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "Case not found"})
+					return
+				}
+
+				if currentUser.OfficeID != nil && *currentUser.OfficeID != caseRecord.OfficeID {
+					c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "Access denied: Case belongs to different office"})
+					return
+				}
+			}
 			c.Next()
 			return
 		}
@@ -147,7 +168,27 @@ func AppointmentAccessControl(db *gorm.DB) gin.HandlerFunc {
 		currentUser := user.(models.User)
 
 		// Admin users have access to all appointments
-		if currentUser.Role == "admin" {
+		if currentUser.Role == config.RoleAdmin {
+			c.Next()
+			return
+		}
+
+		// Office managers have access to all appointments in their office
+		if currentUser.Role == config.RoleOfficeManager {
+			appointmentID := c.Param("id")
+			if appointmentID != "" {
+				// For specific appointment access, verify it belongs to their office
+				var appointment models.Appointment
+				if err := db.Preload("Case").First(&appointment, appointmentID).Error; err != nil {
+					c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "Appointment not found"})
+					return
+				}
+
+				if currentUser.OfficeID != nil && appointment.Case.OfficeID != *currentUser.OfficeID {
+					c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "Access denied: Appointment belongs to different office"})
+					return
+				}
+			}
 			c.Next()
 			return
 		}
@@ -203,7 +244,7 @@ func TaskAccessControl(db *gorm.DB) gin.HandlerFunc {
 		currentUser := user.(models.User)
 
 		// Admin users have access to all tasks
-		if currentUser.Role == "admin" {
+		if currentUser.Role == config.RoleAdmin {
 			c.Next()
 			return
 		}
