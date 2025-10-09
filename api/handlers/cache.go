@@ -119,11 +119,8 @@ func init() {
 		ticker := time.NewTicker(10 * time.Minute)
 		defer ticker.Stop()
 
-		for {
-			select {
-			case <-ticker.C:
-				clearExpiredCache()
-			}
+		for range ticker.C {
+			clearExpiredCache()
 		}
 	}()
 }
