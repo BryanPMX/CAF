@@ -59,6 +59,14 @@ func (qb *CaseQueryBuilder) ApplyAccessControl(c *gin.Context) *CaseQueryBuilder
 		return qb
 	}
 
+	// Office managers see ALL cases in their office (they manage the entire office)
+	if userRole == config.RoleOfficeManager {
+		if officeScopeID != nil {
+			qb.query = qb.query.Where("office_id = ?", officeScopeID)
+		}
+		return qb
+	}
+
 	// Staff-like users see cases from:
 	// 1. Their office and department (existing logic)
 	// 2. Cases where they are assigned as primary staff
@@ -231,7 +239,7 @@ func (s *CaseService) GetCaseByID(caseID string, light bool) (*models.Case, erro
 	if cached, found := getFromCache(caseID, light); found {
 		return cached, nil
 	}
-	
+
 	query := s.db.Preload("Client").Preload("Office").Preload("PrimaryStaff").Preload("Tasks.AssignedTo", func(db *gorm.DB) *gorm.DB {
 		return db.Order("created_at DESC")
 	})
