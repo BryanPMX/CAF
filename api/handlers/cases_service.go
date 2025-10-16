@@ -109,12 +109,12 @@ func (qb *CaseQueryBuilder) ApplyAccessControl(c *gin.Context) *CaseQueryBuilder
 
 // ApplyFilters applies search and filter parameters
 func (qb *CaseQueryBuilder) ApplyFilters(c *gin.Context) *CaseQueryBuilder {
-	// Search parameter
+	// Search parameter - now searches in client names
 	if search := c.Query("search"); search != "" {
 		searchTerm := "%" + search + "%"
-		qb.query = qb.query.Where(
-			"title ILIKE ? OR description ILIKE ? OR docket_number ILIKE ? OR court ILIKE ?",
-			searchTerm, searchTerm, searchTerm, searchTerm,
+		qb.query = qb.query.Joins("LEFT JOIN users AS clients ON cases.client_id = clients.id").Where(
+			"clients.first_name ILIKE ? OR clients.last_name ILIKE ? OR CONCAT(clients.first_name, ' ', clients.last_name) ILIKE ?",
+			searchTerm, searchTerm, searchTerm,
 		)
 	}
 
@@ -123,9 +123,14 @@ func (qb *CaseQueryBuilder) ApplyFilters(c *gin.Context) *CaseQueryBuilder {
 		qb.query = qb.query.Where("status = ?", status)
 	}
 
-	// Category filter
+	// Category filter (Department)
 	if category := c.Query("category"); category != "" {
 		qb.query = qb.query.Where("category = ?", category)
+	}
+
+	// Title filter (Case Type - exact match for specific case types)
+	if title := c.Query("title"); title != "" {
+		qb.query = qb.query.Where("title = ?", title)
 	}
 
 	// Priority filter

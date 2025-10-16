@@ -33,6 +33,7 @@ export class CaseService {
       ...(search && { search }),
       ...(filters.status && { status: filters.status }),
       ...(filters.category && { category: filters.category }),
+      ...(filters.title && { title: filters.title }),
       ...(filters.department && { department: filters.department }),
       ...(filters.assignedTo && { assignedTo: filters.assignedTo.toString() }),
       ...(filters.officeId && { officeId: filters.officeId.toString() }),
