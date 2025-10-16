@@ -163,6 +163,40 @@ func CreateAppointmentEnhanced(db *gorm.DB) gin.HandlerFunc {
 		currentUser, _ := c.Get("currentUser")
 		user := currentUser.(models.User)
 
+		// Handle new client creation if provided
+		var clientID uint
+		if input.NewClient != nil {
+			log.Printf("CreateAppointment: Creating new client - %s %s (%s)", input.NewClient.FirstName, input.NewClient.LastName, input.NewClient.Email)
+			
+			newClient := models.User{
+				FirstName: input.NewClient.FirstName,
+				LastName:  input.NewClient.LastName,
+				Email:     input.NewClient.Email,
+				Role:      "client",
+				IsActive:  true,
+			}
+
+			// Set default password for new clients
+			newClient.SetPassword("TempPassword123!")
+
+			// Assign to same office as the creating user
+			if user.OfficeID != nil {
+				newClient.OfficeID = user.OfficeID
+			}
+
+			// Create the client
+			if err := db.Create(&newClient).Error; err != nil {
+				log.Printf("CreateAppointment: Failed to create client: %v", err)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create client", "details": err.Error()})
+				return
+			}
+
+			log.Printf("CreateAppointment: Successfully created client with ID %d", newClient.ID)
+			clientID = newClient.ID
+		} else if input.ClientID != nil {
+			clientID = *input.ClientID
+		}
+
 		// Validate department compatibility for staff users (office managers can create appointments for any department)
 		if middleware.IsStaffRole(user.Role) && user.Role != config.RoleOfficeManager && user.Department != nil {
 			if input.Department != *user.Department {
@@ -176,6 +210,17 @@ func CreateAppointmentEnhanced(db *gorm.DB) gin.HandlerFunc {
 		if err := db.First(&caseRecord, input.CaseID).Error; err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Case not found"})
 			return
+		}
+
+		// If we created a new client and the case doesn't have a client, update the case
+		if input.NewClient != nil && caseRecord.ClientID == nil {
+			log.Printf("CreateAppointment: Updating case %d with new client ID %d", caseRecord.ID, clientID)
+			caseRecord.ClientID = &clientID
+			if err := db.Save(&caseRecord).Error; err != nil {
+				log.Printf("CreateAppointment: Failed to update case with client: %v", err)
+				// Don't fail the appointment creation, just log the warning
+				log.Printf("Warning: Case %d was not updated with client ID %d", caseRecord.ID, clientID)
+			}
 		}
 
 		// Check case access permissions
@@ -209,6 +254,11 @@ func CreateAppointmentEnhanced(db *gorm.DB) gin.HandlerFunc {
 		if err := db.Create(&appointment).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create appointment"})
 			return
+		}
+
+		// Load relationships for response
+		if err := db.Preload("Staff").Preload("Case.Client").First(&appointment, appointment.ID).Error; err != nil {
+			log.Printf("CreateAppointment: Failed to load relationships: %v", err)
 		}
 
 		c.JSON(http.StatusCreated, appointment)
@@ -454,13 +504,22 @@ func GetMyAppointments(db *gorm.DB) gin.HandlerFunc {
 
 // CreateAppointmentEnhancedInput defines the structure for creating appointments
 type CreateAppointmentEnhancedInput struct {
-	CaseID     uint      `json:"caseId" binding:"required"`
-	StaffID    uint      `json:"staffId" binding:"required"`
-	Title      string    `json:"title" binding:"required"`
-	StartTime  time.Time `json:"startTime" binding:"required"`
-	EndTime    time.Time `json:"endTime" binding:"required"`
-	Category   string    `json:"category" binding:"required"`
-	Department string    `json:"department" binding:"required"`
+	CaseID     uint                      `json:"caseId" binding:"required"`
+	StaffID    uint                      `json:"staffId" binding:"required"`
+	Title      string                    `json:"title" binding:"required"`
+	StartTime  time.Time                 `json:"startTime" binding:"required"`
+	EndTime    time.Time                 `json:"endTime" binding:"required"`
+	Category   string                    `json:"category" binding:"required"`
+	Department string                    `json:"department" binding:"required"`
+	NewClient  *CreateClientInput        `json:"newClient,omitempty"`
+	ClientID   *uint                     `json:"clientId,omitempty"`
+}
+
+// CreateClientInput defines the structure for creating a new client
+type CreateClientInput struct {
+	FirstName string `json:"firstName" binding:"required"`
+	LastName  string `json:"lastName" binding:"required"`
+	Email     string `json:"email" binding:"required,email"`
 }
 
 // UpdateAppointmentInput defines the structure for updating appointments
