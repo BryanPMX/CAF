@@ -168,7 +168,7 @@ func CreateAppointmentEnhanced(db *gorm.DB) gin.HandlerFunc {
 		var clientID uint
 		if input.NewClient != nil {
 			log.Printf("CreateAppointment: Creating new client - %s %s (%s)", input.NewClient.FirstName, input.NewClient.LastName, input.NewClient.Email)
-			
+
 			// Hash default password for new client
 			hashedPassword, err := bcrypt.GenerateFromPassword([]byte("TempPassword123!"), bcrypt.DefaultCost)
 			if err != nil {
@@ -511,15 +511,15 @@ func GetMyAppointments(db *gorm.DB) gin.HandlerFunc {
 
 // CreateAppointmentEnhancedInput defines the structure for creating appointments
 type CreateAppointmentEnhancedInput struct {
-	CaseID     uint                      `json:"caseId" binding:"required"`
-	StaffID    uint                      `json:"staffId" binding:"required"`
-	Title      string                    `json:"title" binding:"required"`
-	StartTime  time.Time                 `json:"startTime" binding:"required"`
-	EndTime    time.Time                 `json:"endTime" binding:"required"`
-	Category   string                    `json:"category" binding:"required"`
-	Department string                    `json:"department" binding:"required"`
-	NewClient  *CreateClientInput        `json:"newClient,omitempty"`
-	ClientID   *uint                     `json:"clientId,omitempty"`
+	CaseID     uint               `json:"caseId" binding:"required"`
+	StaffID    uint               `json:"staffId" binding:"required"`
+	Title      string             `json:"title" binding:"required"`
+	StartTime  time.Time          `json:"startTime" binding:"required"`
+	EndTime    time.Time          `json:"endTime" binding:"required"`
+	Category   string             `json:"category" binding:"required"`
+	Department string             `json:"department" binding:"required"`
+	NewClient  *CreateClientInput `json:"newClient,omitempty"`
+	ClientID   *uint              `json:"clientId,omitempty"`
 }
 
 // CreateClientInput defines the structure for creating a new client

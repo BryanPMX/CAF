@@ -285,7 +285,7 @@ func (s *CaseService) CreateCase(c *gin.Context) (*models.Case, error) {
 	if hasFirstName && hasLastName && hasEmail {
 		// Create new client user
 		log.Printf("CreateCase: Creating new client - %s %s (%s)", firstName, lastName, email)
-		
+
 		// Hash default password for new client
 		hashedPassword, err := bcrypt.GenerateFromPassword([]byte("TempPassword123!"), bcrypt.DefaultCost)
 		if err != nil {
