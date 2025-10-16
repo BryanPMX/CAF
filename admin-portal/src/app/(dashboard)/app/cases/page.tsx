@@ -243,7 +243,7 @@ const CaseManagementPage = () => {
           search: debouncedSearchText,
           filters: {
             category: deptFilter,
-            status: caseTypeFilter,
+            title: caseTypeFilter,
           }
         }
       );
@@ -377,7 +377,13 @@ const CaseManagementPage = () => {
       dataIndex: ['office', 'name'],
       key: 'office',
       width: 120,
-      render: (_: any, record: CaseType) => record.officeId ? `Oficina ${record.officeId}` : 'N/A',
+      render: (_: any, record: any) => {
+        // Display actual office name if available
+        if (record.office && record.office.name) {
+          return record.office.name;
+        }
+        return 'Sin asignar';
+      },
     },
     {
       title: 'Fase del Caso',
@@ -484,7 +490,7 @@ const CaseManagementPage = () => {
         <Row gutter={16} align="middle">
           <Col span={8}>
             <Input
-              placeholder="Buscar casos..."
+              placeholder="Buscar por nombre de cliente..."
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
               prefix={<SearchOutlined />}

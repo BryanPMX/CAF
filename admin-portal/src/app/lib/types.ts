@@ -232,6 +232,7 @@ export interface SearchFilters {
   search?: string;
   status?: string;
   category?: string;
+  title?: string;
   department?: string;
   assignedTo?: number;
   officeId?: number;
