@@ -45,6 +45,8 @@ temp/
 *.swp
 *.swo
 *~
+.vscode-test/
+*.code-workspace
 
 # === OS generated files ===
 .DS_Store
@@ -72,6 +74,10 @@ site/
 coverage/
 *.coverage
 .nyc_output/
+.coverage
+htmlcov/
+.pytest_cache/
+.tox/
 
 # === Package manager files ===
 package-lock.json.bak
@@ -93,6 +99,55 @@ vercel-secure.json
 *.p8
 *.crt
 *.cer
-secrets/volume/cache/*.pem
+secrets/
+volume/cache/*.pem
 volume/cache/*.key
 volume/cache/*.crt
+
+# === AWS and Cloud credentials ===
+*credentials*
+*aws-credentials*
+*.aws/
+aws-config.json
+gcloud-config.json
+
+# === Script files with embedded secrets ===
+# Note: Review any *.sh files before committing
+*-with-secrets.sh
+*-production.sh
+
+# === Database dumps and backups ===
+*.sql
+*.dump
+*.bak.sql
+backup/
+backups/
+
+# === API keys and tokens ===
+*api-key*
+*api_key*
+*secret-key*
+*secret_key*
+*access-token*
+*access_token*
+
+# === Local development files ===
+.local/
+*.local.*
+local-config.*
+
+# === Node modules and dependencies ===
+node_modules/
+vendor/
+.pnp/
+.pnp.js
+
+# === Next.js specific ===
+.next/
+.vercel/
+.turbo/
+
+# === Build and dist folders ===
+build/
+dist/
+*.build/
