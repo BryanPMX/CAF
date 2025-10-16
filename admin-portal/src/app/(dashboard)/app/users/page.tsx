@@ -51,7 +51,7 @@ const UserManagementPage = () => {
 
   // --- Data Fetching ---
   // This function fetches the list of all users from our secure admin API endpoint.
-  const fetchUsers = async () => {
+  const fetchUsers = async (forceRefresh: boolean = false) => {
     try {
       // Wait for user to be loaded before fetching
       // User role is guaranteed to be available by the parent layout
@@ -67,6 +67,8 @@ const UserManagementPage = () => {
       if (debouncedQ.trim()) params.q = debouncedQ.trim();
       params.page = page;
       params.pageSize = pageSize;
+      // Add cache-busting timestamp if force refresh
+      if (forceRefresh) params._t = Date.now();
       const response = await apiClient.get(`${base}/users`, { params });
       const data = response.data;
       console.log('Users API response:', data);
@@ -331,7 +333,7 @@ const UserManagementPage = () => {
       <UserModal
         visible={isModalVisible}
         onClose={() => setIsModalVisible(false)}
-        onSuccess={fetchUsers} // Pass the fetchUsers function as a callback
+        onSuccess={() => fetchUsers(true)} // Force refresh after user creation/update
         user={editingUser}
       />
     </div>

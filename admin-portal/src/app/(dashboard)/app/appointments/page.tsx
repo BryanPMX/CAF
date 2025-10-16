@@ -61,7 +61,7 @@ const AppointmentsPage = () => {
     }
   }, [user]);
 
-  const fetchAppointments = async () => {
+  const fetchAppointments = async (forceRefresh: boolean = false) => {
     try {
       // Wait for user to be loaded before fetching
       // User role is guaranteed to be available by the parent layout
@@ -75,6 +75,8 @@ const AppointmentsPage = () => {
         {
           page: 1,
           pageSize: 1000, // Get all appointments for now
+          // Add cache-busting timestamp if force refresh
+          ...(forceRefresh ? { _t: Date.now() } : {})
         }
       );
       // Appointments loaded successfully
@@ -417,7 +419,7 @@ const AppointmentsPage = () => {
       <AppointmentModal
         visible={isModalVisible}
         onClose={() => setIsModalVisible(false)}
-        onSuccess={fetchAppointments}
+        onSuccess={() => fetchAppointments(true)}
       />
       
       <EditAppointmentModal
@@ -427,7 +429,7 @@ const AppointmentsPage = () => {
           setIsEditModalVisible(false);
           setEditingAppointment(null);
         }}
-        onSuccess={fetchAppointments}
+        onSuccess={() => fetchAppointments(true)}
       />
     </div>
   );
