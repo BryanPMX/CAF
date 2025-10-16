@@ -388,10 +388,10 @@ const CaseDetailPage = () => {
       label: 'Historial y Comentarios',
       children: (
         <div>
-          <AddCommentForm caseId={caseId as string} onSuccess={fetchCaseDetails} />
+          <AddCommentForm caseId={caseId as string} onSuccess={() => fetchCaseDetails(true)} />
           <hr className="my-6" />
           <PrivacyWall userRole={staffRole} documentType={CASE_DOCUMENT_TYPES.GENERAL}>
-            <CaseTimeline events={caseDetails?.caseEvents || []} onRefresh={fetchCaseDetails} />
+            <CaseTimeline events={caseDetails?.caseEvents || []} onRefresh={() => fetchCaseDetails(true)} />
           </PrivacyWall>
         </div>
       ),
@@ -401,7 +401,7 @@ const CaseDetailPage = () => {
       label: 'Documentos',
       children: (
         <PrivacyWall userRole={staffRole} documentType={CASE_DOCUMENT_TYPES.GENERAL}>
-          <UploadDocument caseId={caseId as string} onSuccess={fetchCaseDetails} />
+          <UploadDocument caseId={caseId as string} onSuccess={() => fetchCaseDetails(true)} />
         </PrivacyWall>
       ),
     },
@@ -537,7 +537,7 @@ const CaseDetailPage = () => {
       <TaskModal
         visible={isTaskModalVisible}
         onClose={() => setIsTaskModalVisible(false)}
-        onSuccess={fetchCaseDetails}
+        onSuccess={() => fetchCaseDetails(true)}
         caseId={caseId as string}
         task={editingTask}
       />
@@ -554,7 +554,7 @@ const CaseDetailPage = () => {
       <EditCaseModal
         visible={isEditCaseModalVisible}
         onClose={() => setIsEditCaseModalVisible(false)}
-        onSuccess={fetchCaseDetails}
+        onSuccess={() => fetchCaseDetails(true)}
         caseId={caseId as string}
         caseData={{
           title: caseDetails?.title || '',
