@@ -109,46 +109,46 @@ func (qb *CaseQueryBuilder) ApplyAccessControl(c *gin.Context) *CaseQueryBuilder
 
 // ApplyFilters applies search and filter parameters
 func (qb *CaseQueryBuilder) ApplyFilters(c *gin.Context) *CaseQueryBuilder {
-	// Search parameter - now searches in client names
+	// Search parameter - searches in client names using subquery to avoid JOIN conflicts
 	if search := c.Query("search"); search != "" {
 		searchTerm := "%" + search + "%"
-		qb.query = qb.query.Joins("LEFT JOIN users AS clients ON cases.client_id = clients.id").Where(
-			"clients.first_name ILIKE ? OR clients.last_name ILIKE ? OR CONCAT(clients.first_name, ' ', clients.last_name) ILIKE ?",
+		qb.query = qb.query.Where(
+			"client_id IN (SELECT id FROM users WHERE first_name ILIKE ? OR last_name ILIKE ? OR CONCAT(first_name, ' ', last_name) ILIKE ?)",
 			searchTerm, searchTerm, searchTerm,
 		)
 	}
 
 	// Status filter
 	if status := c.Query("status"); status != "" {
-		qb.query = qb.query.Where("status = ?", status)
+		qb.query = qb.query.Where("cases.status = ?", status)
 	}
 
 	// Category filter (Department)
 	if category := c.Query("category"); category != "" {
-		qb.query = qb.query.Where("category = ?", category)
+		qb.query = qb.query.Where("cases.category = ?", category)
 	}
 
 	// Title filter (Case Type - exact match for specific case types)
 	if title := c.Query("title"); title != "" {
-		qb.query = qb.query.Where("title = ?", title)
+		qb.query = qb.query.Where("cases.title = ?", title)
 	}
 
 	// Priority filter
 	if priority := c.Query("priority"); priority != "" {
-		qb.query = qb.query.Where("priority = ?", priority)
+		qb.query = qb.query.Where("cases.priority = ?", priority)
 	}
 
 	// Office filter
 	if officeID := c.Query("officeId"); officeID != "" {
-		qb.query = qb.query.Where("office_id = ?", officeID)
+		qb.query = qb.query.Where("cases.office_id = ?", officeID)
 	}
 
 	// Date range filters
 	if dateFrom := c.Query("dateFrom"); dateFrom != "" {
-		qb.query = qb.query.Where("created_at >= ?", dateFrom)
+		qb.query = qb.query.Where("cases.created_at >= ?", dateFrom)
 	}
 	if dateTo := c.Query("dateTo"); dateTo != "" {
-		qb.query = qb.query.Where("created_at <= ?", dateTo)
+		qb.query = qb.query.Where("cases.created_at <= ?", dateTo)
 	}
 
 	return qb
