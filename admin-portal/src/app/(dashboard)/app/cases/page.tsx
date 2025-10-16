@@ -16,8 +16,6 @@ import {
   Card,
   Row,
   Col,
-  Statistic,
-  Progress,
   Tooltip,
   Alert
 } from 'antd';
@@ -25,9 +23,7 @@ import {
   PlusOutlined, 
   EyeOutlined, 
   SearchOutlined,
-  FilterOutlined,
-  BarChartOutlined,
-  ClockCircleOutlined
+  FilterOutlined
 } from '@ant-design/icons';
 import { useAuth } from '@/context/AuthContext';
 import { CaseService } from '@/services/caseService';
@@ -184,7 +180,6 @@ const CaseManagementPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [total, setTotal] = useState(0);
-  const [performanceMetrics, setPerformanceMetrics] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
 
@@ -223,7 +218,6 @@ const CaseManagementPage = () => {
         const cachedCases = Array.isArray(cachedData.data) ? cachedData.data : [];
         setCases(cachedCases);
         setTotal(cachedData.pagination?.total || 0);
-        setPerformanceMetrics(cachedData.performance || null);
         setLoading(false);
         setError(null);
         return;
@@ -264,7 +258,6 @@ const CaseManagementPage = () => {
       }
       
       setTotal(data.pagination?.total || 0);
-      setPerformanceMetrics(data.performance || null);
       setCurrentPage(page);
       setLastRefresh(new Date());
       setError(null);
@@ -280,7 +273,6 @@ const CaseManagementPage = () => {
         setCases([]);
         setTotal(0);
         setError(null);
-        setPerformanceMetrics(null);
       } else {
         // Actual server error
         setError('Error al cargar los casos. Intente nuevamente.');
@@ -369,12 +361,15 @@ const CaseManagementPage = () => {
     },
     {
       title: 'Cliente',
-      dataIndex: ['client', 'firstName'],
+      dataIndex: ['client'],
       key: 'client',
       width: 150,
-      render: (_: any, record: CaseType) => {
-        // For now, show client ID since the API doesn't return client details in the list
-        return record.clientId ? `Cliente ${record.clientId}` : 'N/A';
+      render: (_: any, record: any) => {
+        // Display actual client name if available
+        if (record.client && record.client.firstName && record.client.lastName) {
+          return `${record.client.firstName} ${record.client.lastName}`;
+        }
+        return 'Sin asignar';
       },
     },
     {
@@ -389,9 +384,10 @@ const CaseManagementPage = () => {
       dataIndex: 'currentStage',
       key: 'currentStage',
       width: 150,
-      render: (currentStage: string, record: CaseType) => {
-        // For now, show the stage as-is since currentStage might not be in the base Case type
-        const stageLabel = currentStage || 'N/A';
+      render: (currentStage: string, record: any) => {
+        // Get proper Spanish label for the stage
+        const stageLabels = getStageLabels(record.category || '');
+        const stageLabel = stageLabels[currentStage] || currentStage || 'Sin definir';
         
         let color = 'default';
         if (record.category === 'Familiar' || record.category === 'Civil') {
@@ -439,18 +435,6 @@ const CaseManagementPage = () => {
     },
   ], []);
 
-  // Performance statistics
-  const performanceStats = useMemo(() => {
-    if (!performanceMetrics) return null;
-    
-    return {
-      queryTime: performanceMetrics.queryTime,
-      cacheHit: performanceMetrics.cacheHit,
-      responseSize: performanceMetrics.responseSize,
-      cacheEfficiency: cache.getStats()
-    };
-  }, [performanceMetrics, cache]);
-
   const DEPARTMENTS = ['Familiar', 'Civil', 'Psicologia', 'Recursos'];
   const CASE_TYPES = [
     'Divorcios','Guardia y Custodia','Acto Prejudicial','Adopcion','Pension Alimenticia','Rectificacion de Actas','Reclamacion de Paternidad',
@@ -461,43 +445,6 @@ const CaseManagementPage = () => {
 
   return (
     <div>
-      {/* Performance Header */}
-      {performanceStats && (
-        <Card size="small" style={{ marginBottom: 16 }}>
-          <Row gutter={16} align="middle">
-            <Col span={6}>
-              <Statistic 
-                title="Tiempo de Consulta" 
-                value={performanceStats.queryTime} 
-                suffix="ms"
-                prefix={<ClockCircleOutlined />}
-              />
-            </Col>
-            <Col span={6}>
-              <Statistic 
-                title="Cache Hit" 
-                value={performanceStats.cacheHit ? 'Sí' : 'No'}
-                valueStyle={{ color: performanceStats.cacheHit ? '#52c41a' : '#ff4d4f' }}
-              />
-            </Col>
-            <Col span={6}>
-              <Statistic 
-                title="Tamaño Respuesta" 
-                value={performanceStats.responseSize} 
-                suffix="bytes"
-              />
-            </Col>
-            <Col span={6}>
-              <Statistic 
-                title="Entradas en Cache" 
-                value={performanceStats.cacheEfficiency.size}
-                prefix={<BarChartOutlined />}
-              />
-            </Col>
-          </Row>
-        </Card>
-      )}
-
       {/* Error Alert */}
       {error && (
         <Alert
