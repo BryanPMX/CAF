@@ -268,11 +268,83 @@ func (s *CaseService) GetCaseByID(caseID string, light bool) (*models.Case, erro
 
 // CreateCase creates a new case
 func (s *CaseService) CreateCase(c *gin.Context) (*models.Case, error) {
-	var caseData models.Case
-
-	if err := c.ShouldBindJSON(&caseData); err != nil {
+	// Parse request body as map to check for new client data
+	var requestData map[string]interface{}
+	if err := c.ShouldBindJSON(&requestData); err != nil {
 		return nil, fmt.Errorf("invalid request data: %v", err)
 	}
+
+	// Check if we need to create a new client
+	firstName, hasFirstName := requestData["firstName"].(string)
+	lastName, hasLastName := requestData["lastName"].(string)
+	email, hasEmail := requestData["email"].(string)
+
+	var clientID *uint
+
+	if hasFirstName && hasLastName && hasEmail {
+		// Create new client user
+		log.Printf("CreateCase: Creating new client - %s %s (%s)", firstName, lastName, email)
+		
+		newClient := models.User{
+			FirstName: firstName,
+			LastName:  lastName,
+			Email:     email,
+			Role:      "client",
+			IsActive:  true,
+		}
+
+		// Set default password for new clients (they can reset later)
+		newClient.SetPassword("TempPassword123!")
+
+		// Get office ID from request for the client
+		if officeID, ok := requestData["officeId"].(float64); ok {
+			officeIDUint := uint(officeID)
+			newClient.OfficeID = &officeIDUint
+		}
+
+		// Create the client
+		if err := s.db.Create(&newClient).Error; err != nil {
+			log.Printf("CreateCase: Failed to create client: %v", err)
+			return nil, fmt.Errorf("failed to create client: %v", err)
+		}
+
+		log.Printf("CreateCase: Successfully created client with ID %d", newClient.ID)
+		clientID = &newClient.ID
+		requestData["clientId"] = float64(newClient.ID)
+	} else if existingClientID, ok := requestData["clientId"].(float64); ok {
+		// Use existing client
+		clientIDUint := uint(existingClientID)
+		clientID = &clientIDUint
+	}
+
+	// Now bind to Case model
+	var caseData models.Case
+	
+	// Manual mapping from requestData to caseData
+	if title, ok := requestData["title"].(string); ok {
+		caseData.Title = title
+	}
+	if description, ok := requestData["description"].(string); ok {
+		caseData.Description = description
+	}
+	if category, ok := requestData["category"].(string); ok {
+		caseData.Category = category
+	}
+	if officeID, ok := requestData["officeId"].(float64); ok {
+		caseData.OfficeID = uint(officeID)
+	}
+	if docketNumber, ok := requestData["docketNumber"].(string); ok {
+		caseData.DocketNumber = docketNumber
+	}
+	if court, ok := requestData["court"].(string); ok {
+		caseData.Court = court
+	}
+	if fee, ok := requestData["fee"].(float64); ok {
+		caseData.Fee = fee
+	}
+
+	// Set client ID
+	caseData.ClientID = clientID
 
 	// Set default values
 	if caseData.Status == "" {
@@ -299,9 +371,13 @@ func (s *CaseService) CreateCase(c *gin.Context) (*models.Case, error) {
 	caseData.CreatedBy = uint(userIDUint)
 	caseData.UpdatedBy = &[]uint{uint(userIDUint)}[0]
 
+	// Create the case
 	if err := s.db.Create(&caseData).Error; err != nil {
+		log.Printf("CreateCase: Failed to create case: %v", err)
 		return nil, fmt.Errorf("failed to create case: %v", err)
 	}
+
+	log.Printf("CreateCase: Successfully created case %d with client ID %v", caseData.ID, clientID)
 
 	// Load relationships
 	if err := s.db.Preload("Client").Preload("Office").Preload("PrimaryStaff").First(&caseData, caseData.ID).Error; err != nil {
