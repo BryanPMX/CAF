@@ -11,6 +11,7 @@ import (
 	"github.com/BryanPMX/CAF/api/middleware"
 	"github.com/BryanPMX/CAF/api/models"
 	"github.com/gin-gonic/gin"
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
@@ -168,16 +169,22 @@ func CreateAppointmentEnhanced(db *gorm.DB) gin.HandlerFunc {
 		if input.NewClient != nil {
 			log.Printf("CreateAppointment: Creating new client - %s %s (%s)", input.NewClient.FirstName, input.NewClient.LastName, input.NewClient.Email)
 			
+			// Hash default password for new client
+			hashedPassword, err := bcrypt.GenerateFromPassword([]byte("TempPassword123!"), bcrypt.DefaultCost)
+			if err != nil {
+				log.Printf("CreateAppointment: Failed to hash password: %v", err)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to hash password"})
+				return
+			}
+
 			newClient := models.User{
 				FirstName: input.NewClient.FirstName,
 				LastName:  input.NewClient.LastName,
 				Email:     input.NewClient.Email,
+				Password:  string(hashedPassword),
 				Role:      "client",
 				IsActive:  true,
 			}
-
-			// Set default password for new clients
-			newClient.SetPassword("TempPassword123!")
 
 			// Assign to same office as the creating user
 			if user.OfficeID != nil {
