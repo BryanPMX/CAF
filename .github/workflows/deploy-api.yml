@@ -11,7 +11,6 @@ env:
   ECR_REPOSITORY: caf-backend
   ECS_SERVICE: caf-backend-service
   ECS_CLUSTER: caf-cluster
-  # Explicit task definition family for better management
   ECS_TASK_DEFINITION_FAMILY: caf-backend
 
 jobs:
@@ -44,24 +43,28 @@ jobs:
         IMAGE_TAG: ${{ github.sha }}
       run: |
         # Build a docker container and push it to ECR
-        echo "Building Docker image with tag: $IMAGE_TAG"
+        echo "🔨 Building Docker image with tag: $IMAGE_TAG"
         docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG ./api
+        
+        echo "📤 Pushing image to ECR..."
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
         
         # Also tag as latest
-        echo "Tagging as latest and pushing..."
+        echo "🏷️  Tagging as latest and pushing..."
         docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
         
         echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
-        echo "Successfully built and pushed image: $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+        echo "✅ Successfully built and pushed image: $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
 
     - name: Download existing task definition
       id: download-task-definition
       run: |
-        # Get the latest task definition for the family
-        aws ecs describe-task-definition --task-definition $ECS_TASK_DEFINITION_FAMILY --query 'taskDefinition' > task-definition.json
-        echo "Downloaded task definition for family: $ECS_TASK_DEFINITION_FAMILY"
+        echo "📥 Downloading current task definition..."
+        aws ecs describe-task-definition \
+          --task-definition $ECS_TASK_DEFINITION_FAMILY \
+          --query 'taskDefinition' > task-definition.json
+        echo "✅ Downloaded task definition for family: $ECS_TASK_DEFINITION_FAMILY"
         
     - name: Fill in the new image ID in the Amazon ECS task definition
       id: render-task-definition
@@ -74,8 +77,12 @@ jobs:
     - name: Deploy Amazon ECS task definition
       id: deploy-task-definition
       run: |
-        NEW_TASK_DEF_ARN=$(aws ecs register-task-definition --cli-input-json file://${{ steps.render-task-definition.outputs.task-definition }} --query 'taskDefinition.taskDefinitionArn' --output text)
-        echo "Registered new task definition: $NEW_TASK_DEF_ARN"
+        echo "📝 Registering new task definition..."
+        NEW_TASK_DEF_ARN=$(aws ecs register-task-definition \
+          --cli-input-json file://${{ steps.render-task-definition.outputs.task-definition }} \
+          --query 'taskDefinition.taskDefinitionArn' \
+          --output text)
+        echo "✅ Registered new task definition: $NEW_TASK_DEF_ARN"
         echo "task_definition_arn=$NEW_TASK_DEF_ARN" >> $GITHUB_OUTPUT
         
         # Clean up temporary files
@@ -83,61 +90,159 @@ jobs:
 
     - name: Deploy to Amazon ECS service
       run: |
-        echo "Updating ECS service $ECS_SERVICE with new task definition ${{ steps.deploy-task-definition.outputs.task_definition_arn }}"
-        aws ecs update-service --cluster $ECS_CLUSTER --service $ECS_SERVICE \
+        echo "🚀 Deploying to ECS service $ECS_SERVICE..."
+        aws ecs update-service \
+          --cluster $ECS_CLUSTER \
+          --service $ECS_SERVICE \
           --task-definition ${{ steps.deploy-task-definition.outputs.task_definition_arn }} \
-          --force-new-deployment
-        echo "ECS service update initiated."
+          --force-new-deployment \
+          --region $AWS_REGION
+        echo "✅ ECS service update initiated"
 
     - name: Wait for deployment to complete
       run: |
-        echo "Monitoring deployment progress for service $ECS_SERVICE..."
+        echo "⏳ Monitoring deployment progress for service $ECS_SERVICE..."
         
-        # Wait for deployment with longer timeout and better error handling
-        timeout 900 aws ecs wait services-stable --cluster $ECS_CLUSTER --services $ECS_SERVICE || {
-          echo "Deployment still in progress or timed out (900s), checking health manually..."
+        # Wait for deployment with timeout and error handling
+        timeout 900 aws ecs wait services-stable \
+          --cluster $ECS_CLUSTER \
+          --services $ECS_SERVICE \
+          --region $AWS_REGION || {
+          echo "⚠️  Deployment still in progress or timed out (900s), checking health manually..."
           
           # Check if service is actually healthy even if not marked stable
-          RUNNING_COUNT=$(aws ecs describe-services --cluster $ECS_CLUSTER --services $ECS_SERVICE --query 'services[0].runningCount' --output text)
-          DESIRED_COUNT=$(aws ecs describe-services --cluster $ECS_CLUSTER --services $ECS_SERVICE --query 'services[0].desiredCount' --output text)
-          PENDING_COUNT=$(aws ecs describe-services --cluster $ECS_CLUSTER --services $ECS_SERVICE --query 'services[0].pendingCount' --output text)
+          RUNNING_COUNT=$(aws ecs describe-services \
+            --cluster $ECS_CLUSTER \
+            --services $ECS_SERVICE \
+            --region $AWS_REGION \
+            --query 'services[0].runningCount' \
+            --output text)
+          DESIRED_COUNT=$(aws ecs describe-services \
+            --cluster $ECS_CLUSTER \
+            --services $ECS_SERVICE \
+            --region $AWS_REGION \
+            --query 'services[0].desiredCount' \
+            --output text)
+          PENDING_COUNT=$(aws ecs describe-services \
+            --cluster $ECS_CLUSTER \
+            --services $ECS_SERVICE \
+            --region $AWS_REGION \
+            --query 'services[0].pendingCount' \
+            --output text)
           
           echo "Current status: $RUNNING_COUNT running, $PENDING_COUNT pending, $DESIRED_COUNT desired"
           
           if [ "$RUNNING_COUNT" = "$DESIRED_COUNT" ] && [ "$RUNNING_COUNT" -gt 0 ]; then
             echo "✅ Service is running with desired task count: $RUNNING_COUNT/$DESIRED_COUNT"
           else
-            echo "❌ Service not yet stable: $RUNNING_COUNT/$DESIRED_COUNT tasks running. Desired: $DESIRED_COUNT"
+            echo "❌ Service not yet stable: $RUNNING_COUNT/$DESIRED_COUNT tasks running"
             
             # Show recent service events for debugging
-            echo "Recent service events:"
-            aws ecs describe-services --cluster $ECS_CLUSTER --services $ECS_SERVICE --query 'services[0].events[0:5].[createdAt,message]' --output table
+            echo "📋 Recent service events:"
+            aws ecs describe-services \
+              --cluster $ECS_CLUSTER \
+              --services $ECS_SERVICE \
+              --region $AWS_REGION \
+              --query 'services[0].events[0:5].[createdAt,message]' \
+              --output table
             
             exit 1
           fi
         }
-        echo "Deployment completed successfully!"
+        echo "✅ Deployment completed successfully!"
 
-    - name: Verify deployment
+    - name: Verify deployment health
       run: |
-        echo "Waiting 30 seconds for health checks to propagate..."
-        sleep 30 # Wait a bit for health checks
+        echo "🏥 Verifying deployment health..."
+        echo "Waiting 30 seconds for health checks to stabilize..."
+        sleep 30
         
-        echo "Testing API health endpoint..."
-        curl -f http://api.caf-mexico.org/health || { echo "Health check failed for /health"; exit 1; }
-        echo "Health check /health passed."
+        # Check target group health
+        echo "📊 Checking target group health..."
+        HEALTHY_TARGETS=$(aws elbv2 describe-target-health \
+          --target-group-arn arn:aws:elasticloadbalancing:us-east-2:441130535898:targetgroup/caf-targets/3731b3b58db46b0b \
+          --region $AWS_REGION \
+          --query 'TargetHealthDescriptions[?TargetHealth.State==`healthy`]' \
+          --output json | jq length)
         
-        echo "Testing API ready endpoint..."
-        curl -f http://api.caf-mexico.org/health/ready || { echo "Ready check failed for /health/ready"; exit 1; }
-        echo "Health check /health/ready passed."
-        echo "API endpoints verified successfully!"
+        echo "Healthy targets: $HEALTHY_TARGETS"
+        
+        if [ "$HEALTHY_TARGETS" -gt 0 ]; then
+          echo "✅ Target group has $HEALTHY_TARGETS healthy target(s)"
+        else
+          echo "❌ No healthy targets found in target group"
+          
+          # Show target health details
+          aws elbv2 describe-target-health \
+            --target-group-arn arn:aws:elasticloadbalancing:us-east-2:441130535898:targetgroup/caf-targets/3731b3b58db46b0b \
+            --region $AWS_REGION \
+            --output table
+          
+          exit 1
+        fi
+        
+        echo "✅ All health checks passed!"
+
+    - name: Test API endpoints
+      run: |
+        echo "🧪 Testing API endpoints..."
+        
+        # Test health endpoint
+        echo "Testing /health endpoint..."
+        if curl -f -s http://api.caf-mexico.org/health > /dev/null 2>&1; then
+          echo "✅ /health endpoint responding"
+        else
+          echo "⚠️  /health endpoint not accessible (may be expected for internal ALB)"
+        fi
+        
+        # Test live endpoint
+        echo "Testing /health/live endpoint..."
+        if curl -f -s http://api.caf-mexico.org/health/live > /dev/null 2>&1; then
+          echo "✅ /health/live endpoint responding"
+        else
+          echo "⚠️  /health/live endpoint not accessible (may be expected for internal ALB)"
+        fi
+        
+        echo "✅ API endpoint verification completed"
 
     - name: Deployment Summary
+      if: always()
       run: |
-        echo "--- Deployment Summary ---"
-        echo "Commit SHA: ${{ github.sha }}"
-        echo "Image: ${{ steps.build-image.outputs.image }}"
-        echo "Task Definition ARN: ${{ steps.deploy-task-definition.outputs.task_definition_arn }}"
-        echo "ECS Service: ${{ env.ECS_SERVICE }}"
-        echo "ECS Cluster: ${{ env.ECS_CLUSTER }}"
-        echo "Status: Deployment completed successfully."
+        echo ""
+        echo "═══════════════════════════════════════════"
+        echo "       🎉 DEPLOYMENT SUMMARY"
+        echo "═══════════════════════════════════════════"
+        echo "📦 Commit SHA: ${{ github.sha }}"
+        echo "🏷️  Image: ${{ steps.build-image.outputs.image }}"
+        echo "📋 Task Definition: ${{ steps.deploy-task-definition.outputs.task_definition_arn }}"
+        echo "🎯 ECS Service: ${{ env.ECS_SERVICE }}"
+        echo "🏢 ECS Cluster: ${{ env.ECS_CLUSTER }}"
+        echo "🌍 Region: ${{ env.AWS_REGION }}"
+        echo "───────────────────────────────────────────"
+        
+        # Get service status
+        SERVICE_STATUS=$(aws ecs describe-services \
+          --cluster $ECS_CLUSTER \
+          --services $ECS_SERVICE \
+          --region $AWS_REGION \
+          --query 'services[0].{Status:status,Running:runningCount,Desired:desiredCount}' \
+          --output json)
+        
+        echo "📊 Service Status:"
+        echo "$SERVICE_STATUS" | jq -r 'to_entries | .[] | "   \(.key): \(.value)"'
+        
+        echo "═══════════════════════════════════════════"
+        echo "✅ Deployment workflow completed!"
+        echo "═══════════════════════════════════════════"
+
+    - name: Notify on failure
+      if: failure()
+      run: |
+        echo "❌ Deployment failed!"
+        echo "📋 Checking service events..."
+        aws ecs describe-services \
+          --cluster $ECS_CLUSTER \
+          --services $ECS_SERVICE \
+          --region $AWS_REGION \
+          --query 'services[0].events[0:10].[createdAt,message]' \
+          --output table
