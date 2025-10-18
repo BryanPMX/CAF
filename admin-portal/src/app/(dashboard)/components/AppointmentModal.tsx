@@ -64,11 +64,15 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ visible, onClose, o
           ]);
           const staffPayload = Array.isArray(staffRes.data)
             ? staffRes.data
-            : (staffRes.data?.users || []);
+            : (staffRes.data?.users || staffRes.data?.data || []);
           const filteredStaff = staffPayload.filter((user: any) => user.role !== 'client');
+          console.log('📋 Loaded staff members:', filteredStaff.length, filteredStaff);
           setStaffList(filteredStaff);
           setOffices(officesRes.data);
-        } catch (error) { message.error('No se pudieron cargar los datos necesarios.'); }
+        } catch (error) {
+          console.error('Failed to load staff/offices:', error);
+          message.error('No se pudieron cargar los datos necesarios.');
+        }
       };
       fetchData();
       loadRecentClients();
@@ -227,7 +231,12 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ visible, onClose, o
   const filteredStaffList = useMemo(() => {
     const categoryToUse = selectedCaseCategory || watchedDepartment;
     
-    if (!categoryToUse || categoryToUse === 'General') return staffList;
+    console.log('🔍 Filtering staff - Category:', categoryToUse, 'Total staff:', staffList.length);
+    
+    if (!categoryToUse || categoryToUse === 'General') {
+      console.log('✅ No category filter, showing all staff:', staffList.length);
+      return staffList;
+    }
     
     // Get allowed roles for this case category using centralized configuration
     const allowedRoles = getRolesForCaseCategory(categoryToUse);
@@ -236,12 +245,20 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ visible, onClose, o
     const isLegalCase = categoryToUse === 'Familiar' || categoryToUse === 'Civil';
     
     const filtered = staffList.filter(staff => {
-      const isAdmin = isAdminRole(staff.role as StaffRoleKey) && isLegalCase; // Only show admins for legal cases
+      // Admins and office managers can be assigned to any appointment
+      const isManagement = staff.role === 'admin' || staff.role === 'office_manager';
+      const isAdminForLegal = isAdminRole(staff.role as StaffRoleKey) && isLegalCase;
       const hasAllowedRole = allowedRoles.includes(staff.role as StaffRoleKey);
       const hasMatchingDepartment = staff.department === categoryToUse;
       
-      return isAdmin || hasAllowedRole || hasMatchingDepartment;
+      return isManagement || isAdminForLegal || hasAllowedRole || hasMatchingDepartment;
     });
+    
+    console.log('✅ Filtered staff count:', filtered.length, 'Category:', categoryToUse);
+    if (filtered.length === 0) {
+      console.warn('⚠️ No staff found for category:', categoryToUse, 'Allowed roles:', allowedRoles);
+      console.log('Available staff:', staffList.map(s => ({ name: s.firstName + ' ' + s.lastName, role: s.role, dept: s.department })));
+    }
     
     return filtered;
   }, [selectedCaseCategory, staffList, watchedDepartment]);
