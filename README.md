@@ -12,12 +12,23 @@ This is the official monorepo for the CAF digital platform. The project is under
 
 ### 1. Start Backend Services
 
+#### Quick Setup (Recommended)
 ```bash
 # Clone the repository
 git clone <repository-url>
 cd "CAF SYSTEM"
 
-# Start backend API, database, and supporting services
+# Run the automated setup script
+./setup-local-dev.sh
+```
+
+#### Manual Setup
+```bash
+# Copy local development environment files
+cp api/env.development api/.env
+cp admin-portal/env.development admin-portal/.env.local
+
+# Start backend API, database, and LocalStack (AWS simulation)
 docker-compose up -d
 
 # Verify services are running
@@ -27,7 +38,7 @@ docker-compose ps
 **Expected Services:**
 - `caf_api` (Go API) - http://localhost:8080
 - `caf_postgres` (Database) - localhost:5432
-- `caf_localstack` (AWS services simulation)
+- `caf_localstack` (AWS S3 services simulation) - http://localhost:4566
 
 ### 2. Start Admin Portal (Frontend)
 
@@ -109,6 +120,20 @@ Create `.env.local` in the admin-portal directory:
 NEXT_PUBLIC_API_URL=http://localhost:8080/api/v1
 NEXT_PUBLIC_ENV=development
 ```
+
+## 🏠 Local Development vs AWS Production
+
+### Local Development (No AWS Required)
+- **S3 Storage**: Simulated using LocalStack (http://localhost:4566)
+- **Database**: Local PostgreSQL container
+- **File Uploads**: Stored locally in LocalStack S3 simulation
+- **Environment**: Pre-configured for development
+
+### Switching to AWS Production
+When you're ready to deploy to AWS, update these environment variables:
+- Remove `AWS_ENDPOINT_URL` (uses real AWS S3)
+- Set real AWS credentials and bucket name
+- Update CORS origins for production domains
 
 ## 🧪 Testing Guide
 
