@@ -8,6 +8,8 @@ services:
     container_name: caf_api
     ports:
       - "8080:8080"
+    env_file:
+      - ./api/env.development
     depends_on:
       db:
         condition: service_healthy

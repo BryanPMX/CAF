@@ -444,9 +444,19 @@ CREATE TRIGGER trigger_log_case_deletion
     FOR EACH ROW
     EXECUTE FUNCTION log_case_deletion();
 
--- Grant permissions to cafadmin user (RDS master user)
-GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO cafadmin;
-GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO cafadmin;
+-- Grant permissions to database user (works for both local and cloud)
+-- For local development, grant to 'user'; for cloud, this will be handled separately
+DO $$
+BEGIN
+    -- Check if 'user' exists and grant permissions (local development)
+    IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'user') THEN
+        EXECUTE 'GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO "user"';
+        EXECUTE 'GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO "user"';
+    END IF;
+
+    -- For cloud deployments, permissions will be handled at the infrastructure level
+    -- This migration focuses on schema creation, not user management
+END $$;
 
 -- Optimize table statistics for query planner
 ANALYZE users;
