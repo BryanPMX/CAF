@@ -57,16 +57,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   // Helper function to check if user should be redirected based on role
   const checkRoleBasedRedirect = useCallback((role: UserRole, currentPath: string): string | null => {
-    // Admin and office managers should be on admin routes
-    if ((role === 'admin' || role === 'office_manager') && !currentPath.startsWith('/admin')) {
-      return '/admin';
-    }
-    
-    // Regular staff should not be on admin routes
+    // Admin and office managers can access all routes - no forced redirect
+    // Regular staff should not be on admin routes (though admin section is now removed)
     if ((role === 'lawyer' || role === 'psychologist' || role === 'receptionist' || role === 'event_coordinator') && currentPath.startsWith('/admin')) {
       return '/';
     }
-    
+
     return null; // No redirect needed
   }, []);
 
@@ -79,7 +75,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (pathname.startsWith('/app/offices')) return 'offices';
     if (pathname.startsWith('/app/reports')) return 'reports';
     if (pathname.startsWith('/app/records')) return 'records';
-    if (pathname.startsWith('/admin')) return 'admin';
     return 'dashboard';
   }, [pathname]);
 
