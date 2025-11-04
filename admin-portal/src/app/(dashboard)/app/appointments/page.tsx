@@ -3,7 +3,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { Table, Tag, message, Spin, Button, Popconfirm, Card, Statistic, Row, Col, Select, Space } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, UserOutlined, ClockCircleOutlined } from '@ant-design/icons';
+import { PlusOutlined, EditOutlined, DeleteOutlined, CalendarOutlined, UserOutlined, ClockCircleOutlined } from '@ant-design/icons';
 import { AppointmentService } from '@/services/appointmentService';
 import { UserService } from '@/services/userService';
 import { Appointment as AppointmentType } from '@/app/lib/types';
