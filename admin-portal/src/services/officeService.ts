@@ -15,19 +15,10 @@ export class OfficeService {
    * @returns Promise<Office[]>
    */
   static async fetchOffices(userRole: UserRole): Promise<Office[]> {
-    // Determine endpoint based on role
-    let endpoint: string;
-    
-    if (userRole === 'admin') {
-      endpoint = '/admin/offices';
-    } else if (userRole === 'office_manager') {
-      endpoint = '/manager/offices';
-    } else {
-      endpoint = '/offices';
-    }
+    // Use protected endpoint for all authenticated users (admin routes removed)
+    const endpoint = '/offices';
 
     const response = await apiClient.get(endpoint);
-    // Admin optimized endpoints wrap data in a data property
     return response.data;
   }
 
@@ -38,19 +29,10 @@ export class OfficeService {
    * @returns Promise<Office>
    */
   static async fetchOfficeById(userRole: UserRole, officeId: string): Promise<Office> {
-    // Determine endpoint based on role
-    let endpoint: string;
-    
-    if (userRole === 'admin') {
-      endpoint = `/admin/offices/${officeId}`;
-    } else if (userRole === 'office_manager') {
-      endpoint = `/manager/offices/${officeId}`;
-    } else {
-      endpoint = `/offices/${officeId}`;
-    }
+    // Use protected endpoint for all authenticated users (admin routes removed)
+    const endpoint = `/offices/${officeId}`;
 
     const response = await apiClient.get(endpoint);
-    // Admin optimized endpoints wrap data in a data property
     return response.data;
   }
 
@@ -61,18 +43,13 @@ export class OfficeService {
    * @returns Promise<Office>
    */
   static async createOffice(userRole: UserRole, officeData: Partial<Office>): Promise<Office> {
-    // Determine endpoint based on role
-    let endpoint: string;
-    
-    if (userRole === 'admin') {
-      endpoint = '/admin/offices';
-    } else if (userRole === 'office_manager') {
-      endpoint = '/manager/offices';
-    } else {
+    // Only admins can create offices (admin routes removed, so this might not be available)
+    if (userRole !== 'admin') {
       throw new Error('Insufficient permissions to create offices');
     }
 
-    const response = await apiClient.post(endpoint, officeData);
+    // Use admin endpoint (may not be available after admin section removal)
+    const response = await apiClient.post('/admin/offices', officeData);
     return response.data;
   }
 
@@ -84,18 +61,12 @@ export class OfficeService {
    * @returns Promise<Office>
    */
   static async updateOffice(userRole: UserRole, officeId: string, officeData: Partial<Office>): Promise<Office> {
-    // Determine endpoint based on role
-    let endpoint: string;
-    
-    if (userRole === 'admin') {
-      endpoint = `/admin/offices/${officeId}`;
-    } else if (userRole === 'office_manager') {
-      endpoint = `/manager/offices/${officeId}`;
-    } else {
+    // Only admins can update offices (admin routes still available in backend)
+    if (userRole !== 'admin') {
       throw new Error('Insufficient permissions to update offices');
     }
 
-    const response = await apiClient.patch(endpoint, officeData);
+    const response = await apiClient.patch(`/admin/offices/${officeId}`, officeData);
     return response.data;
   }
 
@@ -106,18 +77,12 @@ export class OfficeService {
    * @returns Promise<void>
    */
   static async deleteOffice(userRole: UserRole, officeId: string): Promise<void> {
-    // Determine endpoint based on role
-    let endpoint: string;
-    
-    if (userRole === 'admin') {
-      endpoint = `/admin/offices/${officeId}`;
-    } else if (userRole === 'office_manager') {
-      endpoint = `/manager/offices/${officeId}`;
-    } else {
+    // Only admins can delete offices (admin routes still available in backend)
+    if (userRole !== 'admin') {
       throw new Error('Insufficient permissions to delete offices');
     }
 
-    await apiClient.delete(endpoint);
+    await apiClient.delete(`/admin/offices/${officeId}`);
   }
 }
 
