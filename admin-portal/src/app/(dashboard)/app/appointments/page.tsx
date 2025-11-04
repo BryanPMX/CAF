@@ -84,6 +84,16 @@ const AppointmentsPage = () => {
       );
 
       // Appointments loaded successfully
+      console.log('📥 Appointments loaded:', data.data.length);
+      if (data.data.length > 0) {
+        console.log('📋 Sample appointment data:', {
+          id: data.data[0].id,
+          title: data.data[0].title,
+          case: data.data[0].case,
+          department: data.data[0].department,
+          status: data.data[0].status
+        });
+      }
       setAppointments(data.data);
 
       // For auto-refresh, reapply current filters to maintain user's view
@@ -233,6 +243,7 @@ const AppointmentsPage = () => {
   };
 
   const handleFiltersChange = (filters: any) => {
+    console.log('🎛️ handleFiltersChange called with:', filters);
     setSearchFilters(filters);
     setSearchLoading(true);
 
