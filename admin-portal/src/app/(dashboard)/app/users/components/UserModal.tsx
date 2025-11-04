@@ -3,6 +3,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Modal, Form, Input, Select, Button, message } from 'antd';
+import Cookies from 'js-cookie';
 import { apiClient } from '@/app/lib/api';
 import { STAFF_ROLES, requiresOffice, getAllRoles, USER_ROLES, type StaffRoleKey } from '@/config/roles';
 
@@ -43,12 +44,13 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
       // Fetch offices for admins and office managers - run always when modal opens
       const fetchOffices = async () => {
         try {
-          const role = typeof window !== 'undefined' ? localStorage.getItem('userRole') : 'admin';
+          // Get role from cookie (not localStorage) as set by AuthContext
+          const role = typeof window !== 'undefined' ? Cookies.get('userRole') : 'admin';
           console.log('Fetching offices for role:', role);
           // Check if the current user can manage users (admin or office_manager)
           if (role === 'admin' || role === 'office_manager') {
-            // Use appropriate endpoint based on role - admins use admin endpoint, others use protected endpoint
-            const endpoint = role === 'admin' ? '/admin/offices' : '/offices';
+            // Use protected endpoint for both roles - admin routes removed
+            const endpoint = '/offices';
             console.log('Fetching offices from endpoint:', endpoint);
             const response = await apiClient.get(endpoint);
             console.log('Offices loaded:', response.data);
@@ -79,8 +81,8 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
         setSelectedRole('');
         // Prefill office for office managers creating staff
         if (typeof window !== 'undefined') {
-          const role = localStorage.getItem('userRole');
-          const officeId = localStorage.getItem('userOfficeId');
+          const role = Cookies.get('userRole');
+          const officeId = Cookies.get('userOfficeId');
           if (role === 'office_manager' && officeId) {
             form.setFieldsValue({ officeId: Number(officeId) });
           }
@@ -182,7 +184,7 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
             placeholder={selectedRole ? "Seleccione una oficina" : "Primero seleccione un rol"}
             allowClear
             disabled={
-              (typeof window !== 'undefined' && localStorage.getItem('userRole') === 'office_manager') ||
+              (typeof window !== 'undefined' && Cookies.get('userRole') === 'office_manager') ||
               !selectedRole
             }
             showSearch
