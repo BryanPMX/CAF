@@ -12,6 +12,7 @@ import { APPOINTMENT_STATUS_CONFIG, getValidAppointmentStatuses } from '@/config
 import AppointmentModal from '../../components/AppointmentModal';
 import EditAppointmentModal from '../../components/EditAppointmentModal';
 import SmartSearchBar from '../../components/SmartSearchBar';
+import { APPOINTMENT_STATUS_OPTIONS } from '@/config/statuses';
 import { useHydrationSafe } from '@/hooks/useHydrationSafe';
 import dayjs from 'dayjs';
 import isBetween from 'dayjs/plugin/isBetween';
@@ -232,22 +233,36 @@ const AppointmentsPage = () => {
   };
 
   const handleFiltersChange = (filters: any) => {
+    console.log('🔍 Filters changed:', filters);
     setSearchFilters(filters);
     setSearchLoading(true);
-    
+
+    // Sync local state with SmartSearchBar filters
+    if (filters.department !== undefined) {
+      setDeptFilter(filters.department);
+    }
+    if (filters.category !== undefined) {
+      setCaseTypeFilter(filters.category);
+    }
+
     let filtered = appointments;
-    
-    // Apply status filter
+
+    // Apply SmartSearchBar status filter (appointment statuses)
     if (filters.status) {
       filtered = filtered.filter(appointment => appointment.status === filters.status);
     }
-    
-    // Apply category filter (using case category instead)
+
+    // Apply SmartSearchBar category filter (case category)
     if (filters.category) {
       filtered = filtered.filter(appointment => appointment.case?.category === filters.category);
     }
-    
-    // Apply date range filter
+
+    // Apply SmartSearchBar department filter (appointment department)
+    if (filters.department) {
+      filtered = filtered.filter(appointment => appointment.department === filters.department);
+    }
+
+    // Apply SmartSearchBar date range filter
     if (filters.dateRange && filters.dateRange.length === 2) {
       const [startDate, endDate] = filters.dateRange;
       filtered = filtered.filter(appointment => {
@@ -255,7 +270,18 @@ const AppointmentsPage = () => {
         return appointmentDate.isBetween(startDate, endDate, 'day', '[]');
       });
     }
-    
+
+    // Apply existing department filter (from Select component)
+    if (deptFilter) {
+      filtered = filtered.filter(appointment => appointment.department === deptFilter);
+    }
+
+    // Apply existing case type filter (from Select component)
+    if (caseTypeFilter) {
+      filtered = filtered.filter(appointment => appointment.case?.category === caseTypeFilter);
+    }
+
+    console.log(`🔍 Applied filters: ${filtered.length} from ${appointments.length} appointments`);
     setFilteredAppointments(filtered);
     setSearchLoading(false);
   };
@@ -389,7 +415,13 @@ const AppointmentsPage = () => {
             placeholder="Filtrar por Departamento"
             style={{ minWidth: 220 }}
             value={deptFilter}
-            onChange={(v) => { setDeptFilter(v); handleFiltersChange({}); }}
+            onChange={(v) => {
+              setDeptFilter(v);
+              // Update SmartSearchBar filters to sync
+              const newFilters = { ...searchFilters, department: v };
+              setSearchFilters(newFilters);
+              handleFiltersChange(newFilters);
+            }}
             options={DEPARTMENTS.map(d => ({ label: d, value: d }))}
           />
           <Select
@@ -398,7 +430,13 @@ const AppointmentsPage = () => {
             placeholder="Filtrar por Tipo de Caso"
             style={{ minWidth: 260 }}
             value={caseTypeFilter}
-            onChange={(v) => { setCaseTypeFilter(v); handleFiltersChange({}); }}
+            onChange={(v) => {
+              setCaseTypeFilter(v);
+              // Update SmartSearchBar filters to sync
+              const newFilters = { ...searchFilters, category: v };
+              setSearchFilters(newFilters);
+              handleFiltersChange(newFilters);
+            }}
             options={CASE_TYPES.map(ct => ({ label: ct, value: ct }))}
           />
         </Space>
@@ -464,6 +502,9 @@ const AppointmentsPage = () => {
         onFiltersChange={handleFiltersChange}
         placeholder="Buscar citas por título, caso o personal..."
         showFilters={true}
+        appointmentStatuses={APPOINTMENT_STATUS_OPTIONS}
+        appointmentDepartments={DEPARTMENTS}
+        caseCategories={CASE_TYPES}
       />
 
       <Spin spinning={loading}>
