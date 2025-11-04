@@ -52,7 +52,6 @@ const AppointmentsPage = () => {
   const [deptFilter, setDeptFilter] = useState<string | undefined>(undefined);
   const [caseTypeFilter, setCaseTypeFilter] = useState<string | undefined>(undefined);
   const [searchFilters, setSearchFilters] = useState<any>({});
-  const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true);
   const [lastRefreshTime, setLastRefreshTime] = useState<Date | null>(null);
 
   // --- Data Fetching & Role Management ---
@@ -131,15 +130,15 @@ const AppointmentsPage = () => {
 
   // Auto-refresh appointments every 30 seconds
   useEffect(() => {
-    if (!autoRefreshEnabled || !user) return;
+    if (!user) return;
 
     const interval = setInterval(() => {
       console.log('Auto-refreshing appointments...');
-      fetchAppointments(false); // Don't force refresh cache for auto-refresh
+      fetchAppointments(false); // Silent refresh
     }, 30000); // 30 seconds
 
     return () => clearInterval(interval);
-  }, [autoRefreshEnabled, user]);
+  }, [user]);
 
   // Department and Case Type options
   const DEPARTMENTS = ['Familiar', 'Civil', 'Psicologia', 'Recursos'];
@@ -328,17 +327,6 @@ const AppointmentsPage = () => {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Gestión de Citas</h1>
         <div className="flex gap-2">
-          {/* Auto-refresh toggle */}
-          <Button
-            icon={autoRefreshEnabled ? <CalendarOutlined /> : <CalendarOutlined style={{ color: '#999' }} />}
-            onClick={() => setAutoRefreshEnabled(!autoRefreshEnabled)}
-            type={autoRefreshEnabled ? 'default' : 'text'}
-            size="small"
-            title={autoRefreshEnabled ? 'Desactivar actualización automática' : 'Activar actualización automática'}
-          >
-            {autoRefreshEnabled ? 'Auto ✓' : 'Auto ✗'}
-          </Button>
-
           {/* IMPROVEMENT: Button is only shown to authorized roles and is disabled during loading */}
           {canManageAppointments && (
             <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate} disabled={loading}>
@@ -430,11 +418,7 @@ const AppointmentsPage = () => {
           <div className="flex items-center text-blue-800">
             <CalendarOutlined className="mr-2" />
             <span>
-              {autoRefreshEnabled ? (
-                <><strong>Sincronización automática:</strong> Los datos se actualizan cada 30 segundos</>
-              ) : (
-                <><strong>Sincronización pausada:</strong> Los cambios de otros usuarios no se mostrarán automáticamente</>
-              )}
+              <strong>Sincronización automática:</strong> Los datos se actualizan cada 30 segundos
             </span>
           </div>
           {lastRefreshTime && (
