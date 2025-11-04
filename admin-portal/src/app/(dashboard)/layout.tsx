@@ -162,8 +162,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <Header style={{ background: '#fff', padding: '0 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div className="flex items-center">
               <h1 className="text-xl font-semibold text-gray-800">
-                {user?.firstName && roleDisplay
-                  ? `Bienvenido, ${user.firstName}` 
+                {user?.firstName && user?.lastName
+                  ? `Bienvenido, ${user.firstName} ${user.lastName}`
+                  : user?.firstName
+                  ? `Bienvenido, ${user.firstName}`
                   : '¡Bienvenido al Sistema CAF!'}
               </h1>
               {roleDisplay && (
