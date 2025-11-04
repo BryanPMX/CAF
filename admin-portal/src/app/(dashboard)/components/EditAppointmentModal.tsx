@@ -61,20 +61,35 @@ const EditAppointmentModal: React.FC<EditAppointmentModalProps> = ({
 
   const fetchSupportingData = async () => {
     try {
-      const role = typeof window !== 'undefined' ? localStorage.getItem('userRole') : 'admin';
-      const base = role === 'office_manager' ? '/manager' : '/admin';
-      // Fetch staff members
-      const staffRes = await apiClient.get(`${base}/users`);
-      const staffPayload = Array.isArray(staffRes.data) ? staffRes.data : (staffRes.data?.users || []);
-      setStaffList(staffPayload.filter((user: User) => user.role !== 'client'));
+      const role = typeof window !== 'undefined' ? Cookies.get('userRole') : 'admin';
 
-      // Fetch clients
-      const clientsRes = await apiClient.get(`${base}/users?role=client`);
-      const clientsPayload = Array.isArray(clientsRes.data) ? clientsRes.data : (clientsRes.data?.users || []);
-      setClients(clientsPayload);
+      // For editing appointments, we only need staff list for reassignment
+      // Try to get staff list, but don't fail if we can't access it
+      try {
+        let staffEndpoint: string;
+        if (role === 'admin') {
+          staffEndpoint = '/admin/users';
+        } else if (role === 'office_manager') {
+          staffEndpoint = '/manager/users';
+        } else {
+          staffEndpoint = '/users'; // fallback for other roles
+        }
+
+        const staffRes = await apiClient.get(staffEndpoint);
+        const staffPayload = Array.isArray(staffRes.data) ? staffRes.data : (staffRes.data?.users || []);
+        setStaffList(staffPayload.filter((user: User) => user.role !== 'client'));
+      } catch (staffError) {
+        console.warn('Could not load staff list:', staffError);
+        // Set empty staff list - user can still edit title/notes but not reassign
+        setStaffList([]);
+      }
+
+      // We don't need clients list for editing existing appointments
+      setClients([]);
+
     } catch (error: any) {
-      const errorMessage = error.response?.data?.error || error.message || 'Error al cargar datos de apoyo';
-      message.error(`Error al cargar datos de apoyo: ${errorMessage}`);
+      console.error('EditAppointmentModal fetchSupportingData error:', error);
+      // Don't show error message for supporting data - appointment editing should still work
     }
   };
 
@@ -103,7 +118,14 @@ const EditAppointmentModal: React.FC<EditAppointmentModalProps> = ({
 
       // Use appropriate endpoint based on user role
       const role = typeof window !== 'undefined' ? Cookies.get('userRole') : 'admin';
-      const endpoint = role === 'admin' ? `/admin/appointments/${appointment.id}` : `/appointments/${appointment.id}`;
+      let endpoint: string;
+      if (role === 'admin') {
+        endpoint = `/admin/appointments/${appointment.id}`;
+      } else if (role === 'office_manager') {
+        endpoint = `/manager/appointments/${appointment.id}`;
+      } else {
+        endpoint = `/appointments/${appointment.id}`;
+      }
       await apiClient.patch(endpoint, updateData);
       
       message.success('Cita actualizada exitosamente');
@@ -144,7 +166,14 @@ const EditAppointmentModal: React.FC<EditAppointmentModalProps> = ({
     try {
       // Use appropriate endpoint based on user role
       const role = typeof window !== 'undefined' ? Cookies.get('userRole') : 'admin';
-      const endpoint = role === 'admin' ? `/admin/appointments/${appointment.id}` : `/appointments/${appointment.id}`;
+      let endpoint: string;
+      if (role === 'admin') {
+        endpoint = `/admin/appointments/${appointment.id}`;
+      } else if (role === 'office_manager') {
+        endpoint = `/manager/appointments/${appointment.id}`;
+      } else {
+        endpoint = `/appointments/${appointment.id}`;
+      }
       await apiClient.patch(endpoint, {
         status: 'completed'
       });
