@@ -50,8 +50,6 @@ const AppointmentsPage = () => {
   const [userRole, setUserRole] = useState<string | null>(null);
   const [staffList, setStaffList] = useState<Array<{ id: number; firstName: string; lastName: string; role: string }>>([]);
   const [clientList, setClientList] = useState<Array<{ id: number; firstName: string; lastName: string; email: string }>>([]);
-  const [deptFilter, setDeptFilter] = useState<string | undefined>(undefined);
-  const [caseTypeFilter, setCaseTypeFilter] = useState<string | undefined>(undefined);
   const [searchFilters, setSearchFilters] = useState<any>({});
 
   // --- Data Fetching & Role Management ---
@@ -236,14 +234,6 @@ const AppointmentsPage = () => {
     setSearchFilters(filters);
     setSearchLoading(true);
 
-    // Sync local state with SmartSearchBar filters
-    if (filters.department !== undefined) {
-      setDeptFilter(filters.department);
-    }
-    if (filters.category !== undefined) {
-      setCaseTypeFilter(filters.category);
-    }
-
     let filtered = appointments;
 
     // Apply SmartSearchBar status filter (appointment statuses)
@@ -268,16 +258,6 @@ const AppointmentsPage = () => {
         const appointmentDate = dayjs(appointment.startTime);
         return appointmentDate.isBetween(startDate, endDate, 'day', '[]');
       });
-    }
-
-    // Apply existing department filter (from Select component)
-    if (deptFilter) {
-      filtered = filtered.filter(appointment => appointment.department === deptFilter);
-    }
-
-    // Apply existing case type filter (from Select component)
-    if (caseTypeFilter) {
-      filtered = filtered.filter(appointment => appointment.case?.category === caseTypeFilter);
     }
 
     setFilteredAppointments(filtered);
@@ -405,40 +385,6 @@ const AppointmentsPage = () => {
         </div>
       </div>
 
-      {/* Department / Case Type Filters */}
-      <div className="mb-4">
-        <Space size="middle" wrap>
-          <Select
-            allowClear
-            placeholder="Filtrar por Departamento"
-            style={{ minWidth: 220 }}
-            value={deptFilter}
-            onChange={(v) => {
-              setDeptFilter(v);
-              // Update SmartSearchBar filters to sync
-              const newFilters = { ...searchFilters, department: v };
-              setSearchFilters(newFilters);
-              handleFiltersChange(newFilters);
-            }}
-            options={DEPARTMENTS.map(d => ({ label: d, value: d }))}
-          />
-          <Select
-            allowClear
-            showSearch
-            placeholder="Filtrar por Tipo de Caso"
-            style={{ minWidth: 260 }}
-            value={caseTypeFilter}
-            onChange={(v) => {
-              setCaseTypeFilter(v);
-              // Update SmartSearchBar filters to sync
-              const newFilters = { ...searchFilters, category: v };
-              setSearchFilters(newFilters);
-              handleFiltersChange(newFilters);
-            }}
-            options={CASE_TYPES.map(ct => ({ label: ct, value: ct }))}
-          />
-        </Space>
-      </div>
 
       {/* Statistics Cards */}
       <Row gutter={16} className="mb-6">
