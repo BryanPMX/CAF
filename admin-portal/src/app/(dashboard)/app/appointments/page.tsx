@@ -339,25 +339,6 @@ const AppointmentsPage = () => {
             {autoRefreshEnabled ? 'Auto ✓' : 'Auto ✗'}
           </Button>
 
-          {/* Manual refresh button */}
-          <Button
-            icon={<CalendarOutlined />}
-            onClick={() => {
-              if (user) {
-                console.log('Manual refresh triggered for user:', user.role);
-                fetchAppointments(true);
-              } else {
-                console.warn('Cannot refresh: user not loaded yet');
-                message.warning('Usuario no cargado aún. Intente nuevamente.');
-              }
-            }}
-            loading={loading}
-            disabled={!user}
-            title="Actualizar lista de citas manualmente"
-          >
-            Actualizar
-          </Button>
-
           {/* IMPROVEMENT: Button is only shown to authorized roles and is disabled during loading */}
           {canManageAppointments && (
             <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate} disabled={loading}>
@@ -443,16 +424,16 @@ const AppointmentsPage = () => {
         </Col>
       </Row>
 
-      {/* Status and refresh info */}
+      {/* Auto-refresh status info */}
       <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
         <div className="flex items-center justify-between text-sm">
           <div className="flex items-center text-blue-800">
             <CalendarOutlined className="mr-2" />
             <span>
               {autoRefreshEnabled ? (
-                <><strong>Actualización automática activada:</strong> Los datos se refrescan cada 30 segundos</>
+                <><strong>Sincronización automática:</strong> Los datos se actualizan cada 30 segundos</>
               ) : (
-                <><strong>Actualización manual:</strong> Use el botón "Actualizar" para ver cambios de otros usuarios</>
+                <><strong>Sincronización pausada:</strong> Los cambios de otros usuarios no se mostrarán automáticamente</>
               )}
             </span>
           </div>
