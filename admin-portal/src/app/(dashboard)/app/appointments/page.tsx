@@ -55,7 +55,6 @@ const AppointmentsPage = () => {
 
   // --- Data Fetching & Role Management ---
   useEffect(() => {
-    console.log('User effect triggered, user:', user);
     // User role is guaranteed to be available by the parent layout
     if (user) {
       setUserRole(user.role);
@@ -69,8 +68,6 @@ const AppointmentsPage = () => {
         console.warn('Cannot fetch appointments: user not loaded');
         return;
       }
-
-      console.log('Fetching appointments for user role:', user.role, 'forceRefresh:', forceRefresh, 'showLoading:', showLoading);
 
       if (showLoading) {
         setLoading(true);
@@ -87,11 +84,9 @@ const AppointmentsPage = () => {
         }
       );
 
-      console.log('Appointments fetched successfully:', data.data.length, 'items');
       // Appointments loaded successfully
       setAppointments(data.data);
       setFilteredAppointments(data.data);
-      console.log('Appointments state updated with', data.data.length, 'items');
     } catch (error: any) {
       console.error('Failed to fetch appointments:', error);
       // Only show error messages for manual operations, not auto-refresh
@@ -138,24 +133,15 @@ const AppointmentsPage = () => {
 
   // Auto-refresh appointments every 30 seconds (completely silent, with cache busting)
   useEffect(() => {
-    if (!user) {
-      console.log('Auto-refresh: No user, skipping setup');
-      return;
-    }
-
-    console.log('Auto-refresh: Setting up interval for user:', user.role);
+    if (!user) return;
 
     const interval = setInterval(() => {
-      console.log('Auto-refresh: Triggering refresh for', user.role, 'with cache busting');
       fetchAppointments(true, false).catch(error => {
         console.error('Auto-refresh: Failed to fetch appointments:', error);
       }); // Silent refresh with cache busting, no loading, no errors
     }, 30000); // 30 seconds
 
-    return () => {
-      console.log('Auto-refresh: Clearing interval');
-      clearInterval(interval);
-    };
+    return () => clearInterval(interval);
   }, [user]);
 
   // Department and Case Type options
