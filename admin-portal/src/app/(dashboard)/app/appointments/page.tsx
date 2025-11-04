@@ -84,16 +84,6 @@ const AppointmentsPage = () => {
       );
 
       // Appointments loaded successfully
-      console.log('📥 Appointments loaded:', data.data.length);
-      if (data.data.length > 0) {
-        console.log('📋 Sample appointment data:', JSON.stringify({
-          id: data.data[0].id,
-          title: data.data[0].title,
-          case: data.data[0].case,
-          department: data.data[0].department,
-          status: data.data[0].status
-        }, null, 2));
-      }
       setAppointments(data.data);
 
       // For auto-refresh, reapply current filters to maintain user's view
@@ -120,11 +110,9 @@ const AppointmentsPage = () => {
 
         // Reapply category filter if active (from SmartSearchBar)
         if (searchFilters.category) {
-          console.log('🔄 Auto-refresh: Filtering by category:', searchFilters.category);
           filtered = filtered.filter((appointment: Appointment) =>
             appointment.case?.category === searchFilters.category
           );
-          console.log('🔄 Auto-refresh: After category filter:', filtered.length, 'appointments');
         }
 
         // Reapply status filter if active
@@ -243,7 +231,6 @@ const AppointmentsPage = () => {
   };
 
   const handleFiltersChange = (filters: any) => {
-    console.log('🎛️ handleFiltersChange called with:', filters);
     setSearchFilters(filters);
     setSearchLoading(true);
 
@@ -256,16 +243,7 @@ const AppointmentsPage = () => {
 
     // Apply SmartSearchBar category filter (case category)
     if (filters.category) {
-      console.log('🔍 Filtering by category:', filters.category);
-      console.log('📊 Appointments before category filter:', filtered.length);
-      filtered = filtered.filter(appointment => {
-        const matches = appointment.case?.category === filters.category;
-        if (!matches && appointment.case?.category) {
-          console.log('❌ Case category mismatch:', appointment.case.category, '!==', filters.category);
-        }
-        return matches;
-      });
-      console.log('📊 Appointments after category filter:', filtered.length);
+      filtered = filtered.filter(appointment => appointment.case?.category === filters.category);
     }
 
     // Apply SmartSearchBar department filter (appointment department)
