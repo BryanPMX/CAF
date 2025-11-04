@@ -136,7 +136,7 @@ const AppointmentsPage = () => {
     fetchSupportingData();
   }, [user]);
 
-  // Auto-refresh appointments every 30 seconds (completely silent)
+  // Auto-refresh appointments every 30 seconds (completely silent, with cache busting)
   useEffect(() => {
     if (!user) {
       console.log('Auto-refresh: No user, skipping setup');
@@ -146,10 +146,10 @@ const AppointmentsPage = () => {
     console.log('Auto-refresh: Setting up interval for user:', user.role);
 
     const interval = setInterval(() => {
-      console.log('Auto-refresh: Triggering refresh for', user.role);
-      fetchAppointments(false, false).catch(error => {
+      console.log('Auto-refresh: Triggering refresh for', user.role, 'with cache busting');
+      fetchAppointments(true, false).catch(error => {
         console.error('Auto-refresh: Failed to fetch appointments:', error);
-      }); // Silent refresh, no loading, no errors
+      }); // Silent refresh with cache busting, no loading, no errors
     }, 30000); // 30 seconds
 
     return () => {
