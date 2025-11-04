@@ -86,13 +86,13 @@ const AppointmentsPage = () => {
       // Appointments loaded successfully
       console.log('📥 Appointments loaded:', data.data.length);
       if (data.data.length > 0) {
-        console.log('📋 Sample appointment data:', {
+        console.log('📋 Sample appointment data:', JSON.stringify({
           id: data.data[0].id,
           title: data.data[0].title,
           case: data.data[0].case,
           department: data.data[0].department,
           status: data.data[0].status
-        });
+        }, null, 2));
       }
       setAppointments(data.data);
 
