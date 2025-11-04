@@ -127,19 +127,14 @@ NEXT_PUBLIC_API_URL=http://localhost:8080/api/v1
 NEXT_PUBLIC_ENV=development
 ```
 
-## 🏠 Local Development vs AWS Production
+## 🏠 Local Development Only
 
-### Local Development (No AWS Required)
+This system is designed exclusively for local development:
 - **S3 Storage**: Simulated using LocalStack (http://localhost:4566)
 - **Database**: Local PostgreSQL container
 - **File Uploads**: Stored locally in LocalStack S3 simulation
 - **Environment**: Pre-configured for development
-
-### Switching to AWS Production
-When you're ready to deploy to AWS, update these environment variables:
-- Remove `AWS_ENDPOINT_URL` (uses real AWS S3)
-- Set real AWS credentials and bucket name
-- Update CORS origins for production domains
+- **Cost**: Zero ongoing costs
 
 ## 🧪 Testing Guide
 
