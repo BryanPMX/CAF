@@ -233,7 +233,6 @@ const AppointmentsPage = () => {
   };
 
   const handleFiltersChange = (filters: any) => {
-    console.log('🔍 Filters changed:', filters);
     setSearchFilters(filters);
     setSearchLoading(true);
 
@@ -281,7 +280,6 @@ const AppointmentsPage = () => {
       filtered = filtered.filter(appointment => appointment.case?.category === caseTypeFilter);
     }
 
-    console.log(`🔍 Applied filters: ${filtered.length} from ${appointments.length} appointments`);
     setFilteredAppointments(filtered);
     setSearchLoading(false);
   };
