@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, Form, Input, Select, DatePicker, TimePicker, Button, message, Space, Alert, Tag, Divider } from 'antd';
 import { EditOutlined, SaveOutlined, CloseOutlined, CheckCircleOutlined, CalendarOutlined, UserOutlined } from '@ant-design/icons';
+import Cookies from 'js-cookie';
 import { apiClient } from '@/app/lib/api';
 import { Appointment, User } from '@/app/lib/types';
 import dayjs from 'dayjs';
@@ -100,7 +101,10 @@ const EditAppointmentModal: React.FC<EditAppointmentModalProps> = ({
         updateData.status = values.status;
       }
 
-      await apiClient.patch(`/admin/appointments/${appointment.id}`, updateData);
+      // Use appropriate endpoint based on user role
+      const role = typeof window !== 'undefined' ? Cookies.get('userRole') : 'admin';
+      const endpoint = role === 'admin' ? `/admin/appointments/${appointment.id}` : `/appointments/${appointment.id}`;
+      await apiClient.patch(endpoint, updateData);
       
       message.success('Cita actualizada exitosamente');
       onSuccess();
@@ -138,7 +142,10 @@ const EditAppointmentModal: React.FC<EditAppointmentModalProps> = ({
     
     setCompletingAppointment(true);
     try {
-      await apiClient.patch(`/admin/appointments/${appointment.id}`, {
+      // Use appropriate endpoint based on user role
+      const role = typeof window !== 'undefined' ? Cookies.get('userRole') : 'admin';
+      const endpoint = role === 'admin' ? `/admin/appointments/${appointment.id}` : `/appointments/${appointment.id}`;
+      await apiClient.patch(endpoint, {
         status: 'completed'
       });
       
