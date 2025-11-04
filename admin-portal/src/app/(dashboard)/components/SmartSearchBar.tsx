@@ -13,34 +13,40 @@ interface SmartSearchBarProps {
   onSearch: (query: string) => void;
   placeholder?: string;
   showFilters?: boolean;
+  appointmentStatuses?: Array<{ value: string; label: string }>;
+  appointmentDepartments?: string[];
+  caseCategories?: string[];
 }
 
 const SmartSearchBar: React.FC<SmartSearchBarProps> = ({
   onFiltersChange,
   onSearch,
   placeholder = "Buscar casos, citas, usuarios...",
-  showFilters = true
+  showFilters = true,
+  appointmentStatuses,
+  appointmentDepartments,
+  caseCategories
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState<SearchFilters>({});
   const [isFiltersVisible, setIsFiltersVisible] = useState(false);
 
-  // Filter options
-  const statusOptions: SelectOption[] = [
+  // Filter options - use provided props or defaults
+  const statusOptions: SelectOption[] = appointmentStatuses ? appointmentStatuses.map(s => ({ value: s.value, label: s.label })) : [
     { value: 'open', label: 'Abierto' },
     { value: 'closed', label: 'Cerrado' },
     { value: 'pending', label: 'Pendiente' },
     { value: 'in_progress', label: 'En Progreso' }
   ];
 
-  const categoryOptions: SelectOption[] = [
+  const categoryOptions: SelectOption[] = caseCategories ? caseCategories.map(c => ({ value: c, label: c })) : [
     { value: 'legal', label: 'Legal' },
     { value: 'psychological', label: 'Psicológico' },
     { value: 'social', label: 'Social' },
     { value: 'medical', label: 'Médico' }
   ];
 
-  const departmentOptions: SelectOption[] = [
+  const departmentOptions: SelectOption[] = appointmentDepartments ? appointmentDepartments.map(d => ({ value: d, label: d })) : [
     { value: 'legal', label: 'Departamento Legal' },
     { value: 'psychology', label: 'Departamento de Psicología' },
     { value: 'social_work', label: 'Trabajo Social' },
