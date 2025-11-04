@@ -64,7 +64,7 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ visible, onClose, o
           ]);
           const staffPayload = Array.isArray(staffRes.data)
             ? staffRes.data
-            : (staffRes.data?.users || staffRes.data?.data || []);
+            : (staffRes.data?.data || staffRes.data?.users || []);
           const filteredStaff = staffPayload.filter((user: any) => user.role !== 'client');
           console.log('📋 Loaded staff members:', filteredStaff.length, filteredStaff);
           setStaffList(filteredStaff);
