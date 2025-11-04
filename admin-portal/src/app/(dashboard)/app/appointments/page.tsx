@@ -85,8 +85,51 @@ const AppointmentsPage = () => {
       );
 
       // Appointments loaded successfully
+      console.log(`📅 Appointments loaded: ${data.data.length} total`, showLoading ? '(with loading)' : '(silent refresh)');
       setAppointments(data.data);
-      setFilteredAppointments(data.data);
+
+      // For auto-refresh, reapply current filters to maintain user's view
+      if (!showLoading) {
+        let filtered = data.data;
+
+        // Reapply search filter if active
+        if (searchFilters.search) {
+          const searchLower = searchFilters.search.toLowerCase();
+          filtered = filtered.filter((appointment: Appointment) => {
+            const titleMatch = appointment.title?.toLowerCase().includes(searchLower);
+            const caseMatch = appointment.case?.title?.toLowerCase().includes(searchLower);
+            const staffMatch = `${appointment.staff?.firstName} ${appointment.staff?.lastName}`.toLowerCase().includes(searchLower);
+            return titleMatch || caseMatch || staffMatch;
+          });
+        }
+
+        // Reapply department filter if active
+        if (deptFilter) {
+          filtered = filtered.filter((appointment: Appointment) =>
+            appointment.department === deptFilter
+          );
+        }
+
+        // Reapply case type filter if active
+        if (caseTypeFilter) {
+          filtered = filtered.filter((appointment: Appointment) =>
+            appointment.case?.category === caseTypeFilter
+          );
+        }
+
+        // Reapply status filter if active
+        if (searchFilters.status) {
+          filtered = filtered.filter((appointment: Appointment) =>
+            appointment.status === searchFilters.status
+          );
+        }
+
+        console.log(`🔍 Auto-refresh applied filters: ${filtered.length} filtered from ${data.data.length} total`);
+        setFilteredAppointments(filtered);
+      } else {
+        // For manual refresh, show all appointments (filters will be reapplied by search/filter handlers)
+        setFilteredAppointments(data.data);
+      }
     } catch (error: any) {
       console.error('Failed to fetch appointments:', error);
       // Only show error messages for manual operations, not auto-refresh
@@ -136,6 +179,7 @@ const AppointmentsPage = () => {
     if (!user) return;
 
     const interval = setInterval(() => {
+      console.log('🔄 Auto-refresh: Triggering appointment refresh...');
       fetchAppointments(true, false).catch(error => {
         console.error('Auto-refresh: Failed to fetch appointments:', error);
       }); // Silent refresh with cache busting, no loading, no errors
