@@ -101,17 +101,17 @@ const AppointmentsPage = () => {
           });
         }
 
-        // Reapply department filter if active
-        if (deptFilter) {
+        // Reapply department filter if active (from SmartSearchBar)
+        if (searchFilters.department) {
           filtered = filtered.filter((appointment: Appointment) =>
-            appointment.department === deptFilter
+            appointment.department === searchFilters.department
           );
         }
 
-        // Reapply case type filter if active
-        if (caseTypeFilter) {
+        // Reapply category filter if active (from SmartSearchBar)
+        if (searchFilters.category) {
           filtered = filtered.filter((appointment: Appointment) =>
-            appointment.case?.category === caseTypeFilter
+            appointment.case?.category === searchFilters.category
           );
         }
 
