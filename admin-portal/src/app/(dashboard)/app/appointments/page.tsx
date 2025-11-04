@@ -85,7 +85,6 @@ const AppointmentsPage = () => {
       );
 
       // Appointments loaded successfully
-      console.log(`📅 Appointments loaded: ${data.data.length} total`, showLoading ? '(with loading)' : '(silent refresh)');
       setAppointments(data.data);
 
       // For auto-refresh, reapply current filters to maintain user's view
@@ -124,7 +123,6 @@ const AppointmentsPage = () => {
           );
         }
 
-        console.log(`🔍 Auto-refresh applied filters: ${filtered.length} filtered from ${data.data.length} total`);
         setFilteredAppointments(filtered);
       } else {
         // For manual refresh, show all appointments (filters will be reapplied by search/filter handlers)
@@ -179,7 +177,6 @@ const AppointmentsPage = () => {
     if (!user) return;
 
     const interval = setInterval(() => {
-      console.log('🔄 Auto-refresh: Triggering appointment refresh...');
       fetchAppointments(true, false).catch(error => {
         console.error('Auto-refresh: Failed to fetch appointments:', error);
       }); // Silent refresh with cache busting, no loading, no errors
