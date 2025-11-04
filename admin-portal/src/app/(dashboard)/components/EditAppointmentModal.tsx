@@ -128,7 +128,7 @@ const EditAppointmentModal: React.FC<EditAppointmentModalProps> = ({
       }
       await apiClient.patch(endpoint, updateData);
       
-      message.success('Cita actualizada exitosamente');
+      message.success('Cita actualizada exitosamente. Si no ve los cambios inmediatamente, use el botón "Actualizar" en la lista de citas.');
       onSuccess();
       onCancel();
     } catch (error: any) {
@@ -178,7 +178,7 @@ const EditAppointmentModal: React.FC<EditAppointmentModalProps> = ({
         status: 'completed'
       });
       
-      message.success('Cita marcada como completada exitosamente');
+      message.success('Cita marcada como completada exitosamente. Si no ve los cambios inmediatamente, use el botón "Actualizar" en la lista de citas.');
       onSuccess();
       onCancel();
     } catch (error: any) {

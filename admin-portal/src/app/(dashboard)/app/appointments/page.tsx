@@ -307,12 +307,23 @@ const AppointmentsPage = () => {
     <div>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Gestión de Citas</h1>
-        {/* IMPROVEMENT: Button is only shown to authorized roles and is disabled during loading */}
-        {canManageAppointments && (
-          <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate} disabled={loading}>
-            Programar Cita
+        <div className="flex gap-2">
+          {/* Manual refresh button */}
+          <Button
+            icon={<CalendarOutlined />}
+            onClick={() => fetchAppointments(true)}
+            loading={loading}
+            title="Actualizar lista de citas"
+          >
+            Actualizar
           </Button>
-        )}
+          {/* IMPROVEMENT: Button is only shown to authorized roles and is disabled during loading */}
+          {canManageAppointments && (
+            <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate} disabled={loading}>
+              Programar Cita
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Department / Case Type Filters */}
@@ -390,6 +401,17 @@ const AppointmentsPage = () => {
           </Card>
         </Col>
       </Row>
+
+      {/* Info message about data synchronization */}
+      <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+        <div className="flex items-center text-sm text-blue-800">
+          <CalendarOutlined className="mr-2" />
+          <span>
+            <strong>Nota:</strong> Los cambios realizados por otros usuarios pueden no aparecer inmediatamente.
+            Use el botón "Actualizar" para ver los cambios más recientes.
+          </span>
+        </div>
+      </div>
 
       {/* Smart Search Bar */}
       <SmartSearchBar
