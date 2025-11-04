@@ -96,23 +96,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   // Get role display configuration using centralized role definitions
   const roleDisplay = useMemo(() => {
-    console.log('RoleDisplay computation - user:', user, 'role:', user?.role);
-
     if (!user?.role) {
-      console.log('No user role found');
       return null;
     }
 
     // Direct lookup in ROLE_DISPLAY_CONFIG
     const displayConfig = ROLE_DISPLAY_CONFIG[user.role as keyof typeof ROLE_DISPLAY_CONFIG];
-    console.log('Display config for role', user.role, ':', displayConfig);
-
     if (displayConfig) {
       return displayConfig;
     }
 
     // Fallback for unknown roles
-    console.log('Using fallback for unknown role:', user.role);
     return ROLE_DISPLAY_CONFIG.client;
   }, [user?.role]);
 
@@ -173,13 +167,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   ? `Bienvenido, ${user.firstName}`
                   : '¡Bienvenido al Sistema CAF!'}
               </h1>
-              {roleDisplay ? (
+              {roleDisplay && (
                 <span className={`ml-3 px-3 py-1 rounded-full text-xs font-medium ${roleDisplay.color}`}>
                   {roleDisplay.label}
-                </span>
-              ) : (
-                <span className="ml-3 px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                  Debug: No role display
                 </span>
               )}
             </div>
