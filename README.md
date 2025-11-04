@@ -1,8 +1,8 @@
 # Centro de Apoyo para la Familia A.C.
 
-This is the official monorepo for the CAF digital platform. The project is under active development.
+This is the official monorepo for the CAF digital platform. **100% local development** - no cloud costs or dependencies.
 
-## 🚀 Quick Start - Testing the System
+## 🚀 Quick Start - Local Development
 
 ### Prerequisites
 
@@ -10,35 +10,41 @@ This is the official monorepo for the CAF digital platform. The project is under
 - **Node.js 18+** (for admin portal)
 - **Flutter SDK** (optional, for mobile app)
 
-### 1. Start Backend Services
+### Start Everything Locally
 
-#### Quick Setup (Recommended)
+#### One-Command Setup (Recommended)
 ```bash
 # Clone the repository
 git clone <repository-url>
-cd "CAF SYSTEM"
+cd CAF
 
-# Run the automated setup script
-./setup-local-dev.sh
+# Start all services automatically
+./scripts/start-local-dev.sh
 ```
 
 #### Manual Setup
 ```bash
-# Copy local development environment files
+# Copy environment files
 cp api/env.development api/.env
 cp admin-portal/env.development admin-portal/.env.local
 
-# Start backend API, database, and LocalStack (AWS simulation)
+# Start backend services
 docker-compose up -d
 
 # Verify services are running
 docker-compose ps
 ```
 
-**Expected Services:**
-- `caf_api` (Go API) - http://localhost:8080
-- `caf_postgres` (Database) - localhost:5432
-- `caf_localstack` (AWS S3 services simulation) - http://localhost:4566
+**Local Services:**
+- 🖥️ **Admin Portal**: http://localhost:3000
+- 🏠 **Marketing Site**: http://localhost:5173
+- 🔗 **API**: http://localhost:8080
+- 🗃️ **Database**: localhost:5432
+- ☁️ **LocalStack S3**: http://localhost:4566
+
+**Default Login:**
+- Email: `admin@caf.org`
+- Password: `admin123`
 
 ### 2. Start Admin Portal (Frontend)
 
