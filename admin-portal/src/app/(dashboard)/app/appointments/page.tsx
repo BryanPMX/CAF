@@ -52,6 +52,8 @@ const AppointmentsPage = () => {
   const [deptFilter, setDeptFilter] = useState<string | undefined>(undefined);
   const [caseTypeFilter, setCaseTypeFilter] = useState<string | undefined>(undefined);
   const [searchFilters, setSearchFilters] = useState<any>({});
+  const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true);
+  const [lastRefreshTime, setLastRefreshTime] = useState<Date | null>(null);
 
   // --- Data Fetching & Role Management ---
   useEffect(() => {
@@ -87,6 +89,7 @@ const AppointmentsPage = () => {
       // Appointments loaded successfully
       setAppointments(data.data);
       setFilteredAppointments(data.data);
+      setLastRefreshTime(new Date());
     } catch (error: any) {
       console.error('Failed to fetch appointments:', error);
       const errorMessage = error.response?.data?.error || error.message || 'No se pudieron cargar las citas.';
@@ -125,6 +128,18 @@ const AppointmentsPage = () => {
     fetchAppointments();
     fetchSupportingData();
   }, [user]);
+
+  // Auto-refresh appointments every 30 seconds
+  useEffect(() => {
+    if (!autoRefreshEnabled || !user) return;
+
+    const interval = setInterval(() => {
+      console.log('Auto-refreshing appointments...');
+      fetchAppointments(false); // Don't force refresh cache for auto-refresh
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(interval);
+  }, [autoRefreshEnabled, user]);
 
   // Department and Case Type options
   const DEPARTMENTS = ['Familiar', 'Civil', 'Psicologia', 'Recursos'];
@@ -313,6 +328,17 @@ const AppointmentsPage = () => {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Gestión de Citas</h1>
         <div className="flex gap-2">
+          {/* Auto-refresh toggle */}
+          <Button
+            icon={autoRefreshEnabled ? <CalendarOutlined /> : <CalendarOutlined style={{ color: '#999' }} />}
+            onClick={() => setAutoRefreshEnabled(!autoRefreshEnabled)}
+            type={autoRefreshEnabled ? 'default' : 'text'}
+            size="small"
+            title={autoRefreshEnabled ? 'Desactivar actualización automática' : 'Activar actualización automática'}
+          >
+            {autoRefreshEnabled ? 'Auto ✓' : 'Auto ✗'}
+          </Button>
+
           {/* Manual refresh button */}
           <Button
             icon={<CalendarOutlined />}
@@ -327,10 +353,11 @@ const AppointmentsPage = () => {
             }}
             loading={loading}
             disabled={!user}
-            title="Actualizar lista de citas"
+            title="Actualizar lista de citas manualmente"
           >
             Actualizar
           </Button>
+
           {/* IMPROVEMENT: Button is only shown to authorized roles and is disabled during loading */}
           {canManageAppointments && (
             <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate} disabled={loading}>
@@ -416,14 +443,24 @@ const AppointmentsPage = () => {
         </Col>
       </Row>
 
-      {/* Info message about data synchronization */}
+      {/* Status and refresh info */}
       <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-        <div className="flex items-center text-sm text-blue-800">
-          <CalendarOutlined className="mr-2" />
-          <span>
-            <strong>Nota:</strong> Los cambios realizados por otros usuarios pueden no aparecer inmediatamente.
-            Use el botón "Actualizar" para ver los cambios más recientes.
-          </span>
+        <div className="flex items-center justify-between text-sm">
+          <div className="flex items-center text-blue-800">
+            <CalendarOutlined className="mr-2" />
+            <span>
+              {autoRefreshEnabled ? (
+                <><strong>Actualización automática activada:</strong> Los datos se refrescan cada 30 segundos</>
+              ) : (
+                <><strong>Actualización manual:</strong> Use el botón "Actualizar" para ver cambios de otros usuarios</>
+              )}
+            </span>
+          </div>
+          {lastRefreshTime && (
+            <div className="text-xs text-blue-600">
+              Última actualización: {lastRefreshTime.toLocaleTimeString()}
+            </div>
+          )}
         </div>
       </div>
 
