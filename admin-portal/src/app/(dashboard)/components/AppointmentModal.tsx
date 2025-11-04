@@ -296,9 +296,22 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ visible, onClose, o
         status: values.status,
       };
 
-      // Automatically include department for new cases
+      // Automatically include department and category for new cases
       if (caseMode === 'new') {
-        payload.department = form.getFieldValue('department');
+        const department = form.getFieldValue('department');
+        payload.department = department;
+        payload.category = department; // Category and department are the same for new cases
+      } else if (caseMode === 'existing') {
+        // For existing cases, use the case's category if available
+        const selectedCase = cases.find(c => c.id === values.caseId);
+        if (selectedCase && (selectedCase as any).category) {
+          payload.category = (selectedCase as any).category;
+          payload.department = (selectedCase as any).category;
+        } else {
+          // Fallback to a default category if case doesn't have one
+          payload.category = 'General';
+          payload.department = 'General';
+        }
       }
 
       if (clientMode === 'existing') {
