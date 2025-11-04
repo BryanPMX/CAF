@@ -84,6 +84,7 @@ const AppointmentsPage = () => {
       );
 
       // Appointments loaded successfully
+      console.log('📋 First appointment case data:', data.data[0]?.case);
       setAppointments(data.data);
 
       // For auto-refresh, reapply current filters to maintain user's view
@@ -243,7 +244,17 @@ const AppointmentsPage = () => {
 
     // Apply SmartSearchBar category filter (case category)
     if (filters.category) {
-      filtered = filtered.filter(appointment => appointment.case?.category === filters.category);
+      console.log('🔍 Filtering by category:', filters.category);
+      filtered = filtered.filter(appointment => {
+        const caseCategory = appointment.case?.category;
+        const matches = caseCategory === filters.category;
+        if (!matches) {
+          console.log('❌ No match:', caseCategory, '!==', filters.category);
+        } else {
+          console.log('✅ Match found:', caseCategory, '===', filters.category);
+        }
+        return matches;
+      });
     }
 
     // Apply SmartSearchBar department filter (appointment department)

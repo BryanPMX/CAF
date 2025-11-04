@@ -400,6 +400,62 @@ func UpdateAppointmentAdmin(db *gorm.DB) gin.HandlerFunc {
 	}
 }
 
+// FixExistingAppointmentCategories fixes existing appointments that have incorrect category/department values
+func FixExistingAppointmentCategories(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Get all appointments that need fixing
+		var appointments []models.Appointment
+		if err := db.Preload("Case").Where("deleted_at IS NULL").Find(&appointments).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch appointments"})
+			return
+		}
+
+		fixed := 0
+		for _, appointment := range appointments {
+			if appointment.Case.ID != 0 && appointment.Case.Category != "" {
+				// Determine correct department based on case category
+				var correctDepartment string
+				switch appointment.Case.Category {
+				case "Divorcios", "Guardia y Custodia", "Acto Prejudicial", "Adopcion", "Pension Alimenticia", "Rectificacion de Actas", "Reclamacion de Paternidad", "Prescripcion Positiva", "Reinvindicatorio", "Intestado", "Individual", "Pareja":
+					correctDepartment = "Familiar"
+				default:
+					// Check staff role for other cases
+					var staff models.User
+					if err := db.First(&staff, appointment.StaffID).Error; err == nil {
+						switch staff.Role {
+						case "psychologist":
+							correctDepartment = "Psicologia"
+						case "social_worker":
+							correctDepartment = "Recursos"
+						default:
+							correctDepartment = "Familiar"
+						}
+					} else {
+						correctDepartment = "Familiar"
+					}
+				}
+
+				// Update appointment with correct values
+				updates := map[string]interface{}{
+					"category":   appointment.Case.Category, // Case type (e.g., "Divorcios")
+					"department": correctDepartment,         // Department (e.g., "Familiar")
+				}
+
+				if err := db.Model(&appointment).Updates(updates).Error; err != nil {
+					log.Printf("Failed to update appointment %d: %v", appointment.ID, err)
+					continue
+				}
+				fixed++
+			}
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"message": fmt.Sprintf("Fixed %d appointments", fixed),
+			"total":   len(appointments),
+		})
+	}
+}
+
 // DeleteAppointmentAdmin removes an appointment with enhanced security and audit logging
 func DeleteAppointmentAdmin(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
