@@ -68,14 +68,9 @@ services:
       # LocalStack configuration
       - DEBUG=1
       - SERVICES=s3
-      - DATA_DIR=/tmp/localstack/data
-      - DOCKER_HOST=unix:///var/run/docker.sock
-      - HOST_TMP_FOLDER=${TMPDIR:-/tmp/}localstack
+      - DATA_DIR=/tmp/localstack_data
       # Disable telemetry
       - DISABLE_EVENTS=1
-    volumes:
-      - "${TMPDIR:-/tmp/}/localstack:/tmp/localstack"
-      - "/var/run/docker.sock:/var/run/docker.sock"
     networks:
       - caf_network
     healthcheck:
