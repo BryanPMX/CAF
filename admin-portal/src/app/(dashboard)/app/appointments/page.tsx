@@ -61,7 +61,7 @@ const AppointmentsPage = () => {
     }
   }, [user]);
 
-  const fetchAppointments = async (forceRefresh: boolean = false) => {
+  const fetchAppointments = async (forceRefresh: boolean = false, showLoading: boolean = true) => {
     try {
       // Check if user is loaded
       if (!user) {
@@ -69,8 +69,11 @@ const AppointmentsPage = () => {
         return;
       }
 
-      console.log('Fetching appointments for user role:', user.role, 'forceRefresh:', forceRefresh);
-      setLoading(true);
+      console.log('Fetching appointments for user role:', user.role, 'forceRefresh:', forceRefresh, 'showLoading:', showLoading);
+
+      if (showLoading) {
+        setLoading(true);
+      }
 
       // Use centralized service layer with role-based endpoint routing
       const data = await AppointmentService.fetchAppointments(
@@ -89,10 +92,15 @@ const AppointmentsPage = () => {
       setFilteredAppointments(data.data);
     } catch (error: any) {
       console.error('Failed to fetch appointments:', error);
-      const errorMessage = error.response?.data?.error || error.message || 'No se pudieron cargar las citas.';
-      message.error(`Error: ${errorMessage}`);
+      // Only show error messages for manual operations, not auto-refresh
+      if (showLoading) {
+        const errorMessage = error.response?.data?.error || error.message || 'No se pudieron cargar las citas.';
+        message.error(`Error: ${errorMessage}`);
+      }
     } finally {
-      setLoading(false);
+      if (showLoading) {
+        setLoading(false);
+      }
     }
   };
 
@@ -126,13 +134,13 @@ const AppointmentsPage = () => {
     fetchSupportingData();
   }, [user]);
 
-  // Auto-refresh appointments every 30 seconds
+  // Auto-refresh appointments every 30 seconds (completely silent)
   useEffect(() => {
     if (!user) return;
 
     const interval = setInterval(() => {
       console.log('Auto-refreshing appointments...');
-      fetchAppointments(false); // Silent refresh
+      fetchAppointments(false, false); // Silent refresh, no loading, no errors
     }, 30000); // 30 seconds
 
     return () => clearInterval(interval);
