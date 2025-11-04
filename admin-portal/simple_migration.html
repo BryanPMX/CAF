@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CAF Migration Tool</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        button { padding: 10px 20px; background: #1890ff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #40a9ff; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        .result { margin-top: 20px; padding: 20px; border-radius: 4px; }
+        .success { background: #f6ffed; border: 1px solid #b7eb8f; color: #52c41a; }
+        .error { background: #fff2f0; border: 1px solid #ffccc7; color: #ff4d4f; }
+        .info { background: #f0f8ff; border: 1px solid #b3d9ff; color: #1890ff; }
+    </style>
+</head>
+<body>
+    <h1>CAF Appointment Category Migration</h1>
+    <p>This tool will fix existing appointment category/department data so category filtering works properly.</p>
+    
+    <div class="info" style="margin-bottom: 20px;">
+        <strong>What this does:</strong><br>
+        • Fixes appointments where category was incorrectly set to department ("Familiar")<br>
+        • Sets category to proper case type ("Divorcios", "Guardia y Custodia", etc.)<br>
+        • Sets department to proper department ("Familiar", "Psicologia", etc.)<br>
+        • Enables category filtering to work correctly
+    </div>
+    
+    <button onclick="runMigration()" id="migrateBtn">🔄 Run Migration</button>
+    <div id="result"></div>
+
+    <script>
+        async function runMigration() {
+            const resultDiv = document.getElementById('result');
+            const btn = document.getElementById('migrateBtn');
+            
+            btn.disabled = true;
+            btn.textContent = '🔄 Running migration...';
+            resultDiv.innerHTML = '<div class="info">🔄 Processing appointments...</div>';
+            
+            try {
+                const response = await fetch('http://localhost:8080/api/v1/admin/appointments/fix-categories', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <h2>✅ Migration Successful!</h2>
+                            <p><strong>${data.message}</strong></p>
+                            <p>Total appointments processed: ${data.total}</p>
+                            
+                            <h3>🎯 Next Steps:</h3>
+                            <ol>
+                                <li>Refresh your appointments page</li>
+                                <li>Try filtering by "Divorcios" or other case categories</li>
+                                <li>Category filtering should now work properly!</li>
+                            </ol>
+                        </div>
+                    `;
+                    btn.textContent = '✅ Migration Complete';
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            <h2>❌ Migration Failed</h2>
+                            <p>Error: ${data.error || 'Unknown error'}</p>
+                            <p>Status: ${response.status}</p>
+                        </div>
+                    `;
+                    btn.disabled = false;
+                    btn.textContent = '🔄 Try Again';
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <h2>❌ Network Error</h2>
+                        <p>${error.message}</p>
+                        <p>Make sure your API server is running on http://localhost:8080</p>
+                    </div>
+                `;
+                btn.disabled = false;
+                btn.textContent = '🔄 Try Again';
+            }
+        }
+    </script>
+</body>
+</html>
