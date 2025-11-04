@@ -231,31 +231,55 @@ func CreateAppointmentSmart(db *gorm.DB) gin.HandlerFunc {
 		// Determine appointment category and department
 		var appointmentCategory, department string
 
-		// Priority: Use department from input, then fallback to case category
+		// Priority: Use department from input, then derive from case category
 		if input.Department != "" {
-			appointmentCategory = input.Department
+			// If department is explicitly provided, use it
 			department = input.Department
+			appointmentCategory = input.Category // Use the provided category if available
+			if appointmentCategory == "" {
+				appointmentCategory = "General"
+			}
 		} else if caseRecord.Category != "" {
-			appointmentCategory = caseRecord.Category
-			department = caseRecord.Category
+			// Derive department from case category
+			appointmentCategory = caseRecord.Category // Appointment category is the case type (e.g., "Divorcios")
+
+			// Map case category to department
+			switch caseRecord.Category {
+			case "Divorcios", "Guardia y Custodia", "Acto Prejudicial", "Adopcion", "Pension Alimenticia", "Rectificacion de Actas", "Reclamacion de Paternidad", "Prescripcion Positiva", "Reinvindicatorio", "Intestado", "Individual", "Pareja":
+				department = "Familiar" // Legal department
+			default:
+				// For unknown case categories, try to determine from staff role
+				var staff models.User
+				if err := tx.First(&staff, input.StaffID).Error; err == nil {
+					switch staff.Role {
+					case "psychologist":
+						department = "Psicologia"
+					case "social_worker":
+						department = "Recursos"
+					default:
+						department = "Familiar" // Default to legal for other staff
+					}
+				} else {
+					department = "Familiar" // Default fallback
+				}
+			}
 		} else {
-			// Fallback: determine from staff role
+			// No case category available, determine from staff role
 			var staff models.User
 			if err := tx.First(&staff, input.StaffID).Error; err == nil {
 				if staff.Role == "admin" {
 					appointmentCategory = "General"
 					department = "General"
 				} else {
-					// Map staff role to proper department
 					switch staff.Role {
 					case "lawyer", "attorney", "senior_attorney", "paralegal", "associate":
-						appointmentCategory = "Familiar"
+						appointmentCategory = "Consulta Legal"
 						department = "Familiar"
 					case "psychologist":
-						appointmentCategory = "Psicologia"
+						appointmentCategory = "Sesion de Psicologia"
 						department = "Psicologia"
 					case "social_worker":
-						appointmentCategory = "Recursos"
+						appointmentCategory = "Trabajo Social"
 						department = "Recursos"
 					default:
 						appointmentCategory = "General"
