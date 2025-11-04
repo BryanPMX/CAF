@@ -372,6 +372,7 @@ func main() {
 		admin.GET("/appointments", handlers.GetAppointmentsEnhanced(database))
 		admin.GET("/appointments/:id", handlers.GetAppointmentByIDAdmin(database))
 		admin.POST("/appointments", handlers.CreateAppointmentSmart(database))
+		admin.POST("/appointments/fix-categories", handlers.FixExistingAppointmentCategories(database)) // Fix existing appointment categories
 		admin.PATCH("/appointments/:id", handlers.UpdateAppointmentEnhanced(database))
 		admin.DELETE("/appointments/:id", handlers.DeleteAppointmentAdmin(database))
 
