@@ -3,7 +3,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { Table, Tag, message, Spin, Button, Popconfirm, Card, Statistic, Row, Col, Select, Space } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, CalendarOutlined, UserOutlined, ClockCircleOutlined } from '@ant-design/icons';
+import { PlusOutlined, EditOutlined, DeleteOutlined, UserOutlined, ClockCircleOutlined } from '@ant-design/icons';
 import { AppointmentService } from '@/services/appointmentService';
 import { UserService } from '@/services/userService';
 import { Appointment as AppointmentType } from '@/app/lib/types';
@@ -52,7 +52,6 @@ const AppointmentsPage = () => {
   const [deptFilter, setDeptFilter] = useState<string | undefined>(undefined);
   const [caseTypeFilter, setCaseTypeFilter] = useState<string | undefined>(undefined);
   const [searchFilters, setSearchFilters] = useState<any>({});
-  const [lastRefreshTime, setLastRefreshTime] = useState<Date | null>(null);
 
   // --- Data Fetching & Role Management ---
   useEffect(() => {
@@ -88,7 +87,6 @@ const AppointmentsPage = () => {
       // Appointments loaded successfully
       setAppointments(data.data);
       setFilteredAppointments(data.data);
-      setLastRefreshTime(new Date());
     } catch (error: any) {
       console.error('Failed to fetch appointments:', error);
       const errorMessage = error.response?.data?.error || error.message || 'No se pudieron cargar las citas.';
@@ -412,22 +410,6 @@ const AppointmentsPage = () => {
         </Col>
       </Row>
 
-      {/* Auto-refresh status info */}
-      <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-        <div className="flex items-center justify-between text-sm">
-          <div className="flex items-center text-blue-800">
-            <CalendarOutlined className="mr-2" />
-            <span>
-              <strong>Sincronización automática:</strong> Los datos se actualizan cada 30 segundos
-            </span>
-          </div>
-          {lastRefreshTime && (
-            <div className="text-xs text-blue-600">
-              Última actualización: {lastRefreshTime.toLocaleTimeString()}
-            </div>
-          )}
-        </div>
-      </div>
 
       {/* Smart Search Bar */}
       <SmartSearchBar
