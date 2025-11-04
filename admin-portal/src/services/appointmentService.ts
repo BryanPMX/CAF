@@ -22,9 +22,11 @@ export class AppointmentService {
       pageSize?: number;
       search?: string;
       filters?: SearchFilters;
+      _t?: number; // Cache busting parameter
+      [key: string]: any; // Allow additional parameters
     } = {}
   ): Promise<PaginatedResponse<Appointment>> {
-    const { page = 1, pageSize = 20, search, filters = {} } = params;
+    const { page = 1, pageSize = 20, search, filters = {}, _t, ...otherParams } = params;
     
     // Build query parameters
     const queryParams = new URLSearchParams({
@@ -38,6 +40,8 @@ export class AppointmentService {
       ...(filters.officeId && { officeId: filters.officeId.toString() }),
       ...(filters.dateFrom && { dateFrom: filters.dateFrom }),
       ...(filters.dateTo && { dateTo: filters.dateTo }),
+      ...(_t && { _t: _t.toString() }),
+      ...otherParams, // Include any additional parameters
     });
 
     // Determine endpoint based on role

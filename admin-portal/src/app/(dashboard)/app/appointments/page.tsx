@@ -63,15 +63,18 @@ const AppointmentsPage = () => {
 
   const fetchAppointments = async (forceRefresh: boolean = false) => {
     try {
-      // Wait for user to be loaded before fetching
-      // User role is guaranteed to be available by the parent layout
-      // No need to check for user?.role since the dashboard layout ensures it exists
+      // Check if user is loaded
+      if (!user) {
+        console.warn('Cannot fetch appointments: user not loaded');
+        return;
+      }
 
+      console.log('Fetching appointments for user role:', user.role, 'forceRefresh:', forceRefresh);
       setLoading(true);
+
       // Use centralized service layer with role-based endpoint routing
-      // User role is guaranteed to be available by the parent layout
       const data = await AppointmentService.fetchAppointments(
-        user!.role,
+        user.role,
         {
           page: 1,
           pageSize: 1000, // Get all appointments for now
@@ -79,6 +82,8 @@ const AppointmentsPage = () => {
           ...(forceRefresh ? { _t: Date.now() } : {})
         }
       );
+
+      console.log('Appointments fetched successfully:', data.data.length, 'items');
       // Appointments loaded successfully
       setAppointments(data.data);
       setFilteredAppointments(data.data);
@@ -311,8 +316,17 @@ const AppointmentsPage = () => {
           {/* Manual refresh button */}
           <Button
             icon={<CalendarOutlined />}
-            onClick={() => fetchAppointments(true)}
+            onClick={() => {
+              if (user) {
+                console.log('Manual refresh triggered for user:', user.role);
+                fetchAppointments(true);
+              } else {
+                console.warn('Cannot refresh: user not loaded yet');
+                message.warning('Usuario no cargado aún. Intente nuevamente.');
+              }
+            }}
             loading={loading}
+            disabled={!user}
             title="Actualizar lista de citas"
           >
             Actualizar
