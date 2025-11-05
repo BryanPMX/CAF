@@ -501,6 +501,10 @@ func GetMyAppointments(db *gorm.DB) gin.HandlerFunc {
 		if status := c.Query("status"); status != "" {
 			query = query.Where("status = ?", status)
 		}
+		if category := c.Query("category"); category != "" {
+			// Filter by case category since category equals type of case
+			query = query.Joins("INNER JOIN cases ON cases.id = appointments.case_id AND cases.category = ?", category)
+		}
 		if date := c.Query("date"); date != "" {
 			if parsedDate, err := time.Parse("2006-01-02", date); err == nil {
 				nextDay := parsedDate.Add(24 * time.Hour)
