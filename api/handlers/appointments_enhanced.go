@@ -63,7 +63,8 @@ func GetAppointmentsEnhanced(db *gorm.DB) gin.HandlerFunc {
 			query = query.Where("appointments.status = ?", status)
 		}
 		if category := c.Query("category"); category != "" {
-			query = query.Where("appointments.category = ?", category)
+			// Filter by case category since category equals type of case
+			query = query.Joins("INNER JOIN cases ON cases.id = appointments.case_id AND cases.category = ?", category)
 		}
 		if department := c.Query("department"); department != "" {
 			query = query.Where("appointments.department = ?", department)
