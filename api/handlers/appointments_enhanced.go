@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/BryanPMX/CAF/api/config"
@@ -12,8 +13,10 @@ import (
 	"github.com/BryanPMX/CAF/api/models"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
+	"golang.org/x/net/websocket"
 	"gorm.io/gorm"
 )
+
 
 // GetAppointmentsEnhanced returns appointments based on user permissions and department
 func GetAppointmentsEnhanced(db *gorm.DB) gin.HandlerFunc {
@@ -346,6 +349,29 @@ func UpdateAppointmentEnhanced(db *gorm.DB) gin.HandlerFunc {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update appointment"})
 			return
 		}
+
+		// Send real-time notification to all connected users about appointment update
+		notification := gin.H{
+			"type": "appointment_updated",
+			"appointment": gin.H{
+				"id":        appointment.ID,
+				"title":     appointment.Title,
+				"status":    appointment.Status,
+				"startTime": appointment.StartTime,
+				"endTime":   appointment.EndTime,
+				"updatedBy": gin.H{
+					"id":   user.ID,
+					"name": fmt.Sprintf("%s %s", user.FirstName, user.LastName),
+					"role": user.Role,
+				},
+				"updatedAt": time.Now(),
+			},
+			"message": fmt.Sprintf("Cita '%s' actualizada por %s %s", appointment.Title, user.FirstName, user.LastName),
+			"timestamp": time.Now(),
+		}
+
+		// Send real-time notification to all connected users
+		BroadcastNotification(notification)
 
 		c.JSON(http.StatusOK, appointment)
 	}

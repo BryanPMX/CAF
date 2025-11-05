@@ -14,6 +14,7 @@ import EditAppointmentModal from '../../components/EditAppointmentModal';
 import SmartSearchBar from '../../components/SmartSearchBar';
 import { APPOINTMENT_STATUS_OPTIONS } from '@/config/statuses';
 import { useHydrationSafe } from '@/hooks/useHydrationSafe';
+import { useWebSocket } from '@/hooks/useWebSocket';
 import dayjs from 'dayjs';
 import isBetween from 'dayjs/plugin/isBetween';
 
@@ -40,6 +41,7 @@ const AppointmentsPage = () => {
   // --- State Management ---
   const isHydrated = useHydrationSafe();
   const { user } = useAuth();
+  const { isConnected: wsConnected, lastMessage } = useWebSocket();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [filteredAppointments, setFilteredAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -170,6 +172,18 @@ const AppointmentsPage = () => {
     fetchAppointments();
     fetchSupportingData();
   }, [user]);
+
+  // Handle real-time WebSocket updates for appointments
+  useEffect(() => {
+    if (lastMessage && lastMessage.type === 'notification' && lastMessage.notification?.type === 'appointment_updated') {
+      console.log('Appointment update received via WebSocket:', lastMessage.notification);
+
+      // Immediately refresh appointments when an update is received
+      fetchAppointments(true, false).catch(error => {
+        console.error('WebSocket-triggered refresh: Failed to fetch appointments:', error);
+      });
+    }
+  }, [lastMessage]);
 
   // Auto-refresh appointments every 30 seconds (completely silent, with cache busting)
   useEffect(() => {
@@ -374,7 +388,19 @@ const AppointmentsPage = () => {
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Gestión de Citas</h1>
+        <div className="flex items-center gap-4">
+          <h1 className="text-2xl font-bold">Gestión de Citas</h1>
+          {/* Real-time connection indicator */}
+          <div className="flex items-center gap-2">
+            <div
+              className={`w-2 h-2 rounded-full ${wsConnected ? 'bg-green-500' : 'bg-red-500'}`}
+              title={wsConnected ? 'Conectado en tiempo real' : 'Sin conexión en tiempo real'}
+            />
+            <span className="text-xs text-gray-500">
+              {wsConnected ? 'En vivo' : 'Sin conexión'}
+            </span>
+          </div>
+        </div>
         <div className="flex gap-2">
           {/* IMPROVEMENT: Button is only shown to authorized roles and is disabled during loading */}
           {canManageAppointments && (

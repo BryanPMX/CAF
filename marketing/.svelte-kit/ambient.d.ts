@@ -62,7 +62,6 @@ declare module '$env/static/private' {
 	export const VSCODE_ESM_ENTRYPOINT: string;
 	export const npm_package_name: string;
 	export const CURSOR_AGENT: string;
-	export const LOCAL_GIT_DIRECTORY: string;
 	export const LANG: string;
 	export const npm_config_npm_version: string;
 	export const XPC_FLAGS: string;
@@ -158,7 +157,6 @@ declare module '$env/dynamic/private' {
 		VSCODE_ESM_ENTRYPOINT: string;
 		npm_package_name: string;
 		CURSOR_AGENT: string;
-		LOCAL_GIT_DIRECTORY: string;
 		LANG: string;
 		npm_config_npm_version: string;
 		XPC_FLAGS: string;
