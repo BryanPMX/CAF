@@ -62,6 +62,86 @@ const AppointmentsPage = () => {
     }
   }, [user]);
 
+  const fetchAppointments = async (forceRefresh: boolean = false, showLoading: boolean = true) => {
+    try {
+      // Check if user is loaded
+      if (!user) {
+        console.warn('Cannot fetch appointments: user not loaded');
+        return;
+      }
+
+      if (showLoading) {
+        setLoading(true);
+      }
+
+      // Use centralized service layer with role-based endpoint routing
+      const data = await AppointmentService.fetchAppointments(
+        user.role,
+        {
+          page: 1,
+          pageSize: 1000, // Get all appointments for now
+          // Add cache-busting timestamp if force refresh
+          ...(forceRefresh ? { _t: Date.now() } : {})
+        }
+      );
+
+      // Appointments loaded successfully
+      setAppointments(data.data);
+
+      // For auto-refresh, reapply current filters to maintain user's view
+      if (!showLoading) {
+        let filtered = data.data;
+
+        // Reapply search filter if active
+        if (searchFilters.search) {
+          const searchLower = searchFilters.search.toLowerCase();
+          filtered = filtered.filter((appointment: Appointment) => {
+            const titleMatch = appointment.title?.toLowerCase().includes(searchLower);
+            const caseMatch = appointment.case?.title?.toLowerCase().includes(searchLower);
+            const staffMatch = `${appointment.staff?.firstName} ${appointment.staff?.lastName}`.toLowerCase().includes(searchLower);
+            return titleMatch || caseMatch || staffMatch;
+          });
+        }
+
+        // Reapply department filter if active (from SmartSearchBar)
+        if (searchFilters.department) {
+          filtered = filtered.filter((appointment: Appointment) =>
+            appointment.department === searchFilters.department
+          );
+        }
+
+        // Reapply category filter if active (from SmartSearchBar)
+        if (searchFilters.category) {
+          filtered = filtered.filter((appointment: Appointment) =>
+            appointment.case?.category === searchFilters.category
+          );
+        }
+
+        // Reapply status filter if active
+        if (searchFilters.status) {
+          filtered = filtered.filter((appointment: Appointment) =>
+            appointment.status === searchFilters.status
+          );
+        }
+
+        setFilteredAppointments(filtered);
+      } else {
+        // For manual refresh, show all appointments (filters will be reapplied by search/filter handlers)
+        setFilteredAppointments(data.data);
+      }
+    } catch (error: any) {
+      console.error('Failed to fetch appointments:', error);
+      // Only show error messages for manual operations, not auto-refresh
+      if (showLoading) {
+        const errorMessage = error.response?.data?.error || error.message || 'No se pudieron cargar las citas.';
+        message.error(`Error: ${errorMessage}`);
+      }
+    } finally {
+      if (showLoading) {
+        setLoading(false);
+      }
+    }
+  };
 
   const fetchSupportingData = async () => {
     try {
@@ -89,40 +169,34 @@ const AppointmentsPage = () => {
 
   // Fetch the data when the component first loads or when user changes.
   useEffect(() => {
-    console.log('User changed, refetching appointments for user:', user?.role, user?.id);
-    // Clear any cached data and force fresh data when user changes (account switching)
-    setAppointments([]);
-    setFilteredAppointments([]);
-    // Fetch fresh data without filters when user changes
-    fetchAppointmentsWithFilters({});
+    fetchAppointments();
     fetchSupportingData();
   }, [user]);
 
-  // Handle real-time WebSocket updates for appointments
-  useEffect(() => {
-    if (lastMessage && lastMessage.type === 'notification' && lastMessage.notification?.type === 'appointment_updated') {
-      console.log('Appointment update received via WebSocket:', lastMessage.notification);
+  // WebSocket auto-refresh disabled to prevent rate limiting
+  // useEffect(() => {
+  //   if (lastMessage && lastMessage.type === 'notification' && lastMessage.notification?.type === 'appointment_updated') {
+  //     console.log('Appointment update received via WebSocket:', lastMessage.notification);
+  //
+  //     // Immediately refresh appointments when an update is received
+  //     fetchAppointments(true, false).catch(error => {
+  //       console.error('WebSocket-triggered refresh: Failed to fetch appointments:', error);
+  //     });
+  //   }
+  // }, [lastMessage]);
 
-      // Immediately refresh appointments with current filters when an update is received
-      fetchAppointmentsWithFilters(searchFilters, false).catch(error => {
-        console.error('WebSocket-triggered refresh: Failed to fetch appointments:', error);
-      });
-    }
-  }, [lastMessage]); // Only depend on lastMessage, not searchFilters
-
-  // Auto-refresh appointments every 30 seconds (completely silent, with current filters)
-  useEffect(() => {
-    if (!user) return;
-
-    const interval = setInterval(() => {
-      console.log('Auto-refresh: Refetching with current filters:', searchFilters);
-      fetchAppointmentsWithFilters(searchFilters, false).catch(error => {
-        console.error('Auto-refresh: Failed to fetch appointments:', error);
-      }); // Silent refresh with current filters, no loading, no errors
-    }, 30000); // 30 seconds
-
-    return () => clearInterval(interval);
-  }, [user, searchFilters]);
+  // Auto-refresh disabled to prevent rate limiting
+  // useEffect(() => {
+  //   if (!user) return;
+  //
+  //   const interval = setInterval(() => {
+  //     fetchAppointments(true, false).catch(error => {
+  //       console.error('Auto-refresh: Failed to fetch appointments:', error);
+  //     }); // Silent refresh with cache busting, no loading, no errors
+  //   }, 30000); // 30 seconds
+  //
+  //   return () => clearInterval(interval);
+  // }, [user]);
 
   // Department and Case Type options
   const DEPARTMENTS = ['Familiar', 'Civil', 'Psicologia', 'Recursos'];
@@ -171,59 +245,42 @@ const AppointmentsPage = () => {
   };
 
   const handleFiltersChange = (filters: any) => {
-    console.log('handleFiltersChange called with filters:', filters);
     setSearchFilters(filters);
-    // Refetch data from backend with filters instead of client-side filtering
-    fetchAppointmentsWithFilters(filters);
-  };
+    setSearchLoading(true);
 
-  const fetchAppointmentsWithFilters = async (filters: any, showLoading: boolean = true) => {
-    try {
-      if (showLoading) {
-        setSearchLoading(true);
-      }
+    let filtered = appointments;
 
-      // Check if user is loaded
-      if (!user) {
-        console.warn('Cannot fetch appointments: user not loaded');
-        return;
-      }
-
-      const params = {
-        page: 1,
-        pageSize: 1000, // Get all appointments for now
-        // Include filter parameters for backend filtering
-        ...(filters.status && { status: filters.status }),
-        ...(filters.category && { category: filters.category }),
-        ...(filters.department && { department: filters.department }),
-        ...(filters.dateRange && filters.dateRange.length === 2 && {
-          dateFrom: filters.dateRange[0].format('YYYY-MM-DD'),
-          dateTo: filters.dateRange[1].format('YYYY-MM-DD')
-        })
-      };
-
-      console.log('fetchAppointmentsWithFilters called with params:', params);
-
-      // Use centralized service layer with role-based endpoint routing
-      const data = await AppointmentService.fetchAppointments(user.role, params);
-
-      // Set filtered results directly (no additional client-side filtering needed)
-      setFilteredAppointments(data.data);
-    } catch (error: any) {
-      console.error('Failed to fetch filtered appointments:', error);
-      // Only show error messages for manual operations
-      const errorMessage = error.response?.data?.error || error.message || 'No se pudieron cargar las citas filtradas.';
-      message.error(`Error: ${errorMessage}`);
-    } finally {
-      setSearchLoading(false);
+    // Apply SmartSearchBar status filter (appointment statuses)
+    if (filters.status) {
+      filtered = filtered.filter(appointment => appointment.status === filters.status);
     }
+
+    // Apply SmartSearchBar category filter (case category)
+    if (filters.category) {
+      filtered = filtered.filter(appointment => appointment.case?.category === filters.category);
+    }
+
+    // Apply SmartSearchBar department filter (appointment department)
+    if (filters.department) {
+      filtered = filtered.filter(appointment => appointment.department === filters.department);
+    }
+
+    // Apply SmartSearchBar date range filter
+    if (filters.dateRange && filters.dateRange.length === 2) {
+      const [startDate, endDate] = filters.dateRange;
+      filtered = filtered.filter(appointment => {
+        const appointmentDate = dayjs(appointment.startTime);
+        return appointmentDate.isBetween(startDate, endDate, 'day', '[]');
+      });
+    }
+
+    setFilteredAppointments(filtered);
+    setSearchLoading(false);
   };
 
   const handleClearSearch = () => {
-    console.log('handleClearSearch called - clearing filters and refetching all data');
     setSearchFilters({});
-    // Refetch all data without filters
-    fetchAppointmentsWithFilters({});
+    setFilteredAppointments(appointments);
   };
 
   const handleDelete = async (appointmentId: number) => {
@@ -238,7 +295,7 @@ const AppointmentsPage = () => {
       message.loading({ content: 'Eliminando...', key: 'deleteAppt' });
       await AppointmentService.deleteAppointment(user!.role, appointmentId.toString());
       message.success({ content: 'Cita eliminada exitosamente.', key: 'deleteAppt' });
-      fetchAppointmentsWithFilters(searchFilters); // Refresh the list with current filters
+      fetchAppointments(); // Refresh the list
     } catch (error) {
       message.error({ content: 'No se pudo eliminar la cita.', key: 'deleteAppt' });
     }
@@ -440,9 +497,9 @@ const AppointmentsPage = () => {
       <AppointmentModal
         visible={isModalVisible}
         onClose={() => setIsModalVisible(false)}
-        onSuccess={() => fetchAppointmentsWithFilters(searchFilters)}
+        onSuccess={() => fetchAppointments(true)}
       />
-
+      
       <EditAppointmentModal
         visible={isEditModalVisible}
         appointment={editingAppointment}
@@ -450,7 +507,7 @@ const AppointmentsPage = () => {
           setIsEditModalVisible(false);
           setEditingAppointment(null);
         }}
-        onSuccess={() => fetchAppointmentsWithFilters(searchFilters)}
+        onSuccess={() => fetchAppointments(true)}
       />
     </div>
   );
