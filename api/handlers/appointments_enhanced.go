@@ -88,8 +88,10 @@ func GetAppointmentsEnhanced(db *gorm.DB) gin.HandlerFunc {
 		total := int64(len(appointments))
 		totalPages := (total + int64(limit) - 1) / int64(limit)
 
-		// Add cache headers for better performance
-		c.Header("Cache-Control", "private, max-age=30")
+		// Disable caching for real-time appointment data
+		c.Header("Cache-Control", "no-cache, no-store, must-revalidate")
+		c.Header("Pragma", "no-cache")
+		c.Header("Expires", "0")
 		c.JSON(http.StatusOK, gin.H{
 			"data": appointments,
 			"pagination": gin.H{
