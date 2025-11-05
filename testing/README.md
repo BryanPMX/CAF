@@ -1,12 +1,15 @@
-# CAF CRUD Testing Automation Suite
+# CAF Testing Suite
 
-This comprehensive testing suite automates CRUD operations across all user roles and sections in the CAF system.
+This comprehensive testing suite provides multiple types of automated testing for the CAF system, including CRUD operations, smoke tests, integration tests, and performance validation.
 
 ## 🚀 Quick Start
 
 ```bash
 # Install dependencies
 npm install
+
+# Run smoke tests (recommended for daily checks)
+npm run test:smoke
 
 # Run comprehensive CRUD tests
 npm run test:crud
@@ -16,6 +19,12 @@ npm run test:quick
 
 # Run performance tests
 npm run test:performance
+
+# Run integration tests (creates/modifies data - use carefully)
+npm run test:integration
+
+# Run demo tests
+npm run test:demo
 
 # Run all tests
 npm run test:all
@@ -47,23 +56,41 @@ npm run test:all
 
 ## 🧪 Test Suites
 
-### 1. Comprehensive CRUD Tests (`crud-automation.js`)
-- Full CRUD cycle for each role and section
-- Permission validation
-- Error handling
-- Detailed reporting
+### 1. Smoke Tests (`test:smoke`) - **Recommended for Daily Use**
+- Critical user journey validation
+- Authentication and profile access
+- Dashboard and announcements
+- Frontend availability
+- **Fast, safe, non-destructive**
 
-### 2. Quick Validation Tests (`quick-crud-test.js`)
+### 2. Comprehensive CRUD Tests (`test:crud`)
+- Full CRUD cycle for each role and section
+- Permission validation across all endpoints
+- Error handling and edge cases
+- Detailed reporting with role-based testing
+
+### 3. Quick Validation Tests (`test:quick`)
 - Fast endpoint validation
 - Core functionality check
 - Basic permission testing
-- Quick feedback
+- Quick feedback for development
 
-### 3. Performance Tests (`performance-test.js`)
+### 4. Integration Tests (`test:integration`) - **⚠️ Destructive**
+- End-to-end workflows with data creation
+- Full user journeys including data modification
+- Automatic cleanup of test data
+- Use `DRY_RUN=true` for safe testing
+
+### 5. Performance Tests (`test:performance`)
 - Response time measurement
-- Load testing
-- Performance thresholds
+- Load testing simulation
+- Performance thresholds validation
 - Bottleneck identification
+
+### 6. Demo Tests (`test:demo`)
+- Interactive demonstration of testing capabilities
+- Real-time authentication and API calls
+- Educational tool for understanding the system
 
 ## 📊 Test Results
 
@@ -84,26 +111,45 @@ npm run test:all
 
 ## 🔧 Configuration
 
+### Centralized Configuration (`config.js`)
+All test files now use a centralized configuration system for consistency:
+
+- **Development**: `http://localhost:8080/api/v1` (default)
+- **Production**: `https://api.caf-mexico.org/api/v1` (when `NODE_ENV=production`)
+
+### Environment Variables
+Override defaults using environment variables:
+
+```bash
+# API Configuration
+export API_BASE_URL="https://your-api.example.com/api/v1"
+export FRONTEND_BASE_URL="https://your-app.example.com"
+export WS_BASE_URL="wss://your-api.example.com/ws"
+
+# Test Credentials
+export TEST_USER_EMAIL="test@example.com"
+export TEST_USER_PASSWORD="securepassword"
+export ADMIN_TEST_EMAIL="admin@example.com"
+export ADMIN_TEST_PASSWORD="adminpassword"
+
+# Test Settings
+export TIMEOUT=15000
+export MAX_RETRIES=5
+export DRY_RUN=true  # For integration tests
+export VERBOSE=true
+```
+
 ### Test Credentials
-Update `TEST_USERS` in each test file with valid credentials:
+The system includes secure test credentials:
 
-```javascript
-const TEST_USERS = {
-  admin: {
-    email: 'admin@caf.org',
-    password: 'admin123',
-    role: 'admin'
-  },
-  // ... other roles
-};
-```
+- **Admin User**: `admin@caf.org` / `admin123` (development default)
+- **Test User**: Configurable via environment variables
+- **Production**: Uses environment variables for security
 
-### API Endpoints
-Modify `API_BASE_URL` for different environments:
-
-```javascript
-const API_BASE_URL = 'https://api.caf-mexico.org/api/v1';
-```
+### Configuration Priority
+1. Environment variables (highest priority)
+2. Production defaults (when `NODE_ENV=production`)
+3. Development defaults (fallback)
 
 ## 🚨 Troubleshooting
 
@@ -167,6 +213,14 @@ Set up cron jobs for regular testing:
 2. Update existing test functions
 3. Add validation and error cases
 
+### Specialized Test Files
+- **`websocket-tester.js`** - WebSocket connection testing
+- **`load-test-processor.js`** - Load testing with configurable scenarios
+- **`rbac-validation.js`** - Role-based access control validation
+- **`test-user-manager.js`** - Test user account management
+- **`validate-implementation.js`** - Implementation validation and compliance
+- **`health-monitor.sh`** - System health monitoring script
+
 ## 🔍 Monitoring
 
 ### Key Metrics
@@ -187,6 +241,39 @@ Set up alerts for:
 - [API Documentation](../docs/API.md)
 - [Role Permissions](../docs/RolePermissions.md)
 - [Testing Strategy](../PRODUCTION_TESTING_STRATEGY.md)
+
+## 🧹 Testing Suite Organization
+
+### Recent Improvements
+- **Centralized Configuration**: All tests now use `config.js` for consistent settings
+- **Security Hardening**: Removed hardcoded JWT tokens and credentials
+- **Environment Flexibility**: Automatic switching between development and production
+- **Comprehensive Test Coverage**: Multiple test types for different use cases
+- **Clean Dependencies**: Properly managed npm packages with proper versions
+
+### File Organization
+```
+testing/
+├── config.js              # Centralized configuration
+├── smoke-tests.js         # Daily health checks (recommended)
+├── crud-automation.js     # Comprehensive CRUD testing
+├── quick-crud-test.js     # Fast validation tests
+├── integration-tests.js   # End-to-end with data creation
+├── performance-test.js    # Performance benchmarking
+├── demo-test.js          # Interactive demonstrations
+├── websocket-tester.js   # WebSocket testing
+├── load-test-processor.js # Load testing
+├── rbac-validation.js    # Access control validation
+├── test-user-manager.js  # User account management
+├── validate-implementation.js # Implementation checks
+├── health-monitor.sh     # System monitoring script
+└── README.md             # This documentation
+```
+
+### Test Safety Levels
+- 🟢 **Safe**: Smoke, CRUD, Quick, Performance, Demo tests
+- 🟡 **Caution**: Integration tests (use `DRY_RUN=true`)
+- 🔴 **Danger**: Production integration tests without dry run
 
 ## 🤝 Contributing
 

@@ -9,18 +9,18 @@
 
 const axios = require('axios');
 const chalk = require('chalk');
-require('dotenv').config();
+const config = require('./config');
 
-// Configuration
+// Use centralized configuration
 const CONFIG = {
-    API_BASE: process.env.API_BASE_URL || 'https://api.caf-mexico.org/api/v1',
-    FRONTEND_BASE: process.env.FRONTEND_BASE_URL || 'https://admin.caf-mexico.org',
+    API_BASE: config.API_BASE_URL,
+    FRONTEND_BASE: config.FRONTEND_BASE_URL,
     TEST_CREDENTIALS: {
-        email: process.env.TEST_USER_EMAIL || 'test@caf-mexico.org',
-        password: process.env.TEST_USER_PASSWORD || 'TestPassword123'
+        email: config.TEST_USER_EMAIL,
+        password: config.TEST_USER_PASSWORD
     },
-    TIMEOUT: 10000, // 10 seconds
-    MAX_RETRIES: 3
+    TIMEOUT: config.TIMEOUT,
+    MAX_RETRIES: config.MAX_RETRIES
 };
 
 // Test results tracking

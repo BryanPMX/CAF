@@ -6,20 +6,21 @@
  */
 
 const axios = require('axios');
+const config = require('./config');
 
-const API_BASE_URL = 'https://api.caf-mexico.org/api/v1';
+const API_BASE_URL = config.API_BASE_URL;
 
-// Demo with working credentials from previous tests
+// Demo with working credentials from config
 const DEMO_USERS = {
-  admin: { 
-    email: 'admin@caf.org', 
-    password: 'admin123',
-    token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwiZXhwIjoxNzU5MjcyMjEzLCJpYXQiOjE3NTkxODU4MTN9.6D87cxsEDjOhGTkaZWfJ7AHDPbnsATMbP4GKmIW89kY'
+  admin: {
+    email: config.ADMIN_TEST_EMAIL,
+    password: config.ADMIN_TEST_PASSWORD,
+    token: null // Token will be obtained via login
   },
-  staff: { 
-    email: 'barmen@caf.org', 
-    password: '12345678',
-    token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2IiwiZXhwIjoxNzU5MjczMDM3LCJpYXQiOjE3NTkxODY2Mzd9.gfkcbYWOpJuo2aK7mdGKcbTFJGwDRGaSRvth47Q1RmI'
+  test: {
+    email: config.TEST_USER_EMAIL,
+    password: config.TEST_USER_PASSWORD,
+    token: null // Token will be obtained via login
   }
 };
 
@@ -29,14 +30,50 @@ const apiClient = axios.create({
   validateStatus: () => true
 });
 
+// Login function to obtain JWT tokens
+async function loginUser(user) {
+  try {
+    const response = await apiClient.post('/login', {
+      email: user.email,
+      password: user.password
+    });
+
+    if (response.status === 200 && response.data.token) {
+      user.token = response.data.token;
+      console.log(`✅ Logged in ${user.email} successfully`);
+      return true;
+    } else {
+      console.log(`❌ Failed to login ${user.email}: ${response.status}`);
+      return false;
+    }
+  } catch (error) {
+    console.log(`❌ Login error for ${user.email}: ${error.message}`);
+    return false;
+  }
+}
+
 async function demoTest(role, endpoint, method = 'GET', data = null) {
   try {
     const user = DEMO_USERS[role];
-    const config = { 
-      headers: { 
+
+    // Login if not already authenticated
+    if (!user.token) {
+      const loggedIn = await loginUser(user);
+      if (!loggedIn) {
+        return {
+          success: false,
+          status: 401,
+          data: { error: 'Authentication failed' },
+          error: 'Failed to authenticate user'
+        };
+      }
+    }
+
+    const config = {
+      headers: {
         Authorization: `Bearer ${user.token}`,
         'User-Agent': 'CAF-Demo-Test/1.0'
-      } 
+      }
     };
     
     let response;

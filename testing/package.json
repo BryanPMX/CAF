@@ -7,6 +7,8 @@
     "test:crud": "node crud-automation.js",
     "test:quick": "node quick-crud-test.js",
     "test:performance": "node performance-test.js",
+    "test:smoke": "node smoke-tests.js",
+    "test:integration": "node integration-tests.js",
     "test:demo": "node demo-test.js",
     "test:all": "npm run test:crud && npm run test:quick && npm run test:performance"
   },
@@ -14,6 +16,8 @@
     "axios": "^1.6.0"
   },
   "devDependencies": {
+    "chalk": "^4.1.2",
+    "dotenv": "^17.2.3",
     "nodemon": "^3.0.0"
   },
   "keywords": [
