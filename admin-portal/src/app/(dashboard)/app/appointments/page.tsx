@@ -169,7 +169,12 @@ const AppointmentsPage = () => {
 
   // Fetch the data when the component first loads or when user changes.
   useEffect(() => {
-    fetchAppointments();
+    console.log('User changed, refetching appointments for user:', user?.role, user?.id);
+    // Clear any cached data and force fresh data when user changes (account switching)
+    setAppointments([]);
+    setFilteredAppointments([]);
+    // Force fresh data when user changes (account switching)
+    fetchAppointments(true, true);
     fetchSupportingData();
   }, [user]);
 

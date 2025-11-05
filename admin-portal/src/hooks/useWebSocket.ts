@@ -108,6 +108,7 @@ export const useWebSocket = (): UseWebSocketReturn => {
 
   // Connect when user is available
   useEffect(() => {
+    console.log('WebSocket: User changed, reconnecting for user:', user?.role, user?.id);
     if (user) {
       connect();
     } else {
