@@ -173,30 +173,30 @@ const AppointmentsPage = () => {
     fetchSupportingData();
   }, [user]);
 
-  // Handle real-time WebSocket updates for appointments
-  useEffect(() => {
-    if (lastMessage && lastMessage.type === 'notification' && lastMessage.notification?.type === 'appointment_updated') {
-      console.log('Appointment update received via WebSocket:', lastMessage.notification);
+  // WebSocket auto-refresh disabled to prevent rate limiting
+  // useEffect(() => {
+  //   if (lastMessage && lastMessage.type === 'notification' && lastMessage.notification?.type === 'appointment_updated') {
+  //     console.log('Appointment update received via WebSocket:', lastMessage.notification);
+  //
+  //     // Immediately refresh appointments when an update is received
+  //     fetchAppointments(true, false).catch(error => {
+  //       console.error('WebSocket-triggered refresh: Failed to fetch appointments:', error);
+  //     });
+  //   }
+  // }, [lastMessage]);
 
-      // Immediately refresh appointments when an update is received
-      fetchAppointments(true, false).catch(error => {
-        console.error('WebSocket-triggered refresh: Failed to fetch appointments:', error);
-      });
-    }
-  }, [lastMessage]);
-
-  // Auto-refresh appointments every 30 seconds (completely silent, with cache busting)
-  useEffect(() => {
-    if (!user) return;
-
-    const interval = setInterval(() => {
-      fetchAppointments(true, false).catch(error => {
-        console.error('Auto-refresh: Failed to fetch appointments:', error);
-      }); // Silent refresh with cache busting, no loading, no errors
-    }, 30000); // 30 seconds
-
-    return () => clearInterval(interval);
-  }, [user]);
+  // Auto-refresh disabled to prevent rate limiting
+  // useEffect(() => {
+  //   if (!user) return;
+  //
+  //   const interval = setInterval(() => {
+  //     fetchAppointments(true, false).catch(error => {
+  //       console.error('Auto-refresh: Failed to fetch appointments:', error);
+  //     }); // Silent refresh with cache busting, no loading, no errors
+  //   }, 30000); // 30 seconds
+  //
+  //   return () => clearInterval(interval);
+  // }, [user]);
 
   // Department and Case Type options
   const DEPARTMENTS = ['Familiar', 'Civil', 'Psicologia', 'Recursos'];
