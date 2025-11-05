@@ -64,16 +64,41 @@ func GetAppointmentsEnhanced(db *gorm.DB) gin.HandlerFunc {
 		}
 		if category := c.Query("category"); category != "" {
 			// Filter by case category since category equals type of case
+			log.Printf("DEBUG GetAppointmentsEnhanced: Filtering by case category: %s", category)
 			query = query.Joins("INNER JOIN cases ON cases.id = appointments.case_id AND cases.category = ?", category)
 		}
 		if department := c.Query("department"); department != "" {
 			query = query.Where("appointments.department = ?", department)
 		}
+		// Handle date filtering (single date or date range)
 		if date := c.Query("date"); date != "" {
 			// Parse date and filter by start_time
 			if parsedDate, err := time.Parse("2006-01-02", date); err == nil {
 				nextDay := parsedDate.Add(24 * time.Hour)
 				query = query.Where("appointments.start_time >= ? AND appointments.start_time < ?", parsedDate, nextDay)
+			}
+		} else if dateFrom := c.Query("dateFrom"); dateFrom != "" {
+			// Handle date range filtering
+			var whereClause string
+			var args []interface{}
+
+			if parsedDateFrom, err := time.Parse("2006-01-02", dateFrom); err == nil {
+				if dateTo := c.Query("dateTo"); dateTo != "" {
+					if parsedDateTo, err := time.Parse("2006-01-02", dateTo); err == nil {
+						// Include the end date (add one day to make it inclusive)
+						endDate := parsedDateTo.Add(24 * time.Hour)
+						whereClause = "appointments.start_time >= ? AND appointments.start_time < ?"
+						args = []interface{}{parsedDateFrom, endDate}
+					}
+				} else {
+					// Only dateFrom specified
+					whereClause = "appointments.start_time >= ?"
+					args = []interface{}{parsedDateFrom}
+				}
+
+				if whereClause != "" {
+					query = query.Where(whereClause, args...)
+				}
 			}
 		}
 
@@ -81,6 +106,11 @@ func GetAppointmentsEnhanced(db *gorm.DB) gin.HandlerFunc {
 		if err := query.Find(&appointments).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve appointments"})
 			return
+		}
+
+		// Debug logging
+		if category := c.Query("category"); category != "" {
+			log.Printf("DEBUG GetAppointmentsEnhanced: Found %d appointments for category '%s'", len(appointments), category)
 		}
 
 		// Calculate pagination info
@@ -503,18 +533,48 @@ func GetMyAppointments(db *gorm.DB) gin.HandlerFunc {
 		}
 		if category := c.Query("category"); category != "" {
 			// Filter by case category since category equals type of case
+			log.Printf("DEBUG GetMyAppointments: Filtering by case category: %s", category)
 			query = query.Joins("INNER JOIN cases ON cases.id = appointments.case_id AND cases.category = ?", category)
 		}
+		// Handle date filtering (single date or date range)
 		if date := c.Query("date"); date != "" {
 			if parsedDate, err := time.Parse("2006-01-02", date); err == nil {
 				nextDay := parsedDate.Add(24 * time.Hour)
 				query = query.Where("start_time >= ? AND start_time < ?", parsedDate, nextDay)
+			}
+		} else if dateFrom := c.Query("dateFrom"); dateFrom != "" {
+			// Handle date range filtering
+			var whereClause string
+			var args []interface{}
+
+			if parsedDateFrom, err := time.Parse("2006-01-02", dateFrom); err == nil {
+				if dateTo := c.Query("dateTo"); dateTo != "" {
+					if parsedDateTo, err := time.Parse("2006-01-02", dateTo); err == nil {
+						// Include the end date (add one day to make it inclusive)
+						endDate := parsedDateTo.Add(24 * time.Hour)
+						whereClause = "start_time >= ? AND start_time < ?"
+						args = []interface{}{parsedDateFrom, endDate}
+					}
+				} else {
+					// Only dateFrom specified
+					whereClause = "start_time >= ?"
+					args = []interface{}{parsedDateFrom}
+				}
+
+				if whereClause != "" {
+					query = query.Where(whereClause, args...)
+				}
 			}
 		}
 
 		if err := query.Find(&appointments).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve appointments"})
 			return
+		}
+
+		// Debug logging
+		if category := c.Query("category"); category != "" {
+			log.Printf("DEBUG GetMyAppointments: Found %d appointments for category '%s'", len(appointments), category)
 		}
 
 		// Calculate pagination info
