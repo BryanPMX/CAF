@@ -62,90 +62,6 @@ const AppointmentsPage = () => {
     }
   }, [user]);
 
-  const fetchAppointments = async (forceRefresh: boolean = false, showLoading: boolean = true) => {
-    try {
-      // Check if user is loaded
-      if (!user) {
-        console.warn('Cannot fetch appointments: user not loaded');
-        return;
-      }
-
-      if (showLoading) {
-        setLoading(true);
-      }
-
-      const params = {
-        page: 1,
-        pageSize: 1000, // Get all appointments for now
-        // Add cache-busting timestamp if force refresh
-        ...(forceRefresh ? { _t: Date.now() } : {})
-      };
-
-      console.log('fetchAppointments called with params:', params);
-
-      // Use centralized service layer with role-based endpoint routing
-      const data = await AppointmentService.fetchAppointments(
-        user.role,
-        params
-      );
-
-      // Appointments loaded successfully
-      setAppointments(data.data);
-
-      // For auto-refresh, reapply current filters to maintain user's view
-      if (!showLoading) {
-        let filtered = data.data;
-
-        // Reapply search filter if active
-        if (searchFilters.search) {
-          const searchLower = searchFilters.search.toLowerCase();
-          filtered = filtered.filter((appointment: Appointment) => {
-            const titleMatch = appointment.title?.toLowerCase().includes(searchLower);
-            const caseMatch = appointment.case?.title?.toLowerCase().includes(searchLower);
-            const staffMatch = `${appointment.staff?.firstName} ${appointment.staff?.lastName}`.toLowerCase().includes(searchLower);
-            return titleMatch || caseMatch || staffMatch;
-          });
-        }
-
-        // Reapply department filter if active (from SmartSearchBar)
-        if (searchFilters.department) {
-          filtered = filtered.filter((appointment: Appointment) =>
-            appointment.department === searchFilters.department
-          );
-        }
-
-        // Reapply category filter if active (from SmartSearchBar)
-        if (searchFilters.category) {
-          filtered = filtered.filter((appointment: Appointment) =>
-            appointment.case?.category === searchFilters.category
-          );
-        }
-
-        // Reapply status filter if active
-        if (searchFilters.status) {
-          filtered = filtered.filter((appointment: Appointment) =>
-            appointment.status === searchFilters.status
-          );
-        }
-
-        setFilteredAppointments(filtered);
-      } else {
-        // For manual refresh, show all appointments (filters will be reapplied by search/filter handlers)
-        setFilteredAppointments(data.data);
-      }
-    } catch (error: any) {
-      console.error('Failed to fetch appointments:', error);
-      // Only show error messages for manual operations, not auto-refresh
-      if (showLoading) {
-        const errorMessage = error.response?.data?.error || error.message || 'No se pudieron cargar las citas.';
-        message.error(`Error: ${errorMessage}`);
-      }
-    } finally {
-      if (showLoading) {
-        setLoading(false);
-      }
-    }
-  };
 
   const fetchSupportingData = async () => {
     try {
@@ -192,7 +108,7 @@ const AppointmentsPage = () => {
         console.error('WebSocket-triggered refresh: Failed to fetch appointments:', error);
       });
     }
-  }, [lastMessage, searchFilters]);
+  }, [lastMessage]); // Only depend on lastMessage, not searchFilters
 
   // Auto-refresh appointments every 30 seconds (completely silent, with current filters)
   useEffect(() => {
@@ -322,7 +238,7 @@ const AppointmentsPage = () => {
       message.loading({ content: 'Eliminando...', key: 'deleteAppt' });
       await AppointmentService.deleteAppointment(user!.role, appointmentId.toString());
       message.success({ content: 'Cita eliminada exitosamente.', key: 'deleteAppt' });
-      fetchAppointments(); // Refresh the list
+      fetchAppointmentsWithFilters(searchFilters); // Refresh the list with current filters
     } catch (error) {
       message.error({ content: 'No se pudo eliminar la cita.', key: 'deleteAppt' });
     }
@@ -524,9 +440,9 @@ const AppointmentsPage = () => {
       <AppointmentModal
         visible={isModalVisible}
         onClose={() => setIsModalVisible(false)}
-        onSuccess={() => fetchAppointments(true)}
+        onSuccess={() => fetchAppointmentsWithFilters(searchFilters)}
       />
-      
+
       <EditAppointmentModal
         visible={isEditModalVisible}
         appointment={editingAppointment}
@@ -534,7 +450,7 @@ const AppointmentsPage = () => {
           setIsEditModalVisible(false);
           setEditingAppointment(null);
         }}
-        onSuccess={() => fetchAppointments(true)}
+        onSuccess={() => fetchAppointmentsWithFilters(searchFilters)}
       />
     </div>
   );
