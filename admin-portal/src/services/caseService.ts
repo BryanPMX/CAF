@@ -34,11 +34,46 @@ export class CaseService implements ICaseService {
   // Static methods for backward compatibility when imported as class
   static async fetchCases(userRole: string, params?: any) {
     console.log('Static legacy fetchCases called with:', userRole, params);
-    return {
-      data: [],
-      pagination: { total: 0, page: 1, pageSize: 20, hasNext: false, hasPrev: false, totalPages: 0 },
-      performance: { queryTime: '0ms', cacheHit: false, responseSize: 0 }
-    };
+
+    // Get API client from container
+    const { apiClient } = await import('@/core/container');
+    const client = apiClient();
+
+    try {
+      let endpoint = '/cases';
+
+      // Route to appropriate endpoint based on user role
+      if (userRole === 'admin') {
+        endpoint = '/admin/cases';
+      } else if (userRole === 'office_manager') {
+        endpoint = '/office/cases';
+      }
+
+      const response = await client.get(endpoint, { params });
+      return {
+        data: response.data.data || response.data,
+        pagination: response.data.pagination || {
+          total: response.data.length || 0,
+          page: params?.page || 1,
+          pageSize: params?.pageSize || 20,
+          hasNext: false,
+          hasPrev: false,
+          totalPages: 0
+        },
+        performance: response.data.performance || {
+          queryTime: '0ms',
+          cacheHit: false,
+          responseSize: 0
+        }
+      };
+    } catch (error) {
+      console.error('Error fetching cases:', error);
+      return {
+        data: [],
+        pagination: { total: 0, page: 1, pageSize: 20, hasNext: false, hasPrev: false, totalPages: 0 },
+        performance: { queryTime: '0ms', cacheHit: false, responseSize: 0 }
+      };
+    }
   }
 
   static async fetchCaseById(userRole: string, id: string, options?: string): Promise<any> {
