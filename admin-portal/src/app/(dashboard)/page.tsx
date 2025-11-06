@@ -177,6 +177,18 @@ const RoleBasedDashboard: React.FC<{
   // Get widgets for the user's role
   const availableWidgets = getDashboardWidgetsForRole(userRole);
   
+  // Fallback component for unimplemented widgets
+  const FallbackWidget: React.FC<{ widgetName: string }> = ({ widgetName }) => (
+    <Card title={`${widgetName} (Próximamente)`} className="h-full">
+      <div className="flex items-center justify-center h-32 text-gray-500">
+        <div className="text-center">
+          <ExclamationCircleOutlined style={{ fontSize: '24px', marginBottom: '8px' }} />
+          <div>Widget en desarrollo</div>
+        </div>
+      </div>
+    </Card>
+  );
+
   // Define widget components
   const widgetComponents = {
     'system-stats': () => (
@@ -323,11 +335,10 @@ const RoleBasedDashboard: React.FC<{
       <Row gutter={[16, 16]}>
         {availableWidgets.map((widget) => {
            const WidgetComponent = widgetComponents[widget as keyof typeof widgetComponents];
-          if (!WidgetComponent) return null;
-          
+
           return (
             <Col xs={24} sm={12} md={8} lg={6} key={widget}>
-              <WidgetComponent />
+              {WidgetComponent ? <WidgetComponent /> : <FallbackWidget widgetName={widget} />}
             </Col>
           );
         })}
