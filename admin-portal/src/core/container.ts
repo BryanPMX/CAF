@@ -37,11 +37,11 @@ export class ServiceContainer {
     this.dashboardService = new DashboardService(this.apiClient);
     // TODO: Implement proper ReportService
     this.reportService = {
-      getCaseReports: async () => ({}),
-      getAppointmentReports: async () => ({}),
-      getUserActivityReports: async () => ({}),
+      getCaseReports: async () => ({} as any),
+      getAppointmentReports: async () => ({} as any),
+      getUserActivityReports: async () => ({} as any),
       exportReport: async () => new Blob(),
-    } as IReportService;
+    } as unknown as IReportService;
   }
 
   // Getters for services
