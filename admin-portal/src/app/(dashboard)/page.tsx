@@ -257,7 +257,6 @@ const TrueDashboardPage = () => {
   const [selectedOfficeId, setSelectedOfficeId] = useState<string>('');
   const [offices, setOffices] = useState<Office[]>([]);
   const initializedRef = useRef(false);
-  const renderCountRef = useRef(0);
 
   // Fetch offices for admin/office manager filtering
   const fetchOffices = async () => {
@@ -343,7 +342,6 @@ const TrueDashboardPage = () => {
         };
       }
 
-      console.log('Dashboard data received:', processedData);
       setDashboardData(processedData);
     } catch (error: any) {
       console.error('Dashboard data fetch error:', error);
@@ -370,7 +368,6 @@ const TrueDashboardPage = () => {
 
     initializedRef.current = true;
     const role = user.role;
-    console.log('Dashboard: Initialized with user role:', role);
     setUserRole(role);
 
     // Always fetch offices for UI (needed for office filtering dropdown)
@@ -394,7 +391,6 @@ const TrueDashboardPage = () => {
 
     // Only handle logout (user going from exists to null)
     if (prevUser && !currentUser) {
-      console.log('Dashboard: User logged out, resetting state');
       setUserRole(null);
       setDashboardData(null);
       initializedRef.current = false;
@@ -403,8 +399,6 @@ const TrueDashboardPage = () => {
     prevUserRef.current = currentUser;
   }, []); // Empty dependency array - handle logout manually
 
-  // Track render count for debugging (only log on issues)
-  renderCountRef.current += 1;
 
   return (
     <div className="space-y-6">
