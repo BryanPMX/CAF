@@ -447,7 +447,7 @@ const TrueDashboardPage = () => {
 
       {/* Statistics Cards */}
       <div className="mb-8">
-        {userRole && dashboardData && typeof dashboardData === 'object' ? (
+        {userRole && dashboardData && typeof dashboardData === 'object' && dashboardData !== false && !loading && Object.keys(dashboardData).length > 0 ? (
           <RoleBasedDashboard
             data={dashboardData}
             userRole={userRole}
