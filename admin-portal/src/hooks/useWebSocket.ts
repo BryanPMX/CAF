@@ -14,6 +14,7 @@ interface UseWebSocketReturn {
   sendMessage: (message: any) => void;
 }
 
+// TEMPORARILY DISABLED: Notification system not properly implemented and secure
 export const useWebSocket = (): UseWebSocketReturn => {
   const [isConnected, setIsConnected] = useState(false);
   const [lastMessage, setLastMessage] = useState<WebSocketMessage | null>(null);
@@ -24,6 +25,11 @@ export const useWebSocket = (): UseWebSocketReturn => {
   const { user } = useAuth();
 
   const connect = useCallback(() => {
+    // DISABLED: WebSocket connections temporarily disabled
+    // Notification system needs proper security implementation
+    console.log('WebSocket connections disabled - notification system not secure');
+    return;
+
     if (!user || !process.env.NEXT_PUBLIC_API_URL) return;
 
     try {
@@ -106,19 +112,17 @@ export const useWebSocket = (): UseWebSocketReturn => {
     }
   }, []);
 
+  // DISABLED: WebSocket connections temporarily disabled
   // Connect when user is available
   useEffect(() => {
-    console.log('WebSocket: User changed, reconnecting for user:', user?.role, user?.id);
-    if (user) {
-      connect();
-    } else {
-      disconnect();
-    }
-
-    return () => {
-      disconnect();
-    };
-  }, [user, connect, disconnect]);
+    console.log('WebSocket: DISABLED - User changed, would reconnect for user:', user?.role, user?.id);
+    // WebSocket connections disabled - notification system not secure
+    // if (user) {
+    //   connect();
+    // } else {
+    //   disconnect();
+    // }
+  }, [user]); // Removed connect, disconnect dependencies
 
   // Cleanup on unmount
   useEffect(() => {
