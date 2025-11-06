@@ -91,15 +91,6 @@ const RoleBasedDashboard: React.FC<{
           </Typography.Text>
         </div>
 
-        <Space>
-          <Button
-            icon={<ReloadOutlined />}
-            onClick={onRefresh}
-            loading={loading}
-          >
-            Actualizar
-          </Button>
-        </Space>
       </div>
 
       {/* Office Filter for admins and office managers */}
@@ -352,6 +343,7 @@ const TrueDashboardPage = () => {
         };
       }
 
+      console.log('Dashboard data received:', processedData);
       setDashboardData(processedData);
     } catch (error: any) {
       console.error('Dashboard data fetch error:', error);
@@ -422,33 +414,6 @@ const TrueDashboardPage = () => {
         </div>
       ) : (
         <>
-          {/* Header with Actions - Enhanced Mobile */}
-          <div className="flex flex-col gap-4">
-        <div className="text-center sm:text-left">
-          <Typography.Title level={1} className="!mb-2 !text-2xl sm:!text-3xl font-bold text-gray-800">
-            Dashboard
-          </Typography.Title>
-          <Typography.Text type="secondary" className="text-base sm:text-lg">
-            Bienvenido de vuelta al Sistema CAF
-          </Typography.Text>
-        </div>
-        
-        {/* Mobile-optimized action buttons */}
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="flex gap-2">
-            <Button 
-              icon={<ReloadOutlined />} 
-              onClick={handleRefresh}
-              loading={loading}
-              className="flex-1 sm:flex-none border-blue-500 text-blue-500 hover:bg-blue-50"
-              size="large"
-            >
-              <span className="sm:hidden">Actualizar</span>
-              <span className="hidden sm:inline">Actualizar</span>
-            </Button>
-          </div>
-        </div>
-      </div>
 
       {/* Statistics Cards */}
       <div className="mb-8">
@@ -464,38 +429,15 @@ const TrueDashboardPage = () => {
         ) : (
           <div className="flex justify-center items-center h-32">
             <Spin size="large" tip={loading ? "Cargando dashboard..." : "Esperando datos..."} />
+            {userRole && !dashboardData && !loading && (
+              <div className="mt-2 text-sm text-gray-500">
+                Cargando datos del dashboard...
+              </div>
+            )}
           </div>
         )}
       </div>
 
-      {/* Quick Actions */}
-      {userRole && (
-        <Card title="Acciones Rápidas" size="small">
-          <div className="flex flex-wrap gap-2">
-            <Button
-              icon={<PlusOutlined />}
-              onClick={() => router.push('/app/cases')}
-              type="primary"
-            >
-              Nuevo Caso
-            </Button>
-            <Button
-              icon={<CalendarOutlined />}
-              onClick={() => router.push('/app/appointments')}
-            >
-              Programar Cita
-            </Button>
-            {userRole === 'admin' && (
-              <Button
-                icon={<TeamOutlined />}
-                onClick={() => router.push('/app/users')}
-              >
-                Gestionar Usuarios
-              </Button>
-            )}
-          </div>
-        </Card>
-      )}
         </>
       )}
     </div>
