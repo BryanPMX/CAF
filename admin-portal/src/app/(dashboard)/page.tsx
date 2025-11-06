@@ -447,15 +447,20 @@ const TrueDashboardPage = () => {
 
       {/* Statistics Cards */}
       <div className="mb-8">
-        {userRole && dashboardData && typeof dashboardData === 'object' && dashboardData !== false && !loading && Object.keys(dashboardData).length > 0 ? (
-          <RoleBasedDashboard
-            data={dashboardData}
-            userRole={userRole}
-            selectedOfficeId={selectedOfficeId}
-            onOfficeChange={handleOfficeChange}
-            onRefresh={handleRefresh}
-            loading={loading}
-          />
+        {userRole && dashboardData && typeof dashboardData === 'object' && dashboardData !== false && !loading && Object.keys(dashboardData).length > 0 && 'totalCases' in dashboardData ? (
+          (() => {
+            console.log('Rendering RoleBasedDashboard with data:', dashboardData);
+            return (
+              <RoleBasedDashboard
+                data={dashboardData}
+                userRole={userRole}
+                selectedOfficeId={selectedOfficeId}
+                onOfficeChange={handleOfficeChange}
+                onRefresh={handleRefresh}
+                loading={loading}
+              />
+            );
+          })()
         ) : (
           <div className="flex justify-center items-center h-32">
             <Spin size="large" tip="Cargando dashboard..." />
