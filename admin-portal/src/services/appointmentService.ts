@@ -22,7 +22,34 @@ export class AppointmentService implements IAppointmentService {
   // Static methods for backward compatibility when imported as class
   static async fetchAppointments(userRole?: string, params?: any) {
     console.log('Static legacy fetchAppointments called with:', userRole, params);
-    return { data: [], pagination: { total: 0, page: 1, pageSize: 20 } };
+
+    // Get API client from container
+    const { apiClient } = await import('@/core/container');
+    const client = apiClient();
+
+    try {
+      let endpoint = '/appointments';
+
+      // Route to appropriate endpoint based on user role
+      if (userRole === 'admin') {
+        endpoint = '/admin/appointments';
+      } else if (userRole === 'office_manager') {
+        endpoint = '/office/appointments';
+      }
+
+      const response = await client.get(endpoint, { params });
+      return {
+        data: response.data.data || response.data,
+        pagination: response.data.pagination || {
+          total: response.data.length || 0,
+          page: params?.page || 1,
+          pageSize: params?.pageSize || 20
+        }
+      };
+    } catch (error) {
+      console.error('Error fetching appointments:', error);
+      return { data: [], pagination: { total: 0, page: 1, pageSize: 20 } };
+    }
   }
 
   static async deleteAppointment(userRole: string, id: string) {
