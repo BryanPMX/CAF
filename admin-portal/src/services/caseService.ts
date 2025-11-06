@@ -32,14 +32,35 @@ export class CaseService implements ICaseService {
   constructor(private apiClient: ApiClient) {}
 
   // Static methods for backward compatibility when imported as class
-  static async fetchCases(params?: any) {
-    console.log('Static legacy fetchCases called with:', params);
-    return { data: [], pagination: { total: 0, page: 1, pageSize: 20 } };
+  static async fetchCases(userRole: string, params?: any) {
+    console.log('Static legacy fetchCases called with:', userRole, params);
+    return {
+      data: [],
+      pagination: { total: 0, page: 1, pageSize: 20, hasNext: false, hasPrev: false, totalPages: 0 },
+      performance: { queryTime: '0ms', cacheHit: false, responseSize: 0 }
+    };
   }
 
-  static async fetchCaseById(userRole: string, id: string, options?: string) {
+  static async fetchCaseById(userRole: string, id: string, options?: string): Promise<any> {
     console.log('Static legacy fetchCaseById called with:', userRole, id, options);
-    return { id, title: 'Mock Case', description: 'Mock description' };
+    return {
+      id,
+      title: 'Mock Case',
+      description: 'Mock description',
+      currentStage: 'open',
+      isCompleted: false,
+      isArchived: false,
+      client: { id: '1', firstName: 'Mock', lastName: 'Client' },
+      clientId: '1',
+      office: { id: '1', name: 'Mock Office' },
+      officeId: '1',
+      primaryStaff: { id: '1', firstName: 'Mock', lastName: 'Staff' },
+      status: 'open',
+      priority: 'medium',
+      category: 'general',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    } as any;
   }
 
   static async deleteCase(userRole: string, id: string) {

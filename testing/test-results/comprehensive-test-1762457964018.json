@@ -1,11 +1,11 @@
 {
-  "timestamp": "2025-11-06T17:57:15.816Z",
+  "timestamp": "2025-11-06T19:39:24.018Z",
   "summary": {
-    "total": 27,
-    "passed": 24,
-    "failed": 3,
+    "total": 25,
+    "passed": 25,
+    "failed": 0,
     "skipped": 0,
-    "duration": 267.950208
+    "duration": 184.610209
   },
   "performance": {},
   "testResults": [
@@ -14,27 +14,20 @@
       "success": true,
       "data": {
         "success": true,
-        "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwiZXhwIjoxNzYyNTM4MjM1LCJpYXQiOjE3NjI0NTE4MzV9.j6osqFm1Cdpg6674iR-L1ppwAiGNdcAQJjC5VLIHJwA"
+        "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwiZXhwIjoxNzYyNTQ0MzYzLCJpYXQiOjE3NjI0NTc5NjN9.yjzEwRD3oPl9r2YRxZ9xd9Csznz109rCog8k82wQv4o"
       },
       "error": null,
-      "timestamp": "2025-11-06T17:57:15.645Z"
+      "timestamp": "2025-11-06T19:39:23.912Z"
     },
     {
       "name": "Valid Staff Login",
       "success": true,
       "data": {
         "success": true,
-        "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIzIiwiZXhwIjoxNzYyNTM4MjM1LCJpYXQiOjE3NjI0NTE4MzV9.Fzah-WetwD3LDl3aUN1_w2r6CalvcULNc70Ahe1UQ5o"
+        "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIzIiwiZXhwIjoxNzYyNTQ0MzYzLCJpYXQiOjE3NjI0NTc5NjN9.Nquu__ZucHLAmrhWmA3nBlVXgy6KwdvdebMDtUyrItw"
       },
       "error": null,
-      "timestamp": "2025-11-06T17:57:15.706Z"
-    },
-    {
-      "name": "Valid Client Login",
-      "success": false,
-      "data": null,
-      "error": "Login failed: 401 - {\"error\":\"Invalid credentials\"}",
-      "timestamp": "2025-11-06T17:57:15.761Z"
+      "timestamp": "2025-11-06T19:39:23.975Z"
     },
     {
       "name": "Invalid Credentials",
@@ -44,7 +37,7 @@
         "status": 401
       },
       "error": null,
-      "timestamp": "2025-11-06T17:57:15.763Z"
+      "timestamp": "2025-11-06T19:39:23.976Z"
     },
     {
       "name": "Token Expiration",
@@ -54,7 +47,7 @@
         "status": 401
       },
       "error": null,
-      "timestamp": "2025-11-06T17:57:15.764Z"
+      "timestamp": "2025-11-06T19:39:23.977Z"
     },
     {
       "name": "Default Version (no header)",
@@ -65,7 +58,7 @@
         "currentVersion": "v1"
       },
       "error": null,
-      "timestamp": "2025-11-06T17:57:15.765Z"
+      "timestamp": "2025-11-06T19:39:23.978Z"
     },
     {
       "name": "Explicit v1 Version",
@@ -76,7 +69,7 @@
         "currentVersion": "v1"
       },
       "error": null,
-      "timestamp": "2025-11-06T17:57:15.765Z"
+      "timestamp": "2025-11-06T19:39:23.979Z"
     },
     {
       "name": "Invalid Version",
@@ -86,7 +79,7 @@
         "error": "Unsupported API version"
       },
       "error": null,
-      "timestamp": "2025-11-06T17:57:15.766Z"
+      "timestamp": "2025-11-06T19:39:23.980Z"
     },
     {
       "name": "Version Info Endpoint",
@@ -99,7 +92,7 @@
         ]
       },
       "error": null,
-      "timestamp": "2025-11-06T17:57:15.767Z"
+      "timestamp": "2025-11-06T19:39:23.981Z"
     },
     {
       "name": "Admin Access Control",
@@ -111,7 +104,7 @@
         "testedEndpoint": "/admin/users"
       },
       "error": null,
-      "timestamp": "2025-11-06T17:57:15.771Z"
+      "timestamp": "2025-11-06T19:39:23.984Z"
     },
     {
       "name": "Staff Access Control",
@@ -123,14 +116,7 @@
         "testedEndpoint": "/staff/cases"
       },
       "error": null,
-      "timestamp": "2025-11-06T17:57:15.774Z"
-    },
-    {
-      "name": "Client Access Control",
-      "success": false,
-      "data": null,
-      "error": "No token available for client",
-      "timestamp": "2025-11-06T17:57:15.774Z"
+      "timestamp": "2025-11-06T19:39:23.987Z"
     },
     {
       "name": "Cross-Role Access Prevention",
@@ -140,14 +126,22 @@
         "preventedAccess": true
       },
       "error": null,
-      "timestamp": "2025-11-06T17:57:15.775Z"
+      "timestamp": "2025-11-06T19:39:23.988Z"
     },
     {
       "name": "Database Query Performance",
-      "success": false,
-      "data": null,
-      "error": "Request failed: 404",
-      "timestamp": "2025-11-06T17:57:15.790Z"
+      "success": true,
+      "data": {
+        "Dashboard Summary": {
+          "avg": 1.0877418000000034,
+          "min": 1.062375000000003,
+          "max": 1.154500000000013,
+          "p95": 1.0860420000000204,
+          "iterations": 5
+        }
+      },
+      "error": null,
+      "timestamp": "2025-11-06T19:39:23.994Z"
     },
     {
       "name": "API Response Times",
@@ -170,7 +164,7 @@
         }
       },
       "error": null,
-      "timestamp": "2025-11-06T17:57:15.792Z"
+      "timestamp": "2025-11-06T19:39:23.995Z"
     },
     {
       "name": "Concurrent Load Test",
@@ -179,24 +173,24 @@
         "concurrentRequests": 10,
         "successfulRequests": 0,
         "failedRequests": 10,
-        "totalTime": 2.7827500000000214,
-        "avgTimePerRequest": 0.27827500000000216
+        "totalTime": 3.9855420000000095,
+        "avgTimePerRequest": 0.39855420000000097
       },
       "error": null,
-      "timestamp": "2025-11-06T17:57:15.796Z"
+      "timestamp": "2025-11-06T19:39:24.000Z"
     },
     {
       "name": "Memory Usage",
       "success": true,
       "data": {
-        "rss": 69697536,
-        "heapTotal": 20627456,
-        "heapUsed": 11490728,
-        "external": 3954400,
+        "rss": 68337664,
+        "heapTotal": 20103168,
+        "heapUsed": 13184952,
+        "external": 3848831,
         "note": "Client-side memory usage - server metrics needed for full analysis"
       },
       "error": null,
-      "timestamp": "2025-11-06T17:57:15.797Z"
+      "timestamp": "2025-11-06T19:39:24.000Z"
     },
     {
       "name": "Index Effectiveness",
@@ -204,25 +198,25 @@
       "data": {
         "Case Office+Category Filter": {
           "success": true,
-          "responseTime": 1.8155419999999935,
+          "responseTime": 1.7888749999999902,
           "dataCount": 0,
           "expectedIndex": "idx_cases_access_control"
         },
         "Appointment Date Range": {
           "success": true,
-          "responseTime": 1.6320830000000228,
+          "responseTime": 1.4300000000000068,
           "dataCount": 1,
           "expectedIndex": "idx_appointments_date_range"
         },
         "User Role Filter": {
           "success": false,
-          "responseTime": 0.6386249999999905,
+          "responseTime": 0.560167000000007,
           "dataCount": 0,
           "expectedIndex": "idx_users_role_office_dept"
         }
       },
       "error": null,
-      "timestamp": "2025-11-06T17:57:15.801Z"
+      "timestamp": "2025-11-06T19:39:24.004Z"
     },
     {
       "name": "Query Plan Analysis",
@@ -233,7 +227,7 @@
         "implementation": "EXPLAIN ANALYZE on critical queries"
       },
       "error": null,
-      "timestamp": "2025-11-06T17:57:15.801Z"
+      "timestamp": "2025-11-06T19:39:24.004Z"
     },
     {
       "name": "Complex Query Performance",
@@ -241,22 +235,22 @@
       "data": {
         "/cases?status=open&category=legal&officeId=1": {
           "success": true,
-          "responseTime": 1.5323339999999916,
+          "responseTime": 1.2853330000000085,
           "resultCount": 0
         },
         "/appointments?department=Legal&startTime=2024-01-01": {
           "success": true,
-          "responseTime": 1.0372920000000363,
+          "responseTime": 0.9721670000000131,
           "resultCount": 0
         },
         "/users?role=lawyer&officeId=1&isActive=true": {
           "success": false,
-          "responseTime": 0.4867919999999799,
+          "responseTime": 0.511874999999975,
           "resultCount": 0
         }
       },
       "error": null,
-      "timestamp": "2025-11-06T17:57:15.804Z"
+      "timestamp": "2025-11-06T19:39:24.007Z"
     },
     {
       "name": "Appointment Category Filter",
@@ -268,7 +262,7 @@
         "filteredCount": 1
       },
       "error": null,
-      "timestamp": "2025-11-06T17:57:15.807Z"
+      "timestamp": "2025-11-06T19:39:24.010Z"
     },
     {
       "name": "Case Access Control",
@@ -280,7 +274,7 @@
         "accessControlWorking": true
       },
       "error": null,
-      "timestamp": "2025-11-06T17:57:15.810Z"
+      "timestamp": "2025-11-06T19:39:24.012Z"
     },
     {
       "name": "Dashboard Data Consistency",
@@ -295,7 +289,7 @@
         "dataIntegrity": true
       },
       "error": null,
-      "timestamp": "2025-11-06T17:57:15.811Z"
+      "timestamp": "2025-11-06T19:39:24.013Z"
     },
     {
       "name": "WebSocket Notifications",
@@ -306,7 +300,7 @@
         "endpointAvailable": true
       },
       "error": null,
-      "timestamp": "2025-11-06T17:57:15.811Z"
+      "timestamp": "2025-11-06T19:39:24.013Z"
     },
     {
       "name": "Health Endpoints",
@@ -344,7 +338,7 @@
         }
       },
       "error": null,
-      "timestamp": "2025-11-06T17:57:15.815Z"
+      "timestamp": "2025-11-06T19:39:24.016Z"
     },
     {
       "name": "Metrics Collection",
@@ -355,7 +349,7 @@
         "planned": true
       },
       "error": null,
-      "timestamp": "2025-11-06T17:57:15.815Z"
+      "timestamp": "2025-11-06T19:39:24.016Z"
     },
     {
       "name": "Error Handling",
@@ -378,12 +372,11 @@
         }
       },
       "error": null,
-      "timestamp": "2025-11-06T17:57:15.816Z"
+      "timestamp": "2025-11-06T19:39:24.018Z"
     }
   ],
   "errors": [],
   "recommendations": [
-    "3 tests failed - review and fix issues",
     "Monitor system performance after index deployment",
     "Implement automated testing in CI/CD pipeline"
   ]
