@@ -172,6 +172,11 @@ func main() {
 		})
 	})
 
+	// HEAD method support for Docker health checks
+	r.HEAD("/health", func(c *gin.Context) {
+		c.Status(http.StatusOK)
+	})
+
 	// AWS ALB health check endpoint (common AWS convention)
 	r.GET("/health/live", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
