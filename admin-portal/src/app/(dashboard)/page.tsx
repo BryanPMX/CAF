@@ -373,15 +373,11 @@ const TrueDashboardPage = () => {
 
   // Initialize dashboard only once when user becomes available
   useEffect(() => {
-    console.log('Dashboard init effect running:', { isHydrated, userRole: user?.role, initialized: initializedRef.current });
-    if (!isHydrated || !user?.role || initializedRef.current) {
-      console.log('Dashboard init effect: skipping initialization');
-      return;
-    }
+    if (!isHydrated || !user?.role || initializedRef.current) return;
 
     initializedRef.current = true;
     const role = user.role;
-    console.log('Dashboard: Initializing with user role:', role);
+    console.log('Dashboard: Initialized with user role:', role);
     setUserRole(role);
 
     // Always fetch offices for UI (needed for office filtering dropdown)
@@ -403,13 +399,6 @@ const TrueDashboardPage = () => {
     const prevUser = prevUserRef.current;
     const currentUser = user;
 
-    console.log('Dashboard logout effect running:', {
-      prevUserExists: !!prevUser,
-      currentUserExists: !!currentUser,
-      prevUserRole: prevUser?.role,
-      currentUserRole: currentUser?.role
-    });
-
     // Only handle logout (user going from exists to null)
     if (prevUser && !currentUser) {
       console.log('Dashboard: User logged out, resetting state');
@@ -424,14 +413,18 @@ const TrueDashboardPage = () => {
   // CRITICAL FIX: No early returns to prevent React error #310
   // All hooks must be called on every render, regardless of loading state
   renderCountRef.current += 1;
-  console.log(`Dashboard rendering #${renderCountRef.current}:`, {
-    userRole,
-    loading,
-    dashboardData: !!dashboardData,
-    userExists: !!user,
-    userRoleFromAuth: user?.role,
-    initialized: initializedRef.current
-  });
+
+  // Only log every 5 renders to reduce noise, or always log if render count is low
+  if (renderCountRef.current <= 10 || renderCountRef.current % 5 === 0) {
+    console.log(`Dashboard rendering #${renderCountRef.current}:`, {
+      userRole,
+      loading,
+      dashboardData: !!dashboardData,
+      userExists: !!user,
+      userRoleFromAuth: user?.role,
+      initialized: initializedRef.current
+    });
+  }
 
   return (
     <div className="space-y-6">
