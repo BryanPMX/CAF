@@ -282,14 +282,9 @@ const TrueDashboardPage = () => {
   // Secure dashboard data fetching with role-based filtering
   const fetchDashboardData = async (officeId?: string, overrideRole?: string) => {
     const effectiveRole = overrideRole || userRole;
-    console.log('fetchDashboardData called with effectiveRole:', effectiveRole, 'userRole:', userRole, 'officeId:', officeId);
-    if (!effectiveRole) {
-      console.log('fetchDashboardData: No effectiveRole, skipping');
-      return;
-    }
+    if (!effectiveRole) return;
 
     try {
-      console.log('fetchDashboardData: Starting data fetch');
       setLoading(true);
 
       // Build query parameters based on role and selected office
@@ -307,13 +302,10 @@ const TrueDashboardPage = () => {
       const queryString = params.toString();
       const fullEndpoint = queryString ? `${endpoint}?${queryString}` : endpoint;
 
-      console.log('fetchDashboardData: Making API call to:', fullEndpoint);
       const response = await apiClient.get(fullEndpoint);
-      console.log('fetchDashboardData: API response received:', response.status);
 
       // Transform data based on role permissions
       const rawData = response.data;
-      console.log('fetchDashboardData: Raw data received:', rawData);
       let processedData: DashboardData;
 
       if (effectiveRole === 'admin') {
@@ -361,13 +353,10 @@ const TrueDashboardPage = () => {
       }
 
       setDashboardData(processedData);
-      console.log('fetchDashboardData: Data processing complete, setting dashboardData');
     } catch (error: any) {
       console.error('Dashboard data fetch error:', error);
-      console.log('fetchDashboardData: Error details:', error.response?.status, error.response?.data);
       message.error('No se pudo cargar el resumen del dashboard.');
     } finally {
-      console.log('fetchDashboardData: Setting loading to false');
       setLoading(false);
     }
   };
@@ -422,21 +411,8 @@ const TrueDashboardPage = () => {
     prevUserRef.current = currentUser;
   }, []); // Empty dependency array - handle logout manually
 
-  // CRITICAL FIX: No early returns to prevent React error #310
-  // All hooks must be called on every render, regardless of loading state
+  // Track render count for debugging (only log on issues)
   renderCountRef.current += 1;
-
-  // Only log every 5 renders to reduce noise, or always log if render count is low
-  if (renderCountRef.current <= 10 || renderCountRef.current % 5 === 0) {
-    console.log(`Dashboard rendering #${renderCountRef.current}:`, {
-      userRole,
-      loading,
-      dashboardData: !!dashboardData,
-      userExists: !!user,
-      userRoleFromAuth: user?.role,
-      initialized: initializedRef.current
-    });
-  }
 
   return (
     <div className="space-y-6">
