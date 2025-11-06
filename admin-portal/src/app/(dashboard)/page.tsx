@@ -66,9 +66,13 @@ const StatCard: React.FC<{
 }> = ({ title, value, icon, color = '#1890ff', suffix }) => (
   <Card className="text-center">
     <div className="flex items-center justify-center mb-2">
-      {React.cloneElement(icon as React.ReactElement, {
-        style: { fontSize: '24px', color }
-      })}
+      {icon && React.isValidElement(icon) ? (
+        React.cloneElement(icon as React.ReactElement, {
+          style: { fontSize: '24px', color }
+        })
+      ) : (
+        <div style={{ fontSize: '24px', color }}>📊</div>
+      )}
     </div>
     <Statistic
       title={title}
@@ -148,7 +152,7 @@ const RoleBasedDashboard: React.FC<{
         <Col xs={24} sm={12} md={6}>
           <StatCard
             title="Total Casos"
-            value={canSeeAllOffices ? data.totalCases : (data.myCases || 0)}
+            value={canSeeAllOffices ? (data.totalCases || 0) : (data.myCases || 0)}
             icon={<FolderOpenOutlined />}
             color="#1890ff"
           />
@@ -157,7 +161,7 @@ const RoleBasedDashboard: React.FC<{
         <Col xs={24} sm={12} md={6}>
           <StatCard
             title="Casos Activos"
-            value={canSeeAllOffices ? data.openCases : (data.myOpenCases || 0)}
+            value={canSeeAllOffices ? (data.openCases || 0) : (data.myOpenCases || 0)}
             icon={<ClockCircleOutlined />}
             color="#fa8c16"
           />
@@ -166,7 +170,7 @@ const RoleBasedDashboard: React.FC<{
         <Col xs={24} sm={12} md={6}>
           <StatCard
             title="Casos Completados"
-            value={data.completedCases}
+            value={data.completedCases || 0}
             icon={<CheckCircleOutlined />}
             color="#52c41a"
           />
@@ -175,7 +179,7 @@ const RoleBasedDashboard: React.FC<{
         <Col xs={24} sm={12} md={6}>
           <StatCard
             title="Casos Este Mes"
-            value={data.casesThisMonth}
+            value={data.casesThisMonth || 0}
             icon={<BarChartOutlined />}
             color="#722ed1"
           />
@@ -185,7 +189,7 @@ const RoleBasedDashboard: React.FC<{
         <Col xs={24} sm={12} md={6}>
           <StatCard
             title="Total Citas"
-            value={canSeeAllOffices ? data.totalAppointments : (data.myAppointments || 0)}
+            value={canSeeAllOffices ? (data.totalAppointments || 0) : (data.myAppointments || 0)}
             icon={<CalendarOutlined />}
             color="#13c2c2"
           />
@@ -194,7 +198,7 @@ const RoleBasedDashboard: React.FC<{
         <Col xs={24} sm={12} md={6}>
           <StatCard
             title="Citas Pendientes"
-            value={canSeeAllOffices ? data.pendingAppointments : (data.myPendingAppointments || 0)}
+            value={canSeeAllOffices ? (data.pendingAppointments || 0) : (data.myPendingAppointments || 0)}
             icon={<ClockCircleOutlined />}
             color="#fa8c16"
           />
@@ -203,7 +207,7 @@ const RoleBasedDashboard: React.FC<{
         <Col xs={24} sm={12} md={6}>
           <StatCard
             title="Citas Completadas"
-            value={data.completedAppointments}
+            value={data.completedAppointments || 0}
             icon={<CheckCircleOutlined />}
             color="#52c41a"
           />
@@ -212,7 +216,7 @@ const RoleBasedDashboard: React.FC<{
         <Col xs={24} sm={12} md={6}>
           <StatCard
             title="Citas Hoy"
-            value={data.appointmentsToday}
+            value={data.appointmentsToday || 0}
             icon={<CalendarOutlined />}
             color="#722ed1"
           />
@@ -397,35 +401,13 @@ const TrueDashboardPage = () => {
             <Button 
               icon={<ReloadOutlined />} 
               onClick={handleRefresh}
-              loading={refreshing}
+              loading={loading}
               className="flex-1 sm:flex-none border-blue-500 text-blue-500 hover:bg-blue-50"
               size="large"
             >
               <span className="sm:hidden">Actualizar</span>
               <span className="hidden sm:inline">Actualizar</span>
             </Button>
-          </div>
-          
-          <div className="grid grid-cols-2 sm:flex gap-2">
-            {quickActions.slice(0, 4).map((action, index) => (
-              <Button 
-                key={index}
-                type="primary" 
-                icon={action.icon}
-                onClick={action.onClick}
-                className="text-xs sm:text-sm"
-                size="large"
-                style={{ 
-                  background: action.gradient,
-                  border: 'none',
-                  borderRadius: '8px',
-                  boxShadow: `0 4px 12px ${action.color}30`
-                }}
-              >
-                <span className="hidden sm:inline">{action.label}</span>
-                <span className="sm:hidden">{action.label.split(' ')[0]}</span>
-              </Button>
-            ))}
           </div>
         </div>
       </div>
