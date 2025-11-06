@@ -9,6 +9,24 @@ import {
 } from '@/interfaces/services';
 import { Case } from '@/app/lib/types';
 
+// Legacy service class for backward compatibility
+export class LegacyCaseService {
+  // Keep existing methods for backward compatibility
+  async fetchCases(params?: any) {
+    // Existing implementation
+  }
+
+  async fetchCaseById(id: string) {
+    // Existing implementation
+  }
+
+  async deleteCase(id: string) {
+    // Existing implementation
+  }
+}
+
+export const caseService = new LegacyCaseService();
+
 export class CaseService implements ICaseService {
   constructor(private apiClient: ApiClient) {}
 

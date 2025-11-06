@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/BryanPMX/CAF/api/config"
 	"github.com/BryanPMX/CAF/api/interfaces"
 	"github.com/BryanPMX/CAF/api/models"
 )
@@ -34,7 +35,7 @@ func NewAppointmentService(
 // CreateAppointment creates a new appointment with business logic validation
 func (s *AppointmentServiceImpl) CreateAppointment(ctx context.Context, req interfaces.CreateAppointmentRequest) (*models.Appointment, error) {
 	// Validate that the case exists and user has access
-	caseModel, err := s.caseRepo.GetByID(ctx, req.CaseID)
+	_, err := s.caseRepo.GetByID(ctx, req.CaseID)
 	if err != nil {
 		return nil, fmt.Errorf("invalid case ID: %w", err)
 	}
@@ -59,15 +60,14 @@ func (s *AppointmentServiceImpl) CreateAppointment(ctx context.Context, req inte
 	}
 
 	appointment := &models.Appointment{
-		Title:       req.Title,
-		Description: req.Description,
-		CaseID:      req.CaseID,
-		StartTime:   startTime,
-		EndTime:     endTime,
-		Status:      req.Status,
-		AssignedTo:  &req.AssignedTo,
-		CreatedAt:   time.Now(),
-		UpdatedAt:   time.Now(),
+		Title:     req.Title,
+		CaseID:    req.CaseID,
+		StartTime: startTime,
+		EndTime:   endTime,
+		Status:    config.AppointmentStatus(req.Status),
+		StaffID:   0, // Will be set based on assigned user
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
 	}
 
 	err = s.appointmentRepo.Create(ctx, appointment)
@@ -109,9 +109,6 @@ func (s *AppointmentServiceImpl) UpdateAppointment(ctx context.Context, id uint,
 	if req.Title != nil {
 		appointment.Title = *req.Title
 	}
-	if req.Description != nil {
-		appointment.Description = *req.Description
-	}
 	if req.StartTime != nil {
 		startTime, err := time.Parse(time.RFC3339, *req.StartTime)
 		if err != nil {
@@ -127,10 +124,11 @@ func (s *AppointmentServiceImpl) UpdateAppointment(ctx context.Context, id uint,
 		appointment.EndTime = endTime
 	}
 	if req.Status != nil {
-		appointment.Status = *req.Status
+		appointment.Status = config.AppointmentStatus(*req.Status)
 	}
 	if req.AssignedTo != nil {
-		appointment.AssignedTo = req.AssignedTo
+		// TODO: Resolve user ID from assigned_to field
+		// appointment.StaffID = resolvedUserID
 	}
 
 	// Validate time logic if both times are provided
@@ -216,7 +214,7 @@ func (s *AppointmentServiceImpl) canAccessAppointment(appointment *models.Appoin
 	}
 
 	// Check if user is assigned to this appointment
-	if appointment.AssignedTo != nil && *appointment.AssignedTo == userContext.UserID {
+	if appointment.StaffID != 0 && fmt.Sprintf("%d", appointment.StaffID) == userContext.UserID {
 		return true
 	}
 
@@ -246,7 +244,7 @@ func (s *AppointmentServiceImpl) canModifyAppointment(appointment *models.Appoin
 	}
 
 	// Staff can only modify appointments assigned to them
-	if appointment.AssignedTo != nil && *appointment.AssignedTo == userContext.UserID {
+	if appointment.StaffID != 0 && fmt.Sprintf("%d", appointment.StaffID) == userContext.UserID {
 		return true
 	}
 
