@@ -74,7 +74,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const decodeToken = useCallback((token: string): AuthUser | null => {
     try {
       const decoded = jwtDecode<JWTPayload>(token);
-      
+
       // Check if token is expired
       const currentTime = Math.floor(Date.now() / 1000);
       if (decoded.exp < currentTime) {
@@ -103,81 +103,56 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, []);
 
-  // Initialize authentication state - ONLY runs on initial app load
-  useEffect(() => {
-    const initializeAuth = () => {
-      try {
-        const token = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN) || Cookies.get(STORAGE_KEYS.AUTH_TOKEN);
-        const userData = localStorage.getItem(STORAGE_KEYS.USER_DATA);
-        
-        if (!token) {
-          setState({
-            user: null,
-            isLoading: false,
-            isAuthenticated: false,
-            error: null,
-          });
-          return;
-        }
+  // Initialize authentication function (shared between useEffects)
+  const initializeAuth = useCallback(() => {
+    try {
+      const token = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN) || Cookies.get(STORAGE_KEYS.AUTH_TOKEN);
+      const userData = localStorage.getItem(STORAGE_KEYS.USER_DATA);
 
-        // If we have a token but no userData, try to get role from cookie
-        let parsedUserData;
-        if (userData) {
-          parsedUserData = JSON.parse(userData);
-        } else {
-          const userRole = Cookies.get(STORAGE_KEYS.USER_ROLE);
-          if (userRole) {
-            // Create minimal user data from token and cookie
-            const decodedUser = decodeToken(token);
-            if (decodedUser) {
-              parsedUserData = {
-                id: decodedUser.id,
-                role: userRole as UserRole,
-                firstName: undefined,
-                lastName: undefined,
-              };
-            }
-          }
-        }
-
-        if (!parsedUserData) {
-          setState({
-            user: null,
-            isLoading: false,
-            isAuthenticated: false,
-            error: null,
-          });
-          return;
-        }
-
-        // Decode token to verify it's still valid
-        const decodedUser = decodeToken(token);
-        if (!decodedUser) {
-          // Invalid or expired token
-          localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
-          localStorage.removeItem(STORAGE_KEYS.USER_DATA);
-          localStorage.removeItem(STORAGE_KEYS.USER_ROLE); // Clear role from localStorage too
-          Cookies.remove(STORAGE_KEYS.AUTH_TOKEN);
-          Cookies.remove(STORAGE_KEYS.USER_ROLE);
-          setState({
-            user: null,
-            isLoading: false,
-            isAuthenticated: false,
-            error: null,
-          });
-          return;
-        }
-        
-        // Set authenticated state using stored data
+      if (!token) {
         setState({
-          user: parsedUserData,
+          user: null,
           isLoading: false,
-          isAuthenticated: true,
+          isAuthenticated: false,
           error: null,
         });
+        return;
+      }
 
-      } catch (error) {
-        console.error('Auth initialization error:', error);
+      // If we have a token but no userData, try to get role from cookie
+      let parsedUserData;
+      if (userData) {
+        parsedUserData = JSON.parse(userData);
+      } else {
+        const userRole = Cookies.get(STORAGE_KEYS.USER_ROLE);
+        if (userRole) {
+          // Create minimal user data from token and cookie
+          const decodedUser = decodeToken(token);
+          if (decodedUser) {
+            parsedUserData = {
+              id: decodedUser.id,
+              role: userRole as UserRole,
+              firstName: undefined,
+              lastName: undefined,
+            };
+          }
+        }
+      }
+
+      if (!parsedUserData) {
+        setState({
+          user: null,
+          isLoading: false,
+          isAuthenticated: false,
+          error: null,
+        });
+        return;
+      }
+
+      // Decode token to verify it's still valid
+      const decodedUser = decodeToken(token);
+      if (!decodedUser) {
+        // Invalid or expired token
         localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
         localStorage.removeItem(STORAGE_KEYS.USER_DATA);
         localStorage.removeItem(STORAGE_KEYS.USER_ROLE); // Clear role from localStorage too
@@ -187,11 +162,38 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           user: null,
           isLoading: false,
           isAuthenticated: false,
-          error: 'Authentication initialization failed',
+          error: null,
         });
+        return;
       }
-    };
 
+      // Set authenticated state using stored data
+      setState({
+        user: parsedUserData,
+        isLoading: false,
+        isAuthenticated: true,
+        error: null,
+      });
+
+    } catch (error) {
+      console.error('Auth initialization error:', error);
+      localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+      localStorage.removeItem(STORAGE_KEYS.USER_DATA);
+      localStorage.removeItem(STORAGE_KEYS.USER_ROLE); // Clear role from localStorage too
+      Cookies.remove(STORAGE_KEYS.AUTH_TOKEN);
+      Cookies.remove(STORAGE_KEYS.USER_ROLE);
+      setState({
+        user: null,
+        isLoading: false,
+        isAuthenticated: false,
+        error: 'Authentication initialization failed',
+      });
+    }
+  }, [decodeToken]);
+
+  // Initialize authentication state - ONLY runs on initial app load
+  useEffect(() => {
+    // This useEffect is now just for setup, actual initialization happens in the client-side effect
   }, [decodeToken]); // Only run once on mount
 
   // Separate effect for client-side initialization to avoid SSR issues
