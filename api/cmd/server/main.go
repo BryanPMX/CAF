@@ -236,6 +236,8 @@ func main() {
 	{
 		// Universal dashboard summary for all authenticated users
 		protected.GET("/dashboard-summary", handlers.GetDashboardSummary(database))
+		// Staff-specific dashboard for limited role access
+		protected.GET("/staff/dashboard-summary", handlers.GetStaffDashboardSummary(database))
 		// Recent activity endpoint for dashboard
 		protected.GET("/recent-activity", handlers.GetRecentActivity(database))
 		// Dashboard content for all users

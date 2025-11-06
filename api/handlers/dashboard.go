@@ -11,6 +11,41 @@ import (
 	"gorm.io/gorm"
 )
 
+// GetStaffDashboardSummary provides limited metrics for staff roles (lawyers, psychologists, etc.)
+func GetStaffDashboardSummary(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		userIDVal, _ := c.Get("userID")
+		userIDStr, ok := userIDVal.(string)
+		if !ok {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "User ID not found"})
+			return
+		}
+
+		// Get cases assigned to this staff member
+		var myCases int64
+		db.Model(&models.Case{}).Where("id IN (SELECT case_id FROM user_case_assignments WHERE user_id = ?)", userIDStr).Count(&myCases)
+
+		// Get open cases assigned to this staff member
+		var myOpenCases int64
+		db.Model(&models.Case{}).Where("id IN (SELECT case_id FROM user_case_assignments WHERE user_id = ?) AND status IN (?)", userIDStr, []string{"open", "active", "in_progress"}).Count(&myOpenCases)
+
+		// Get appointments for cases assigned to this staff member
+		var myAppointments int64
+		db.Model(&models.Appointment{}).Where("case_id IN (SELECT case_id FROM user_case_assignments WHERE user_id = ?)", userIDStr).Count(&myAppointments)
+
+		// Get pending appointments for cases assigned to this staff member
+		var myPendingAppointments int64
+		db.Model(&models.Appointment{}).Where("case_id IN (SELECT case_id FROM user_case_assignments WHERE user_id = ?) AND status = ?", userIDStr, "pending").Count(&myPendingAppointments)
+
+		c.JSON(http.StatusOK, gin.H{
+			"myCases":              myCases,
+			"myOpenCases":          myOpenCases,
+			"myAppointments":       myAppointments,
+			"myPendingAppointments": myPendingAppointments,
+		})
+	}
+}
+
 // GetDashboardSummary provides key metrics for the admin dashboard.
 func GetDashboardSummary(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
