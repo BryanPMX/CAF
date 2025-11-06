@@ -86,26 +86,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return null; // No redirect needed
   }, []);
 
-  // Robust authentication guard - prevents infinite loading loops
-  // Only perform redirect if hydrated to avoid server-side rendering issues
-  useEffect(() => {
-    // CRITICAL: Only redirect if we're not loading AND not authenticated AND hydrated
-    // This prevents race conditions and infinite loading loops
-    if (isHydrated && !isLoading && !isAuthenticated) {
-      router.replace('/login');
-      return;
-    }
-  }, [isHydrated, isLoading, isAuthenticated, router]);
-
-  // Prevent rendering until hydrated to avoid context errors
-  if (!isHydrated) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Spin size="large" />
-      </div>
-    );
-  }
-
   // Get selected menu key based on current path
   const selectedKey = useMemo(() => {
     if (pathname === '/') return 'dashboard';
@@ -121,11 +101,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   // Filter menu items based on user role using centralized role configuration
   const filteredMenuItems = useMemo(() => {
     if (!user?.role) return [];
-    
+
     // Convert user role to StaffRoleKey if it's a valid staff role
     const staffRole = user.role as StaffRoleKey;
     const navigationItems = getNavigationItemsForRole(staffRole);
-    
+
     // Convert navigation items to Ant Design menu format
      return navigationItems.map(item => ({
        key: item.key,
@@ -149,6 +129,26 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     // Fallback for unknown roles
     return ROLE_DISPLAY_CONFIG.client;
   }, [user?.role]);
+
+  // Robust authentication guard - prevents infinite loading loops
+  // Only perform redirect if hydrated to avoid server-side rendering issues
+  useEffect(() => {
+    // CRITICAL: Only redirect if we're not loading AND not authenticated AND hydrated
+    // This prevents race conditions and infinite loading loops
+    if (isHydrated && !isLoading && !isAuthenticated) {
+      router.replace('/login');
+      return;
+    }
+  }, [isHydrated, isLoading, isAuthenticated, router]);
+
+  // Prevent rendering until hydrated to avoid context errors
+  if (!isHydrated) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Spin size="large" />
+      </div>
+    );
+  }
 
   // CRITICAL: Show loading spinner while auth state is being initialized
   // This prevents any child pages from rendering before auth state is known
