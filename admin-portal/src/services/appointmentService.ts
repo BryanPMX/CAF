@@ -53,7 +53,24 @@ export class AppointmentService implements IAppointmentService {
 
   static async deleteAppointment(userRole: string, id: string) {
     console.log('Static legacy deleteAppointment called with:', userRole, id);
-    return true;
+
+    // Get API client from lib
+    const { apiClient } = await import('@/app/lib/api');
+
+    try {
+      let endpoint = '/appointments';
+      if (userRole === 'admin') {
+        endpoint = '/admin/appointments';
+      } else if (userRole === 'office_manager') {
+        endpoint = '/office/appointments';
+      }
+
+      await apiClient.delete(`${endpoint}/${id}`);
+      return true;
+    } catch (error) {
+      console.error('Error deleting appointment:', error);
+      throw error;
+    }
   }
 
   async getAppointments(params?: any): Promise<any> {
