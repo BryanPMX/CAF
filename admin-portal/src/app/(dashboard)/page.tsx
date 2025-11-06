@@ -198,6 +198,26 @@ const RoleBasedDashboard: React.FC<{
 
   // Define widget components
   const widgetComponents = {
+    'today-appointments': () => (
+      <Card title="Citas de Hoy" className="h-full">
+        <div className="text-center py-4">
+          <Typography.Title level={2} className="!text-orange-600">
+            {data.appointmentsToday || 0}
+          </Typography.Title>
+          <Typography.Text type="secondary">Citas programadas para hoy</Typography.Text>
+        </div>
+      </Card>
+    ),
+    'upcoming-appointments': () => (
+      <Card title="Próximas Citas" className="h-full">
+        <div className="text-center py-4">
+          <Typography.Title level={2} className="!text-green-600">
+            {data.myUpcomingAppointments || 0}
+          </Typography.Title>
+          <Typography.Text type="secondary">Citas programadas</Typography.Text>
+        </div>
+      </Card>
+    ),
     'system-stats': () => (
       <Card title="Estadísticas del Sistema" className="h-full">
         <Row gutter={[16, 16]}>
