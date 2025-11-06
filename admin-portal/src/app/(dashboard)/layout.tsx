@@ -57,15 +57,32 @@ const ICON_MAP = {
 export default function DashboardLayout({ children }: { children: React.ReactNode; }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { 
-    user, 
-    isLoading, 
+
+  // Prevent hydration issues by ensuring we're on the client side
+  const [isHydrated, setIsHydrated] = useState(false);
+
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
+
+  const {
+    user,
+    isLoading,
     isAuthenticated,
-    logout, 
-    isAdmin, 
+    logout,
+    isAdmin,
     isStaff
   } = useAuth();
   const [profileError, setProfileError] = useState<string | null>(null);
+
+  // Prevent rendering until hydrated to avoid context errors
+  if (!isHydrated) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Spin size="large" />
+      </div>
+    );
+  }
 
   // Robust authentication guard - prevents infinite loading loops
   useEffect(() => {
