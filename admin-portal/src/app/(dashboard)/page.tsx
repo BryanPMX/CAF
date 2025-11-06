@@ -281,9 +281,14 @@ const TrueDashboardPage = () => {
 
   // Secure dashboard data fetching with role-based filtering
   const fetchDashboardData = async (officeId?: string) => {
-    if (!userRole) return;
+    console.log('fetchDashboardData called with userRole:', userRole, 'officeId:', officeId);
+    if (!userRole) {
+      console.log('fetchDashboardData: No userRole, skipping');
+      return;
+    }
 
     try {
+      console.log('fetchDashboardData: Starting data fetch');
       setLoading(true);
 
       // Build query parameters based on role and selected office
@@ -293,18 +298,21 @@ const TrueDashboardPage = () => {
       }
 
       // Determine endpoint based on role
-      let endpoint = '/api/v1/dashboard-summary';
+      let endpoint = '/dashboard-summary';
       if (userRole !== 'admin' && userRole !== 'office_manager') {
-        endpoint = '/api/v1/staff/dashboard-summary';
+        endpoint = '/staff/dashboard-summary';
       }
 
       const queryString = params.toString();
       const fullEndpoint = queryString ? `${endpoint}?${queryString}` : endpoint;
 
+      console.log('fetchDashboardData: Making API call to:', fullEndpoint);
       const response = await apiClient.get(fullEndpoint);
+      console.log('fetchDashboardData: API response received:', response.status);
 
       // Transform data based on role permissions
       const rawData = response.data;
+      console.log('fetchDashboardData: Raw data received:', rawData);
       let processedData: DashboardData;
 
       if (userRole === 'admin') {
@@ -352,10 +360,13 @@ const TrueDashboardPage = () => {
       }
 
       setDashboardData(processedData);
+      console.log('fetchDashboardData: Data processing complete, setting dashboardData');
     } catch (error: any) {
       console.error('Dashboard data fetch error:', error);
+      console.log('fetchDashboardData: Error details:', error.response?.status, error.response?.data);
       message.error('No se pudo cargar el resumen del dashboard.');
     } finally {
+      console.log('fetchDashboardData: Setting loading to false');
       setLoading(false);
     }
   };
