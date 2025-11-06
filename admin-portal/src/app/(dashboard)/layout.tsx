@@ -75,6 +75,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   } = useAuth();
   const [profileError, setProfileError] = useState<string | null>(null);
 
+  // Robust authentication guard - prevents infinite loading loops
+  // Only perform redirect if hydrated to avoid server-side rendering issues
+  useEffect(() => {
+    // CRITICAL: Only redirect if we're not loading AND not authenticated AND hydrated
+    // This prevents race conditions and infinite loading loops
+    if (isHydrated && !isLoading && !isAuthenticated) {
+      router.replace('/login');
+      return;
+    }
+  }, [isHydrated, isLoading, isAuthenticated, router]);
+
   // Prevent rendering until hydrated to avoid context errors
   if (!isHydrated) {
     return (
@@ -83,16 +94,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </div>
     );
   }
-
-  // Robust authentication guard - prevents infinite loading loops
-  useEffect(() => {
-    // CRITICAL: Only redirect if we're not loading AND not authenticated
-    // This prevents race conditions and infinite loading loops
-    if (!isLoading && !isAuthenticated) {
-      router.replace('/login');
-      return;
-    }
-  }, [isLoading, isAuthenticated, router]);
 
   // Helper function to check if user should be redirected based on role
   const checkRoleBasedRedirect = useCallback((role: UserRole, currentPath: string): string | null => {
