@@ -266,6 +266,7 @@ const TrueDashboardPage = () => {
   const [selectedOfficeId, setSelectedOfficeId] = useState<string>('');
   const [offices, setOffices] = useState<Office[]>([]);
   const initializedRef = useRef(false);
+  const renderCountRef = useRef(0);
 
   // Fetch offices for admin/office manager filtering
   const fetchOffices = async () => {
@@ -372,7 +373,11 @@ const TrueDashboardPage = () => {
 
   // Initialize dashboard only once when user becomes available
   useEffect(() => {
-    if (!isHydrated || !user?.role || initializedRef.current) return;
+    console.log('Dashboard init effect running:', { isHydrated, userRole: user?.role, initialized: initializedRef.current });
+    if (!isHydrated || !user?.role || initializedRef.current) {
+      console.log('Dashboard init effect: skipping initialization');
+      return;
+    }
 
     initializedRef.current = true;
     const role = user.role;
@@ -392,19 +397,41 @@ const TrueDashboardPage = () => {
     fetchDashboardData(role === 'office_manager' ? '2' : undefined);
   }, [isHydrated]); // Removed user?.role and userRole dependencies to prevent loops
 
-  // Handle user logout only (don't react to any user changes to prevent loops)
+  // Handle user logout only - run once on mount and track user state internally
+  const prevUserRef = useRef(user);
   useEffect(() => {
-    if (!user) {
-      // User logged out completely
+    const prevUser = prevUserRef.current;
+    const currentUser = user;
+
+    console.log('Dashboard logout effect running:', {
+      prevUserExists: !!prevUser,
+      currentUserExists: !!currentUser,
+      prevUserRole: prevUser?.role,
+      currentUserRole: currentUser?.role
+    });
+
+    // Only handle logout (user going from exists to null)
+    if (prevUser && !currentUser) {
+      console.log('Dashboard: User logged out, resetting state');
       setUserRole(null);
       setDashboardData(null);
-      initializedRef.current = false; // Allow re-initialization on next login
+      initializedRef.current = false;
     }
-  }, [!!user]); // Only depend on whether user exists, not the user object itself
+
+    prevUserRef.current = currentUser;
+  }, []); // Empty dependency array - handle logout manually
 
   // CRITICAL FIX: No early returns to prevent React error #310
   // All hooks must be called on every render, regardless of loading state
-  console.log('Dashboard rendering:', { userRole, loading, dashboardData: !!dashboardData });
+  renderCountRef.current += 1;
+  console.log(`Dashboard rendering #${renderCountRef.current}:`, {
+    userRole,
+    loading,
+    dashboardData: !!dashboardData,
+    userExists: !!user,
+    userRoleFromAuth: user?.role,
+    initialized: initializedRef.current
+  });
 
   return (
     <div className="space-y-6">
