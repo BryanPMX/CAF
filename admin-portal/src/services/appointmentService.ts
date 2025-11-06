@@ -23,9 +23,8 @@ export class AppointmentService implements IAppointmentService {
   static async fetchAppointments(userRole?: string, params?: any) {
     console.log('Static legacy fetchAppointments called with:', userRole, params);
 
-    // Get API client from container
-    const { apiClient } = await import('@/core/container');
-    const client = apiClient();
+    // Get API client from lib
+    const { apiClient } = await import('@/app/lib/api');
 
     try {
       let endpoint = '/appointments';
@@ -37,7 +36,7 @@ export class AppointmentService implements IAppointmentService {
         endpoint = '/office/appointments';
       }
 
-      const response = await client.get(endpoint, { params });
+      const response = await apiClient.get(endpoint, { params });
       return {
         data: response.data.data || response.data,
         pagination: response.data.pagination || {

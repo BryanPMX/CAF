@@ -35,9 +35,8 @@ export class CaseService implements ICaseService {
   static async fetchCases(userRole: string, params?: any) {
     console.log('Static legacy fetchCases called with:', userRole, params);
 
-    // Get API client from container
-    const { apiClient } = await import('@/core/container');
-    const client = apiClient();
+    // Get API client from lib
+    const { apiClient } = await import('@/app/lib/api');
 
     try {
       let endpoint = '/cases';
@@ -49,7 +48,7 @@ export class CaseService implements ICaseService {
         endpoint = '/office/cases';
       }
 
-      const response = await client.get(endpoint, { params });
+      const response = await apiClient.get(endpoint, { params });
       return {
         data: response.data.data || response.data,
         pagination: response.data.pagination || {
