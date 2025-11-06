@@ -693,13 +693,11 @@ class ComprehensiveTestSuite {
     };
 
     // Save to file (only if not in production/CI environment)
+    let reportPath = null;
     if (process.env.NODE_ENV !== 'production' && !process.env.CI) {
-      const reportPath = path.join(__dirname, 'test-results', `comprehensive-test-${Date.now()}.json`);
+      reportPath = path.join(__dirname, 'test-results', `comprehensive-test-${Date.now()}.json`);
       fs.mkdirSync(path.dirname(reportPath), { recursive: true });
       fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
-      console.log(`\n📄 Detailed report saved to: ${reportPath}`);
-    } else {
-      console.log('\n📄 Report not saved in production/CI environment');
     }
 
     // Console summary
@@ -712,7 +710,12 @@ class ComprehensiveTestSuite {
     console.log(`Skipped: ${report.summary.skipped}`);
     console.log(`Duration: ${(report.summary.duration / 1000).toFixed(2)}s`);
     console.log(`Success Rate: ${((report.summary.passed / report.summary.total) * 100).toFixed(1)}%`);
-    console.log(`\n📄 Detailed report saved to: ${reportPath}`);
+
+    if (reportPath) {
+      console.log(`\n📄 Detailed report saved to: ${reportPath}`);
+    } else {
+      console.log('\n📄 Report not saved in production/CI environment');
+    }
 
     if (report.summary.failed > 0) {
       console.log('\n❌ Failed Tests:');
