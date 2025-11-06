@@ -156,6 +156,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           // Invalid or expired token
           localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
           localStorage.removeItem(STORAGE_KEYS.USER_DATA);
+          localStorage.removeItem(STORAGE_KEYS.USER_ROLE); // Clear role from localStorage too
           Cookies.remove(STORAGE_KEYS.AUTH_TOKEN);
           Cookies.remove(STORAGE_KEYS.USER_ROLE);
           setState({
@@ -179,6 +180,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         console.error('Auth initialization error:', error);
         localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
         localStorage.removeItem(STORAGE_KEYS.USER_DATA);
+        localStorage.removeItem(STORAGE_KEYS.USER_ROLE); // Clear role from localStorage too
         Cookies.remove(STORAGE_KEYS.AUTH_TOKEN);
         Cookies.remove(STORAGE_KEYS.USER_ROLE);
         setState({
@@ -200,11 +202,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // CRITICAL: Store both token and user data atomically in localStorage
       localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, token);
       localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(userData));
-      
+      localStorage.setItem(STORAGE_KEYS.USER_ROLE, userData.role); // Store role in localStorage too
+
       // CRITICAL: Also set cookies for server-side middleware access
       Cookies.set(STORAGE_KEYS.AUTH_TOKEN, token, COOKIE_CONFIG);
       Cookies.set(STORAGE_KEYS.USER_ROLE, userData.role, COOKIE_CONFIG);
-      
+
       // CRITICAL: Update state immediately and synchronously
       setState({
         user: userData,
@@ -230,7 +233,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // CRITICAL: Clear storage atomically
       localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
       localStorage.removeItem(STORAGE_KEYS.USER_DATA);
-      
+      localStorage.removeItem(STORAGE_KEYS.USER_ROLE); // Clear role from localStorage too
+
       // CRITICAL: Also clear cookies
       Cookies.remove(STORAGE_KEYS.AUTH_TOKEN);
       Cookies.remove(STORAGE_KEYS.USER_ROLE);

@@ -27,6 +27,7 @@ import {
   CheckCircleOutlined
 } from '@ant-design/icons';
 import { apiClient } from '../lib/api';
+import { useAuth } from '@/context/AuthContext';
 import { useHydrationSafe } from '@/hooks/useHydrationSafe';
 
 // --- TypeScript Interfaces ---
@@ -247,6 +248,7 @@ const SectionLoading = () => (
 const TrueDashboardPage = () => {
   const router = useRouter();
   const isHydrated = useHydrationSafe();
+  const { user } = useAuth();
   const [userRole, setUserRole] = useState<string | null>(null);
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -360,8 +362,9 @@ const TrueDashboardPage = () => {
   useEffect(() => {
     if (!isHydrated) return;
 
-    const role = localStorage.getItem('userRole');
-    console.log('Dashboard: Setting user role from localStorage:', role);
+    // Get role from AuthContext instead of localStorage directly
+    const role = user?.role || null;
+    console.log('Dashboard: Setting user role from AuthContext:', role);
     setUserRole(role);
 
     if (role) {
@@ -377,7 +380,7 @@ const TrueDashboardPage = () => {
       // Fetch dashboard data
       fetchDashboardData(role === 'office_manager' ? '2' : undefined);
     }
-  }, [isHydrated]);
+  }, [isHydrated, user?.role]);
 
   // CRITICAL FIX: No early returns to prevent React error #310
   // All hooks must be called on every render, regardless of loading state
