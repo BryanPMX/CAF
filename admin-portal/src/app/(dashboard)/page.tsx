@@ -449,17 +449,27 @@ const TrueDashboardPage = () => {
       <div className="mb-8">
         {userRole && dashboardData && typeof dashboardData === 'object' && dashboardData !== false && !loading && Object.keys(dashboardData).length > 0 && 'totalCases' in dashboardData ? (
           (() => {
-            console.log('Rendering RoleBasedDashboard with data:', dashboardData);
-            return (
-              <RoleBasedDashboard
-                data={dashboardData}
-                userRole={userRole}
-                selectedOfficeId={selectedOfficeId}
-                onOfficeChange={handleOfficeChange}
-                onRefresh={handleRefresh}
-                loading={loading}
-              />
-            );
+            try {
+              console.log('Rendering RoleBasedDashboard with data:', dashboardData);
+              return (
+                <RoleBasedDashboard
+                  data={dashboardData}
+                  userRole={userRole}
+                  selectedOfficeId={selectedOfficeId}
+                  onOfficeChange={handleOfficeChange}
+                  onRefresh={handleRefresh}
+                  loading={loading}
+                />
+              );
+            } catch (error) {
+              console.error('Error rendering RoleBasedDashboard:', error);
+              // Fallback to loading state
+              return (
+                <div className="flex justify-center items-center h-32">
+                  <Spin size="large" tip="Error cargando dashboard, reintentando..." />
+                </div>
+              );
+            }
           })()
         ) : (
           <div className="flex justify-center items-center h-32">
