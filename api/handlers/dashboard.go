@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/BryanPMX/CAF/api/config"
 	"github.com/BryanPMX/CAF/api/models"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -50,54 +49,74 @@ func GetStaffDashboardSummary(db *gorm.DB) gin.HandlerFunc {
 func GetDashboardSummary(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Context from middleware
-		userRole, _ := c.Get("userRole")
-		userDepartment, _ := c.Get("userDepartment")
 		officeScopeID, _ := c.Get("officeScopeID")
-		userIDVal, _ := c.Get("userID")
 
-		var totalOpenCases int64
-		casesQuery := db.Model(&models.Case{}).Where("status = ?", "open")
-		if role, ok := userRole.(string); ok && !config.CanAccessAllOffices(role) && role != "client" {
-			if officeScopeID != nil {
-				casesQuery = casesQuery.Where("office_id = ?", officeScopeID)
-			}
-			if userDepartment != nil {
-				casesQuery = casesQuery.Where("category = ?", userDepartment)
-			}
-			if userIDStr, ok := userIDVal.(string); ok {
-				casesQuery = casesQuery.Or("id IN (SELECT case_id FROM user_case_assignments WHERE user_id = ?)", userIDStr)
-			}
-		}
-		casesQuery.Count(&totalOpenCases)
+		// Get all required metrics for admin/office manager dashboard
+		var totalCases int64
+		db.Model(&models.Case{}).Count(&totalCases)
 
-		var totalStaff int64
-		staffQuery := db.Model(&models.User{}).Where("role <> ?", "client")
-		if role, ok := userRole.(string); ok && role != "admin" && officeScopeID != nil {
-			staffQuery = staffQuery.Where("office_id = ?", officeScopeID)
+		var openCases int64
+		casesQuery := db.Model(&models.Case{}).Where("status IN (?)", []string{"open", "active", "in_progress"})
+		if officeID, ok := officeScopeID.(uint); ok {
+			casesQuery = casesQuery.Where("office_id = ?", officeID)
 		}
-		staffQuery.Count(&totalStaff)
+		casesQuery.Count(&openCases)
+
+		var completedCases int64
+		completedCasesQuery := db.Model(&models.Case{}).Where("status IN (?)", []string{"completed", "closed"})
+		if officeID, ok := officeScopeID.(uint); ok {
+			completedCasesQuery = completedCasesQuery.Where("office_id = ?", officeID)
+		}
+		completedCasesQuery.Count(&completedCases)
+
+		var casesThisMonth int64
+		now := time.Now()
+		currentMonthStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
+		casesMonthQuery := db.Model(&models.Case{}).Where("created_at >= ?", currentMonthStart)
+		if officeID, ok := officeScopeID.(uint); ok {
+			casesMonthQuery = casesMonthQuery.Where("office_id = ?", officeID)
+		}
+		casesMonthQuery.Count(&casesThisMonth)
+
+		var totalAppointments int64
+		db.Model(&models.Appointment{}).Count(&totalAppointments)
+
+		var pendingAppointments int64
+		pendingApptQuery := db.Model(&models.Appointment{}).Where("status = ?", "pending")
+		if officeID, ok := officeScopeID.(uint); ok {
+			pendingApptQuery = pendingApptQuery.Where("office_id = ?", officeID)
+		}
+		pendingApptQuery.Count(&pendingAppointments)
+
+		var completedAppointments int64
+		completedApptQuery := db.Model(&models.Appointment{}).Where("status = ?", "completed")
+		if officeID, ok := officeScopeID.(uint); ok {
+			completedApptQuery = completedApptQuery.Where("office_id = ?", officeID)
+		}
+		completedApptQuery.Count(&completedAppointments)
 
 		var appointmentsToday int64
 		todayStart := time.Now().Truncate(24 * time.Hour)
 		todayEnd := todayStart.Add(24 * time.Hour)
-		apptQuery := db.Model(&models.Appointment{}).Where("start_time >= ? AND start_time < ?", todayStart, todayEnd)
-		if role, ok := userRole.(string); ok && !config.CanAccessAllOffices(role) && role != "client" {
-			if officeScopeID != nil {
-				apptQuery = apptQuery.Joins("INNER JOIN cases ON cases.id = appointments.case_id AND cases.office_id = ?", officeScopeID)
-			}
-			if userDepartment != nil {
-				apptQuery = apptQuery.Where("appointments.department = ?", userDepartment)
-			}
-			if userIDStr, ok := userIDVal.(string); ok {
-				apptQuery = apptQuery.Or("appointments.staff_id = ?", userIDStr)
-			}
+		apptTodayQuery := db.Model(&models.Appointment{}).Where("start_time >= ? AND start_time < ?", todayStart, todayEnd)
+		if officeID, ok := officeScopeID.(uint); ok {
+			apptTodayQuery = apptTodayQuery.Where("office_id = ?", officeID)
 		}
-		apptQuery.Count(&appointmentsToday)
+		apptTodayQuery.Count(&appointmentsToday)
+
+		var offices []models.Office
+		db.Find(&offices)
 
 		summary := gin.H{
-			"totalOpenCases":    totalOpenCases,
-			"totalStaff":        totalStaff,
-			"appointmentsToday": appointmentsToday,
+			"totalCases":            totalCases,
+			"openCases":             openCases,
+			"completedCases":        completedCases,
+			"casesThisMonth":        casesThisMonth,
+			"totalAppointments":     totalAppointments,
+			"pendingAppointments":   pendingAppointments,
+			"completedAppointments": completedAppointments,
+			"appointmentsToday":     appointmentsToday,
+			"offices":               offices,
 		}
 
 		c.JSON(http.StatusOK, summary)
