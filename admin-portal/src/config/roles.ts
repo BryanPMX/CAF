@@ -189,15 +189,15 @@ export const getRoleDefinition = (role: string) => {
 };
 
 export const getDashboardWidgetsForRole = (role: string) => {
-  const baseWidgets = ['cases', 'appointments'];
-  
+  const baseWidgets = ['today-appointments', 'upcoming-appointments'];
+
   if (isAdminRole(role)) {
-    return [...baseWidgets, 'users', 'system_health', 'reports'];
+    return [...baseWidgets, 'user-management', 'system-stats', 'office-overview'];
   }
-  
+
   if (isManagementRole(role)) {
-    return [...baseWidgets, 'users', 'reports'];
+    return [...baseWidgets, 'office-stats', 'staff-performance'];
   }
-  
+
   return baseWidgets;
 };
