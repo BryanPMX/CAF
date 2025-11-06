@@ -256,7 +256,7 @@ const TrueDashboardPage = () => {
   // Fetch offices for admin/office manager filtering
   const fetchOffices = async () => {
     try {
-      const response = await apiClient.get('/admin/offices');
+      const response = await apiClient.get('/offices');
       setOffices(response.data || []);
     } catch (error) {
       console.warn('Failed to fetch offices:', error);
@@ -365,12 +365,17 @@ const TrueDashboardPage = () => {
     setUserRole(role);
 
     if (role) {
-      // Fetch offices for admins/office managers
-      if (role === 'admin' || role === 'office_manager') {
-        fetchOffices();
+      // Always fetch offices for UI (needed for office filtering dropdown)
+      fetchOffices();
+
+      // For office managers, auto-select their office (temporary fix)
+      // In production, this should come from user profile
+      if (role === 'office_manager') {
+        setSelectedOfficeId('2'); // Default office for office managers
       }
+
       // Fetch dashboard data
-      fetchDashboardData();
+      fetchDashboardData(role === 'office_manager' ? '2' : undefined);
     }
   }, [isHydrated]);
 

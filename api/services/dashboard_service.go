@@ -69,14 +69,14 @@ func (s *DashboardServiceImpl) GetAdminDashboard(ctx context.Context, filter int
 	todayApptQuery := apptQuery.Session(&gorm.Session{})
 	todayApptQuery.Where("start_time >= ? AND start_time < ?", todayStart, todayEnd).Count(&summary.AppointmentsToday)
 
-	// Get offices if no specific office filter
-	if filter.OfficeID == nil {
-		var offices []models.Office
-		if err := s.db.WithContext(ctx).Find(&offices).Error; err != nil {
-			return nil, err
-		}
-		summary.Offices = offices
+	// Always get offices for admin/office manager roles (for filtering UI)
+	// Note: This is a simplified approach - in production, you might want to
+	// filter offices based on user permissions
+	var offices []models.Office
+	if err := s.db.WithContext(ctx).Find(&offices).Error; err != nil {
+		return nil, err
 	}
+	summary.Offices = offices
 
 	return &summary, nil
 }
