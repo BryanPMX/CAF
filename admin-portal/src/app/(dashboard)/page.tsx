@@ -170,12 +170,19 @@ const StatCard: React.FC<{
   </Card>
 );
 
-const RoleBasedDashboard: React.FC<{ 
-  data: DashboardSummary; 
-  userRole: StaffRoleKey; 
+const RoleBasedDashboard: React.FC<{
+  data: DashboardSummary;
+  userRole: StaffRoleKey;
 }> = ({ data, userRole }) => {
-  // Get widgets for the user's role
-  const availableWidgets = getDashboardWidgetsForRole(userRole);
+  // Get widgets for the user's role with fallback
+  const availableWidgets = React.useMemo(() => {
+    try {
+      return getDashboardWidgetsForRole(userRole);
+    } catch (error) {
+      console.warn('Error getting dashboard widgets for role:', userRole, error);
+      return ['today-appointments', 'upcoming-appointments']; // Safe fallback
+    }
+  }, [userRole]);
   
   // Fallback component for unimplemented widgets
   const FallbackWidget: React.FC<{ widgetName: string }> = ({ widgetName }) => (
@@ -334,13 +341,22 @@ const RoleBasedDashboard: React.FC<{
       {/* Role-specific widgets */}
       <Row gutter={[16, 16]}>
         {availableWidgets.map((widget) => {
-           const WidgetComponent = widgetComponents[widget as keyof typeof widgetComponents];
+          try {
+            const WidgetComponent = widgetComponents[widget as keyof typeof widgetComponents];
 
-          return (
-            <Col xs={24} sm={12} md={8} lg={6} key={widget}>
-              {WidgetComponent ? <WidgetComponent /> : <FallbackWidget widgetName={widget} />}
-            </Col>
-          );
+            return (
+              <Col xs={24} sm={12} md={8} lg={6} key={widget}>
+                {WidgetComponent ? <WidgetComponent /> : <FallbackWidget widgetName={widget} />}
+              </Col>
+            );
+          } catch (error) {
+            console.warn(`Error rendering widget ${widget}:`, error);
+            return (
+              <Col xs={24} sm={12} md={8} lg={6} key={widget}>
+                <FallbackWidget widgetName={widget} />
+              </Col>
+            );
+          }
         })}
       </Row>
 
@@ -509,8 +525,9 @@ const TrueDashboardPage = () => {
 
   useEffect(() => {
     if (!isHydrated) return; // Wait for hydration to complete
-    
+
     const role = localStorage.getItem('userRole');
+    console.log('Dashboard: Setting user role from localStorage:', role);
     setUserRole(role);
     fetchDashboardData();
   }, [isHydrated]);
@@ -630,7 +647,7 @@ const TrueDashboardPage = () => {
 
       {/* Statistics Cards */}
       <div className="mb-8">
-        {userRole && isValidRole(userRole) ? (
+        {userRole && isValidRole(userRole) && typeof userRole === 'string' ? (
           <RoleBasedDashboard data={summaryData || {}} userRole={userRole as StaffRoleKey} />
         ) : (
           <div className="flex justify-center items-center h-32">
