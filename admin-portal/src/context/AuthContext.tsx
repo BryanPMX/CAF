@@ -192,9 +192,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
     };
 
-    // Initialize immediately and synchronously
-    initializeAuth();
   }, [decodeToken]); // Only run once on mount
+
+  // Separate effect for client-side initialization to avoid SSR issues
+  useEffect(() => {
+    // Only run on client side after hydration
+    if (typeof window === 'undefined') return;
+
+    initializeAuth();
+  }, []); // Empty dependency - run once after mount
 
   // Login function - THE SINGLE AUTHORITATIVE METHOD FOR SETTING AUTH STATE
   const login = useCallback((userData: AuthUser, token: string) => {
