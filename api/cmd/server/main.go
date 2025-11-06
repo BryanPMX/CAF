@@ -137,11 +137,14 @@ func main() {
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     allowedOrigins,
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization", "X-Requested-With"},
-		ExposeHeaders:    []string{"Content-Length", "Authorization", "X-RateLimit-Limit", "X-RateLimit-Remaining", "X-RateLimit-Reset"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization", "X-Requested-With", "Accept-Version"},
+		ExposeHeaders:    []string{"Content-Length", "Authorization", "X-RateLimit-Limit", "X-RateLimit-Remaining", "X-RateLimit-Reset", "X-API-Version", "X-API-Current-Version"},
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
 	}))
+
+	// Apply API versioning middleware (after CORS, before rate limiting)
+	r.Use(middleware.APIVersionMiddleware())
 
 	// Apply general rate limiting to all routes
 	r.Use(middleware.GeneralAPIRateLimit())
@@ -198,6 +201,9 @@ func main() {
 	r.GET("/test", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"message": "API server is working", "timestamp": time.Now()})
 	})
+
+	// API version information endpoint
+	r.GET("/api/version", middleware.VersionInfo())
 
 	r.GET("/health/migrations", func(c *gin.Context) {
 		migrationStatus, err := migrationManager.GetMigrationStatus()

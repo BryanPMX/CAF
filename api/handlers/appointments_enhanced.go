@@ -5,7 +5,6 @@ import (
 	"log"
 	"net/http"
 	"strconv"
-	"sync"
 	"time"
 
 	"github.com/BryanPMX/CAF/api/config"
@@ -13,7 +12,6 @@ import (
 	"github.com/BryanPMX/CAF/api/models"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
-	"golang.org/x/net/websocket"
 	"gorm.io/gorm"
 )
 
