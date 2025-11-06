@@ -9,12 +9,22 @@ import Image from 'next/image';
 import { LogoutOutlined } from '@ant-design/icons';
 import { useAuth } from '@/context/AuthContext';
 import { UserRole } from '@/app/lib/types';
-import { 
-  getNavigationItemsForRole, 
-  getRoleDefinition, 
+import {
+  getNavigationItemsForRole,
+  getRoleDefinition,
   STAFF_ROLES,
-  type StaffRoleKey 
+  type StaffRoleKey
 } from '@/config/roles';
+import {
+  DashboardOutlined,
+  FileTextOutlined,
+  CalendarOutlined,
+  UserOutlined,
+  BankOutlined,
+  FileOutlined,
+  BarChartOutlined,
+  HomeOutlined
+} from '@ant-design/icons';
 import ClientOnly from '@/components/ClientOnly';
 import ErrorBoundary from '@/components/ErrorBoundary';
 
@@ -30,6 +40,18 @@ const ROLE_DISPLAY_CONFIG = {
   'receptionist': { label: 'Recepcionista', color: 'bg-orange-100 text-orange-800' },
   'event_coordinator': { label: 'Coordinador/a de Eventos', color: 'bg-yellow-100 text-yellow-800' },
   'client': { label: 'Cliente', color: 'bg-gray-100 text-gray-800' },
+} as const;
+
+// Icon mapping for navigation items
+const ICON_MAP = {
+  'DashboardOutlined': DashboardOutlined,
+  'FileTextOutlined': FileTextOutlined,
+  'CalendarOutlined': CalendarOutlined,
+  'UserOutlined': UserOutlined,
+  'BankOutlined': BankOutlined,
+  'FileOutlined': FileOutlined,
+  'BarChartOutlined': BarChartOutlined,
+  'HomeOutlined': HomeOutlined,
 } as const;
 
 export default function DashboardLayout({ children }: { children: React.ReactNode; }) {
@@ -89,7 +111,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     // Convert navigation items to Ant Design menu format
      return navigationItems.map(item => ({
        key: item.key,
-       icon: React.createElement(require('@ant-design/icons')[item.icon || 'HomeOutlined']),
+       icon: React.createElement(ICON_MAP[item.icon as keyof typeof ICON_MAP] || HomeOutlined),
        label: <Link href={item.path}>{item.label}</Link>,
      }));
   }, [user?.role]);

@@ -296,7 +296,53 @@ const AppointmentsPage = () => {
       message.loading({ content: 'Eliminando...', key: 'deleteAppt' });
       await AppointmentService.deleteAppointment(user!.role, appointmentId.toString());
       message.success({ content: 'Cita eliminada exitosamente.', key: 'deleteAppt' });
-      fetchAppointments(); // Refresh the list
+
+      // Remove the deleted appointment from local state immediately for better UX
+      const updatedAppointments = appointments.filter(apt => apt.id !== appointmentId);
+      setAppointments(updatedAppointments);
+
+      // Reapply current filters to the updated appointments list
+      let filtered = updatedAppointments;
+      if (searchFilters.search) {
+        const searchLower = searchFilters.search.toLowerCase();
+        filtered = filtered.filter((appointment: Appointment) => {
+          const titleMatch = appointment.title?.toLowerCase().includes(searchLower);
+          const caseMatch = appointment.case?.title?.toLowerCase().includes(searchLower);
+          const staffMatch = `${appointment.staff?.firstName} ${appointment.staff?.lastName}`.toLowerCase().includes(searchLower);
+          return titleMatch || caseMatch || staffMatch;
+        });
+      }
+
+      if (searchFilters.department) {
+        filtered = filtered.filter((appointment: Appointment) =>
+          appointment.department === searchFilters.department
+        );
+      }
+
+      if (searchFilters.category) {
+        filtered = filtered.filter((appointment: Appointment) =>
+          appointment.category === searchFilters.category
+        );
+      }
+
+      if (searchFilters.status) {
+        filtered = filtered.filter((appointment: Appointment) =>
+          appointment.status === searchFilters.status
+        );
+      }
+
+      if (searchFilters.dateRange && searchFilters.dateRange.length === 2) {
+        const [startDate, endDate] = searchFilters.dateRange;
+        filtered = filtered.filter(appointment => {
+          const appointmentDate = dayjs(appointment.startTime);
+          return appointmentDate.isBetween(startDate, endDate, 'day', '[]');
+        });
+      }
+
+      setFilteredAppointments(filtered);
+
+      // Also refresh from server in background to ensure consistency
+      fetchAppointments(true, false);
     } catch (error) {
       message.error({ content: 'No se pudo eliminar la cita.', key: 'deleteAppt' });
     }
@@ -389,18 +435,8 @@ const AppointmentsPage = () => {
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <div className="flex items-center gap-4">
+        <div>
           <h1 className="text-2xl font-bold">Gestión de Citas</h1>
-          {/* Real-time connection indicator */}
-          <div className="flex items-center gap-2">
-            <div
-              className={`w-2 h-2 rounded-full ${wsConnected ? 'bg-green-500' : 'bg-red-500'}`}
-              title={wsConnected ? 'Conectado en tiempo real' : 'Sin conexión en tiempo real'}
-            />
-            <span className="text-xs text-gray-500">
-              {wsConnected ? 'En vivo' : 'Sin conexión'}
-            </span>
-          </div>
         </div>
         <div className="flex gap-2">
           {/* IMPROVEMENT: Button is only shown to authorized roles and is disabled during loading */}

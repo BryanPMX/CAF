@@ -263,12 +263,13 @@ const ReportsPage = () => {
 
   const calculateEnhancedStats = () => {
     if (!summaryData) return null;
-    
+
     const totalCases = summaryData.totalCases;
     const totalAppointments = summaryData.totalAppointments;
-    
-    // Calculate completion rates
-    const completedCases = summaryData.casesByStatus?.find(s => s.status === 'closed')?.count || 0;
+
+    // Calculate completion rates - handle both "completed" and "closed" statuses
+    const completedCases = (summaryData.casesByStatus?.find(s => s.status === 'closed')?.count || 0) +
+                          (summaryData.casesByStatus?.find(s => s.status === 'completed')?.count || 0);
     const completedAppointments = summaryData.appointmentsByStatus?.find(s => s.status === 'completed')?.count || 0;
     
     const caseCompletionRate = totalCases > 0 ? (completedCases / totalCases) * 100 : 0;
@@ -319,10 +320,14 @@ const ReportsPage = () => {
       width: 100,
       render: (status: string) => (
         <Tag color={getStatusColor(status)}>
-          {status === 'open' ? 'Abierto' : 
-           status === 'active' ? 'Activo' : 
-           status === 'resolved' ? 'Resuelto' : 
-           status === 'closed' ? 'Cerrado' : status}
+          {status === 'open' ? 'Abierto' :
+           status === 'active' ? 'Activo' :
+           status === 'in_progress' ? 'En Progreso' :
+           status === 'resolved' ? 'Resuelto' :
+           status === 'closed' ? 'Cerrado' :
+           status === 'completed' ? 'Completado' :
+           status === 'archived' ? 'Archivado' :
+           status === 'pending' ? 'Pendiente' : status}
         </Tag>
       ),
     },
@@ -438,10 +443,11 @@ const ReportsPage = () => {
       width: 100,
       render: (status: string) => (
         <Tag color={getStatusColor(status)}>
-          {status === 'confirmed' ? 'Confirmada' : 
-           status === 'completed' ? 'Completada' : 
-           status === 'cancelled' ? 'Cancelada' : 
-           status === 'pending' ? 'Pendiente' : status}
+          {status === 'confirmed' ? 'Confirmada' :
+           status === 'completed' ? 'Completada' :
+           status === 'cancelled' ? 'Cancelada' :
+           status === 'pending' ? 'Pendiente' :
+           status === 'no_show' ? 'No se presentó' : status}
         </Tag>
       ),
     },
@@ -672,10 +678,14 @@ const ReportsPage = () => {
                         {summaryData.casesByStatus.map((item, index) => (
                           <div key={index} className="flex justify-between items-center p-2 bg-gray-50 rounded">
                             <span className="font-medium">
-                              {item.status === 'open' ? 'Abierto' : 
-                               item.status === 'active' ? 'Activo' : 
-                               item.status === 'resolved' ? 'Resuelto' : 
-                               item.status === 'closed' ? 'Cerrado' : item.status}
+                              {item.status === 'open' ? 'Abierto' :
+                               item.status === 'active' ? 'Activo' :
+                               item.status === 'in_progress' ? 'En Progreso' :
+                               item.status === 'resolved' ? 'Resuelto' :
+                               item.status === 'closed' ? 'Cerrado' :
+                               item.status === 'completed' ? 'Completado' :
+                               item.status === 'archived' ? 'Archivado' :
+                               item.status === 'pending' ? 'Pendiente' : item.status}
                             </span>
                             <Tag color="blue" className="font-bold">{item.count}</Tag>
                           </div>
