@@ -261,16 +261,6 @@ const TrueDashboardPage = () => {
   const [offices, setOffices] = useState<Office[]>([]);
   const initializedRef = useRef(false);
 
-  // Prevent SSR issues - don't render until client-side
-  // THIS MUST COME AFTER ALL HOOKS ARE CALLED
-  if (!isHydrated) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <Spin size="large" tip="Cargando..." />
-      </div>
-    );
-  }
-
   // Fetch offices for admin/office manager filtering
   const fetchOffices = async () => {
     try {
@@ -413,18 +403,20 @@ const TrueDashboardPage = () => {
   }, []); // Empty dependency array - handle logout manually
 
 
+  // Show loading until hydrated and loaded
+  if (!isHydrated || loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <Spin size="large" tip={isHydrated ? "Cargando resumen..." : "Cargando..."} />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
-      {loading ? (
-        <div className="flex justify-center items-center h-64">
-          <Spin size="large" tip="Cargando resumen..." />
-        </div>
-      ) : (
-        <>
-
       {/* Statistics Cards */}
       <div className="mb-8">
-        {userRole && dashboardData && !loading ? (
+        {userRole && dashboardData ? (
           <RoleBasedDashboard
             data={dashboardData}
             userRole={userRole}
@@ -435,18 +427,10 @@ const TrueDashboardPage = () => {
           />
         ) : (
           <div className="flex justify-center items-center h-32">
-            <Spin size="large" tip={loading ? "Cargando dashboard..." : "Esperando datos..."} />
-            {userRole && !dashboardData && !loading && (
-              <div className="mt-2 text-sm text-gray-500">
-                Cargando datos del dashboard...
-              </div>
-            )}
+            <Spin size="large" tip="Cargando datos del dashboard..." />
           </div>
         )}
       </div>
-
-        </>
-      )}
     </div>
   );
 };

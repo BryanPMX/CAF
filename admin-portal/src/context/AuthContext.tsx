@@ -190,19 +190,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       });
     }
   }, [decodeToken]);
-
-  // Initialize authentication state - ONLY runs on initial app load
   useEffect(() => {
-    // This useEffect is now just for setup, actual initialization happens in the client-side effect
-  }, [decodeToken]); // Only run once on mount
-
-  // Separate effect for client-side initialization to avoid SSR issues
-  useEffect(() => {
-    // Only run on client side after hydration
+    // Only run on client side after component mounts
     if (typeof window === 'undefined') return;
 
     initializeAuth();
-  }, []); // Empty dependency - run once after mount
+  }, []); // Empty dependency - run once after mount, no decodeToken dependency
 
   // Login function - THE SINGLE AUTHORITATIVE METHOD FOR SETTING AUTH STATE
   const login = useCallback((userData: AuthUser, token: string) => {
