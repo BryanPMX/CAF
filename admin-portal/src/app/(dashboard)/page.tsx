@@ -57,32 +57,7 @@ interface Office {
   name: string;
 }
 
-// --- Simple Stat Card Component ---
-const StatCard: React.FC<{
-  title: string;
-  value: number;
-  icon: React.ReactNode;
-  color?: string;
-  suffix?: string;
-}> = ({ title, value, icon, color = '#1890ff', suffix }) => (
-  <Card className="text-center">
-    <div className="flex items-center justify-center mb-2">
-      {icon && React.isValidElement(icon) ? (
-        React.cloneElement(icon as React.ReactElement, {
-          style: { fontSize: '24px', color }
-        })
-      ) : (
-        <div style={{ fontSize: '24px', color }}>📊</div>
-      )}
-    </div>
-    <Statistic
-      title={title}
-      value={value}
-      suffix={suffix}
-      valueStyle={{ color, fontSize: '24px', fontWeight: 'bold' }}
-    />
-  </Card>
-);
+// Removed StatCard component - using inline cards to avoid undefined component issues
 
 // --- Secure Role-Based Dashboard Component ---
 const RoleBasedDashboard: React.FC<{
@@ -151,76 +126,108 @@ const RoleBasedDashboard: React.FC<{
       <Row gutter={[16, 16]}>
         {/* Case Statistics */}
         <Col xs={24} sm={12} md={6}>
-          <StatCard
-            title="Total Casos"
-            value={isStaffRole ? (data.myCases || 0) : (data.totalCases || 0)}
-            icon={<FolderOpenOutlined />}
-            color="#1890ff"
-          />
+          <Card className="text-center">
+            <div className="flex items-center justify-center mb-2">
+              <FolderOpenOutlined style={{ fontSize: '24px', color: '#1890ff' }} />
+            </div>
+            <Statistic
+              title="Total Casos"
+              value={isStaffRole ? (data.myCases || 0) : (data.totalCases || 0)}
+              valueStyle={{ color: '#1890ff', fontSize: '24px', fontWeight: 'bold' }}
+            />
+          </Card>
         </Col>
 
         <Col xs={24} sm={12} md={6}>
-          <StatCard
-            title="Casos Activos"
-            value={isStaffRole ? (data.myOpenCases || 0) : (data.openCases || 0)}
-            icon={<ClockCircleOutlined />}
-            color="#fa8c16"
-          />
+          <Card className="text-center">
+            <div className="flex items-center justify-center mb-2">
+              <ClockCircleOutlined style={{ fontSize: '24px', color: '#fa8c16' }} />
+            </div>
+            <Statistic
+              title="Casos Activos"
+              value={isStaffRole ? (data.myOpenCases || 0) : (data.openCases || 0)}
+              valueStyle={{ color: '#fa8c16', fontSize: '24px', fontWeight: 'bold' }}
+            />
+          </Card>
         </Col>
 
         <Col xs={24} sm={12} md={6}>
-          <StatCard
-            title="Casos Completados"
-            value={data.completedCases || 0}
-            icon={<CheckCircleOutlined />}
-            color="#52c41a"
-          />
+          <Card className="text-center">
+            <div className="flex items-center justify-center mb-2">
+              <CheckCircleOutlined style={{ fontSize: '24px', color: '#52c41a' }} />
+            </div>
+            <Statistic
+              title="Casos Completados"
+              value={data.completedCases || 0}
+              valueStyle={{ color: '#52c41a', fontSize: '24px', fontWeight: 'bold' }}
+            />
+          </Card>
         </Col>
 
         <Col xs={24} sm={12} md={6}>
-          <StatCard
-            title="Casos Este Mes"
-            value={data.casesThisMonth || 0}
-            icon={<BarChartOutlined />}
-            color="#722ed1"
-          />
+          <Card className="text-center">
+            <div className="flex items-center justify-center mb-2">
+              <BarChartOutlined style={{ fontSize: '24px', color: '#722ed1' }} />
+            </div>
+            <Statistic
+              title="Casos Este Mes"
+              value={data.casesThisMonth || 0}
+              valueStyle={{ color: '#722ed1', fontSize: '24px', fontWeight: 'bold' }}
+            />
+          </Card>
         </Col>
 
         {/* Appointment Statistics */}
         <Col xs={24} sm={12} md={6}>
-          <StatCard
-            title="Total Citas"
-            value={isStaffRole ? (data.myAppointments || 0) : (data.totalAppointments || 0)}
-            icon={<CalendarOutlined />}
-            color="#13c2c2"
-          />
+          <Card className="text-center">
+            <div className="flex items-center justify-center mb-2">
+              <CalendarOutlined style={{ fontSize: '24px', color: '#13c2c2' }} />
+            </div>
+            <Statistic
+              title="Total Citas"
+              value={isStaffRole ? (data.myAppointments || 0) : (data.totalAppointments || 0)}
+              valueStyle={{ color: '#13c2c2', fontSize: '24px', fontWeight: 'bold' }}
+            />
+          </Card>
         </Col>
 
         <Col xs={24} sm={12} md={6}>
-          <StatCard
-            title="Citas Pendientes"
-            value={isStaffRole ? (data.myPendingAppointments || 0) : (data.pendingAppointments || 0)}
-            icon={<ClockCircleOutlined />}
-            color="#fa8c16"
-          />
+          <Card className="text-center">
+            <div className="flex items-center justify-center mb-2">
+              <ClockCircleOutlined style={{ fontSize: '24px', color: '#fa8c16' }} />
+            </div>
+            <Statistic
+              title="Citas Pendientes"
+              value={isStaffRole ? (data.myPendingAppointments || 0) : (data.pendingAppointments || 0)}
+              valueStyle={{ color: '#fa8c16', fontSize: '24px', fontWeight: 'bold' }}
+            />
+          </Card>
         </Col>
 
         <Col xs={24} sm={12} md={6}>
-          <StatCard
-            title="Citas Completadas"
-            value={data.completedAppointments || 0}
-            icon={<CheckCircleOutlined />}
-            color="#52c41a"
-          />
+          <Card className="text-center">
+            <div className="flex items-center justify-center mb-2">
+              <CheckCircleOutlined style={{ fontSize: '24px', color: '#52c41a' }} />
+            </div>
+            <Statistic
+              title="Citas Completadas"
+              value={data.completedAppointments || 0}
+              valueStyle={{ color: '#52c41a', fontSize: '24px', fontWeight: 'bold' }}
+            />
+          </Card>
         </Col>
 
         <Col xs={24} sm={12} md={6}>
-          <StatCard
-            title="Citas Hoy"
-            value={data.appointmentsToday || 0}
-            icon={<CalendarOutlined />}
-            color="#722ed1"
-          />
+          <Card className="text-center">
+            <div className="flex items-center justify-center mb-2">
+              <CalendarOutlined style={{ fontSize: '24px', color: '#722ed1' }} />
+            </div>
+            <Statistic
+              title="Citas Hoy"
+              value={data.appointmentsToday || 0}
+              valueStyle={{ color: '#722ed1', fontSize: '24px', fontWeight: 'bold' }}
+            />
+          </Card>
         </Col>
       </Row>
 
