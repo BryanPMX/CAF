@@ -36,7 +36,7 @@ func (s *UserServiceImpl) Authenticate(ctx context.Context, email, password stri
 	}
 
 	// Check if user is active
-	if user.Status != "active" {
+	if !user.IsActive {
 		return nil, errors.New("account is not active")
 	}
 
@@ -68,9 +68,6 @@ func (s *UserServiceImpl) UpdateUserProfile(ctx context.Context, userID string, 
 	}
 	if updates.LastName != nil {
 		user.LastName = *updates.LastName
-	}
-	if updates.Phone != nil {
-		user.Phone = updates.Phone
 	}
 
 	user.UpdatedAt = time.Now()
@@ -157,7 +154,7 @@ func (s *UserServiceImpl) CreateUser(ctx context.Context, userData interfaces.Cr
 		Role:      userData.Role,
 		OfficeID:  &userData.OfficeID,
 		Password:  string(hashedPassword),
-		Status:    "active",
+		IsActive:  true,
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}

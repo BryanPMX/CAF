@@ -2,6 +2,9 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 import { ApiClient, ApiResponse, RequestConfig, HttpClient, HttpRequestConfig, HttpResponse } from '@/interfaces/api';
 
+// Re-export ApiClient interface
+export type { ApiClient } from '@/interfaces/api';
+
 // Axios-based HTTP client implementation
 export class AxiosHttpClient implements HttpClient {
   private axiosInstance: AxiosInstance;
