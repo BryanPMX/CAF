@@ -280,10 +280,11 @@ const TrueDashboardPage = () => {
   };
 
   // Secure dashboard data fetching with role-based filtering
-  const fetchDashboardData = async (officeId?: string) => {
-    console.log('fetchDashboardData called with userRole:', userRole, 'officeId:', officeId);
-    if (!userRole) {
-      console.log('fetchDashboardData: No userRole, skipping');
+  const fetchDashboardData = async (officeId?: string, overrideRole?: string) => {
+    const effectiveRole = overrideRole || userRole;
+    console.log('fetchDashboardData called with effectiveRole:', effectiveRole, 'userRole:', userRole, 'officeId:', officeId);
+    if (!effectiveRole) {
+      console.log('fetchDashboardData: No effectiveRole, skipping');
       return;
     }
 
@@ -293,13 +294,13 @@ const TrueDashboardPage = () => {
 
       // Build query parameters based on role and selected office
       const params = new URLSearchParams();
-      if (officeId && (userRole === 'admin' || userRole === 'office_manager')) {
+      if (officeId && (effectiveRole === 'admin' || effectiveRole === 'office_manager')) {
         params.append('officeId', officeId);
       }
 
       // Determine endpoint based on role
       let endpoint = '/dashboard-summary';
-      if (userRole !== 'admin' && userRole !== 'office_manager') {
+      if (effectiveRole !== 'admin' && effectiveRole !== 'office_manager') {
         endpoint = '/staff/dashboard-summary';
       }
 
@@ -315,7 +316,7 @@ const TrueDashboardPage = () => {
       console.log('fetchDashboardData: Raw data received:', rawData);
       let processedData: DashboardData;
 
-      if (userRole === 'admin') {
+      if (effectiveRole === 'admin') {
         // Admin sees all data
         processedData = {
           totalCases: rawData.totalCases || 0,
@@ -328,7 +329,7 @@ const TrueDashboardPage = () => {
           appointmentsToday: rawData.appointmentsToday || 0,
           offices: offices.length > 0 ? offices : undefined,
         };
-      } else if (userRole === 'office_manager') {
+      } else if (effectiveRole === 'office_manager') {
         // Office manager sees office-specific or all-office data
         processedData = {
           totalCases: rawData.totalCases || 0,
@@ -400,8 +401,8 @@ const TrueDashboardPage = () => {
       setSelectedOfficeId('2'); // Default office for office managers
     }
 
-    // Fetch dashboard data
-    fetchDashboardData(role === 'office_manager' ? '2' : undefined);
+    // Fetch dashboard data - pass role directly to avoid async state issues
+    fetchDashboardData(role === 'office_manager' ? '2' : undefined, role);
   }, [isHydrated]); // Removed user?.role and userRole dependencies to prevent loops
 
   // Handle user logout only - run once on mount and track user state internally
