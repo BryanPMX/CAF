@@ -390,7 +390,20 @@ const TrueDashboardPage = () => {
 
     // Fetch dashboard data
     fetchDashboardData(role === 'office_manager' ? '2' : undefined);
-  }, [isHydrated, user?.role]);
+  }, [isHydrated]); // Removed user?.role and userRole dependencies to prevent loops
+
+  // Handle user role changes (but don't re-initialize everything)
+  useEffect(() => {
+    if (!user?.role) {
+      // User logged out or role became undefined
+      setUserRole(null);
+      setDashboardData(null);
+      initializedRef.current = false; // Allow re-initialization on next login
+    } else if (user.role !== userRole && initializedRef.current) {
+      // Role changed while initialized (rare case)
+      setUserRole(user.role);
+    }
+  }, [user?.role, userRole]);
 
   // CRITICAL FIX: No early returns to prevent React error #310
   // All hooks must be called on every render, regardless of loading state
