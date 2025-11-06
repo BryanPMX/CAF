@@ -365,6 +365,18 @@ const TrueDashboardPage = () => {
     fetchDashboardData(selectedOfficeId || undefined);
   };
 
+  // Auto-refresh dashboard data every 15 seconds for better UX
+  useEffect(() => {
+    if (!userRole || !dashboardData) return;
+
+    const interval = setInterval(() => {
+      console.log('Auto-refreshing dashboard data...');
+      fetchDashboardData(selectedOfficeId || undefined);
+    }, 15000); // 15 seconds
+
+    return () => clearInterval(interval);
+  }, [userRole, dashboardData, selectedOfficeId]);
+
   // Initialize dashboard only once when user becomes available
   useEffect(() => {
     if (!isHydrated || !user?.role || initializedRef.current) return;

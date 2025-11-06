@@ -99,7 +99,24 @@ export class CaseService implements ICaseService {
 
   static async deleteCase(userRole: string, id: string) {
     console.log('Static legacy deleteCase called with:', userRole, id);
-    return true;
+
+    // Get API client from lib
+    const { apiClient } = await import('@/app/lib/api');
+
+    try {
+      let endpoint = '/cases';
+      if (userRole === 'admin') {
+        endpoint = '/admin/cases';
+      } else if (userRole === 'office_manager') {
+        endpoint = '/office/cases';
+      }
+
+      await apiClient.delete(`${endpoint}/${id}`);
+      return true;
+    } catch (error) {
+      console.error('Error deleting case:', error);
+      throw error;
+    }
   }
 
   async getCases(params?: CaseListParams): Promise<PaginatedResponse<Case>> {
