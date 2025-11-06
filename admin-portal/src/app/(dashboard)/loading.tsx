@@ -1,3 +1,5 @@
+'use client';
+
 import { Spin, Card, Skeleton } from 'antd';
 import { LoadingOutlined } from '@ant-design/icons';
 
