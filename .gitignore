@@ -79,6 +79,10 @@ htmlcov/
 .pytest_cache/
 .tox/
 
+# === Test results (contains sensitive JWT tokens) ===
+testing/test-results/
+test-results/
+
 # === Package manager files ===
 package-lock.json.bak
 yarn-error.log

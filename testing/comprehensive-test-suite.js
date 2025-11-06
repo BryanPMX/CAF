@@ -669,19 +669,38 @@ class ComprehensiveTestSuite {
   }
 
   generateReport() {
+    // Sanitize test results to remove sensitive JWT tokens
+    const sanitizeTestResults = (tests) => {
+      return tests.map(test => {
+        const sanitized = { ...test };
+        // Remove token from test data if it exists
+        if (sanitized.data && sanitized.data.token) {
+          sanitized.data = { ...sanitized.data };
+          delete sanitized.data.token;
+          sanitized.data.hasToken = true; // Indicate token was present but removed
+        }
+        return sanitized;
+      });
+    };
+
     const report = {
       timestamp: new Date().toISOString(),
       summary: this.testResults.summary,
       performance: this.testResults.performance,
-      testResults: this.testResults.tests,
+      testResults: sanitizeTestResults(this.testResults.tests),
       errors: this.testResults.errors,
       recommendations: this.generateRecommendations()
     };
 
-    // Save to file
-    const reportPath = path.join(__dirname, 'test-results', `comprehensive-test-${Date.now()}.json`);
-    fs.mkdirSync(path.dirname(reportPath), { recursive: true });
-    fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
+    // Save to file (only if not in production/CI environment)
+    if (process.env.NODE_ENV !== 'production' && !process.env.CI) {
+      const reportPath = path.join(__dirname, 'test-results', `comprehensive-test-${Date.now()}.json`);
+      fs.mkdirSync(path.dirname(reportPath), { recursive: true });
+      fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
+      console.log(`\n📄 Detailed report saved to: ${reportPath}`);
+    } else {
+      console.log('\n📄 Report not saved in production/CI environment');
+    }
 
     // Console summary
     console.log('\n' + '='.repeat(50));
