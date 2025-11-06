@@ -251,6 +251,15 @@ const TrueDashboardPage = () => {
   const router = useRouter();
   const isHydrated = useHydrationSafe();
   const { user } = useAuth();
+
+  // Prevent SSR issues - don't render until client-side
+  if (!isHydrated) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <Spin size="large" tip="Cargando..." />
+      </div>
+    );
+  }
   const [userRole, setUserRole] = useState<string | null>(null);
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
