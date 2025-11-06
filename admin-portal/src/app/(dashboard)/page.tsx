@@ -108,8 +108,8 @@ const RoleBasedDashboard: React.FC<{
           </Typography.Title>
           <Typography.Text type="secondary">
             Resumen de casos y citas
-            {selectedOfficeId && data.offices && (
-              <span> - {data.offices.find(o => o.id.toString() === selectedOfficeId)?.name}</span>
+            {selectedOfficeId && data.offices && data.offices.length > 0 && (
+              <span> - {data.offices.find(o => o.id.toString() === selectedOfficeId)?.name || 'Oficina'}</span>
             )}
           </Typography.Text>
         </div>
@@ -137,11 +137,11 @@ const RoleBasedDashboard: React.FC<{
               style={{ minWidth: 200 }}
               allowClear
             >
-              {data.offices.map(office => (
+              {data.offices && data.offices.length > 0 ? data.offices.map(office => (
                 <Select.Option key={office.id} value={office.id.toString()}>
                   {office.name}
                 </Select.Option>
-              ))}
+              )) : null}
             </Select>
           </div>
         </Card>
@@ -153,7 +153,7 @@ const RoleBasedDashboard: React.FC<{
         <Col xs={24} sm={12} md={6}>
           <StatCard
             title="Total Casos"
-            value={canSeeAllOffices ? (data.totalCases || 0) : (data.myCases || 0)}
+            value={isStaffRole ? (data.myCases || 0) : (data.totalCases || 0)}
             icon={<FolderOpenOutlined />}
             color="#1890ff"
           />
@@ -162,7 +162,7 @@ const RoleBasedDashboard: React.FC<{
         <Col xs={24} sm={12} md={6}>
           <StatCard
             title="Casos Activos"
-            value={canSeeAllOffices ? (data.openCases || 0) : (data.myOpenCases || 0)}
+            value={isStaffRole ? (data.myOpenCases || 0) : (data.openCases || 0)}
             icon={<ClockCircleOutlined />}
             color="#fa8c16"
           />
@@ -190,7 +190,7 @@ const RoleBasedDashboard: React.FC<{
         <Col xs={24} sm={12} md={6}>
           <StatCard
             title="Total Citas"
-            value={canSeeAllOffices ? (data.totalAppointments || 0) : (data.myAppointments || 0)}
+            value={isStaffRole ? (data.myAppointments || 0) : (data.totalAppointments || 0)}
             icon={<CalendarOutlined />}
             color="#13c2c2"
           />
@@ -199,7 +199,7 @@ const RoleBasedDashboard: React.FC<{
         <Col xs={24} sm={12} md={6}>
           <StatCard
             title="Citas Pendientes"
-            value={canSeeAllOffices ? (data.pendingAppointments || 0) : (data.myPendingAppointments || 0)}
+            value={isStaffRole ? (data.myPendingAppointments || 0) : (data.pendingAppointments || 0)}
             icon={<ClockCircleOutlined />}
             color="#fa8c16"
           />
