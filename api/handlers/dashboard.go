@@ -2,6 +2,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
@@ -53,17 +54,17 @@ func GetDashboardSummary(db *gorm.DB) gin.HandlerFunc {
 
 		// Get all required metrics for admin/office manager dashboard
 		var totalCases int64
-		db.Model(&models.Case{}).Count(&totalCases)
+		db.Model(&models.Case{}).Where("is_archived = ? AND deleted_at IS NULL", false).Count(&totalCases)
 
 		var openCases int64
-		casesQuery := db.Model(&models.Case{}).Where("status IN (?)", []string{"open", "active", "in_progress"})
+		casesQuery := db.Model(&models.Case{}).Where("status IN (?) AND is_archived = ? AND deleted_at IS NULL", []string{"open", "active", "in_progress"}, false)
 		if officeID, ok := officeScopeID.(uint); ok {
 			casesQuery = casesQuery.Where("office_id = ?", officeID)
 		}
 		casesQuery.Count(&openCases)
 
 		var completedCases int64
-		completedCasesQuery := db.Model(&models.Case{}).Where("status IN (?)", []string{"completed", "closed"})
+		completedCasesQuery := db.Model(&models.Case{}).Where("status IN (?) AND is_archived = ? AND deleted_at IS NULL", []string{"completed", "closed"}, false)
 		if officeID, ok := officeScopeID.(uint); ok {
 			completedCasesQuery = completedCasesQuery.Where("office_id = ?", officeID)
 		}
@@ -72,24 +73,24 @@ func GetDashboardSummary(db *gorm.DB) gin.HandlerFunc {
 		var casesThisMonth int64
 		now := time.Now()
 		currentMonthStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
-		casesMonthQuery := db.Model(&models.Case{}).Where("created_at >= ?", currentMonthStart)
+		casesMonthQuery := db.Model(&models.Case{}).Where("created_at >= ? AND is_archived = ? AND deleted_at IS NULL", currentMonthStart, false)
 		if officeID, ok := officeScopeID.(uint); ok {
 			casesMonthQuery = casesMonthQuery.Where("office_id = ?", officeID)
 		}
 		casesMonthQuery.Count(&casesThisMonth)
 
 		var totalAppointments int64
-		db.Model(&models.Appointment{}).Count(&totalAppointments)
+		db.Model(&models.Appointment{}).Where("deleted_at IS NULL").Count(&totalAppointments)
 
 		var pendingAppointments int64
-		pendingApptQuery := db.Model(&models.Appointment{}).Where("status = ?", "pending")
+		pendingApptQuery := db.Model(&models.Appointment{}).Where("status = ? AND deleted_at IS NULL", "pending")
 		if officeID, ok := officeScopeID.(uint); ok {
 			pendingApptQuery = pendingApptQuery.Where("office_id = ?", officeID)
 		}
 		pendingApptQuery.Count(&pendingAppointments)
 
 		var completedAppointments int64
-		completedApptQuery := db.Model(&models.Appointment{}).Where("status = ?", "completed")
+		completedApptQuery := db.Model(&models.Appointment{}).Where("status = ? AND deleted_at IS NULL", "completed")
 		if officeID, ok := officeScopeID.(uint); ok {
 			completedApptQuery = completedApptQuery.Where("office_id = ?", officeID)
 		}
@@ -98,14 +99,17 @@ func GetDashboardSummary(db *gorm.DB) gin.HandlerFunc {
 		var appointmentsToday int64
 		todayStart := time.Now().Truncate(24 * time.Hour)
 		todayEnd := todayStart.Add(24 * time.Hour)
-		apptTodayQuery := db.Model(&models.Appointment{}).Where("start_time >= ? AND start_time < ?", todayStart, todayEnd)
+		apptTodayQuery := db.Model(&models.Appointment{}).Where("start_time >= ? AND start_time < ? AND deleted_at IS NULL", todayStart, todayEnd)
 		if officeID, ok := officeScopeID.(uint); ok {
 			apptTodayQuery = apptTodayQuery.Where("office_id = ?", officeID)
 		}
 		apptTodayQuery.Count(&appointmentsToday)
 
 		var offices []models.Office
-		db.Find(&offices)
+		if err := db.Find(&offices).Error; err != nil {
+			fmt.Printf("Dashboard: Error fetching offices: %v\n", err)
+		}
+		fmt.Printf("Dashboard: Found %d offices\n", len(offices))
 
 		summary := gin.H{
 			"totalCases":            totalCases,
@@ -119,6 +123,7 @@ func GetDashboardSummary(db *gorm.DB) gin.HandlerFunc {
 			"offices":               offices,
 		}
 
+		fmt.Printf("Dashboard: Returning summary with %d offices\n", len(offices))
 		c.JSON(http.StatusOK, summary)
 	}
 }
