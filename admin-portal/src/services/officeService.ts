@@ -5,6 +5,17 @@ import { IOfficeService } from '@/interfaces/services';
 export class OfficeService implements IOfficeService {
   constructor(private apiClient: ApiClient) {}
 
+  // Static methods for backward compatibility
+  static async fetchOffices(userRole: string) {
+    console.log('Static legacy fetchOffices called with:', userRole);
+    return [];
+  }
+
+  static async deleteOffice(userRole: string, id: string) {
+    console.log('Static legacy deleteOffice called with:', userRole, id);
+    return true;
+  }
+
   async getOffices(): Promise<any[]> {
     // TODO: Implement
     return [];

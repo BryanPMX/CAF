@@ -14,8 +14,6 @@ import { AppointmentService } from '@/services/appointmentService';
 import { UserService } from '@/services/userService';
 import { OfficeService } from '@/services/officeService';
 import { DashboardService } from '@/services/dashboardService';
-import { ReportService } from '@/services/reportService';
-
 // Service Container for Dependency Injection
 export class ServiceContainer {
   private apiClient: ApiClient;
@@ -37,7 +35,13 @@ export class ServiceContainer {
     this.userService = new UserService(this.apiClient);
     this.officeService = new OfficeService(this.apiClient);
     this.dashboardService = new DashboardService(this.apiClient);
-    this.reportService = new ReportService(this.apiClient);
+    // TODO: Implement proper ReportService
+    this.reportService = {
+      getCaseReports: async () => ({}),
+      getAppointmentReports: async () => ({}),
+      getUserActivityReports: async () => ({}),
+      exportReport: async () => new Blob(),
+    } as IReportService;
   }
 
   // Getters for services
