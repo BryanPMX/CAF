@@ -8,7 +8,26 @@ export class OfficeService implements IOfficeService {
   // Static methods for backward compatibility
   static async fetchOffices(userRole: string) {
     console.log('Static legacy fetchOffices called with:', userRole);
-    return [];
+
+    // Get API client from lib
+    const { apiClient } = await import('@/app/lib/api');
+
+    try {
+      let endpoint = '/offices';
+
+      // Route to appropriate endpoint based on user role
+      if (userRole === 'admin') {
+        endpoint = '/admin/offices';
+      } else if (userRole === 'office_manager') {
+        endpoint = '/office/offices';
+      }
+
+      const response = await apiClient.get(endpoint);
+      return response.data.data || response.data;
+    } catch (error) {
+      console.error('Error fetching offices:', error);
+      return [];
+    }
   }
 
   static async deleteOffice(userRole: string, id: string) {

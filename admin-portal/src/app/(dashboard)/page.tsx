@@ -392,7 +392,7 @@ const TrueDashboardPage = () => {
     fetchDashboardData(role === 'office_manager' ? '2' : undefined);
   }, [isHydrated]); // Removed user?.role and userRole dependencies to prevent loops
 
-  // Handle user logout only (don't react to role changes to prevent loops)
+  // Handle user logout only (don't react to any user changes to prevent loops)
   useEffect(() => {
     if (!user) {
       // User logged out completely
@@ -400,7 +400,7 @@ const TrueDashboardPage = () => {
       setDashboardData(null);
       initializedRef.current = false; // Allow re-initialization on next login
     }
-  }, [user]); // Only depend on user object existence, not user.role
+  }, [!!user]); // Only depend on whether user exists, not the user object itself
 
   // CRITICAL FIX: No early returns to prevent React error #310
   // All hooks must be called on every render, regardless of loading state
@@ -444,33 +444,18 @@ const TrueDashboardPage = () => {
 
       {/* Statistics Cards */}
       <div className="mb-8">
-        {userRole && dashboardData && typeof dashboardData === 'object' && !loading && Object.keys(dashboardData).length > 0 && 'totalCases' in dashboardData ? (
-          (() => {
-            try {
-              console.log('Rendering RoleBasedDashboard with data:', dashboardData);
-              return (
-                <RoleBasedDashboard
-                  data={dashboardData}
-                  userRole={userRole}
-                  selectedOfficeId={selectedOfficeId}
-                  onOfficeChange={handleOfficeChange}
-                  onRefresh={handleRefresh}
-                  loading={loading}
-                />
-              );
-            } catch (error) {
-              console.error('Error rendering RoleBasedDashboard:', error);
-              // Fallback to loading state
-              return (
-                <div className="flex justify-center items-center h-32">
-                  <Spin size="large" tip="Error cargando dashboard, reintentando..." />
-                </div>
-              );
-            }
-          })()
+        {userRole && dashboardData && !loading ? (
+          <RoleBasedDashboard
+            data={dashboardData}
+            userRole={userRole}
+            selectedOfficeId={selectedOfficeId}
+            onOfficeChange={handleOfficeChange}
+            onRefresh={handleRefresh}
+            loading={loading}
+          />
         ) : (
           <div className="flex justify-center items-center h-32">
-            <Spin size="large" tip="Cargando dashboard..." />
+            <Spin size="large" tip={loading ? "Cargando dashboard..." : "Esperando datos..."} />
           </div>
         )}
       </div>
