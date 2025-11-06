@@ -41,7 +41,7 @@ export const useWebSocket = (): UseWebSocketReturn => {
       }
 
       // Create WebSocket URL with token
-      const wsUrl = `${process.env.NEXT_PUBLIC_API_URL.replace(/^http/, 'ws')}/ws/notifications?token=${token}`;
+      const wsUrl = `${process.env.NEXT_PUBLIC_API_URL?.replace(/^http/, 'ws')}/ws/notifications?token=${token}`;
 
       console.log('Connecting to WebSocket:', wsUrl);
       const ws = new WebSocket(wsUrl);
