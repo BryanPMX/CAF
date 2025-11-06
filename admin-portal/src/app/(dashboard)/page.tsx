@@ -252,7 +252,17 @@ const TrueDashboardPage = () => {
   const isHydrated = useHydrationSafe();
   const { user } = useAuth();
 
+  // ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONAL RETURNS
+  // Rules of Hooks: Same order, same number on every render
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [selectedOfficeId, setSelectedOfficeId] = useState<string>('');
+  const [offices, setOffices] = useState<Office[]>([]);
+  const initializedRef = useRef(false);
+
   // Prevent SSR issues - don't render until client-side
+  // THIS MUST COME AFTER ALL HOOKS ARE CALLED
   if (!isHydrated) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -260,12 +270,6 @@ const TrueDashboardPage = () => {
       </div>
     );
   }
-  const [userRole, setUserRole] = useState<string | null>(null);
-  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [selectedOfficeId, setSelectedOfficeId] = useState<string>('');
-  const [offices, setOffices] = useState<Office[]>([]);
-  const initializedRef = useRef(false);
 
   // Fetch offices for admin/office manager filtering
   const fetchOffices = async () => {
