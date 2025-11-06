@@ -111,9 +111,10 @@ const AppointmentsPage = () => {
         }
 
         // Reapply category filter if active (from SmartSearchBar)
+        // Use appointment.category which should match case.category
         if (searchFilters.category) {
           filtered = filtered.filter((appointment: Appointment) =>
-            appointment.case?.category === searchFilters.category
+            appointment.category === searchFilters.category
           );
         }
 
@@ -257,7 +258,7 @@ const AppointmentsPage = () => {
 
     // Apply SmartSearchBar category filter (case category)
     if (filters.category) {
-      filtered = filtered.filter(appointment => appointment.case?.category === filters.category);
+      filtered = filtered.filter(appointment => appointment.category === filters.category);
     }
 
     // Apply SmartSearchBar department filter (appointment department)

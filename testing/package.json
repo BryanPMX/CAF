@@ -10,7 +10,8 @@
     "test:smoke": "node smoke-tests.js",
     "test:integration": "node integration-tests.js",
     "test:demo": "node demo-test.js",
-    "test:all": "npm run test:crud && npm run test:quick && npm run test:performance"
+    "test:comprehensive": "node comprehensive-test-suite.js",
+    "test:all": "npm run test:crud && npm run test:quick && npm run test:performance && npm run test:comprehensive"
   },
   "dependencies": {
     "axios": "^1.6.0"
