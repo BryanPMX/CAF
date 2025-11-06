@@ -1,7 +1,7 @@
 // admin-portal/src/app/(dashboard)/page.tsx
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Card,
@@ -261,6 +261,7 @@ const TrueDashboardPage = () => {
   const [loading, setLoading] = useState(true);
   const [selectedOfficeId, setSelectedOfficeId] = useState<string>('');
   const [offices, setOffices] = useState<Office[]>([]);
+  const initializedRef = useRef(false);
 
   // Fetch offices for admin/office manager filtering
   const fetchOffices = async () => {
@@ -365,28 +366,26 @@ const TrueDashboardPage = () => {
     fetchDashboardData(selectedOfficeId || undefined);
   };
 
-  // Initialize on mount and role change
+  // Initialize dashboard only once when user becomes available
   useEffect(() => {
-    if (!isHydrated) return;
+    if (!isHydrated || !user?.role || initializedRef.current) return;
 
-    // Get role from AuthContext instead of localStorage directly
-    const role = user?.role || null;
-    console.log('Dashboard: Setting user role from AuthContext:', role);
+    initializedRef.current = true;
+    const role = user.role;
+    console.log('Dashboard: Initializing with user role:', role);
     setUserRole(role);
 
-    if (role) {
-      // Always fetch offices for UI (needed for office filtering dropdown)
-      fetchOffices();
+    // Always fetch offices for UI (needed for office filtering dropdown)
+    fetchOffices();
 
-      // For office managers, auto-select their office (temporary fix)
-      // In production, this should come from user profile
-      if (role === 'office_manager') {
-        setSelectedOfficeId('2'); // Default office for office managers
-      }
-
-      // Fetch dashboard data
-      fetchDashboardData(role === 'office_manager' ? '2' : undefined);
+    // For office managers, auto-select their office (temporary fix)
+    // In production, this should come from user profile
+    if (role === 'office_manager') {
+      setSelectedOfficeId('2'); // Default office for office managers
     }
+
+    // Fetch dashboard data
+    fetchDashboardData(role === 'office_manager' ? '2' : undefined);
   }, [isHydrated, user?.role]);
 
   // CRITICAL FIX: No early returns to prevent React error #310
