@@ -17,16 +17,7 @@ const legacyAppointmentService = {
 export class AppointmentService implements IAppointmentService {
   constructor(private apiClient: ApiClient) {}
 
-  // Backward compatibility methods
-  async fetchAppointments(params?: any) {
-    console.log('Legacy fetchAppointments called with:', params);
-    return { data: [], pagination: { total: 0, page: 1, pageSize: 20 } };
-  }
-
-  async deleteAppointment(id: string) {
-    console.log('Legacy deleteAppointment called with:', id);
-    return true;
-  }
+  // Backward compatibility methods (removed to avoid duplication)
 
   // Static methods for backward compatibility when imported as class
   static async fetchAppointments(userRole?: string, params?: any) {

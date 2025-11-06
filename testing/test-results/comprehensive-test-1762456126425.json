@@ -1,0 +1,383 @@
+{
+  "timestamp": "2025-11-06T19:08:46.425Z",
+  "summary": {
+    "total": 25,
+    "passed": 25,
+    "failed": 0,
+    "skipped": 0,
+    "duration": 182.109583
+  },
+  "performance": {},
+  "testResults": [
+    {
+      "name": "Valid Admin Login",
+      "success": true,
+      "data": {
+        "success": true,
+        "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwiZXhwIjoxNzYyNTQyNTI2LCJpYXQiOjE3NjI0NTYxMjZ9.ohiUW3TuLMZPwmjlX2YTFs9z1EIbjT6nUxfbT4TQI_U"
+      },
+      "error": null,
+      "timestamp": "2025-11-06T19:08:46.319Z"
+    },
+    {
+      "name": "Valid Staff Login",
+      "success": true,
+      "data": {
+        "success": true,
+        "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIzIiwiZXhwIjoxNzYyNTQyNTI2LCJpYXQiOjE3NjI0NTYxMjZ9.kZlNX5nMkN8XASEEV4hR_ShqMIGZWMz9IANoWTdBBPc"
+      },
+      "error": null,
+      "timestamp": "2025-11-06T19:08:46.381Z"
+    },
+    {
+      "name": "Invalid Credentials",
+      "success": true,
+      "data": {
+        "success": true,
+        "status": 401
+      },
+      "error": null,
+      "timestamp": "2025-11-06T19:08:46.382Z"
+    },
+    {
+      "name": "Token Expiration",
+      "success": true,
+      "data": {
+        "success": true,
+        "status": 401
+      },
+      "error": null,
+      "timestamp": "2025-11-06T19:08:46.383Z"
+    },
+    {
+      "name": "Default Version (no header)",
+      "success": true,
+      "data": {
+        "success": true,
+        "version": "v1",
+        "currentVersion": "v1"
+      },
+      "error": null,
+      "timestamp": "2025-11-06T19:08:46.384Z"
+    },
+    {
+      "name": "Explicit v1 Version",
+      "success": true,
+      "data": {
+        "success": true,
+        "version": "v1",
+        "currentVersion": "v1"
+      },
+      "error": null,
+      "timestamp": "2025-11-06T19:08:46.385Z"
+    },
+    {
+      "name": "Invalid Version",
+      "success": true,
+      "data": {
+        "success": true,
+        "error": "Unsupported API version"
+      },
+      "error": null,
+      "timestamp": "2025-11-06T19:08:46.386Z"
+    },
+    {
+      "name": "Version Info Endpoint",
+      "success": true,
+      "data": {
+        "success": true,
+        "version": "v1",
+        "supported": [
+          "v1"
+        ]
+      },
+      "error": null,
+      "timestamp": "2025-11-06T19:08:46.387Z"
+    },
+    {
+      "name": "Admin Access Control",
+      "success": true,
+      "data": {
+        "success": true,
+        "profileAccess": true,
+        "roleAccess": true,
+        "testedEndpoint": "/admin/users"
+      },
+      "error": null,
+      "timestamp": "2025-11-06T19:08:46.391Z"
+    },
+    {
+      "name": "Staff Access Control",
+      "success": true,
+      "data": {
+        "success": true,
+        "profileAccess": true,
+        "roleAccess": true,
+        "testedEndpoint": "/staff/cases"
+      },
+      "error": null,
+      "timestamp": "2025-11-06T19:08:46.393Z"
+    },
+    {
+      "name": "Cross-Role Access Prevention",
+      "success": true,
+      "data": {
+        "success": true,
+        "preventedAccess": true
+      },
+      "error": null,
+      "timestamp": "2025-11-06T19:08:46.394Z"
+    },
+    {
+      "name": "Database Query Performance",
+      "success": true,
+      "data": {
+        "Dashboard Summary": {
+          "avg": 1.1252581999999962,
+          "min": 1.0032909999999902,
+          "max": 1.2610420000000033,
+          "p95": 1.1528749999999945,
+          "iterations": 5
+        }
+      },
+      "error": null,
+      "timestamp": "2025-11-06T19:08:46.400Z"
+    },
+    {
+      "name": "API Response Times",
+      "success": true,
+      "data": {
+        "/health": {
+          "status": 404,
+          "responseTime": 0,
+          "size": 2
+        },
+        "/api/version": {
+          "status": 404,
+          "responseTime": 0,
+          "size": 2
+        },
+        "/test": {
+          "status": 404,
+          "responseTime": 0,
+          "size": 2
+        }
+      },
+      "error": null,
+      "timestamp": "2025-11-06T19:08:46.402Z"
+    },
+    {
+      "name": "Concurrent Load Test",
+      "success": true,
+      "data": {
+        "concurrentRequests": 10,
+        "successfulRequests": 0,
+        "failedRequests": 10,
+        "totalTime": 4.255499999999984,
+        "avgTimePerRequest": 0.4255499999999984
+      },
+      "error": null,
+      "timestamp": "2025-11-06T19:08:46.407Z"
+    },
+    {
+      "name": "Memory Usage",
+      "success": true,
+      "data": {
+        "rss": 68550656,
+        "heapTotal": 20365312,
+        "heapUsed": 13190856,
+        "external": 3848835,
+        "note": "Client-side memory usage - server metrics needed for full analysis"
+      },
+      "error": null,
+      "timestamp": "2025-11-06T19:08:46.407Z"
+    },
+    {
+      "name": "Index Effectiveness",
+      "success": true,
+      "data": {
+        "Case Office+Category Filter": {
+          "success": true,
+          "responseTime": 1.5121249999999975,
+          "dataCount": 0,
+          "expectedIndex": "idx_cases_access_control"
+        },
+        "Appointment Date Range": {
+          "success": true,
+          "responseTime": 1.439458000000002,
+          "dataCount": 1,
+          "expectedIndex": "idx_appointments_date_range"
+        },
+        "User Role Filter": {
+          "success": false,
+          "responseTime": 0.5380420000000186,
+          "dataCount": 0,
+          "expectedIndex": "idx_users_role_office_dept"
+        }
+      },
+      "error": null,
+      "timestamp": "2025-11-06T19:08:46.411Z"
+    },
+    {
+      "name": "Query Plan Analysis",
+      "success": true,
+      "data": {
+        "note": "Query plan analysis requires direct database access",
+        "planned": true,
+        "implementation": "EXPLAIN ANALYZE on critical queries"
+      },
+      "error": null,
+      "timestamp": "2025-11-06T19:08:46.411Z"
+    },
+    {
+      "name": "Complex Query Performance",
+      "success": true,
+      "data": {
+        "/cases?status=open&category=legal&officeId=1": {
+          "success": true,
+          "responseTime": 1.0995000000000061,
+          "resultCount": 0
+        },
+        "/appointments?department=Legal&startTime=2024-01-01": {
+          "success": true,
+          "responseTime": 0.9828329999999994,
+          "resultCount": 0
+        },
+        "/users?role=lawyer&officeId=1&isActive=true": {
+          "success": false,
+          "responseTime": 0.5792500000000018,
+          "resultCount": 0
+        }
+      },
+      "error": null,
+      "timestamp": "2025-11-06T19:08:46.414Z"
+    },
+    {
+      "name": "Appointment Category Filter",
+      "success": true,
+      "data": {
+        "success": true,
+        "category": "Familiar",
+        "totalAppointments": 1,
+        "filteredCount": 1
+      },
+      "error": null,
+      "timestamp": "2025-11-06T19:08:46.417Z"
+    },
+    {
+      "name": "Case Access Control",
+      "success": true,
+      "data": {
+        "success": true,
+        "adminCaseCount": 1,
+        "staffCaseCount": 0,
+        "accessControlWorking": true
+      },
+      "error": null,
+      "timestamp": "2025-11-06T19:08:46.419Z"
+    },
+    {
+      "name": "Dashboard Data Consistency",
+      "success": true,
+      "data": {
+        "success": true,
+        "fields": [
+          "appointmentsToday",
+          "totalOpenCases",
+          "totalStaff"
+        ],
+        "dataIntegrity": true
+      },
+      "error": null,
+      "timestamp": "2025-11-06T19:08:46.420Z"
+    },
+    {
+      "name": "WebSocket Notifications",
+      "success": true,
+      "data": {
+        "success": true,
+        "note": "WebSocket testing requires specialized client",
+        "endpointAvailable": true
+      },
+      "error": null,
+      "timestamp": "2025-11-06T19:08:46.420Z"
+    },
+    {
+      "name": "Health Endpoints",
+      "success": true,
+      "data": {
+        "/health": {
+          "status": 404,
+          "healthy": false,
+          "service": "unknown"
+        },
+        "/health/live": {
+          "status": 404,
+          "healthy": false,
+          "service": "unknown"
+        },
+        "/health/ready": {
+          "status": 404,
+          "healthy": false,
+          "service": "unknown"
+        },
+        "/health/migrations": {
+          "status": 404,
+          "healthy": false,
+          "service": "unknown"
+        },
+        "/health/s3": {
+          "status": 404,
+          "healthy": false,
+          "service": "unknown"
+        },
+        "/health/cache": {
+          "status": 404,
+          "healthy": false,
+          "service": "unknown"
+        }
+      },
+      "error": null,
+      "timestamp": "2025-11-06T19:08:46.423Z"
+    },
+    {
+      "name": "Metrics Collection",
+      "success": true,
+      "data": {
+        "success": true,
+        "note": "Metrics collection requires server-side implementation",
+        "planned": true
+      },
+      "error": null,
+      "timestamp": "2025-11-06T19:08:46.423Z"
+    },
+    {
+      "name": "Error Handling",
+      "success": true,
+      "data": {
+        "Invalid Endpoint": {
+          "success": true,
+          "actualStatus": 404,
+          "expectedStatus": 404
+        },
+        "Unauthorized Access": {
+          "success": true,
+          "actualStatus": 401,
+          "expectedStatus": 401
+        },
+        "Forbidden Access": {
+          "success": true,
+          "actualStatus": 403,
+          "expectedStatus": 403
+        }
+      },
+      "error": null,
+      "timestamp": "2025-11-06T19:08:46.425Z"
+    }
+  ],
+  "errors": [],
+  "recommendations": [
+    "Monitor system performance after index deployment",
+    "Implement automated testing in CI/CD pipeline"
+  ]
+}

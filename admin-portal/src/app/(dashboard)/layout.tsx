@@ -107,11 +107,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const navigationItems = getNavigationItemsForRole(staffRole);
 
     // Convert navigation items to Ant Design menu format
-     return navigationItems.map(item => ({
-       key: item.key,
-       icon: React.createElement(ICON_MAP[item.icon as keyof typeof ICON_MAP] || HomeOutlined),
-       label: <Link href={item.path}>{item.label}</Link>,
-     }));
+     return navigationItems.map(item => {
+       const IconComponent = ICON_MAP[item.icon as keyof typeof ICON_MAP] || HomeOutlined;
+       return {
+         key: item.key,
+         icon: IconComponent ? React.createElement(IconComponent) : React.createElement(HomeOutlined),
+         label: <Link href={item.path}>{item.label}</Link>,
+       };
+     });
   }, [user?.role]);
 
   // Get role display configuration using centralized role definitions
