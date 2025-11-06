@@ -23,7 +23,8 @@ import {
   PlusOutlined,
   ReloadOutlined,
   BarChartOutlined,
-  ClockCircleOutlined
+  ClockCircleOutlined,
+  CheckCircleOutlined
 } from '@ant-design/icons';
 import { apiClient } from '../lib/api';
 import { useHydrationSafe } from '@/hooks/useHydrationSafe';
