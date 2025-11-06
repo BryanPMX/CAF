@@ -73,6 +73,8 @@ const RoleBasedDashboard: React.FC<{
   const canSeeOfficeFilter = userRole === 'admin' || userRole === 'office_manager';
   const isStaffRole = ['lawyer', 'psychologist', 'receptionist', 'event_coordinator'].includes(userRole);
 
+  console.log('RoleBasedDashboard rendering:', { userRole, canSeeAllOffices, canSeeOfficeFilter, isStaffRole, dataKeys: Object.keys(data) });
+
   return (
     <div className="space-y-6">
       {/* Header with controls */}
@@ -101,7 +103,7 @@ const RoleBasedDashboard: React.FC<{
       </div>
 
       {/* Office Filter for admins and office managers */}
-      {canSeeOfficeFilter && data.offices && (
+      {canSeeOfficeFilter && data.offices && data.offices.length > 0 && (
         <Card size="small">
           <div className="flex items-center gap-4">
             <Typography.Text strong>Filtrar por Oficina:</Typography.Text>
@@ -112,124 +114,126 @@ const RoleBasedDashboard: React.FC<{
               style={{ minWidth: 200 }}
               allowClear
             >
-              {data.offices && data.offices.length > 0 ? data.offices.map(office => (
+              {data.offices.map(office => (
                 <Select.Option key={office.id} value={office.id.toString()}>
-                  {office.name}
+                  {office.name || `Office ${office.id}`}
                 </Select.Option>
-              )) : null}
+              ))}
             </Select>
           </div>
         </Card>
       )}
 
       {/* Statistics Cards */}
-      <Row gutter={[16, 16]}>
-        {/* Case Statistics */}
-        <Col xs={24} sm={12} md={6}>
-          <Card className="text-center">
-            <div className="flex items-center justify-center mb-2">
-              <FolderOpenOutlined style={{ fontSize: '24px', color: '#1890ff' }} />
-            </div>
-            <Statistic
-              title="Total Casos"
-              value={isStaffRole ? (data.myCases || 0) : (data.totalCases || 0)}
-              valueStyle={{ color: '#1890ff', fontSize: '24px', fontWeight: 'bold' }}
-            />
-          </Card>
-        </Col>
+      {data && (
+        <Row gutter={[16, 16]}>
+          {/* Case Statistics */}
+          <Col xs={24} sm={12} md={6}>
+            <Card className="text-center">
+              <div className="flex items-center justify-center mb-2">
+                <FolderOpenOutlined style={{ fontSize: '24px', color: '#1890ff' }} />
+              </div>
+              <Statistic
+                title="Total Casos"
+                value={isStaffRole ? (data.myCases || 0) : (data.totalCases || 0)}
+                valueStyle={{ color: '#1890ff', fontSize: '24px', fontWeight: 'bold' }}
+              />
+            </Card>
+          </Col>
 
-        <Col xs={24} sm={12} md={6}>
-          <Card className="text-center">
-            <div className="flex items-center justify-center mb-2">
-              <ClockCircleOutlined style={{ fontSize: '24px', color: '#fa8c16' }} />
-            </div>
-            <Statistic
-              title="Casos Activos"
-              value={isStaffRole ? (data.myOpenCases || 0) : (data.openCases || 0)}
-              valueStyle={{ color: '#fa8c16', fontSize: '24px', fontWeight: 'bold' }}
-            />
-          </Card>
-        </Col>
+          <Col xs={24} sm={12} md={6}>
+            <Card className="text-center">
+              <div className="flex items-center justify-center mb-2">
+                <ClockCircleOutlined style={{ fontSize: '24px', color: '#fa8c16' }} />
+              </div>
+              <Statistic
+                title="Casos Activos"
+                value={isStaffRole ? (data.myOpenCases || 0) : (data.openCases || 0)}
+                valueStyle={{ color: '#fa8c16', fontSize: '24px', fontWeight: 'bold' }}
+              />
+            </Card>
+          </Col>
 
-        <Col xs={24} sm={12} md={6}>
-          <Card className="text-center">
-            <div className="flex items-center justify-center mb-2">
-              <CheckCircleOutlined style={{ fontSize: '24px', color: '#52c41a' }} />
-            </div>
-            <Statistic
-              title="Casos Completados"
-              value={data.completedCases || 0}
-              valueStyle={{ color: '#52c41a', fontSize: '24px', fontWeight: 'bold' }}
-            />
-          </Card>
-        </Col>
+          <Col xs={24} sm={12} md={6}>
+            <Card className="text-center">
+              <div className="flex items-center justify-center mb-2">
+                <CheckCircleOutlined style={{ fontSize: '24px', color: '#52c41a' }} />
+              </div>
+              <Statistic
+                title="Casos Completados"
+                value={data.completedCases || 0}
+                valueStyle={{ color: '#52c41a', fontSize: '24px', fontWeight: 'bold' }}
+              />
+            </Card>
+          </Col>
 
-        <Col xs={24} sm={12} md={6}>
-          <Card className="text-center">
-            <div className="flex items-center justify-center mb-2">
-              <BarChartOutlined style={{ fontSize: '24px', color: '#722ed1' }} />
-            </div>
-            <Statistic
-              title="Casos Este Mes"
-              value={data.casesThisMonth || 0}
-              valueStyle={{ color: '#722ed1', fontSize: '24px', fontWeight: 'bold' }}
-            />
-          </Card>
-        </Col>
+          <Col xs={24} sm={12} md={6}>
+            <Card className="text-center">
+              <div className="flex items-center justify-center mb-2">
+                <BarChartOutlined style={{ fontSize: '24px', color: '#722ed1' }} />
+              </div>
+              <Statistic
+                title="Casos Este Mes"
+                value={data.casesThisMonth || 0}
+                valueStyle={{ color: '#722ed1', fontSize: '24px', fontWeight: 'bold' }}
+              />
+            </Card>
+          </Col>
 
-        {/* Appointment Statistics */}
-        <Col xs={24} sm={12} md={6}>
-          <Card className="text-center">
-            <div className="flex items-center justify-center mb-2">
-              <CalendarOutlined style={{ fontSize: '24px', color: '#13c2c2' }} />
-            </div>
-            <Statistic
-              title="Total Citas"
-              value={isStaffRole ? (data.myAppointments || 0) : (data.totalAppointments || 0)}
-              valueStyle={{ color: '#13c2c2', fontSize: '24px', fontWeight: 'bold' }}
-            />
-          </Card>
-        </Col>
+          {/* Appointment Statistics */}
+          <Col xs={24} sm={12} md={6}>
+            <Card className="text-center">
+              <div className="flex items-center justify-center mb-2">
+                <CalendarOutlined style={{ fontSize: '24px', color: '#13c2c2' }} />
+              </div>
+              <Statistic
+                title="Total Citas"
+                value={isStaffRole ? (data.myAppointments || 0) : (data.totalAppointments || 0)}
+                valueStyle={{ color: '#13c2c2', fontSize: '24px', fontWeight: 'bold' }}
+              />
+            </Card>
+          </Col>
 
-        <Col xs={24} sm={12} md={6}>
-          <Card className="text-center">
-            <div className="flex items-center justify-center mb-2">
-              <ClockCircleOutlined style={{ fontSize: '24px', color: '#fa8c16' }} />
-            </div>
-            <Statistic
-              title="Citas Pendientes"
-              value={isStaffRole ? (data.myPendingAppointments || 0) : (data.pendingAppointments || 0)}
-              valueStyle={{ color: '#fa8c16', fontSize: '24px', fontWeight: 'bold' }}
-            />
-          </Card>
-        </Col>
+          <Col xs={24} sm={12} md={6}>
+            <Card className="text-center">
+              <div className="flex items-center justify-center mb-2">
+                <ClockCircleOutlined style={{ fontSize: '24px', color: '#fa8c16' }} />
+              </div>
+              <Statistic
+                title="Citas Pendientes"
+                value={isStaffRole ? (data.myPendingAppointments || 0) : (data.pendingAppointments || 0)}
+                valueStyle={{ color: '#fa8c16', fontSize: '24px', fontWeight: 'bold' }}
+              />
+            </Card>
+          </Col>
 
-        <Col xs={24} sm={12} md={6}>
-          <Card className="text-center">
-            <div className="flex items-center justify-center mb-2">
-              <CheckCircleOutlined style={{ fontSize: '24px', color: '#52c41a' }} />
-            </div>
-            <Statistic
-              title="Citas Completadas"
-              value={data.completedAppointments || 0}
-              valueStyle={{ color: '#52c41a', fontSize: '24px', fontWeight: 'bold' }}
-            />
-          </Card>
-        </Col>
+          <Col xs={24} sm={12} md={6}>
+            <Card className="text-center">
+              <div className="flex items-center justify-center mb-2">
+                <CheckCircleOutlined style={{ fontSize: '24px', color: '#52c41a' }} />
+              </div>
+              <Statistic
+                title="Citas Completadas"
+                value={data.completedAppointments || 0}
+                valueStyle={{ color: '#52c41a', fontSize: '24px', fontWeight: 'bold' }}
+              />
+            </Card>
+          </Col>
 
-        <Col xs={24} sm={12} md={6}>
-          <Card className="text-center">
-            <div className="flex items-center justify-center mb-2">
-              <CalendarOutlined style={{ fontSize: '24px', color: '#722ed1' }} />
-            </div>
-            <Statistic
-              title="Citas Hoy"
-              value={data.appointmentsToday || 0}
-              valueStyle={{ color: '#722ed1', fontSize: '24px', fontWeight: 'bold' }}
-            />
-          </Card>
-        </Col>
-      </Row>
+          <Col xs={24} sm={12} md={6}>
+            <Card className="text-center">
+              <div className="flex items-center justify-center mb-2">
+                <CalendarOutlined style={{ fontSize: '24px', color: '#722ed1' }} />
+              </div>
+              <Statistic
+                title="Citas Hoy"
+                value={data.appointmentsToday || 0}
+                valueStyle={{ color: '#722ed1', fontSize: '24px', fontWeight: 'bold' }}
+              />
+            </Card>
+          </Col>
+        </Row>
+      )}
 
       {/* Staff-specific message */}
       {isStaffRole && (
@@ -390,6 +394,8 @@ const TrueDashboardPage = () => {
 
   // CRITICAL FIX: No early returns to prevent React error #310
   // All hooks must be called on every render, regardless of loading state
+  console.log('Dashboard rendering:', { userRole, loading, dashboardData: !!dashboardData });
+
   return (
     <div className="space-y-6">
       {loading ? (
@@ -428,7 +434,7 @@ const TrueDashboardPage = () => {
 
       {/* Statistics Cards */}
       <div className="mb-8">
-        {userRole && dashboardData ? (
+        {userRole && dashboardData && typeof dashboardData === 'object' ? (
           <RoleBasedDashboard
             data={dashboardData}
             userRole={userRole}
