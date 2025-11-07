@@ -70,7 +70,9 @@ func GetCaseByIDEnhanced(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		c.JSON(http.StatusOK, gin.H{"data": caseData})
+		// Return the case data directly (not wrapped in "data" field)
+		// Frontend expects the case object directly
+		c.JSON(http.StatusOK, caseData)
 	}
 }
 

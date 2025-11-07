@@ -77,24 +77,29 @@ export class CaseService implements ICaseService {
 
   static async fetchCaseById(userRole: string, id: string, options?: string): Promise<any> {
     console.log('Static legacy fetchCaseById called with:', userRole, id, options);
-    return {
-      id,
-      title: 'Mock Case',
-      description: 'Mock description',
-      currentStage: 'open',
-      isCompleted: false,
-      isArchived: false,
-      client: { id: '1', firstName: 'Mock', lastName: 'Client' },
-      clientId: '1',
-      office: { id: '1', name: 'Mock Office' },
-      officeId: '1',
-      primaryStaff: { id: '1', firstName: 'Mock', lastName: 'Staff' },
-      status: 'open',
-      priority: 'medium',
-      category: 'general',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    } as any;
+
+    // Get API client from lib
+    const { apiClient } = await import('@/app/lib/api');
+
+    try {
+      let endpoint = `/cases/${id}`;
+
+      // Route to appropriate endpoint based on user role
+      if (userRole === 'admin') {
+        endpoint = `/admin/cases/${id}`;
+      } else if (userRole === 'office_manager') {
+        endpoint = `/office/cases/${id}`;
+      }
+
+      // Add options to the endpoint if provided
+      const fullEndpoint = options ? `${endpoint}?${options}` : endpoint;
+
+      const response = await apiClient.get(fullEndpoint);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching case by ID:', error);
+      throw error;
+    }
   }
 
   static async deleteCase(userRole: string, id: string) {

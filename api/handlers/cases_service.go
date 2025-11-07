@@ -419,8 +419,26 @@ func (s *CaseService) UpdateCase(caseID string, c *gin.Context) (*models.Case, e
 	}
 	updateData["updatedBy"] = uint(userIDUint)
 
-	// Update only the provided fields
-	if err := s.db.Model(&caseData).Updates(updateData).Error; err != nil {
+	// Map frontend field names to database column names
+	// GORM's Updates() with map doesn't automatically apply column mappings from struct tags
+	columnMapping := map[string]string{
+		"docketNumber": "docket_number", // docketNumber -> docket_number
+		"updatedBy":    "updated_by",    // updatedBy -> updated_by
+		// Add other mappings as needed
+	}
+
+	// Create a new map with correct column names
+	mappedUpdateData := make(map[string]interface{})
+	for key, value := range updateData {
+		if columnName, exists := columnMapping[key]; exists {
+			mappedUpdateData[columnName] = value
+		} else {
+			mappedUpdateData[key] = value
+		}
+	}
+
+	// Update only the provided fields with correct column names
+	if err := s.db.Model(&caseData).Updates(mappedUpdateData).Error; err != nil {
 		log.Printf("UpdateCase: Database update error: %v", err)
 		return nil, fmt.Errorf("failed to update case: %v", err)
 	}

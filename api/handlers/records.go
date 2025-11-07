@@ -74,11 +74,56 @@ func GetRecordsArchivedCases(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
+		// Transform cases to match frontend interface expectations
+		var transformedCases []gin.H
+		for _, caseData := range cases {
+			transformedCase := gin.H{
+				"id":             caseData.ID,
+				"title":          caseData.Title,
+				"docketNumber":   caseData.DocketNumber,
+				"court":          caseData.Court,
+				"status":         caseData.Status,
+				"isCompleted":    caseData.IsCompleted,
+				"isArchived":     caseData.IsArchived,
+				"archiveReason":  caseData.ArchiveReason,
+				"archivedAt":     caseData.DeletedAt, // Map DeletedAt to archivedAt for frontend compatibility
+				"archivedBy":     caseData.DeletedBy,  // Map DeletedBy to archivedBy
+				"completedAt":    caseData.CompletedAt,
+				"completedBy":    caseData.CompletedBy,
+				"completionNote": caseData.CompletionNote,
+			}
+
+			// Add client data if exists
+			if caseData.Client != nil {
+				transformedCase["client"] = gin.H{
+					"firstName": caseData.Client.FirstName,
+					"lastName":  caseData.Client.LastName,
+				}
+			}
+
+			// Add office data if exists
+			if caseData.Office != nil {
+				transformedCase["office"] = gin.H{
+					"name": caseData.Office.Name,
+				}
+			}
+
+			// Add primary staff data if exists
+			if caseData.PrimaryStaff != nil {
+				transformedCase["primaryStaff"] = gin.H{
+					"firstName": caseData.PrimaryStaff.FirstName,
+					"lastName":  caseData.PrimaryStaff.LastName,
+				}
+			}
+
+			transformedCases = append(transformedCases, transformedCase)
+		}
+
 		// Calculate pagination info
 		totalPages := int((total + int64(limit) - 1) / int64(limit))
 
 		c.JSON(http.StatusOK, gin.H{
-			"cases": cases,
+			"cases": transformedCases,
 			"pagination": gin.H{
 				"page":    page,
 				"limit":   limit,
@@ -155,11 +200,53 @@ func GetArchivedAppointments(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
+		// Transform appointments to match frontend interface expectations
+		var transformedAppointments []gin.H
+		for _, appointment := range appointments {
+			transformedAppointment := gin.H{
+				"id":           appointment.ID,
+				"title":        appointment.Title,
+				"description":  "", // Appointments don't have description field
+				"startTime":    appointment.StartTime,
+				"endTime":      appointment.EndTime,
+				"status":       appointment.Status,
+				"isArchived":   true, // Since we're querying deleted_at IS NOT NULL
+				"archiveReason": "manual_deletion", // Default reason for appointments
+				"archivedAt":   appointment.DeletedAt.Time, // Map DeletedAt to archivedAt for frontend compatibility
+				"archivedBy":   nil, // Appointments don't have this field, but frontend expects it
+			}
+
+			// Flatten client data from Case.Client to direct client field
+			if appointment.Case.Client != nil {
+				transformedAppointment["client"] = gin.H{
+					"firstName": appointment.Case.Client.FirstName,
+					"lastName":  appointment.Case.Client.LastName,
+				}
+			}
+
+			// Add office data if exists
+			if appointment.Office != nil {
+				transformedAppointment["office"] = gin.H{
+					"name": appointment.Office.Name,
+				}
+			}
+
+			// Add staff data if exists
+			if appointment.Staff.FirstName != "" || appointment.Staff.LastName != "" {
+				transformedAppointment["staff"] = gin.H{
+					"firstName": appointment.Staff.FirstName,
+					"lastName":  appointment.Staff.LastName,
+				}
+			}
+
+			transformedAppointments = append(transformedAppointments, transformedAppointment)
+		}
+
 		// Calculate pagination info
 		totalPages := int((total + int64(limit) - 1) / int64(limit))
 
 		c.JSON(http.StatusOK, gin.H{
-			"appointments": appointments,
+			"appointments": transformedAppointments,
 			"pagination": gin.H{
 				"page":    page,
 				"limit":   limit,

@@ -510,7 +510,7 @@ const CaseDetailPage = () => {
           )}
           <Descriptions.Item label="Estado del Caso">
             <Tag color={STATUS_COLORS[caseDetails.status] || 'default'}>
-              {STATUS_LABELS[caseDetails.status] || caseDetails.status.toUpperCase()}
+              {STATUS_LABELS[caseDetails.status] || (caseDetails.status ? caseDetails.status.toUpperCase() : 'DESCONOCIDO')}
             </Tag>
           </Descriptions.Item>
           <Descriptions.Item label="Etapa del Proceso">
