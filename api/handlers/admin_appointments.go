@@ -101,14 +101,39 @@ func CreateAppointmentSmart(db *gorm.DB) gin.HandlerFunc {
 				// If client still not found, proceed without client
 			}
 		} else if input.NewClient != nil {
-			// Scenario: Create a new client, but first check if one already exists with the same email.
-			var existingClient models.User
-			if err := tx.Where("email = ? AND role = ?", input.NewClient.Email, "client").First(&existingClient).Error; err == nil {
-				// Client already exists, use the existing one
-				client = existingClient
-				hasClient = true
+			// Scenario: Create a new client, but first check if ANY user already exists with the same email (including soft-deleted ones).
+			var existingUser models.User
+			if err := tx.Unscoped().Where("email = ?", input.NewClient.Email).First(&existingUser).Error; err == nil {
+				// A user with this email already exists (possibly soft-deleted)
+				if existingUser.DeletedAt.Valid {
+					// User is soft-deleted, restore them for the appointment
+					existingUser.DeletedAt = gorm.DeletedAt{} // Clear the soft delete
+					existingUser.FirstName = input.NewClient.FirstName // Update with provided info
+					existingUser.LastName = input.NewClient.LastName
+					if err := tx.Unscoped().Save(&existingUser).Error; err != nil {
+						tx.Rollback()
+						c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to restore existing user: " + err.Error()})
+						return
+					}
+					client = existingUser
+					hasClient = true
+				} else {
+					// User exists and is active - cannot create duplicate
+					tx.Rollback()
+					c.JSON(http.StatusBadRequest, gin.H{
+						"error": "A user with this email already exists. Please use the existing client or choose a different email.",
+						"existingUser": gin.H{
+							"id": existingUser.ID,
+							"email": existingUser.Email,
+							"role": existingUser.Role,
+							"firstName": existingUser.FirstName,
+							"lastName": existingUser.LastName,
+						},
+					})
+					return
+				}
 			} else if err == gorm.ErrRecordNotFound {
-				// Client doesn't exist, create a new one
+				// No user with this email exists, create a new one
 				tempPassword := "password123" // Placeholder password
 				hashedPassword, _ := bcrypt.GenerateFromPassword([]byte(tempPassword), bcrypt.DefaultCost)
 				client = models.User{
@@ -127,7 +152,7 @@ func CreateAppointmentSmart(db *gorm.DB) gin.HandlerFunc {
 			} else {
 				// Database error
 				tx.Rollback()
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to check for existing client: " + err.Error()})
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to check for existing user: " + err.Error()})
 				return
 			}
 		} else if input.CaseID != nil {
