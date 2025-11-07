@@ -254,7 +254,7 @@ func (s *CaseService) GetCaseByID(caseID string, light bool) (*models.Case, erro
 	if !light {
 		query = query.Preload("CaseEvents", func(db *gorm.DB) *gorm.DB {
 			return db.Order("created_at DESC").Limit(50)
-		})
+		}).Preload("CaseEvents.User")
 	}
 
 	if err := query.First(&caseData, caseID).Error; err != nil {
