@@ -70,6 +70,9 @@ func CreateComment(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
+		// Invalidate case cache so the updated case data is fetched on next request
+		invalidateCache(caseIDStr)
+
 		// Generate notification for client if comment is client_visible
 		if input.Visibility == "client_visible" {
 			// Get the client ID from the case
@@ -150,6 +153,9 @@ func UpdateComment(db *gorm.DB) gin.HandlerFunc {
 		// Reload the event with user info
 		db.Preload("User").First(&event, eventID)
 
+		// Invalidate case cache so the updated case data is fetched on next request
+		invalidateCache(strconv.FormatUint(uint64(event.CaseID), 10))
+
 		c.JSON(http.StatusOK, event)
 	}
 }
@@ -197,6 +203,9 @@ func DeleteComment(db *gorm.DB) gin.HandlerFunc {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al eliminar el comentario"})
 			return
 		}
+
+		// Invalidate case cache so the updated case data is fetched on next request
+		invalidateCache(strconv.FormatUint(uint64(event.CaseID), 10))
 
 		c.JSON(http.StatusOK, gin.H{"message": "Comentario eliminado exitosamente"})
 	}

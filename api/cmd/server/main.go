@@ -378,7 +378,11 @@ func main() {
 
 		// Case Events
 		admin.POST("/cases/:id/comments", handlers.CreateComment(database))
+		admin.PUT("/cases/comments/:eventId", handlers.UpdateComment(database))
+		admin.DELETE("/cases/comments/:eventId", handlers.DeleteComment(database))
 		admin.POST("/cases/:id/documents", handlers.UploadDocument(database))
+		admin.PUT("/cases/documents/:eventId", handlers.UpdateDocument(database))
+		admin.DELETE("/cases/documents/:eventId", handlers.DeleteDocument(database))
 		admin.GET("/documents/:eventId", handlers.GetDocument(database))
 
 		// Enhanced Appointment Management (Admin can override department restrictions)

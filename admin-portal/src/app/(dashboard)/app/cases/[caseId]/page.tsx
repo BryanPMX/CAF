@@ -182,7 +182,7 @@ const CaseDetailPage = () => {
         caseId as string,
         forceRefresh ? 'full&_t=' + Date.now() : 'full' // Add cache-busting timestamp if force refresh
       );
-      
+
       setCaseDetails(data);
       setLoading(false);
       
