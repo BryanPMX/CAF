@@ -142,8 +142,6 @@ func GetArchivedAppointments(db *gorm.DB) gin.HandlerFunc {
 		// Parse pagination parameters
 		page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 		limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
-		search := c.Query("search")
-		archiveType := c.DefaultQuery("type", "all")
 
 		if page < 1 {
 			page = 1
@@ -154,26 +152,10 @@ func GetArchivedAppointments(db *gorm.DB) gin.HandlerFunc {
 
 		offset := (page - 1) * limit
 
-		// Build query for archived appointments
-		query := db.Model(&models.Appointment{}).Where("deleted_at IS NOT NULL")
-
-		// Apply search filter
-		if search != "" {
-			query = query.Where("title ILIKE ? OR description ILIKE ?",
-				"%"+search+"%", "%"+search+"%")
-		}
-
-		// Apply archive type filter (appointments don't have is_completed, so we use status)
-		switch archiveType {
-		case "completed":
-			query = query.Where("status = ?", "completed")
-		case "deleted":
-			query = query.Where("status != ?", "completed")
-		}
-
-		// Get total count
+		// Use raw SQL to bypass GORM's soft delete handling
 		var total int64
-		if err := query.Count(&total).Error; err != nil {
+		countSQL := `SELECT COUNT(*) FROM appointments WHERE deleted_at IS NOT NULL`
+		if err := db.Raw(countSQL).Scan(&total).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"error":   "Failed to count archived appointments",
 				"message": err.Error(),
@@ -181,16 +163,17 @@ func GetArchivedAppointments(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		// Get archived appointments with relationships
+		// Get archived appointments with raw SQL
 		var appointments []models.Appointment
-		err := query.Preload("Case.Client").
-			Preload("Office").
-			Preload("Staff").
-			Preload("Case").
-			Order("deleted_at DESC").
-			Offset(offset).
-			Limit(limit).
-			Find(&appointments).Error
+		selectSQL := `
+			SELECT a.* FROM appointments a
+			LEFT JOIN cases c ON a.case_id = c.id
+			LEFT JOIN users client ON c.client_id = client.id
+			WHERE a.deleted_at IS NOT NULL
+			ORDER BY a.deleted_at DESC
+			LIMIT ? OFFSET ?
+		`
+		err := db.Raw(selectSQL, limit, offset).Scan(&appointments).Error
 
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
@@ -212,7 +195,7 @@ func GetArchivedAppointments(db *gorm.DB) gin.HandlerFunc {
 				"status":       appointment.Status,
 				"isArchived":   true, // Since we're querying deleted_at IS NOT NULL
 				"archiveReason": "manual_deletion", // Default reason for appointments
-				"archivedAt":   appointment.DeletedAt.Time, // Map DeletedAt to archivedAt for frontend compatibility
+				"archivedAt":   appointment.DeletedAt, // Map DeletedAt to archivedAt for frontend compatibility
 				"archivedBy":   nil, // Appointments don't have this field, but frontend expects it
 			}
 
