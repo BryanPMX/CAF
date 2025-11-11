@@ -11,9 +11,26 @@ import dayjs from 'dayjs';
 const { Option } = Select;
 const { TextArea } = Input;
 
+// Extended appointment interface with preloaded relationships
+interface AppointmentWithDetails extends Appointment {
+  case?: {
+    title: string;
+    category?: string;
+    client?: {
+      id: number;
+      firstName: string;
+      lastName: string;
+    };
+  };
+  staff?: {
+    firstName: string;
+    lastName: string;
+  };
+}
+
 interface EditAppointmentModalProps {
   visible: boolean;
-  appointment: Appointment | null;
+  appointment: AppointmentWithDetails | null;
   onCancel: () => void;
   onSuccess: () => void;
 }
@@ -39,17 +56,33 @@ const EditAppointmentModal: React.FC<EditAppointmentModalProps> = ({
   const [completingAppointment, setCompletingAppointment] = useState(false);
   const [staffList, setStaffList] = useState<User[]>([]);
   const [clients, setClients] = useState<User[]>([]);
+  const [currentDuration, setCurrentDuration] = useState<number>(60); // Default 60 minutes
 
   useEffect(() => {
     if (visible) {
       fetchSupportingData();
       if (appointment) {
+        // Calculate current duration from appointment data
+        let duration = 60; // Default fallback duration
+        try {
+          const startTime = dayjs(appointment.startTime);
+          const endTime = dayjs(appointment.endTime);
+
+          if (startTime.isValid() && endTime.isValid() && endTime.isAfter(startTime)) {
+            duration = endTime.diff(startTime, 'minutes');
+          }
+        } catch (error) {
+          console.warn('Error calculating appointment duration, using default:', error);
+        }
+
+        setCurrentDuration(Math.max(duration, 15)); // Minimum 15 minutes
+
         // Convert startTime to separate date and time for the form
         const startTime = dayjs(appointment.startTime);
         form.setFieldsValue({
           title: appointment.title,
-          date: startTime,
-          time: startTime,
+          date: startTime, // Pre-populate with current date
+          time: startTime, // Pre-populate with current time
           status: appointment.status,
           staffId: appointment.staffId,
           caseId: appointment.caseId,
@@ -103,11 +136,41 @@ const EditAppointmentModal: React.FC<EditAppointmentModalProps> = ({
         notes: values.notes
       };
 
-      // Only include startTime if date/time were provided and appointment allows it
-      if (values.date && values.time && appointment.status !== 'completed') {
-        const newStartTime = dayjs(values.date).hour(dayjs(values.time).hour()).minute(dayjs(values.time).minute());
-        if (newStartTime.isAfter(dayjs())) {
-          updateData.startTime = newStartTime.toISOString();
+      // Include startTime and endTime for non-completed appointments
+      if (appointment.status !== 'completed') {
+        if (values.date && values.time) {
+          // Combine the selected date and time
+          const selectedDate = dayjs(values.date);
+          const selectedTime = dayjs(values.time);
+
+          if (!selectedDate.isValid() || !selectedTime.isValid()) {
+            message.error('Fecha u hora inválida.');
+            setLoading(false);
+            return;
+          }
+
+          const newStartTime = selectedDate
+            .hour(selectedTime.hour())
+            .minute(selectedTime.minute())
+            .second(0)
+            .millisecond(0);
+
+          // Only allow future appointments
+          if (newStartTime.isAfter(dayjs())) {
+            // Calculate new end time maintaining the same duration
+            const newEndTime = newStartTime.add(currentDuration, 'minutes');
+
+            updateData.startTime = newStartTime.toISOString();
+            updateData.endTime = newEndTime.toISOString();
+          } else {
+            message.warning('La nueva fecha y hora debe ser en el futuro.');
+            setLoading(false);
+            return;
+          }
+        } else {
+          message.error('Debe seleccionar tanto la fecha como la hora.');
+          setLoading(false);
+          return;
         }
       }
 
@@ -144,16 +207,31 @@ const EditAppointmentModal: React.FC<EditAppointmentModalProps> = ({
     onCancel();
   };
 
-  // Get client name for display - note: clientId doesn't exist in new interface
-  const getClientName = (appointment: Appointment | null) => {
+  // Get client name for display - use the preloaded case client data
+  const getClientName = (appointment: AppointmentWithDetails | null) => {
     if (!appointment) return 'Cliente no disponible';
-    // Since clientId doesn't exist, we'll show a placeholder
-    return 'Cliente asociado al caso';
+
+    // Check if the appointment has preloaded case and client data
+    if (appointment.case?.client) {
+      const client = appointment.case.client;
+      return `${client.firstName} ${client.lastName}`;
+    }
+
+    // Fallback to placeholder if client data is not available
+    return 'Cliente no disponible';
   };
 
-  // Get staff name for display
-  const getStaffName = (appointment: Appointment | null) => {
-    if (!appointment) return '';
+  // Get staff name for display - use the preloaded staff data
+  const getStaffName = (appointment: AppointmentWithDetails | null) => {
+    if (!appointment) return 'Personal no asignado';
+
+    // Check if the appointment has preloaded staff data
+    if (appointment.staff) {
+      const staff = appointment.staff;
+      return `${staff.firstName} ${staff.lastName}`;
+    }
+
+    // Fallback: try to find staff from the staffList (for backward compatibility)
     const staff = staffList.find(s => s.id === appointment.staffId);
     return staff ? `${staff.firstName} ${staff.lastName}` : 'Personal no encontrado';
   };
@@ -197,6 +275,11 @@ const EditAppointmentModal: React.FC<EditAppointmentModalProps> = ({
     return appointment.status !== 'completed' && 
            appointment.status !== 'cancelled' && 
            appointmentTime.isBefore(now.add(1, 'hour')); // Can complete 1 hour before or after appointment time
+  };
+
+  // Get the fixed duration for this appointment
+  const getCurrentDuration = () => {
+    return currentDuration;
   };
 
   // Get status styling
@@ -267,7 +350,7 @@ const EditAppointmentModal: React.FC<EditAppointmentModalProps> = ({
               </div>
               <div>
                 <span className="font-medium text-gray-700">Duración:</span>
-                <div className="mt-1">{dayjs(appointment.endTime).diff(dayjs(appointment.startTime), 'minutes')} minutos</div>
+                <div className="mt-1">{getCurrentDuration()} minutos</div>
               </div>
             </div>
           </div>
@@ -325,38 +408,34 @@ const EditAppointmentModal: React.FC<EditAppointmentModalProps> = ({
           <Input placeholder="Ej: Consulta inicial, Seguimiento, Revisión de documentos" />
         </Form.Item>
 
-        {/* Only allow date/time editing if appointment is not completed and is in the future */}
-        {appointment && appointment.status !== 'completed' && dayjs(appointment.startTime).isAfter(dayjs()) && (
+        {/* Allow date/time editing for all non-completed appointments */}
+        {appointment && appointment.status !== 'completed' && (
           <>
-            <Alert
-              message="Reprogramar Cita"
-              description="Solo puede cambiar la fecha y hora de citas futuras no completadas."
-              type="warning"
-              showIcon
-              className="mb-4"
-            />
-            
             <Form.Item
               name="date"
-              label="Nueva Fecha (Opcional)"
-              tooltip="Deje vacío si no desea cambiar la fecha"
+              label="Fecha de la Cita"
+              rules={[{ required: true, message: 'Por favor seleccione la fecha' }]}
+              tooltip="Seleccione la nueva fecha de la cita"
             >
-              <DatePicker 
-                style={{ width: '100%' }} 
-                placeholder="Seleccionar nueva fecha"
+              <DatePicker
+                style={{ width: '100%' }}
+                placeholder="Seleccionar fecha"
                 disabledDate={(current) => current && current < dayjs().startOf('day')}
+                format="DD/MM/YYYY"
               />
             </Form.Item>
 
             <Form.Item
               name="time"
-              label="Nueva Hora (Opcional)"
-              tooltip="Deje vacío si no desea cambiar la hora"
+              label="Hora de la Cita"
+              rules={[{ required: true, message: 'Por favor seleccione la hora' }]}
+              tooltip="Seleccione la nueva hora de la cita"
             >
-              <TimePicker 
-                style={{ width: '100%' }} 
-                placeholder="Seleccionar nueva hora"
+              <TimePicker
+                style={{ width: '100%' }}
+                placeholder="Seleccionar hora"
                 format="HH:mm"
+                minuteStep={15} // 15-minute intervals
               />
             </Form.Item>
           </>

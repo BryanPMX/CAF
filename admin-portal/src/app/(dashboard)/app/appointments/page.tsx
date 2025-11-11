@@ -544,7 +544,11 @@ const AppointmentsPage = () => {
           setIsEditModalVisible(false);
           setEditingAppointment(null);
         }}
-        onSuccess={() => fetchAppointments(true)}
+        onSuccess={() => {
+          fetchAppointments(true);
+          setIsEditModalVisible(false);
+          setEditingAppointment(null);
+        }}
       />
     </div>
   );
