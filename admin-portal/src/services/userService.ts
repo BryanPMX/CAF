@@ -25,7 +25,7 @@ export class UserService implements IUserService {
   async updateProfile(updates: any): Promise<any> {
     // TODO: Implement
     throw new Error('Not implemented');
-  }
+    }
 
   async getUsers(params?: any): Promise<any> {
     // TODO: Implement
@@ -35,7 +35,7 @@ export class UserService implements IUserService {
   async createUser(userData: any): Promise<any> {
     // TODO: Implement
     throw new Error('Not implemented');
-  }
+    }
 
   async updateUser(id: string, updates: any): Promise<any> {
     // TODO: Implement
@@ -45,7 +45,7 @@ export class UserService implements IUserService {
   async deleteUser(id: string): Promise<void> {
     // TODO: Implement
     throw new Error('Not implemented');
-  }
+    }
 }
 
 // Legacy service instance for backward compatibility
