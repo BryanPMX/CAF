@@ -522,6 +522,15 @@ func main() {
 		officeManager.PATCH("/appointments/:id", middleware.AppointmentAccessControl(database), handlers.UpdateAppointmentEnhanced(database))
 		officeManager.DELETE("/appointments/:id", middleware.AppointmentAccessControl(database), handlers.DeleteAppointmentEnhanced(database))
 
+		// Records (scoped by office via DataAccessControl)
+		officeManager.GET("/records/stats", handlers.GetRecordsArchiveStats(database))
+		officeManager.GET("/records/cases", middleware.CaseAccessControl(database), handlers.GetRecordsArchivedCases(database))
+		officeManager.GET("/records/appointments", middleware.AppointmentAccessControl(database), handlers.GetArchivedAppointments(database))
+		officeManager.POST("/records/cases/:id/restore", middleware.CaseAccessControl(database), handlers.RestoreCase(database))
+		officeManager.POST("/records/appointments/:id/restore", middleware.AppointmentAccessControl(database), handlers.RestoreAppointment(database))
+		officeManager.DELETE("/records/cases/:id", middleware.CaseAccessControl(database), handlers.PermanentlyDeleteCase(database))
+		officeManager.DELETE("/records/appointments/:id", middleware.AppointmentAccessControl(database), handlers.PermanentlyDeleteAppointment(database))
+
 		// Reports (scoped by office via DataAccessControl)
 		reportsHandler := handlers.NewReportsHandler(database)
 		officeManager.GET("/reports/summary-report", reportsHandler.GetSummaryReport())

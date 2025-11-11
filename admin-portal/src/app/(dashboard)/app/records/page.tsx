@@ -150,7 +150,7 @@ const RecordsPage: React.FC = () => {
 
     // Load initial data
     loadStats();
-    loadCases();
+    loadCases(searchText, archiveType);
   }, [isHydrated, user]);
 
   // Load archive statistics
@@ -171,7 +171,7 @@ const RecordsPage: React.FC = () => {
   };
 
   // Load archived cases
-  const loadCases = async () => {
+  const loadCases = async (searchText?: string, archiveType?: string) => {
     try {
       // Wait for user to be loaded before fetching
       if (!user?.role) {
@@ -185,7 +185,8 @@ const RecordsPage: React.FC = () => {
       const data = await RecordService.fetchArchivedCases(user.role, {
         page: currentPage,
         limit: 20,
-        type: archiveType,
+        type: archiveType || 'all',
+        search: searchText || '',
       });
 
       setCases(data.cases);
@@ -201,7 +202,7 @@ const RecordsPage: React.FC = () => {
   };
 
   // Load archived appointments
-  const loadAppointments = async () => {
+  const loadAppointments = async (searchText?: string, archiveType?: string) => {
     try {
       // Wait for user to be loaded before fetching
       if (!user?.role) {
@@ -214,7 +215,8 @@ const RecordsPage: React.FC = () => {
       const data = await RecordService.fetchArchivedAppointments(user.role, {
         page: currentPage,
         limit: 20,
-        type: archiveType,
+        type: archiveType || 'all',
+        search: searchText || '',
       });
 
       setAppointments(data.appointments);
@@ -233,9 +235,9 @@ const RecordsPage: React.FC = () => {
     setActiveTab(key);
     setCurrentPage(1);
     if (key === 'cases') {
-      loadCases();
+      loadCases(searchText, archiveType);
     } else {
-      loadAppointments();
+      loadAppointments(searchText, archiveType);
     }
   };
 
@@ -243,9 +245,9 @@ const RecordsPage: React.FC = () => {
   const handleSearch = () => {
     setCurrentPage(1);
     if (activeTab === 'cases') {
-      loadCases();
+      loadCases(searchText, archiveType);
     } else {
-      loadAppointments();
+      loadAppointments(searchText, archiveType);
     }
   };
 
@@ -253,9 +255,9 @@ const RecordsPage: React.FC = () => {
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
     if (activeTab === 'cases') {
-      loadCases();
+      loadCases(searchText, archiveType);
     } else {
-      loadAppointments();
+      loadAppointments(searchText, archiveType);
     }
   };
 
@@ -632,7 +634,7 @@ const RecordsPage: React.FC = () => {
               style={{ width: '100%' }}
             >
               <Option value="all">Todos los archivos</Option>
-              <Option value={CASE_STATUSES.CLOSED}>Completados</Option>
+              <Option value="completed">Completados</Option>
               <Option value="deleted">Eliminados manualmente</Option>
             </Select>
           </Col>

@@ -43,16 +43,21 @@ export class RecordService {
       page?: number;
       limit?: number;
       type?: string;
+      search?: string;
     } = {}
   ): Promise<any> {
-    const { page = 1, limit = 20, type = 'all' } = params;
-    
+    const { page = 1, limit = 20, type = 'all', search = '' } = params;
+
     // Build query parameters
     const queryParams = new URLSearchParams({
       page: page.toString(),
       limit: limit.toString(),
       type,
     });
+
+    if (search) {
+      queryParams.set('search', search);
+    }
 
     // Determine endpoint based on role
     let endpoint: string;
@@ -82,16 +87,21 @@ export class RecordService {
       page?: number;
       limit?: number;
       type?: string;
+      search?: string;
     } = {}
   ): Promise<any> {
-    const { page = 1, limit = 20, type = 'all' } = params;
-    
+    const { page = 1, limit = 20, type = 'all', search = '' } = params;
+
     // Build query parameters
     const queryParams = new URLSearchParams({
       page: page.toString(),
       limit: limit.toString(),
       type,
     });
+
+    if (search) {
+      queryParams.set('search', search);
+    }
 
     // Determine endpoint based on role
     let endpoint: string;
