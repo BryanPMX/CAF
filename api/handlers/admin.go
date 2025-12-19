@@ -325,13 +325,40 @@ func UpdateUser(db *gorm.DB) gin.HandlerFunc {
 
 // DeleteUser handles deactivating a user account.
 // This performs a "soft delete" by setting the `deleted_at` timestamp.
+// Protected by: self-deletion prevention, last-admin protection, system user protection.
 func DeleteUser(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		targetID := c.Param("id")
+
+		// Protection 1: Prevent self-deletion
+		currentUserID, exists := c.Get("userID")
+		if exists && currentUserID.(string) == targetID {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Cannot delete your own account"})
+			return
+		}
+
 		var user models.User
-		if err := db.Where("id = ?", c.Param("id")).First(&user).Error; err != nil {
+		if err := db.Where("id = ?", targetID).First(&user).Error; err != nil {
 			c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
 			return
 		}
+
+		// Protection 2: Prevent deletion of system/protected users (user ID 1 is reserved for system admin)
+		if user.ID == 1 {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Cannot delete the system administrator account"})
+			return
+		}
+
+		// Protection 3: Prevent deletion of last admin
+		if user.Role == config.RoleAdmin {
+			var adminCount int64
+			db.Model(&models.User{}).Where("role = ? AND deleted_at IS NULL", config.RoleAdmin).Count(&adminCount)
+			if adminCount <= 1 {
+				c.JSON(http.StatusForbidden, gin.H{"error": "Cannot delete the last administrator account"})
+				return
+			}
+		}
+
 		if err := db.Delete(&user).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete user"})
 			return
