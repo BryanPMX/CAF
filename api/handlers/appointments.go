@@ -53,7 +53,7 @@ func GetAppointmentsEnhanced(db *gorm.DB) gin.HandlerFunc {
 			// Add office/department scoped appointments
 			if officeScopeID != nil && userDepartment != nil {
 				accessConditions = accessConditions.Or(
-					db.Where("appointments.case_id IN (SELECT id FROM cases WHERE office_id = ?))", officeScopeID).
+					db.Where("appointments.case_id IN (SELECT id FROM cases WHERE office_id = ?)", officeScopeID).
 						Where("appointments.department = ?", userDepartment),
 				)
 			} else if officeScopeID != nil {

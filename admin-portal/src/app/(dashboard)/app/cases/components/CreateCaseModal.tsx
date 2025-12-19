@@ -3,6 +3,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Modal, Form, Input, Button, message, Select, Radio, Spin, AutoComplete, InputNumber } from 'antd';
+import Cookies from 'js-cookie';
 import { apiClient } from '@/app/lib/api';
 import { CASE_TYPES, findDepartmentByCaseType } from '@/app/lib/caseTaxonomy';
 
@@ -36,11 +37,18 @@ const CreateCaseModal: React.FC<CreateCaseModalProps> = ({ visible, onClose, onS
   const [clientOptions, setClientOptions] = useState<{ value: string; label: string; key: number }[]>([]);
   const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
 
+  // Get role-based API endpoint
+  const getBaseEndpoint = () => {
+    const role = typeof window !== 'undefined' ? Cookies.get('userRole') : 'admin';
+    return role === 'office_manager' ? '/manager' : '/admin';
+  };
+
   useEffect(() => {
     if (visible) {
       const fetchOffices = async () => {
         try {
-          const response = await apiClient.get('/admin/offices');
+          const base = getBaseEndpoint();
+          const response = await apiClient.get(`${base}/offices`);
           setOffices(response.data);
         } catch (error) {
           message.error('No se pudieron cargar las oficinas.');
@@ -68,8 +76,9 @@ const CreateCaseModal: React.FC<CreateCaseModalProps> = ({ visible, onClose, onS
       return;
     }
     try {
-      // Use the proper client search endpoint
-      const response = await apiClient.get(`/admin/users/search?q=${encodeURIComponent(searchText)}`);
+      // Use role-based client search endpoint
+      const base = getBaseEndpoint();
+      const response = await apiClient.get(`${base}/users/search?q=${encodeURIComponent(searchText)}`);
       
       const clients: Client[] = Array.isArray(response.data) ? response.data : [];
       const clientOptions = clients.map(client => ({
@@ -124,7 +133,8 @@ const CreateCaseModal: React.FC<CreateCaseModalProps> = ({ visible, onClose, onS
         payload.email = values.email;
       }
       
-      await apiClient.post('/admin/cases', payload);
+      const base = getBaseEndpoint();
+      await apiClient.post(`${base}/cases`, payload);
       
       message.success({ content: '¡Caso creado exitosamente!', key: 'createCase' });
       onSuccess();
