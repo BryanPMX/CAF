@@ -118,7 +118,7 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
     } catch (error: any) {
       // If the API returns an error, display it to the user.
       const errorMessage = error.response?.data?.error || 'Ocurrió un error.';
-      message.error({ content: errorMessage, key: 'createUser' });
+      message.error({ content: errorMessage, key: messageKey });
     } finally {
       setLoading(false);
     }
