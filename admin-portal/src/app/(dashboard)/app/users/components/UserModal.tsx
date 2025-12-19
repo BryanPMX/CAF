@@ -93,10 +93,10 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
 
   // This function is called when the user clicks the "OK" button in the modal footer.
   const handleOk = async () => {
+    const messageKey = isEditing ? 'updateUser' : 'createUser';
     try {
       const values = await form.validateFields(); // Ensure all form fields are valid.
       setLoading(true);
-      const messageKey = isEditing ? 'updateUser' : 'createUser';
       message.loading({ content: 'Guardando...', key: messageKey });
 
       // Determine the base endpoint based on user role
