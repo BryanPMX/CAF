@@ -497,6 +497,9 @@ func main() {
 	officeManager.Use(middleware.DataAccessControl(database))
 	{
 		// Users management for Office Managers
+		// Office managers can create/update clients for any office, but staff only for their office
+		officeManager.POST("/users", handlers.CreateUserScoped(database))
+		officeManager.PATCH("/users/:id", handlers.UpdateUserScoped(database))
 		officeManager.GET("/users", handlers.GetUsers(database))
 		officeManager.GET("/users/search", handlers.SearchClients(database))
 

@@ -121,6 +121,119 @@ func CreateUser(db *gorm.DB) gin.HandlerFunc {
 	}
 }
 
+// CreateUserScoped handles user creation by office managers with office restrictions.
+// Business rules:
+// - Office managers can create clients for ANY office
+// - Office managers can only create staff for THEIR office
+func CreateUserScoped(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var input CreateUserInput
+		if err := c.ShouldBindJSON(&input); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		// Get the office manager's office from middleware
+		managerOfficeID, hasOffice := c.Get("officeScopeID")
+
+		// Validate the provided role against our centralized role configuration
+		if err := config.ValidateRole(input.Role); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		// Business rule: Office managers can only create staff for their own office
+		isStaffRole := input.Role != "client"
+		if isStaffRole {
+			// Staff must be assigned to an office
+			if input.OfficeID == nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "An office must be assigned to all staff members."})
+				return
+			}
+
+			// Office managers can only create staff in their own office
+			if hasOffice && managerOfficeID != nil {
+				managerOffice := managerOfficeID.(*uint)
+				if managerOffice != nil && *input.OfficeID != *managerOffice {
+					c.JSON(http.StatusForbidden, gin.H{"error": "You can only create staff members for your own office."})
+					return
+				}
+			}
+		}
+		// Clients can be created for any office (no restriction)
+
+		// For employees (non-clients), auto-generate corporate email if missing
+		if input.Role != "client" && strings.TrimSpace(input.Email) == "" {
+			if strings.TrimSpace(input.FirstName) == "" || strings.TrimSpace(input.LastName) == "" {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "First name and last name are required to generate email."})
+				return
+			}
+			base := generateCorpEmailLocalPart(input.FirstName, input.LastName)
+			domain := "@caf.org"
+			email := base + domain
+			suffix := 1
+			for {
+				var exists models.User
+				if err := db.Unscoped().Where("email = ?", email).First(&exists).Error; err == gorm.ErrRecordNotFound {
+					break
+				}
+				email = base + strconv.Itoa(suffix) + domain
+				suffix++
+			}
+			input.Email = email
+		}
+
+		// Securely hash the temporary password.
+		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to hash password"})
+			return
+		}
+
+		// Create the new user model.
+		user := models.User{
+			FirstName: input.FirstName,
+			LastName:  input.LastName,
+			Email:     input.Email,
+			Password:  string(hashedPassword),
+			Role:      input.Role,
+			OfficeID:  input.OfficeID,
+		}
+
+		// Check if a soft-deleted user with the same email exists
+		var existingUser models.User
+		if err := db.Unscoped().Where("email = ?", input.Email).First(&existingUser).Error; err == nil {
+			if existingUser.DeletedAt.Valid {
+				// Reactivate the soft-deleted user
+				existingUser.FirstName = input.FirstName
+				existingUser.LastName = input.LastName
+				existingUser.Password = string(hashedPassword)
+				existingUser.Role = input.Role
+				existingUser.OfficeID = input.OfficeID
+				existingUser.DeletedAt = gorm.DeletedAt{}
+
+				if err := db.Unscoped().Save(&existingUser).Error; err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to reactivate user."})
+					return
+				}
+				c.JSON(http.StatusOK, existingUser)
+				return
+			} else {
+				c.JSON(http.StatusConflict, gin.H{"error": "User with this email already exists."})
+				return
+			}
+		}
+
+		// Save the new user to the database.
+		if err := db.Create(&user).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user."})
+			return
+		}
+
+		c.JSON(http.StatusCreated, user)
+	}
+}
+
 // generateCorpEmailLocalPart builds a normalized local-part like jsmith from first/last names
 func generateCorpEmailLocalPart(firstName, lastName string) string {
 	fn := strings.TrimSpace(firstName)
@@ -314,6 +427,81 @@ func UpdateUser(db *gorm.DB) gin.HandlerFunc {
 		user.OfficeID = input.OfficeID
 
 		// Save the changes to the database.
+		if err := db.Save(&user).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update user."})
+			return
+		}
+
+		c.JSON(http.StatusOK, user)
+	}
+}
+
+// UpdateUserScoped handles modifying an existing user's details with office restrictions.
+// Business rules:
+// - Office managers can update clients for ANY office
+// - Office managers can only update staff in THEIR office
+func UpdateUserScoped(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var user models.User
+		if err := db.Where("id = ?", c.Param("id")).First(&user).Error; err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "User not found."})
+			return
+		}
+
+		// Get the office manager's office from middleware
+		managerOfficeID, hasOffice := c.Get("officeScopeID")
+
+		// Check if the user being updated is staff (not a client)
+		// Office managers can only update staff in their own office
+		if user.Role != "client" && hasOffice && managerOfficeID != nil {
+			managerOffice := managerOfficeID.(*uint)
+			if managerOffice != nil && user.OfficeID != nil && *user.OfficeID != *managerOffice {
+				c.JSON(http.StatusForbidden, gin.H{"error": "You can only update staff members from your own office."})
+				return
+			}
+		}
+
+		var input UpdateUserInput
+		if err := c.ShouldBindJSON(&input); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		// Validate the role
+		if err := config.ValidateRole(input.Role); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		// Business rule: If updating to a staff role, office managers can only assign to their office
+		isStaffRole := input.Role != "client"
+		if isStaffRole && hasOffice && managerOfficeID != nil {
+			if input.OfficeID == nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "An office must be assigned to all staff members."})
+				return
+			}
+			managerOffice := managerOfficeID.(*uint)
+			if managerOffice != nil && *input.OfficeID != *managerOffice {
+				c.JSON(http.StatusForbidden, gin.H{"error": "You can only assign staff members to your own office."})
+				return
+			}
+		}
+
+		// Check if email is being changed and if it conflicts
+		if user.Email != input.Email {
+			var existingUser models.User
+			if err := db.Where("email = ? AND id != ?", input.Email, user.ID).First(&existingUser).Error; err == nil {
+				c.JSON(http.StatusConflict, gin.H{"error": "Email is already in use by another user."})
+				return
+			}
+		}
+
+		user.FirstName = input.FirstName
+		user.LastName = input.LastName
+		user.Email = input.Email
+		user.Role = input.Role
+		user.OfficeID = input.OfficeID
+
 		if err := db.Save(&user).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update user."})
 			return

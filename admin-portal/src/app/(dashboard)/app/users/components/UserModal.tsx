@@ -99,12 +99,17 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
       const messageKey = isEditing ? 'updateUser' : 'createUser';
       message.loading({ content: 'Guardando...', key: messageKey });
 
+      // Determine the base endpoint based on user role
+      const role = typeof window !== 'undefined' ? Cookies.get('userRole') : 'admin';
+      const base = role === 'office_manager' ? '/manager' : '/admin';
+
       if (isEditing) {
         // If editing, send a PATCH request to the update endpoint.
-        await apiClient.patch(`/admin/users/${user.id}`, values);
+        await apiClient.patch(`${base}/users/${user.id}`, values);
       } else {
         // If creating, send a POST request to the create endpoint.
-        await apiClient.post('/admin/users', values);
+        // Office managers: can create clients for any office, staff only for their office
+        await apiClient.post(`${base}/users`, values);
       }
 
       message.success({ content: `¡Usuario ${isEditing ? 'actualizado' : 'creado'} exitosamente!`, key: messageKey });
