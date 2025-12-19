@@ -3,7 +3,6 @@ package handlers
 
 import (
 	"fmt"
-	"log"
 	"strconv"
 	"time"
 
@@ -284,12 +283,8 @@ func (s *CaseService) CreateCase(c *gin.Context) (*models.Case, error) {
 
 	if hasFirstName && hasLastName && hasEmail {
 		// Create new client user
-		log.Printf("CreateCase: Creating new client - %s %s (%s)", firstName, lastName, email)
-
-		// Hash default password for new client
 		hashedPassword, err := bcrypt.GenerateFromPassword([]byte("TempPassword123!"), bcrypt.DefaultCost)
 		if err != nil {
-			log.Printf("CreateCase: Failed to hash password: %v", err)
 			return nil, fmt.Errorf("failed to hash password: %v", err)
 		}
 
@@ -310,11 +305,8 @@ func (s *CaseService) CreateCase(c *gin.Context) (*models.Case, error) {
 
 		// Create the client
 		if err := s.db.Create(&newClient).Error; err != nil {
-			log.Printf("CreateCase: Failed to create client: %v", err)
 			return nil, fmt.Errorf("failed to create client: %v", err)
 		}
-
-		log.Printf("CreateCase: Successfully created client with ID %d", newClient.ID)
 		clientID = &newClient.ID
 		requestData["clientId"] = float64(newClient.ID)
 	} else if existingClientID, ok := requestData["clientId"].(float64); ok {
@@ -379,11 +371,8 @@ func (s *CaseService) CreateCase(c *gin.Context) (*models.Case, error) {
 
 	// Create the case
 	if err := s.db.Create(&caseData).Error; err != nil {
-		log.Printf("CreateCase: Failed to create case: %v", err)
 		return nil, fmt.Errorf("failed to create case: %v", err)
 	}
-
-	log.Printf("CreateCase: Successfully created case %d with client ID %v", caseData.ID, clientID)
 
 	// Load relationships
 	if err := s.db.Preload("Client").Preload("Office").Preload("PrimaryStaff").First(&caseData, caseData.ID).Error; err != nil {
@@ -407,9 +396,6 @@ func (s *CaseService) UpdateCase(caseID string, c *gin.Context) (*models.Case, e
 	if err := c.ShouldBindJSON(&updateData); err != nil {
 		return nil, fmt.Errorf("invalid request data: %v", err)
 	}
-
-	// Log the received update data for debugging
-	log.Printf("UpdateCase: Received data for case %s: %+v", caseID, updateData)
 
 	// Set audit fields
 	userID, _ := c.Get("userID")
@@ -439,22 +425,16 @@ func (s *CaseService) UpdateCase(caseID string, c *gin.Context) (*models.Case, e
 
 	// Update only the provided fields with correct column names
 	if err := s.db.Model(&caseData).Updates(mappedUpdateData).Error; err != nil {
-		log.Printf("UpdateCase: Database update error: %v", err)
 		return nil, fmt.Errorf("failed to update case: %v", err)
 	}
-
-	log.Printf("UpdateCase: Successfully updated case %s", caseID)
 
 	// Invalidate cache
 	invalidateCache(caseID)
 
 	// Load relationships for response
 	if err := s.db.Preload("Client").Preload("Office").Preload("PrimaryStaff").First(&caseData, caseData.ID).Error; err != nil {
-		log.Printf("UpdateCase: Failed to load relationships: %v", err)
 		return nil, fmt.Errorf("failed to load case relationships: %v", err)
 	}
-
-	log.Printf("UpdateCase: Successfully loaded case with relationships for %s", caseID)
 	return &caseData, nil
 }
 
