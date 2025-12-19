@@ -228,17 +228,19 @@ const UserManagementPage = () => {
       title: 'Acciones',
       key: 'actions',
       render: (_: any, record: User) => (
-        userRole === 'admin' ? (
+        (userRole === 'admin' || userRole === 'office_manager') ? (
           <span className="space-x-2">
             <Button icon={<EditOutlined />} onClick={() => handleEdit(record)} />
-            <Popconfirm
-              title="¿Está seguro de que desea eliminar este usuario?"
-              onConfirm={() => handleDelete(record.id)}
-              okText="Sí"
-              cancelText="No"
-            >
-              <Button icon={<DeleteOutlined />} danger />
-            </Popconfirm>
+            {userRole === 'admin' && (
+              <Popconfirm
+                title="¿Está seguro de que desea eliminar este usuario?"
+                onConfirm={() => handleDelete(record.id)}
+                okText="Sí"
+                cancelText="No"
+              >
+                <Button icon={<DeleteOutlined />} danger />
+              </Popconfirm>
+            )}
           </span>
         ) : null
       ),
@@ -251,16 +253,18 @@ const UserManagementPage = () => {
         <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-6">Gestión de Usuarios</h1>
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="flex flex-wrap items-center gap-2 md:gap-3">
-            {userRole === 'admin' && (
+            {(userRole === 'admin' || userRole === 'office_manager') && (
               <>
-                <Select
-                  allowClear
-                  placeholder="Filtrar por Oficina"
-                  style={{ minWidth: 220 }}
-                  value={selectedOfficeId}
-                  onChange={(v: number | undefined) => setSelectedOfficeId(v)}
-                  options={offices.map(o => ({ label: o.name, value: o.id }))}
-                />
+                {userRole === 'admin' && (
+                  <Select
+                    allowClear
+                    placeholder="Filtrar por Oficina"
+                    style={{ minWidth: 220 }}
+                    value={selectedOfficeId}
+                    onChange={(v: number | undefined) => setSelectedOfficeId(v)}
+                    options={offices.map(o => ({ label: o.name, value: o.id }))}
+                  />
+                )}
                 <Select
                   allowClear
                   placeholder="Actividad"
@@ -304,7 +308,7 @@ const UserManagementPage = () => {
               </>
             )}
           </div>
-          {userRole === 'admin' && (
+          {(userRole === 'admin' || userRole === 'office_manager') && (
             <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
               Crear Usuario
             </Button>
