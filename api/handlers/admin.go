@@ -396,21 +396,15 @@ func UpdateUser(db *gorm.DB) gin.HandlerFunc {
 		// Validate the incoming JSON data.
 		var input UpdateUserInput
 		if err := c.ShouldBindJSON(&input); err != nil {
-			log.Printf("UpdateUser validation error: %v", err)
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 		
-		log.Printf("UpdateUser processing: Role=%s, OfficeID=%v", input.Role, input.OfficeID)
-
 		// Perform the same role and office validation as in CreateUser using centralized config
 		if err := config.ValidateRole(input.Role); err != nil {
-			log.Printf("UpdateUser role validation error: %v", err)
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		
-		log.Printf("UpdateUser role validation passed for role: %s", input.Role)
 		// For update operations, only enforce office requirement for non-admin, non-client staff
 		// Allow admins to have no office, and allow clearing office for existing users in transition
 		if input.Role != "client" && input.Role != config.RoleAdmin && config.RequiresOffice(input.Role) && input.OfficeID == nil {

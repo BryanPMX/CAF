@@ -2,7 +2,6 @@
 package handlers
 
 import (
-	"fmt"
 	"net/http"
 	"time"
 
@@ -106,10 +105,7 @@ func GetDashboardSummary(db *gorm.DB) gin.HandlerFunc {
 		apptTodayQuery.Count(&appointmentsToday)
 
 		var offices []models.Office
-		if err := db.Find(&offices).Error; err != nil {
-			fmt.Printf("Dashboard: Error fetching offices: %v\n", err)
-		}
-		fmt.Printf("Dashboard: Found %d offices\n", len(offices))
+		db.Find(&offices)
 
 		summary := gin.H{
 			"totalCases":            totalCases,
@@ -123,7 +119,6 @@ func GetDashboardSummary(db *gorm.DB) gin.HandlerFunc {
 			"offices":               offices,
 		}
 
-		fmt.Printf("Dashboard: Returning summary with %d offices\n", len(offices))
 		c.JSON(http.StatusOK, summary)
 	}
 }

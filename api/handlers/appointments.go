@@ -71,7 +71,6 @@ func GetAppointmentsEnhanced(db *gorm.DB) gin.HandlerFunc {
 		}
 		if category := c.Query("category"); category != "" {
 			// Filter by case category since category equals type of case
-			log.Printf("DEBUG GetAppointmentsEnhanced: Filtering by case category: %s", category)
 			query = query.Joins("INNER JOIN cases ON cases.id = appointments.case_id AND cases.category = ?", category)
 		}
 		if department := c.Query("department"); department != "" {
@@ -116,9 +115,6 @@ func GetAppointmentsEnhanced(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		// Debug logging
-		if category := c.Query("category"); category != "" {
-			log.Printf("DEBUG GetAppointmentsEnhanced: Found %d appointments for category '%s'", len(appointments), category)
-		}
 
 		// Calculate pagination info
 		page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
@@ -217,12 +213,10 @@ func CreateAppointmentEnhanced(db *gorm.DB) gin.HandlerFunc {
 		// Handle new client creation if provided
 		var clientID uint
 		if input.NewClient != nil {
-			log.Printf("CreateAppointment: Creating new client - %s %s (%s)", input.NewClient.FirstName, input.NewClient.LastName, input.NewClient.Email)
 
 			// Hash default password for new client
 			hashedPassword, err := bcrypt.GenerateFromPassword([]byte("TempPassword123!"), bcrypt.DefaultCost)
 			if err != nil {
-				log.Printf("CreateAppointment: Failed to hash password: %v", err)
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to hash password"})
 				return
 			}
@@ -243,12 +237,9 @@ func CreateAppointmentEnhanced(db *gorm.DB) gin.HandlerFunc {
 
 			// Create the client
 			if err := db.Create(&newClient).Error; err != nil {
-				log.Printf("CreateAppointment: Failed to create client: %v", err)
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create client", "details": err.Error()})
 				return
 			}
-
-			log.Printf("CreateAppointment: Successfully created client with ID %d", newClient.ID)
 			clientID = newClient.ID
 		} else if input.ClientID != nil {
 			clientID = *input.ClientID
@@ -271,13 +262,8 @@ func CreateAppointmentEnhanced(db *gorm.DB) gin.HandlerFunc {
 
 		// If we created a new client and the case doesn't have a client, update the case
 		if input.NewClient != nil && caseRecord.ClientID == nil {
-			log.Printf("CreateAppointment: Updating case %d with new client ID %d", caseRecord.ID, clientID)
 			caseRecord.ClientID = &clientID
-			if err := db.Save(&caseRecord).Error; err != nil {
-				log.Printf("CreateAppointment: Failed to update case with client: %v", err)
-				// Don't fail the appointment creation, just log the warning
-				log.Printf("Warning: Case %d was not updated with client ID %d", caseRecord.ID, clientID)
-			}
+			db.Save(&caseRecord)
 		}
 
 		// Check case access permissions
@@ -547,7 +533,6 @@ func GetMyAppointments(db *gorm.DB) gin.HandlerFunc {
 		}
 		if category := c.Query("category"); category != "" {
 			// Filter by case category since category equals type of case
-			log.Printf("DEBUG GetMyAppointments: Filtering by case category: %s", category)
 			query = query.Joins("INNER JOIN cases ON cases.id = appointments.case_id AND cases.category = ?", category)
 		}
 		// Handle date filtering (single date or date range)
@@ -586,10 +571,6 @@ func GetMyAppointments(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		// Debug logging
-		if category := c.Query("category"); category != "" {
-			log.Printf("DEBUG GetMyAppointments: Found %d appointments for category '%s'", len(appointments), category)
-		}
 
 		// Calculate pagination info
 		page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))

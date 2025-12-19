@@ -46,21 +46,14 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
         try {
           // Get role from cookie (not localStorage) as set by AuthContext
           const role = typeof window !== 'undefined' ? Cookies.get('userRole') : 'admin';
-          console.log('Fetching offices for role:', role);
           // Check if the current user can manage users (admin or office_manager)
           if (role === 'admin' || role === 'office_manager') {
-            // Use protected endpoint for both roles - admin routes removed
-            const endpoint = '/offices';
-            console.log('Fetching offices from endpoint:', endpoint);
-            const response = await apiClient.get(endpoint);
-            console.log('Offices loaded:', response.data);
+            const response = await apiClient.get('/offices');
             setOffices(response.data);
           } else {
-            console.log('User role does not allow office management:', role);
             setOffices([]);
           }
-        } catch (error) {
-          console.error('Error fetching offices:', error);
+        } catch {
           setOffices([]);
         }
       };

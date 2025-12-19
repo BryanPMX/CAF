@@ -66,7 +66,6 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ visible, onClose, o
             ? staffRes.data
             : (staffRes.data?.data || staffRes.data?.users || []);
           const filteredStaff = staffPayload.filter((user: any) => user.role !== 'client');
-          console.log('📋 Loaded staff members:', filteredStaff.length, filteredStaff);
           setStaffList(filteredStaff);
           setOffices(officesRes.data);
         } catch (error) {
@@ -110,30 +109,16 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ visible, onClose, o
         try {
           const base = user?.role === 'office_manager' ? '/manager' : '/admin';
           
-          console.log(`🔍 Fetching cases for client ${clientId} from: ${base}/clients/${clientId}/cases-for-appointment`);
-          
           const response = await apiClient.get(`${base}/clients/${clientId}/cases-for-appointment`);
           const data = response.data;
-          
-          console.log('📋 Cases API response:', data);
-          
           const list = Array.isArray(data) ? data : (data?.cases || []);
           setCases(list);
           
-          // Enhanced debugging information
-          if (data?.debug) {
-            console.log('🔍 Debug info:', data.debug);
-          }
-          
           if (list.length === 0) {
-            console.log('⚠️ No cases found for this client');
-            console.log('🔍 Possible reasons: cases may be archived, deleted, or cancelled');
             message.info({
               content: 'Este cliente no tiene casos activos disponibles para citas. Puede crear un caso nuevo.',
               duration: 5
             });
-          } else {
-            console.log(`✅ Found ${list.length} cases for client:`, list.map((c: Case) => ({ id: c.id, title: c.title, status: c.status })));
           }
         } catch (error: any) {
           console.error('❌ Error fetching client cases:', error);
@@ -231,10 +216,7 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ visible, onClose, o
   const filteredStaffList = useMemo(() => {
     const categoryToUse = selectedCaseCategory || watchedDepartment;
     
-    console.log('🔍 Filtering staff - Category:', categoryToUse, 'Total staff:', staffList.length);
-    
     if (!categoryToUse || categoryToUse === 'General') {
-      console.log('✅ No category filter, showing all staff:', staffList.length);
       return staffList;
     }
     
@@ -244,7 +226,7 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ visible, onClose, o
     // Admins should only appear for legal cases (Familiar, Civil), not for psychology cases
     const isLegalCase = categoryToUse === 'Familiar' || categoryToUse === 'Civil';
     
-    const filtered = staffList.filter(staff => {
+    return staffList.filter(staff => {
       // Admins and office managers can be assigned to any appointment
       const isManagement = staff.role === 'admin' || staff.role === 'office_manager';
       const isAdminForLegal = isAdminRole(staff.role as StaffRoleKey) && isLegalCase;
@@ -253,14 +235,6 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ visible, onClose, o
       
       return isManagement || isAdminForLegal || hasAllowedRole || hasMatchingDepartment;
     });
-    
-    console.log('✅ Filtered staff count:', filtered.length, 'Category:', categoryToUse);
-    if (filtered.length === 0) {
-      console.warn('⚠️ No staff found for category:', categoryToUse, 'Allowed roles:', allowedRoles);
-      console.log('Available staff:', staffList.map(s => ({ name: s.firstName + ' ' + s.lastName, role: s.role, dept: s.department })));
-    }
-    
-    return filtered;
   }, [selectedCaseCategory, staffList, watchedDepartment]);
 
   // Handle the final submission of the multi-step form

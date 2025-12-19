@@ -71,7 +71,6 @@ const UserManagementPage = () => {
       if (forceRefresh) params._t = Date.now();
       const response = await apiClient.get(`${base}/users`, { params });
       const data = response.data;
-      console.log('Users API response:', data);
       setUsers(data.data || []);
       setTotal(data.pagination?.total || 0);
     } catch (error) {
@@ -167,7 +166,6 @@ const UserManagementPage = () => {
 
   // Opens the modal in "edit" mode by passing the selected user's data.
   const handleEdit = (user: User) => {
-    console.log('Edit user data:', user);
     setEditingUser(user);
     setIsModalVisible(true);
   };
