@@ -73,7 +73,6 @@ const RoleBasedDashboard: React.FC<{
   const canSeeOfficeFilter = userRole === 'admin' || userRole === 'office_manager';
   const isStaffRole = ['lawyer', 'psychologist', 'receptionist', 'event_coordinator'].includes(userRole);
 
-  console.log('RoleBasedDashboard rendering:', { userRole, canSeeAllOffices, canSeeOfficeFilter, isStaffRole, dataKeys: Object.keys(data) });
 
   return (
     <div className="space-y-6">
@@ -370,7 +369,6 @@ const TrueDashboardPage = () => {
     if (!userRole || !dashboardData) return;
 
     const interval = setInterval(() => {
-      console.log('Auto-refreshing dashboard data...');
       fetchDashboardData(selectedOfficeId || undefined);
     }, 15000); // 15 seconds
 

@@ -68,10 +68,8 @@ const CreateCaseModal: React.FC<CreateCaseModalProps> = ({ visible, onClose, onS
       return;
     }
     try {
-      console.log('Searching clients with:', searchText);
       // Use the proper client search endpoint
       const response = await apiClient.get(`/admin/users/search?q=${encodeURIComponent(searchText)}`);
-      console.log('SearchClients response:', response.data);
       
       const clients: Client[] = Array.isArray(response.data) ? response.data : [];
       const clientOptions = clients.map(client => ({
@@ -79,7 +77,6 @@ const CreateCaseModal: React.FC<CreateCaseModalProps> = ({ visible, onClose, onS
         label: `${client.firstName} ${client.lastName} (${client.email})`,
         key: client.id,
       }));
-      console.log('Mapped client options:', clientOptions);
       setClientOptions(clientOptions);
     } catch (error) {
       console.error("Client search failed:", error);

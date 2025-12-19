@@ -64,9 +64,7 @@ const EditCaseModal: React.FC<EditCaseModalProps> = ({
         payload.court = values.court;
       }
 
-      console.log('EditCaseModal: Sending payload:', payload);
       const response = await apiClient.put(`/admin/cases/${caseId}`, payload);
-      console.log('EditCaseModal: Response received:', response.data);
       
       message.success({ content: '¡Caso actualizado exitosamente!', key: 'updateCase' });
       onSuccess();

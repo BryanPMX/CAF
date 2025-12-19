@@ -29,7 +29,6 @@ const OfficeManagementPage = () => {
     try {
       // Wait for user to be loaded before fetching
       if (!user?.role) {
-        console.log('User role not yet loaded, skipping fetch');
         setLoading(false);
         return;
       }

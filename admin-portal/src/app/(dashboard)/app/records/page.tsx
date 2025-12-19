@@ -158,7 +158,6 @@ const RecordsPage: React.FC = () => {
     try {
       // Wait for user to be loaded before fetching
       if (!user?.role) {
-        console.log('User role not yet loaded, skipping stats fetch');
         return;
       }
 
@@ -175,7 +174,6 @@ const RecordsPage: React.FC = () => {
     try {
       // Wait for user to be loaded before fetching
       if (!user?.role) {
-        console.log('User role not yet loaded, skipping cases fetch');
         setLoadingCases(false);
         setLoading(false);
         return;
@@ -206,7 +204,6 @@ const RecordsPage: React.FC = () => {
     try {
       // Wait for user to be loaded before fetching
       if (!user?.role) {
-        console.log('User role not yet loaded, skipping appointments fetch');
         setLoadingAppointments(false);
         return;
       }
