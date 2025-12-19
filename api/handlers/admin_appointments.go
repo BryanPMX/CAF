@@ -714,3 +714,74 @@ func GetClientCasesForAppointment(db *gorm.DB) gin.HandlerFunc {
 		})
 	}
 }
+
+// GetClientCasesForAppointmentScoped returns cases for a client filtered by the user's office scope
+// This is used by office managers who should only see cases within their office
+func GetClientCasesForAppointmentScoped(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		clientIDStr := c.Param("clientId")
+		clientID, err := strconv.ParseUint(clientIDStr, 10, 32)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid client ID"})
+			return
+		}
+
+		// Get office scope from middleware
+		officeScopeID, hasOfficeScope := c.Get("officeScopeID")
+
+		// Verify the client exists
+		var client models.User
+		if err := db.Where("id = ? AND role = ?", uint(clientID), "client").First(&client).Error; err != nil {
+			if err == gorm.ErrRecordNotFound {
+				c.JSON(http.StatusNotFound, gin.H{"error": "Client not found"})
+				return
+			}
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve client"})
+			return
+		}
+
+		// Get cases appropriate for appointment scheduling, scoped by office
+		cases := make([]models.Case, 0)
+		query := db.Model(&models.Case{}).
+			Where("client_id = ?", client.ID).
+			Where("deleted_at IS NULL").
+			Where("is_archived = ?", false).
+			Where("status NOT IN (?)", []string{"deleted", "cancelled"})
+
+		// Apply office scoping if the user has an office scope
+		if hasOfficeScope && officeScopeID != nil {
+			query = query.Where("office_id = ?", officeScopeID)
+		}
+
+		query = query.Order("created_at DESC")
+
+		if err := query.Find(&cases).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve client cases"})
+			return
+		}
+
+		// Return cases with minimal data for dropdown
+		var caseOptions []gin.H
+		for _, caseItem := range cases {
+			caseOptions = append(caseOptions, gin.H{
+				"id":           caseItem.ID,
+				"title":        caseItem.Title,
+				"category":     caseItem.Category,
+				"status":       caseItem.Status,
+				"currentStage": caseItem.CurrentStage,
+				"createdAt":    caseItem.CreatedAt,
+			})
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"client": gin.H{
+				"id":        client.ID,
+				"firstName": client.FirstName,
+				"lastName":  client.LastName,
+				"email":     client.Email,
+			},
+			"cases": caseOptions,
+			"count": len(caseOptions),
+		})
+	}
+}
