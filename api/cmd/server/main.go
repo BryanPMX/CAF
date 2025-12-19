@@ -509,8 +509,13 @@ func main() {
 		officeManager.PUT("/cases/:id", middleware.CaseAccessControl(database), handlers.UpdateCase(database))
 		officeManager.DELETE("/cases/:id", middleware.CaseAccessControl(database), handlers.DeleteCase(database))
 
-		// Client cases for appointment creation
-		officeManager.GET("/clients/:clientId/cases-for-appointment", handlers.GetClientCasesForAppointment(database))
+		// Case Comments for Office Managers
+		officeManager.POST("/cases/:id/comments", middleware.CaseAccessControl(database), handlers.CreateComment(database))
+		officeManager.PUT("/cases/comments/:eventId", middleware.CaseAccessControl(database), handlers.UpdateComment(database))
+		officeManager.DELETE("/cases/comments/:eventId", middleware.CaseAccessControl(database), handlers.DeleteComment(database))
+
+		// Client cases for appointment creation (scoped by office)
+		officeManager.GET("/clients/:clientId/cases-for-appointment", handlers.GetClientCasesForAppointmentScoped(database))
 		// Client cases endpoint
 		officeManager.GET("/clients/:clientId/cases", handlers.GetCasesForClient(database))
 
