@@ -50,25 +50,37 @@ func GetTasks(db *gorm.DB) gin.HandlerFunc {
 		officeScopeID, _ := c.Get("officeScopeID")
 
 		if userRole == config.RoleLawyer || userRole == config.RolePsychologist || userRole == config.RoleReceptionist {
-			// Staff users see tasks assigned to them or from cases they're assigned to
+			// Staff users see:
+			// 1. Tasks directly assigned to them (no office/dept restriction)
+			// 2. Tasks from cases in their office/department where they have case assignments
 			userID, _ := c.Get("userID")
 			userIDUint, _ := strconv.ParseUint(userID.(string), 10, 32)
 
-			// Tasks assigned to the user
-			query = query.Where("assigned_to_id = ?", userIDUint)
+			// Build the access conditions properly to avoid INNER JOIN filtering direct assignments
+			// Direct assignment: always visible regardless of office/department
+			directAssignment := "tasks.assigned_to_id = ?"
 
-			// Or tasks from cases where the user is assigned
-			query = query.Or("case_id IN (SELECT case_id FROM user_case_assignments WHERE user_id = ?)", userIDUint)
+			// Case assignment with office/department scoping
+			var caseAssignmentCondition string
+			var caseArgs []interface{}
 
-			// Apply office scoping
-			if officeScopeID != nil {
-				query = query.Joins("INNER JOIN cases ON cases.id = tasks.case_id AND cases.office_id = ?", officeScopeID)
+			if officeScopeID != nil && userDepartment != nil {
+				caseAssignmentCondition = "tasks.case_id IN (SELECT uca.case_id FROM user_case_assignments uca INNER JOIN cases c ON c.id = uca.case_id WHERE uca.user_id = ? AND c.office_id = ? AND c.category = ?)"
+				caseArgs = []interface{}{userIDUint, officeScopeID, userDepartment}
+			} else if officeScopeID != nil {
+				caseAssignmentCondition = "tasks.case_id IN (SELECT uca.case_id FROM user_case_assignments uca INNER JOIN cases c ON c.id = uca.case_id WHERE uca.user_id = ? AND c.office_id = ?)"
+				caseArgs = []interface{}{userIDUint, officeScopeID}
+			} else if userDepartment != nil {
+				caseAssignmentCondition = "tasks.case_id IN (SELECT uca.case_id FROM user_case_assignments uca INNER JOIN cases c ON c.id = uca.case_id WHERE uca.user_id = ? AND c.category = ?)"
+				caseArgs = []interface{}{userIDUint, userDepartment}
+			} else {
+				caseAssignmentCondition = "tasks.case_id IN (SELECT case_id FROM user_case_assignments WHERE user_id = ?)"
+				caseArgs = []interface{}{userIDUint}
 			}
 
-			// Apply department filtering if available
-			if userDepartment != nil {
-				query = query.Joins("INNER JOIN cases ON cases.id = tasks.case_id AND cases.category = ?", userDepartment)
-			}
+			// Combine: direct assignment OR scoped case assignment
+			allArgs := append([]interface{}{userIDUint}, caseArgs...)
+			query = query.Where("("+directAssignment+") OR ("+caseAssignmentCondition+")", allArgs...)
 		}
 
 		// Apply additional filters from query parameters
@@ -104,25 +116,36 @@ func GetTaskByID(db *gorm.DB) gin.HandlerFunc {
 		officeScopeID, _ := c.Get("officeScopeID")
 
 		if userRole == config.RoleLawyer || userRole == config.RolePsychologist || userRole == config.RoleReceptionist {
-			// Staff users can only access tasks assigned to them or from cases they're assigned to
+			// Staff users can access:
+			// 1. Tasks directly assigned to them (no office/dept restriction)
+			// 2. Tasks from cases in their office/department where they have case assignments
 			userID, _ := c.Get("userID")
 			userIDUint, _ := strconv.ParseUint(userID.(string), 10, 32)
 
-			// Tasks assigned to the user
-			query = query.Where("assigned_to_id = ?", userIDUint)
+			// Direct assignment: always visible regardless of office/department
+			directAssignment := "tasks.assigned_to_id = ?"
 
-			// Or tasks from cases where the user is assigned
-			query = query.Or("case_id IN (SELECT case_id FROM user_case_assignments WHERE user_id = ?)", userIDUint)
+			// Case assignment with office/department scoping
+			var caseAssignmentCondition string
+			var caseArgs []interface{}
 
-			// Apply office scoping
-			if officeScopeID != nil {
-				query = query.Joins("INNER JOIN cases ON cases.id = tasks.case_id AND cases.office_id = ?", officeScopeID)
+			if officeScopeID != nil && userDepartment != nil {
+				caseAssignmentCondition = "tasks.case_id IN (SELECT uca.case_id FROM user_case_assignments uca INNER JOIN cases c ON c.id = uca.case_id WHERE uca.user_id = ? AND c.office_id = ? AND c.category = ?)"
+				caseArgs = []interface{}{userIDUint, officeScopeID, userDepartment}
+			} else if officeScopeID != nil {
+				caseAssignmentCondition = "tasks.case_id IN (SELECT uca.case_id FROM user_case_assignments uca INNER JOIN cases c ON c.id = uca.case_id WHERE uca.user_id = ? AND c.office_id = ?)"
+				caseArgs = []interface{}{userIDUint, officeScopeID}
+			} else if userDepartment != nil {
+				caseAssignmentCondition = "tasks.case_id IN (SELECT uca.case_id FROM user_case_assignments uca INNER JOIN cases c ON c.id = uca.case_id WHERE uca.user_id = ? AND c.category = ?)"
+				caseArgs = []interface{}{userIDUint, userDepartment}
+			} else {
+				caseAssignmentCondition = "tasks.case_id IN (SELECT case_id FROM user_case_assignments WHERE user_id = ?)"
+				caseArgs = []interface{}{userIDUint}
 			}
 
-			// Apply department filtering if available
-			if userDepartment != nil {
-				query = query.Joins("INNER JOIN cases ON cases.id = tasks.case_id AND cases.category = ?", userDepartment)
-			}
+			// Combine: direct assignment OR scoped case assignment
+			allArgs := append([]interface{}{userIDUint}, caseArgs...)
+			query = query.Where("("+directAssignment+") OR ("+caseAssignmentCondition+")", allArgs...)
 		}
 
 		if err := query.First(&task, taskID).Error; err != nil {

@@ -37,23 +37,32 @@ func GetAppointmentsEnhanced(db *gorm.DB) gin.HandlerFunc {
 		userDepartment, _ := c.Get("userDepartment")
 		officeScopeID, _ := c.Get("officeScopeID")
 
+		// Admins see all appointments - no filtering needed
 		// Office managers see ALL appointments in their office (they manage the entire office)
 		if userRole == config.RoleOfficeManager && officeScopeID != nil {
 			query = query.Joins("INNER JOIN cases ON cases.id = appointments.case_id AND cases.office_id = ?", officeScopeID)
-		} else if (userRole != config.RoleAdmin && userRole != "client") || officeScopeID != nil {
-			// Staff-like users see appointments from their office and department
-			if officeScopeID != nil {
-				query = query.Joins("INNER JOIN cases ON cases.id = appointments.case_id AND cases.office_id = ?", officeScopeID)
-			}
-
-			if userDepartment != nil {
-				query = query.Where("appointments.department = ?", userDepartment)
-			}
-
-			// Also include appointments where they are the assigned staff member
+		} else if userRole != config.RoleAdmin && userRole != "client" {
+			// Staff users: build a compound condition for access control
+			// They can see appointments they're assigned to OR appointments from their office/department
 			userID, _ := c.Get("userID")
 			userIDUint, _ := strconv.ParseUint(userID.(string), 10, 32)
-			query = query.Or("appointments.staff_id = ?", userIDUint)
+
+			// Build access conditions as a group
+			accessConditions := db.Where("appointments.staff_id = ?", userIDUint)
+
+			// Add office/department scoped appointments
+			if officeScopeID != nil && userDepartment != nil {
+				accessConditions = accessConditions.Or(
+					db.Where("appointments.case_id IN (SELECT id FROM cases WHERE office_id = ?))", officeScopeID).
+						Where("appointments.department = ?", userDepartment),
+				)
+			} else if officeScopeID != nil {
+				accessConditions = accessConditions.Or("appointments.case_id IN (SELECT id FROM cases WHERE office_id = ?)", officeScopeID)
+			} else if userDepartment != nil {
+				accessConditions = accessConditions.Or("appointments.department = ?", userDepartment)
+			}
+
+			query = query.Where(accessConditions)
 		}
 
 		// Apply additional filters from query parameters
@@ -153,23 +162,30 @@ func GetAppointmentByIDEnhanced(db *gorm.DB) gin.HandlerFunc {
 		userDepartment, _ := c.Get("userDepartment")
 		officeScopeID, _ := c.Get("officeScopeID")
 
+		// Admins see all appointments - no filtering needed
 		// Office managers can access ALL appointments in their office
 		if userRole == config.RoleOfficeManager && officeScopeID != nil {
 			query = query.Joins("INNER JOIN cases ON cases.id = appointments.case_id AND cases.office_id = ?", officeScopeID)
-		} else if (userRole != config.RoleAdmin && userRole != "client") || officeScopeID != nil {
-			// Staff-like users can only access appointments from their office and department
-			if officeScopeID != nil {
-				query = query.Joins("INNER JOIN cases ON cases.id = appointments.case_id AND cases.office_id = ?", officeScopeID)
-			}
-
-			if userDepartment != nil {
-				query = query.Where("appointments.department = ?", userDepartment)
-			}
-
-			// Or appointments where they are the assigned staff member
+		} else if userRole != config.RoleAdmin && userRole != "client" {
+			// Staff users: they can access appointments assigned to them OR from their office/department
 			userID, _ := c.Get("userID")
 			userIDUint, _ := strconv.ParseUint(userID.(string), 10, 32)
-			query = query.Or("appointments.staff_id = ?", userIDUint)
+
+			// Build access conditions as a group
+			accessConditions := db.Where("appointments.staff_id = ?", userIDUint)
+
+			if officeScopeID != nil && userDepartment != nil {
+				accessConditions = accessConditions.Or(
+					db.Where("appointments.case_id IN (SELECT id FROM cases WHERE office_id = ?)", officeScopeID).
+						Where("appointments.department = ?", userDepartment),
+				)
+			} else if officeScopeID != nil {
+				accessConditions = accessConditions.Or("appointments.case_id IN (SELECT id FROM cases WHERE office_id = ?)", officeScopeID)
+			} else if userDepartment != nil {
+				accessConditions = accessConditions.Or("appointments.department = ?", userDepartment)
+			}
+
+			query = query.Where(accessConditions)
 		}
 
 		if err := query.First(&appointment, appointmentID).Error; err != nil {
