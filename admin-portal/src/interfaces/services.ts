@@ -1,5 +1,9 @@
 // admin-portal/src/interfaces/services.ts
 import { User, Case, Appointment, Office } from '@/app/lib/types';
+import { PaginatedResponse } from '@/interfaces/api';
+
+// Re-export for convenience
+export type { PaginatedResponse } from '@/interfaces/api';
 
 // Case Service Interface
 export interface ICaseService {
@@ -173,18 +177,6 @@ export interface ReportParams {
 }
 
 // Response Types
-export interface PaginatedResponse<T> {
-  data: T[];
-  pagination: {
-    page: number;
-    pageSize: number;
-    total: number;
-    totalPages: number;
-    hasNext: boolean;
-    hasPrev: boolean;
-  };
-}
-
 export interface DashboardSummary {
   total_cases: number;
   open_cases: number;
