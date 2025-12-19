@@ -145,6 +145,13 @@ func CreateUserScoped(db *gorm.DB) gin.HandlerFunc {
 		// Business rule: Office managers can only create staff for their own office
 		isStaffRole := input.Role != "client"
 		if isStaffRole {
+			// If office not provided but manager has office scope, auto-assign their office
+			if input.OfficeID == nil && hasOffice && managerOfficeIDVal != nil {
+				if managerOfficeID, ok := managerOfficeIDVal.(uint); ok {
+					input.OfficeID = &managerOfficeID
+				}
+			}
+
 			// Staff must be assigned to an office
 			if input.OfficeID == nil {
 				c.JSON(http.StatusBadRequest, gin.H{"error": "An office must be assigned to all staff members."})
@@ -476,11 +483,18 @@ func UpdateUserScoped(db *gorm.DB) gin.HandlerFunc {
 		// Business rule: If updating to a staff role, office managers can only assign to their office
 		isStaffRole := input.Role != "client"
 		if isStaffRole && hasOffice && managerOfficeIDVal != nil {
+			managerOfficeID, ok := managerOfficeIDVal.(uint)
+			
+			// If office not provided, auto-assign manager's office
+			if input.OfficeID == nil && ok {
+				input.OfficeID = &managerOfficeID
+			}
+			
 			if input.OfficeID == nil {
 				c.JSON(http.StatusBadRequest, gin.H{"error": "An office must be assigned to all staff members."})
 				return
 			}
-			managerOfficeID, ok := managerOfficeIDVal.(uint)
+			
 			if ok && *input.OfficeID != managerOfficeID {
 				c.JSON(http.StatusForbidden, gin.H{"error": "You can only assign staff members to your own office."})
 				return
