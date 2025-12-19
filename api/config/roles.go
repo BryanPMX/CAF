@@ -86,8 +86,12 @@ var VALID_ROLES = []string{
 
 // IsValidRole checks if a role key is valid
 func IsValidRole(role string) bool {
-	_, exists := STAFF_ROLES[role]
-	return exists
+	for _, validRole := range VALID_ROLES {
+		if role == validRole {
+			return true
+		}
+	}
+	return false
 }
 
 // ValidateRole validates a role and returns an error if invalid

@@ -202,7 +202,8 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
           name="officeId" 
           label="Oficina"
           rules={
-            selectedRole && requiresOffice(selectedRole as StaffRoleKey) 
+            // For office managers creating staff, backend auto-assigns office, so not required on frontend
+            selectedRole && requiresOffice(selectedRole as StaffRoleKey) && currentUserRole !== 'office_manager'
               ? [{ required: true, message: 'Debe asignar una oficina al personal' }]
               : []
           }
