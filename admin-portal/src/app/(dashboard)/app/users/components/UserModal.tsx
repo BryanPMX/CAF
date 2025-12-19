@@ -132,13 +132,14 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
   const handleRoleChange = (roleValue: string) => {
     setSelectedRole(roleValue);
     
-    // For office managers creating staff: auto-set their office
-    if (currentUserRole === 'office_manager' && roleValue !== USER_ROLES.CLIENT) {
+    // For office managers CREATING (not editing) staff: auto-set their office
+    // Don't overwrite existing office assignments during edit
+    if (!isEditing && currentUserRole === 'office_manager' && roleValue !== USER_ROLES.CLIENT) {
       if (currentUserOfficeId) {
         form.setFieldsValue({ officeId: Number(currentUserOfficeId) });
       }
-    } else if (roleValue === USER_ROLES.CLIENT) {
-      // Clear office for clients (optional)
+    } else if (!isEditing && roleValue === USER_ROLES.CLIENT) {
+      // Clear office for clients when creating (optional)
       form.setFieldsValue({ officeId: undefined });
     }
   };
