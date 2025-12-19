@@ -11,6 +11,7 @@ const STORAGE_KEYS = {
   AUTH_TOKEN: 'authToken',
   USER_DATA: 'userData',
   USER_ROLE: 'userRole',
+  USER_OFFICE_ID: 'userOfficeId',
 } as const;
 
 // Cookie configuration
@@ -155,9 +156,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         // Invalid or expired token
         localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
         localStorage.removeItem(STORAGE_KEYS.USER_DATA);
-        localStorage.removeItem(STORAGE_KEYS.USER_ROLE); // Clear role from localStorage too
+        localStorage.removeItem(STORAGE_KEYS.USER_ROLE);
+        localStorage.removeItem(STORAGE_KEYS.USER_OFFICE_ID);
         Cookies.remove(STORAGE_KEYS.AUTH_TOKEN);
         Cookies.remove(STORAGE_KEYS.USER_ROLE);
+        Cookies.remove(STORAGE_KEYS.USER_OFFICE_ID);
         setState({
           user: null,
           isLoading: false,
@@ -179,9 +182,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       console.error('Auth initialization error:', error);
       localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
       localStorage.removeItem(STORAGE_KEYS.USER_DATA);
-      localStorage.removeItem(STORAGE_KEYS.USER_ROLE); // Clear role from localStorage too
+      localStorage.removeItem(STORAGE_KEYS.USER_ROLE);
+      localStorage.removeItem(STORAGE_KEYS.USER_OFFICE_ID);
       Cookies.remove(STORAGE_KEYS.AUTH_TOKEN);
       Cookies.remove(STORAGE_KEYS.USER_ROLE);
+      Cookies.remove(STORAGE_KEYS.USER_OFFICE_ID);
       setState({
         user: null,
         isLoading: false,
@@ -204,10 +209,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, token);
       localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(userData));
       localStorage.setItem(STORAGE_KEYS.USER_ROLE, userData.role); // Store role in localStorage too
+      if (userData.officeId) {
+        localStorage.setItem(STORAGE_KEYS.USER_OFFICE_ID, userData.officeId.toString());
+      }
 
       // CRITICAL: Also set cookies for server-side middleware access
       Cookies.set(STORAGE_KEYS.AUTH_TOKEN, token, COOKIE_CONFIG);
       Cookies.set(STORAGE_KEYS.USER_ROLE, userData.role, COOKIE_CONFIG);
+      if (userData.officeId) {
+        Cookies.set(STORAGE_KEYS.USER_OFFICE_ID, userData.officeId.toString(), COOKIE_CONFIG);
+      }
 
       // CRITICAL: Update state immediately and synchronously
       setState({
@@ -234,11 +245,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // CRITICAL: Clear storage atomically
       localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
       localStorage.removeItem(STORAGE_KEYS.USER_DATA);
-      localStorage.removeItem(STORAGE_KEYS.USER_ROLE); // Clear role from localStorage too
+      localStorage.removeItem(STORAGE_KEYS.USER_ROLE);
+      localStorage.removeItem(STORAGE_KEYS.USER_OFFICE_ID);
 
       // CRITICAL: Also clear cookies
       Cookies.remove(STORAGE_KEYS.AUTH_TOKEN);
       Cookies.remove(STORAGE_KEYS.USER_ROLE);
+      Cookies.remove(STORAGE_KEYS.USER_OFFICE_ID);
       
       // CRITICAL: Update state immediately and synchronously
       setState({
