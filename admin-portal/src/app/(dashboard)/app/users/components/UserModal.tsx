@@ -124,13 +124,33 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
     }
   };
 
+  // Get current user role
+  const currentUserRole = typeof window !== 'undefined' ? Cookies.get('userRole') : 'admin';
+  const currentUserOfficeId = typeof window !== 'undefined' ? Cookies.get('userOfficeId') : undefined;
+
   // Handle role selection change
   const handleRoleChange = (roleValue: string) => {
     setSelectedRole(roleValue);
-    // Only clear office selection if the role is client
-    if (roleValue === USER_ROLES.CLIENT) {
+    
+    // For office managers creating staff: auto-set their office
+    if (currentUserRole === 'office_manager' && roleValue !== USER_ROLES.CLIENT) {
+      if (currentUserOfficeId) {
+        form.setFieldsValue({ officeId: Number(currentUserOfficeId) });
+      }
+    } else if (roleValue === USER_ROLES.CLIENT) {
+      // Clear office for clients (optional)
       form.setFieldsValue({ officeId: undefined });
     }
+  };
+
+  // Get available roles based on current user's role
+  const getAvailableRoles = () => {
+    const allRoles = getAllRoles();
+    // Office managers cannot create admin users
+    if (currentUserRole === 'office_manager') {
+      return allRoles.filter(role => role.value !== USER_ROLES.ADMIN);
+    }
+    return allRoles;
   };
 
   return (
@@ -168,7 +188,7 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
         )}
         <Form.Item name="role" label="Rol" rules={[{ required: true, message: 'Seleccione un rol' }]}>
           <Select placeholder="Asignar un rol" onChange={handleRoleChange}>
-            {getAllRoles().map((role) => (
+            {getAvailableRoles().map((role) => (
                <Option key={role.value} value={role.value}>
                  {role.label}
               </Option>
@@ -187,10 +207,11 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
         >
           <Select
             placeholder={selectedRole ? "Seleccione una oficina" : "Primero seleccione un rol"}
-            allowClear
+            allowClear={selectedRole === USER_ROLES.CLIENT}
             disabled={
-              (typeof window !== 'undefined' && Cookies.get('userRole') === 'office_manager') ||
-              !selectedRole
+              !selectedRole || 
+              // Office managers can only choose office for clients, not for staff
+              (currentUserRole === 'office_manager' && selectedRole !== USER_ROLES.CLIENT)
             }
             showSearch
             filterOption={(input, option) =>
@@ -204,6 +225,12 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
             ))}
           </Select>
         </Form.Item>
+        {/* Helper text for office managers creating staff */}
+        {currentUserRole === 'office_manager' && selectedRole && selectedRole !== USER_ROLES.CLIENT && (
+          <div style={{ color: '#1890ff', fontSize: '12px', marginTop: '-16px', marginBottom: '8px' }}>
+            ℹ️ El personal se asignará automáticamente a su oficina
+          </div>
+        )}
         {/* Helper text and status messages */}
         {!selectedRole && (
           <div style={{ color: '#999', fontSize: '12px', marginTop: '-16px', marginBottom: '8px' }}>
