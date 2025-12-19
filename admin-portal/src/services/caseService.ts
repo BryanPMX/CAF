@@ -9,33 +9,11 @@ import {
 } from '@/interfaces/services';
 import { Case } from '@/app/lib/types';
 
-// Legacy service class for backward compatibility
-export class LegacyCaseService {
-  // Keep existing methods for backward compatibility
-  async fetchCases(params?: any) {
-    console.log('Legacy fetchCases called with:', params);
-    return { data: [], pagination: { total: 0, page: 1, pageSize: 20 } };
-  }
-
-  async fetchCaseById(id: string) {
-    console.log('Legacy fetchCaseById called with:', id);
-    return { id, title: 'Mock Case', description: 'Mock description' };
-  }
-
-  async deleteCase(id: string) {
-    console.log('Legacy deleteCase called with:', id);
-    return true;
-  }
-}
-
 export class CaseService implements ICaseService {
   constructor(private apiClient: ApiClient) {}
 
-  // Static methods for backward compatibility when imported as class
+  // Static methods for role-based API routing
   static async fetchCases(userRole: string, params?: any) {
-    console.log('Static legacy fetchCases called with:', userRole, params);
-
-    // Get API client from lib
     const { apiClient } = await import('@/app/lib/api');
 
     try {
@@ -45,7 +23,9 @@ export class CaseService implements ICaseService {
       if (userRole === 'admin') {
         endpoint = '/admin/cases';
       } else if (userRole === 'office_manager') {
-        endpoint = '/office/cases';
+        endpoint = '/manager/cases';
+      } else if (userRole === 'staff') {
+        endpoint = '/staff/cases';
       }
 
       const response = await apiClient.get(endpoint, { params });
@@ -76,9 +56,6 @@ export class CaseService implements ICaseService {
   }
 
   static async fetchCaseById(userRole: string, id: string, options?: string): Promise<any> {
-    console.log('Static legacy fetchCaseById called with:', userRole, id, options);
-
-    // Get API client from lib
     const { apiClient } = await import('@/app/lib/api');
 
     try {
@@ -88,12 +65,12 @@ export class CaseService implements ICaseService {
       if (userRole === 'admin') {
         endpoint = `/admin/cases/${id}`;
       } else if (userRole === 'office_manager') {
-        endpoint = `/office/cases/${id}`;
+        endpoint = `/manager/cases/${id}`;
+      } else if (userRole === 'staff') {
+        endpoint = `/staff/cases/${id}`;
       }
 
-      // Add options to the endpoint if provided
       const fullEndpoint = options ? `${endpoint}?${options}` : endpoint;
-
       const response = await apiClient.get(fullEndpoint);
       return response.data;
     } catch (error) {
@@ -103,9 +80,6 @@ export class CaseService implements ICaseService {
   }
 
   static async deleteCase(userRole: string, id: string) {
-    console.log('Static legacy deleteCase called with:', userRole, id);
-
-    // Get API client from lib
     const { apiClient } = await import('@/app/lib/api');
 
     try {
@@ -113,7 +87,9 @@ export class CaseService implements ICaseService {
       if (userRole === 'admin') {
         endpoint = '/admin/cases';
       } else if (userRole === 'office_manager') {
-        endpoint = '/office/cases';
+        endpoint = '/manager/cases';
+      } else if (userRole === 'staff') {
+        endpoint = '/staff/cases';
       }
 
       await apiClient.delete(`${endpoint}/${id}`);
@@ -124,6 +100,7 @@ export class CaseService implements ICaseService {
     }
   }
 
+  // Instance methods for DI-based usage
   async getCases(params?: CaseListParams): Promise<PaginatedResponse<Case>> {
     const queryParams = new URLSearchParams();
 
@@ -204,9 +181,3 @@ export class CaseService implements ICaseService {
     return response.data;
   }
 }
-
-// Legacy export for backward compatibility
-export const caseService = new LegacyCaseService();
-
-// Default export for backward compatibility
-export default caseService;
