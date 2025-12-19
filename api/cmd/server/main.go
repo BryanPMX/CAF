@@ -496,10 +496,12 @@ func main() {
 	officeManager.Use(middleware.RoleAuth(database, "office_manager"))
 	officeManager.Use(middleware.DataAccessControl(database))
 	{
-		// Users (auto-scoped by DataAccessControl via GetUsers)
+		// Users management for Office Managers
 		officeManager.GET("/users", handlers.GetUsers(database))
-		// Offices list for selection (we can return all so manager can pick among offices only where needed?)
-		// Keep offices list admin-only for now; creation modal already requires picking an office from list.
+		officeManager.GET("/users/search", handlers.SearchClients(database))
+
+		// Offices list (managers can see all offices for reference)
+		officeManager.GET("/offices", handlers.GetOffices(database))
 
 		// Case Management for Office Managers
 		officeManager.GET("/cases", middleware.CaseAccessControl(database), handlers.GetCasesEnhanced(database))

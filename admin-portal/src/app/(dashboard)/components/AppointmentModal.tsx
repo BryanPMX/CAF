@@ -60,7 +60,7 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ visible, onClose, o
           const base = user.role === 'office_manager' ? '/manager' : '/admin';
           const [staffRes, officesRes] = await Promise.all([
             apiClient.get(`${base}/users`),
-            apiClient.get('/offices'),
+            apiClient.get(`${base}/offices`),
           ]);
           const staffPayload = Array.isArray(staffRes.data)
             ? staffRes.data
@@ -326,7 +326,8 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ visible, onClose, o
         payload.newCase = { title: values.newCaseTitle, description: values.newCaseDescription, officeId: values.officeId };
       }
 
-      await apiClient.post('/admin/appointments', payload);
+      const base = user?.role === 'office_manager' ? '/manager' : '/admin';
+      await apiClient.post(`${base}/appointments`, payload);
       
       message.success({ content: '¡Cita creada exitosamente!', key: 'appt' });
       onSuccess();
