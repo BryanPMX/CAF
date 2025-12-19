@@ -16,10 +16,11 @@ import (
 )
 
 // CreateUserInput defines the structure for an admin creating a new user.
+// Email is optional for staff - it will be auto-generated if not provided.
 type CreateUserInput struct {
 	FirstName string `json:"firstName" binding:"required"`
 	LastName  string `json:"lastName" binding:"required"`
-	Email     string `json:"email" binding:"required,email"`
+	Email     string `json:"email" binding:"omitempty,email"`
 	Password  string `json:"password" binding:"required,min=8"`
 	Role      string `json:"role" binding:"required"`
 	OfficeID  *uint  `json:"officeId"`
