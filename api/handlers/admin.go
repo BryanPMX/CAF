@@ -133,8 +133,8 @@ func CreateUserScoped(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		// Get the office manager's office from middleware
-		managerOfficeID, hasOffice := c.Get("officeScopeID")
+		// Get the office manager's office from middleware (stored as uint, not *uint)
+		managerOfficeIDVal, hasOffice := c.Get("officeScopeID")
 
 		// Validate the provided role against our centralized role configuration
 		if err := config.ValidateRole(input.Role); err != nil {
@@ -152,9 +152,9 @@ func CreateUserScoped(db *gorm.DB) gin.HandlerFunc {
 			}
 
 			// Office managers can only create staff in their own office
-			if hasOffice && managerOfficeID != nil {
-				managerOffice := managerOfficeID.(*uint)
-				if managerOffice != nil && *input.OfficeID != *managerOffice {
+			if hasOffice && managerOfficeIDVal != nil {
+				managerOfficeID, ok := managerOfficeIDVal.(uint)
+				if ok && *input.OfficeID != managerOfficeID {
 					c.JSON(http.StatusForbidden, gin.H{"error": "You can only create staff members for your own office."})
 					return
 				}
@@ -448,14 +448,14 @@ func UpdateUserScoped(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		// Get the office manager's office from middleware
-		managerOfficeID, hasOffice := c.Get("officeScopeID")
+		// Get the office manager's office from middleware (stored as uint, not *uint)
+		managerOfficeIDVal, hasOffice := c.Get("officeScopeID")
 
 		// Check if the user being updated is staff (not a client)
 		// Office managers can only update staff in their own office
-		if user.Role != "client" && hasOffice && managerOfficeID != nil {
-			managerOffice := managerOfficeID.(*uint)
-			if managerOffice != nil && user.OfficeID != nil && *user.OfficeID != *managerOffice {
+		if user.Role != "client" && hasOffice && managerOfficeIDVal != nil {
+			managerOfficeID, ok := managerOfficeIDVal.(uint)
+			if ok && user.OfficeID != nil && *user.OfficeID != managerOfficeID {
 				c.JSON(http.StatusForbidden, gin.H{"error": "You can only update staff members from your own office."})
 				return
 			}
@@ -475,13 +475,13 @@ func UpdateUserScoped(db *gorm.DB) gin.HandlerFunc {
 
 		// Business rule: If updating to a staff role, office managers can only assign to their office
 		isStaffRole := input.Role != "client"
-		if isStaffRole && hasOffice && managerOfficeID != nil {
+		if isStaffRole && hasOffice && managerOfficeIDVal != nil {
 			if input.OfficeID == nil {
 				c.JSON(http.StatusBadRequest, gin.H{"error": "An office must be assigned to all staff members."})
 				return
 			}
-			managerOffice := managerOfficeID.(*uint)
-			if managerOffice != nil && *input.OfficeID != *managerOffice {
+			managerOfficeID, ok := managerOfficeIDVal.(uint)
+			if ok && *input.OfficeID != managerOfficeID {
 				c.JSON(http.StatusForbidden, gin.H{"error": "You can only assign staff members to your own office."})
 				return
 			}
