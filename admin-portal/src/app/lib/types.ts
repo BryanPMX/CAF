@@ -34,6 +34,7 @@ export interface AuthUser {
   firstName?: string;
   lastName?: string;
   email?: string;
+  officeId?: number;
 }
 
 // Authentication token interface
