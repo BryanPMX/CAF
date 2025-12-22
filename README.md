@@ -2,7 +2,7 @@
 
 This is the official monorepo for the CAF digital platform. **100% local development** - no cloud costs or dependencies.
 
-## 🏗️ System Architecture
+## System Architecture
 
 ### Backend (Go) - SOLID Principles Implemented
 
@@ -31,11 +31,11 @@ api/
 ```
 
 **SOLID Principles Applied:**
-- ✅ **SRP**: Each class has one reason to change
-- ✅ **OCP**: Open for extension, closed for modification
-- ✅ **LSP**: Subtypes are substitutable
-- ✅ **ISP**: Client-specific interfaces
-- ✅ **DIP**: Depend on abstractions, not concretions
+- [OK] **SRP**: Each class has one reason to change
+- [OK] **OCP**: Open for extension, closed for modification
+- [OK] **LSP**: Subtypes are substitutable
+- [OK] **ISP**: Client-specific interfaces
+- [OK] **DIP**: Depend on abstractions, not concretions
 
 ### Frontend (TypeScript) - Service Architecture
 
@@ -65,13 +65,38 @@ admin-portal/src/
 - **Configuration**: Environment-based configuration
 - **Logging**: Structured logging system
 
-## 🚀 Quick Start - Local Development
+## Quick Start - Local Development
 
 ### Prerequisites
 
 - **Docker & Docker Compose** (for backend services)
-- **Node.js 18+** (for admin portal)
-- **Flutter SDK** (optional, for mobile app)
+- **Node.js 18+** (for admin portal and testing)
+- **Go 1.21+** (for backend API)
+- **Git** (for version control)
+
+### Automated Setup Script
+
+The project includes a comprehensive dependency setup script that handles all installation requirements:
+
+```bash
+# One-command dependency setup for all components
+./setup-dependencies.sh
+
+# Script features:
+# - System prerequisite verification
+# - Go module dependency installation
+# - Node.js package installation for all frontend components
+# - Environment configuration deployment
+# - Network connectivity validation
+# - Edge case handling and retry logic
+```
+
+**Benefits:**
+- [OK] **Idempotent**: Safe to run multiple times
+- [OK] **Comprehensive**: Handles all project components
+- [OK] **Professional**: Military-style output formatting
+- [OK] **Resilient**: Handles network issues and installation failures
+- [OK] **Informative**: Clear status reporting and next steps
 
 ### Start Everything Locally
 
@@ -81,15 +106,31 @@ admin-portal/src/
 git clone <repository-url>
 cd CAF
 
-# Start all services automatically
-./scripts/start-local-dev.sh
+# Install all dependencies and setup environment
+./setup-dependencies.sh
+
+# Start backend services
+docker-compose up -d
+
+# Start frontend applications (in separate terminals)
+cd admin-portal && npm run dev    # Admin Portal at http://localhost:3000
+cd ../marketing && npm run dev    # Marketing Site at http://localhost:5173
 ```
 
-#### Manual Setup
+#### Manual Setup (Alternative)
 ```bash
 # Copy environment files
 cp api/env.development api/.env
 cp admin-portal/env.development admin-portal/.env.local
+cp marketing/env.development marketing/.env
+
+# Install Go dependencies
+cd api && go mod download && cd ..
+
+# Install Node.js dependencies
+cd admin-portal && npm install && cd ..
+cd marketing && npm install && cd ..
+cd testing && npm install && cd ..
 
 # Start backend services
 docker-compose up -d
@@ -98,25 +139,24 @@ docker-compose up -d
 docker-compose ps
 ```
 
-**Local Services:**
-- 🖥️ **Admin Portal**: http://localhost:3000
-- 🏠 **Marketing Site**: http://localhost:5173
-- 🔗 **API**: http://localhost:8080
-- 🗃️ **Database**: localhost:5432
-- ☁️ **LocalStack S3**: http://localhost:4566
+**Post-Setup Services:**
+- [API] **API Gateway**: http://localhost:8080 (starts automatically)
+- [DB] **Database**: localhost:5432 (starts automatically)
+- [S3] **LocalStack S3**: http://localhost:4566 (starts automatically)
+- [WEB] **Admin Portal**: http://localhost:3000 (start manually: `cd admin-portal && npm run dev`)
+- [WEB] **Marketing Site**: http://localhost:5173 (start manually: `cd marketing && npm run dev`)
 
-**Default Login:**
-- Email: `admin@caf.org`
+**Default Credentials:**
+- Username: `admin@caf.org`
 - Password: `admin123`
 
 ### 2. Start Admin Portal (Frontend)
 
-```bash
-# Navigate to admin portal
-cd admin-portal
+After running `./setup-dependencies.sh`, start the frontend:
 
-# Install dependencies
-npm install
+```bash
+# Navigate to admin portal (dependencies already installed)
+cd admin-portal
 
 # Start development server
 npm run dev
@@ -134,13 +174,13 @@ npm run dev
 
 After logging in, you should see:
 
-✅ **Dashboard** - Main overview with statistics  
-✅ **Cases** - Case management system  
-✅ **Appointments** - Appointment scheduling  
-✅ **Users** - User management (admin only)  
-✅ **Reports** - Analytics and reporting (admin only)  
+[OK] **Dashboard** - Main overview with statistics
+[OK] **Cases** - Case management system
+[OK] **Appointments** - Appointment scheduling
+[OK] **Users** - User management (admin only)
+[OK] **Reports** - Analytics and reporting (admin only)  
 
-## 🛠️ Development Setup
+## Development Setup
 
 ### Backend API (Go)
 
@@ -190,7 +230,7 @@ NEXT_PUBLIC_API_URL=http://localhost:8080/api/v1
 NEXT_PUBLIC_ENV=development
 ```
 
-## 🏠 Local Development Only
+## Local Development Only
 
 This system is designed exclusively for local development:
 - **S3 Storage**: Simulated using LocalStack (http://localhost:4566)
@@ -199,7 +239,7 @@ This system is designed exclusively for local development:
 - **Environment**: Pre-configured for development
 - **Cost**: Zero ongoing costs
 
-## 🧪 Comprehensive Testing Suite
+## Comprehensive Testing Suite
 
 ### Automated Testing
 
@@ -208,24 +248,30 @@ This system is designed exclusively for local development:
 # Run all tests (25 test cases)
 npm run test:comprehensive
 
-# Test Results: ✅ 25/25 tests passing (100% success rate)
+# Test Results: [PASS] 25/25 tests passing (100% success rate)
 ```
 
 **Test Coverage:**
-- ✅ **Authentication**: Login, token validation, role-based access
-- ✅ **Authorization**: Admin vs staff permissions, data isolation
-- ✅ **API Versioning**: Header-based versioning, backward compatibility
-- ✅ **Performance**: Database queries, response times, concurrent load
-- ✅ **Database**: Index effectiveness, query optimization
-- ✅ **Integration**: CRUD operations, WebSocket notifications
-- ✅ **Health**: Endpoint availability, error handling
+- [OK] **Authentication**: Login, token validation, role-based access
+- [OK] **Authorization**: Admin vs staff permissions, data isolation
+- [OK] **API Versioning**: Header-based versioning, backward compatibility
+- [OK] **Performance**: Database queries, response times, concurrent load
+- [OK] **Database**: Index effectiveness, query optimization
+- [OK] **Integration**: CRUD operations, WebSocket notifications
+- [OK] **Health**: Endpoint availability, error handling
 
 ### Manual Testing Guide
 
 #### 1. System Startup Test
 ```bash
-# Start all services
-./scripts/start-local-dev.sh
+# Install dependencies and setup environment
+./setup-dependencies.sh
+
+# Start backend services
+docker-compose up -d
+
+# Start frontend (in another terminal)
+cd admin-portal && npm run dev
 
 # Verify services
 curl http://localhost:8080/health
@@ -270,9 +316,9 @@ curl http://localhost:3000/api/health
 - 50 concurrent users: <2s response time
 - Database connections: Stable under load
 
-## 🐛 Known Issues & Fixes
+## Known Issues & Fixes
 
-### Recently Fixed Issues ✅
+### Recently Fixed Issues
 - **Infinite Loop after Login** - Fixed by disabling React Strict Mode and optimizing auth flow
 - **Authentication Token Sync** - Fixed token key mismatch between auth and notification systems
 - **Loading State Hangs** - Eliminated by removing circular dependencies in useEffect hooks
@@ -280,12 +326,12 @@ curl http://localhost:3000/api/health
 - **Duplicate Migration Systems** - Consolidated two migration directories into unified system
 - **File Structure Issues** - Cleaned up unused files, binaries, and implemented proper .gitignore files
 
-### Current Limitations ⚠️
+### Current Limitations
 - **Notifications System** - Temporarily disabled to prevent API loops (will be re-enabled)
 - **Auto-redirects** - Role-based redirects temporarily simplified
 - **Real-time Updates** - Limited during development phase
 
-## 📊 API Endpoints
+## API Endpoints
 
 ### Authentication
 - `POST /api/v1/login` - User authentication
@@ -308,7 +354,7 @@ curl http://localhost:3000/api/health
 - `GET /api/v1/users` - List users
 - `POST /api/v1/users` - Create user
 
-## 🔧 Troubleshooting
+## Troubleshooting
 
 ### Backend Not Starting
 ```bash
@@ -341,14 +387,14 @@ docker-compose up -d
 - **Frontend**: Change port 3000 with `npm run dev -- -p 3001`
 - **Database**: Change port 5432 in `docker-compose.yml`
 
-## 🤝 Contributing
+## Contributing
 
 1. Create a feature branch
 2. Make your changes
 3. Test thoroughly using the testing guide above
 4. Submit a pull request
 
-## 📝 Technical Specifications
+## Technical Specifications
 
 ### Backend Architecture
 - **Language**: Go 1.21+
@@ -385,7 +431,7 @@ docker-compose up -d
 - **CI/CD**: Git-based workflow with automated testing
 - **Monitoring**: Health checks and metrics endpoints
 
-## 🔒 Security Features
+## Security Features
 
 ### Authentication & Authorization
 - **JWT Tokens**: 24-hour expiration with refresh mechanism
@@ -405,7 +451,7 @@ docker-compose up -d
 - **Error Handling**: Secure error responses (no data leakage)
 - **CORS**: Configured cross-origin policies
 
-## 🚀 Performance Optimizations
+## Performance Optimizations
 
 ### Database Performance
 - **Composite Indexes**: Optimized for complex queries
@@ -425,7 +471,7 @@ docker-compose up -d
 - **Caching**: Browser caching strategies
 - **Progressive Loading**: Optimized loading states
 
-## 📊 System Metrics
+## System Metrics
 
 - **Test Coverage**: 25 automated test cases (100% pass rate)
 - **API Response Time**: <500ms average
@@ -433,31 +479,31 @@ docker-compose up -d
 - **Concurrent Users**: Supports 50+ simultaneous users
 - **Uptime**: 99.9% in local development environment
 
-## 🔄 Recent Improvements
+## Recent Improvements
 
-### SOLID Principles Implementation ✅
+### SOLID Principles Implementation
 - **Single Responsibility**: Each class has one clear purpose
 - **Open/Closed**: Extensible without modification
 - **Liskov Substitution**: Compatible implementations
 - **Interface Segregation**: Client-specific interfaces
 - **Dependency Inversion**: Abstractions over concretions
 
-### Clean Architecture ✅
+### Clean Architecture
 - **Layer Separation**: Clear boundaries between layers
 - **Dependency Injection**: Service container pattern
 - **Repository Pattern**: Data access abstraction
 - **Service Layer**: Business logic encapsulation
 
-### Quality Assurance ✅
+### Quality Assurance
 - **Automated Testing**: Comprehensive test suite
 - **Error Handling**: Centralized error management
 - **Validation**: Schema-based input validation
 - **Logging**: Structured logging system
 
 **Last Updated:** November 6, 2025
-**Architecture Status:** SOLID Principles Implemented ✅
-**Testing Status:** 25/25 Tests Passing ✅
-**System Health:** Fully Operational ✅
+**Architecture Status:** SOLID Principles Implemented
+**Testing Status:** 25/25 Tests Passing
+**System Health:** Fully Operational
 
 **Contact:** Development Team
 **License:** Internal Use Only
