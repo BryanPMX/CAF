@@ -375,26 +375,31 @@ const TrueDashboardPage = () => {
     return () => clearInterval(interval);
   }, [userRole, dashboardData, selectedOfficeId]);
 
-  // Initialize dashboard only once when user becomes available
+  // CRITICAL FIX: Initialize dashboard only once when user becomes available
+  // Previous issue: Race condition where useEffect ran before user?.role was available,
+  // causing initializedRef to be set to true without actually initializing
   useEffect(() => {
+    // Guard conditions: Wait for hydration, user data, and prevent double initialization
     if (!isHydrated || !user?.role || initializedRef.current) return;
 
+    // Mark as initialized immediately to prevent race conditions
     initializedRef.current = true;
     const role = user.role;
     setUserRole(role);
 
-    // Always fetch offices for UI (needed for office filtering dropdown)
+    // Step 1: Fetch office list for filtering dropdown (UI prerequisite)
     fetchOffices();
 
-    // For office managers, auto-select their office (temporary fix)
-    // In production, this should come from user profile
+    // Step 2: Auto-select office for office managers
+    // TODO: Replace with proper office assignment from user profile API
     if (role === 'office_manager') {
-      setSelectedOfficeId('2'); // Default office for office managers
+      setSelectedOfficeId('2'); // Temporary hardcoded default
     }
 
-    // Fetch dashboard data - pass role directly to avoid async state issues
+    // Step 3: Fetch dashboard metrics with role-based filtering
+    // Pass office ID for managers to get office-scoped data
     fetchDashboardData(role === 'office_manager' ? '2' : undefined, role);
-  }, [isHydrated]); // Removed user?.role and userRole dependencies to prevent loops
+  }, [isHydrated, user?.role]); // Added user?.role dependency to ensure proper initialization timing
 
   // Handle user logout only - run once on mount and track user state internally
   const prevUserRef = useRef(user);

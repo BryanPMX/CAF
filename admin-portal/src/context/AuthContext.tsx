@@ -105,11 +105,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, []);
 
   // Initialize authentication function (shared between useEffects)
+  // This function recovers authentication state from persistent storage
+  // It's called on app startup and handles various edge cases
   const initializeAuth = useCallback(() => {
     try {
+      // Step 1: Attempt to recover authentication token from storage
+      // Check both localStorage (primary) and cookies (fallback) for resilience
       const token = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN) || Cookies.get(STORAGE_KEYS.AUTH_TOKEN);
       const userData = localStorage.getItem(STORAGE_KEYS.USER_DATA);
 
+      // Step 2: If no token exists, user is not authenticated
       if (!token) {
         setState({
           user: null,
@@ -120,27 +125,33 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return;
       }
 
-      // If we have a token but no userData, try to get role from cookie
+      // Step 3: Recover user data from localStorage (preferred method)
+      // localStorage provides more complete user information than cookies
       let parsedUserData;
       if (userData) {
+        // Full user data available - parse and use it
         parsedUserData = JSON.parse(userData);
       } else {
+        // Fallback: Reconstruct minimal user data from token and cookies
+        // This handles cases where localStorage was cleared but cookies persist
         const userRole = Cookies.get(STORAGE_KEYS.USER_ROLE);
         if (userRole) {
-          // Create minimal user data from token and cookie
           const decodedUser = decodeToken(token);
           if (decodedUser) {
+            // Create minimal user object with available information
             parsedUserData = {
               id: decodedUser.id,
               role: userRole as UserRole,
-              firstName: undefined,
-              lastName: undefined,
+              firstName: undefined, // Not available in fallback mode
+              lastName: undefined,  // Not available in fallback mode
             };
           }
         }
       }
 
+      // Step 4: Validate that we have user data to work with
       if (!parsedUserData) {
+        // Unable to recover user data - clear any partial state
         setState({
           user: null,
           isLoading: false,
