@@ -174,10 +174,10 @@ npm run test:all
 ### Test Results Interpretation
 
 **Status Indicators**:
-- ✅ **PASS**: Test completed successfully
-- ❌ **FAIL**: Test failed with errors
-- ⏭️ **SKIP**: Test skipped (expected behavior)
-- ⚠️ **WARN**: Test passed but with warnings
+- [PASS] **PASS**: Test completed successfully
+- [FAIL] **FAIL**: Test failed with errors
+- [SKIP] **SKIP**: Test skipped (expected behavior)
+- [WARN] **WARN**: Test passed but with warnings
 
 **Performance Targets**:
 - **Fast**: < 2 seconds response time
