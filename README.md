@@ -39,31 +39,88 @@ api/
 
 ### Frontend (TypeScript) - Service Architecture
 
-**Service-Oriented Architecture:**
+**Service-Oriented Architecture with Next.js App Router:**
 
 ```
 admin-portal/src/
-├── interfaces/          # Service contracts
-│   ├── api.ts          # HTTP abstractions
-│   └── services.ts     # Business service contracts
-├── abstractions/        # Implementation abstractions
-│   └── httpClient.ts   # HTTP client abstraction
-├── core/               # Cross-cutting concerns
-│   ├── config.ts       # Configuration management
-│   ├── errors.ts       # Error handling patterns
-│   ├── logger.ts       # Logging system
-│   ├── validation.ts   # Validation schemas
-│   └── container.ts    # Dependency injection
-├── services/           # Service implementations
-└── components/         # UI components
+├── app/                    # Next.js 14 App Router (file-based routing)
+│   ├── (dashboard)/       # Protected route groups
+│   ├── login/             # Authentication routes
+│   ├── layout.tsx         # Root layout with providers
+│   └── globals.css        # Global styles
+├── interfaces/            # Service contracts & type definitions
+│   ├── api.ts            # HTTP client abstractions
+│   └── services.ts       # Business service contracts
+├── abstractions/          # Implementation abstractions
+│   └── httpClient.ts     # HTTP client implementation
+├── core/                 # Cross-cutting concerns
+│   ├── config.ts         # Configuration management
+│   ├── container.ts      # Dependency injection container
+│   ├── errors.ts         # Error handling patterns
+│   ├── logger.ts         # Structured logging system
+│   └── validation.ts     # Schema-based validation
+├── services/             # Business logic layer
+├── context/              # React Context providers
+│   ├── AuthContext.tsx   # Authentication state management
+│   └── NotificationContext.tsx # Real-time notifications
+├── hooks/                # Custom React hooks
+├── components/           # Reusable UI components
+└── config/               # Application configuration
+```
+
+**React Best Practices Implemented:**
+- **Custom Hooks**: Encapsulated stateful logic (useAuth, useWebSocket, useHydrationSafe)
+- **Context API**: Global state management with React Context
+- **Error Boundaries**: Graceful error handling and recovery
+- **Component Composition**: Higher-order components and render props
+- **TypeScript**: Strict typing for maintainability and developer experience
+
+**Key Features:**
+- **Dependency Injection**: Clean service management through container pattern
+- **Server-Side Rendering**: SEO optimization and performance
+- **Route Protection**: Authentication guards and role-based access
+- **Real-time Updates**: WebSocket integration for live notifications
+- **Responsive Design**: Mobile-first approach with Ant Design + Tailwind CSS
+
+### Mobile Application (Flutter) - Provider Pattern
+
+**Flutter Clean Architecture:**
+
+```
+client-app/lib/
+├── main.dart                    # Application entry point
+├── screens/                     # UI screens (login, dashboard, appointments)
+├── services/                    # Business logic layer
+│   └── auth_service.dart       # Authentication with JWT
+└── [platform]/                 # Android/iOS platform code
 ```
 
 **Key Features:**
-- **Dependency Injection**: Clean service management
-- **Consistent Error Handling**: Unified error patterns
-- **Validation**: Centralized validation schemas
-- **Configuration**: Environment-based configuration
-- **Logging**: Structured logging system
+- **Provider Pattern**: State management and dependency injection
+- **Repository Pattern**: Data access abstraction
+- **Secure Storage**: JWT token persistence
+- **RESTful API**: HTTP client integration with Go backend
+
+### Marketing Website (SvelteKit) - Component Architecture
+
+**SvelteKit Full-Stack Framework:**
+
+```
+marketing/src/
+├── lib/
+│   ├── components/             # Reusable Svelte components
+│   ├── utils/                 # Utility functions
+│   └── config.js              # Application configuration
+└── routes/                    # File-based routing
+    ├── +page.server.js        # Server-side data loading
+    └── +page.svelte           # Page components
+```
+
+**Key Features:**
+- **Server-Side Rendering**: SEO optimization and performance
+- **Static Site Generation**: Fast loading and hosting flexibility
+- **API Integration**: Backend connectivity for dynamic content
+- **Component-Based**: Reusable UI components with Svelte
 
 ## Quick Start - Local Development
 
