@@ -1,0 +1,63 @@
+# CAF Production Stack - Portainer / Self-hosted
+# Pre-built image from Docker Hub. No LocalStack/AWS.
+
+services:
+  api:
+    image: brpmx/caf-api:latest
+    container_name: caf-api-1
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - DB_HOST=caf-db
+      - DB_PORT=5432
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${DB_NAME:-caf_db}
+      - DB_SSLMODE=${DB_SSLMODE:-disable}
+      - PORT=8080
+      - NODE_ENV=production
+      - JWT_SECRET=${JWT_SECRET}
+      - TZ=UTC
+      - CORS_ALLOWED_ORIGINS=https://admin.caf-mexico.org,https://admin.caf-mexico.com,https://caf-mexico.org,https://www.caf-mexico.org,https://caf-mexico.com,https://www.caf-mexico.com
+      - RATE_LIMIT_REQUESTS=${RATE_LIMIT_REQUESTS:-500}
+      - RATE_LIMIT_DURATION_MINUTES=${RATE_LIMIT_DURATION_MINUTES:-1}
+    networks:
+      - caf_default
+      - nginx-proxy-manager_default
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "--method=GET", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  db:
+    image: postgres:15-alpine
+    container_name: caf-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME:-caf_db}
+      TZ: UTC
+    volumes:
+      - caf_postgres_data:/var/lib/postgresql/data
+    networks:
+      - caf_default
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME:-caf_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+networks:
+  caf_default:
+    driver: bridge
+  nginx-proxy-manager_default:
+    external: true
+
+volumes:
+  caf_postgres_data:
+    driver: local

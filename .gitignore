@@ -22,11 +22,19 @@ logs/
 *.log.*
 
 # === Environment and configuration ===
+# Secrets managed via Portainer in production. Use env.example as template for local dev.
 .env
-.env.local
-.env.production
-.env.development
+.env.*
 *.env
+env.development
+env.production
+**/env.development
+**/env.production
+# Allow template files only (no real secrets)
+!.env.example
+!**/.env.example
+!env.example
+!**/env.example
 
 # === Database files ===
 *.db
@@ -95,6 +103,8 @@ dev.config.json
 # === Duplicate deployment configurations ===
 *-secure.json
 vercel-secure.json
+docker-compose.override.yml
+docker-compose.override.yaml
 
 # === Security and sensitive files ===
 *.key
@@ -114,6 +124,7 @@ volume/cache/*.crt
 *.aws/
 aws-config.json
 gcloud-config.json
+.env.aws
 
 # === Script files with embedded secrets ===
 # Note: Review any *.sh files before committing
