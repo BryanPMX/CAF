@@ -4,7 +4,7 @@ name: Build and Push to Docker Hub
 on:
   push:
     branches: [main]
-    paths: ['api/**']
+    paths: ['api/**', '.github/workflows/build-dockerhub.yml']
   workflow_dispatch:
 
 env:
