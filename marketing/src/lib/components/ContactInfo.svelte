@@ -3,7 +3,7 @@
   const contactInfo = {
     phone: '+1-915-555-0123',
     email: 'info@caf-mexico.org',
-    address: 'El Paso, Texas',
+    address: 'Ciudad Juárez, Chihuahua',
     hours: {
       weekdays: '8:00 AM - 6:00 PM',
       saturday: '9:00 AM - 2:00 PM',
