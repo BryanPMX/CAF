@@ -156,6 +156,8 @@ func main() {
 	{
 		public.POST("/register", middleware.ValidateUserRegistration(), handlers.Register(database))
 		public.POST("/login", middleware.AuthRateLimit(), handlers.EnhancedLogin(database, cfg.JWTSecret))
+		// Public offices for marketing site map (no auth required)
+		public.GET("/public/offices", handlers.GetPublicOffices(database))
 	}
 
 	// WebSocket endpoint for per-user notifications (token via query param)

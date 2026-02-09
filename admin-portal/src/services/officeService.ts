@@ -31,8 +31,9 @@ export class OfficeService implements IOfficeService {
   }
 
   static async deleteOffice(userRole: string, id: string) {
-    console.log('Static legacy deleteOffice called with:', userRole, id);
-    return true;
+    const { apiClient } = await import('@/app/lib/api');
+    const base = userRole === 'admin' ? '/admin' : userRole === 'office_manager' ? '/manager' : '';
+    await apiClient.delete(`${base}/offices/${id}`);
   }
 
   async getOffices(): Promise<any[]> {

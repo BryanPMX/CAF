@@ -3,6 +3,7 @@
     import { cubicOut } from 'svelte/easing';
     import { onMount } from 'svelte';
     import ContactInfo from '$lib/components/ContactInfo.svelte';
+    import OfficeMap from '$lib/components/OfficeMap.svelte';
     import { formValidator, commonRules } from '$lib/utils/formValidator.js';
     import { apiUtils } from '$lib/utils/apiClient.js';
     import { errorHandler } from '$lib/utils/errorHandler.js';
@@ -147,17 +148,8 @@
         <h2 class="text-2xl md:text-3xl font-bold text-gray-800 mb-4">
           Nuestras Oficinas en Ciudad Juárez
         </h2>
-        <div class="aspect-w-16 aspect-h-9 rounded-lg shadow-lg overflow-hidden transform hover:scale-[1.02] transition-transform duration-300">
-          <iframe
-            src="https://www.google.com/maps/d/embed?mid=1_c1b2g4s3f5e6g7h8i9j0k1l2m3n4o5&hl=en&ehbc=2E312F"
-            width="100%"
-            height="480"
-            style="border:0;"
-            allowfullscreen=""
-            loading="lazy"
-            referrerpolicy="no-referrer-when-downgrade"
-            title="Mapa de oficinas del Centro de Apoyo para la Familia"
-          ></iframe>
+        <div class="rounded-lg overflow-hidden transform hover:scale-[1.02] transition-transform duration-300">
+          <OfficeMap defaultZoom={12} />
         </div>
       </div>
   

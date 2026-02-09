@@ -11,8 +11,10 @@ import (
 
 // OfficeInput defines the structure for creating or updating an office.
 type OfficeInput struct {
-	Name    string `json:"name" binding:"required"`
-	Address string `json:"address"`
+	Name      string   `json:"name" binding:"required"`
+	Address   string   `json:"address"`
+	Latitude  *float64 `json:"latitude"`
+	Longitude *float64 `json:"longitude"`
 }
 
 // --- CRUD Handlers for Offices ---
@@ -41,7 +43,12 @@ func CreateOffice(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		office := models.Office{Name: input.Name, Address: input.Address}
+		office := models.Office{
+			Name:      input.Name,
+			Address:   input.Address,
+			Latitude:  input.Latitude,
+			Longitude: input.Longitude,
+		}
 		if err := db.Create(&office).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create office."})
 			return
@@ -57,6 +64,20 @@ func GetOffices(db *gorm.DB) gin.HandlerFunc {
 		// Initialize with empty slice to prevent null JSON response
 		offices := make([]models.Office, 0)
 		if err := db.Find(&offices).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve offices."})
+			return
+		}
+		c.JSON(http.StatusOK, offices)
+	}
+}
+
+// GetPublicOffices returns all non-deleted offices without authentication.
+// Used by the public marketing site to display office locations on a map.
+// Filters out soft-deleted offices (deleted_at IS NULL).
+func GetPublicOffices(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		offices := make([]models.Office, 0)
+		if err := db.Where("deleted_at IS NULL").Find(&offices).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve offices."})
 			return
 		}
@@ -81,7 +102,21 @@ func UpdateOffice(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		// Update the office record with the new data.
-		db.Model(&office).Updates(models.Office{Name: input.Name, Address: input.Address})
+		updates := map[string]interface{}{
+			"name":    input.Name,
+			"address": input.Address,
+		}
+		if input.Latitude != nil {
+			updates["latitude"] = *input.Latitude
+		} else {
+			updates["latitude"] = nil
+		}
+		if input.Longitude != nil {
+			updates["longitude"] = *input.Longitude
+		} else {
+			updates["longitude"] = nil
+		}
+		db.Model(&office).Updates(updates)
 		c.JSON(http.StatusOK, office)
 	}
 }
