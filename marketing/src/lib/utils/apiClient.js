@@ -2,6 +2,7 @@
 // API client with comprehensive error handling for the marketing site
 
 import { errorHandler } from './errorHandler.js';
+import { config } from '$lib/config.js';
 
 class ApiClient {
   constructor(baseURL = '') {
@@ -142,5 +143,20 @@ export const apiUtils = {
       console.warn('API connectivity check failed:', error);
       return false;
     }
+  },
+
+  // Fetch public offices for the contact page map (from GET /api/v1/public/offices)
+  async fetchOffices() {
+    const base = config?.api?.baseUrl || '';
+    if (!base) {
+      console.warn('VITE_API_URL not configured');
+      return [];
+    }
+    const client = new ApiClient(base);
+    const result = await client.get('/public/offices');
+    if (result && result.success && Array.isArray(result.data)) {
+      return result.data;
+    }
+    return [];
   }
 };

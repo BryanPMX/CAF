@@ -9,6 +9,8 @@ interface Office {
   id: number;
   name: string;
   address: string;
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 interface OfficeModalProps {
@@ -38,16 +40,28 @@ const OfficeModal: React.FC<OfficeModalProps> = ({ visible, onClose, onSuccess, 
   const handleOk = async () => {
     try {
       const values = await form.validateFields();
+      // Convert lat/lng strings to numbers for API
+      const payload = { ...values };
+      if (values.latitude !== undefined && values.latitude !== '' && values.latitude !== null) {
+        payload.latitude = parseFloat(values.latitude);
+      } else {
+        payload.latitude = null;
+      }
+      if (values.longitude !== undefined && values.longitude !== '' && values.longitude !== null) {
+        payload.longitude = parseFloat(values.longitude);
+      } else {
+        payload.longitude = null;
+      }
       setLoading(true);
       const messageKey = isEditing ? 'updateOffice' : 'createOffice';
       message.loading({ content: 'Guardando...', key: messageKey });
 
       if (isEditing) {
         // If editing, send a PATCH request to the update endpoint
-        await apiClient.patch(`/admin/offices/${office.id}`, values);
+        await apiClient.patch(`/admin/offices/${office.id}`, payload);
       } else {
         // If creating, send a POST request
-        await apiClient.post('/admin/offices', values);
+        await apiClient.post('/admin/offices', payload);
       }
 
       message.success({ content: `¡Oficina ${isEditing ? 'actualizada' : 'creada'} exitosamente!`, key: messageKey });
@@ -84,6 +98,20 @@ const OfficeModal: React.FC<OfficeModalProps> = ({ visible, onClose, onSuccess, 
           rules={[{ required: true, message: 'La dirección es requerida' }]}
         >
           <Input.TextArea rows={3} />
+        </Form.Item>
+        <Form.Item
+          name="latitude"
+          label="Latitud (opcional)"
+          help="Para el mapa de la página de contacto. Ej: 31.6904"
+        >
+          <Input type="number" step="any" placeholder="31.6904" />
+        </Form.Item>
+        <Form.Item
+          name="longitude"
+          label="Longitud (opcional)"
+          help="Para el mapa de la página de contacto. Ej: -106.4245"
+        >
+          <Input type="number" step="any" placeholder="-106.4245" />
         </Form.Item>
       </Form>
     </Modal>

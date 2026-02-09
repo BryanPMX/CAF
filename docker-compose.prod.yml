@@ -6,11 +6,13 @@ services:
     image: brpmx/caf-api:latest
     container_name: caf-api-1
     restart: unless-stopped
+    links:
+      - db
     depends_on:
       db:
         condition: service_healthy
     environment:
-      - DB_HOST=caf-db
+      - DB_HOST=db
       - DB_PORT=5432
       - DB_USER=${DB_USER}
       - DB_PASSWORD=${DB_PASSWORD}
@@ -37,6 +39,12 @@ services:
     image: postgres:15-alpine
     container_name: caf-db
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-caf-user} -d ${DB_NAME:-caf_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     environment:
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
@@ -46,11 +54,6 @@ services:
       - caf_postgres_data:/var/lib/postgresql/data
     networks:
       - caf_default
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
 
 networks:
   caf_default:

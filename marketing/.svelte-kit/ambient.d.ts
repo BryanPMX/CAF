@@ -26,6 +26,7 @@
  * ```
  */
 declare module '$env/static/private' {
+	export const _ZO_DOCTOR: string;
 	export const VSCODE_CRASH_REPORTER_PROCESS_TYPE: string;
 	export const NODE: string;
 	export const INIT_CWD: string;
@@ -35,7 +36,6 @@ declare module '$env/static/private' {
 	export const TMPDIR: string;
 	export const HOMEBREW_REPOSITORY: string;
 	export const npm_config_global_prefix: string;
-	export const ORIGINAL_XDG_CURRENT_DESKTOP: string;
 	export const MallocNanoZone: string;
 	export const CURSOR_TRACE_ID: string;
 	export const COLOR: string;
@@ -65,6 +65,7 @@ declare module '$env/static/private' {
 	export const LANG: string;
 	export const npm_config_npm_version: string;
 	export const XPC_FLAGS: string;
+	export const CURSOR_EXTENSION_HOST_ROLE: string;
 	export const npm_package_engines_node: string;
 	export const FORCE_COLOR: string;
 	export const npm_config_node_gyp: string;
@@ -73,11 +74,11 @@ declare module '$env/static/private' {
 	export const SHLVL: string;
 	export const HOME: string;
 	export const VSCODE_NLS_CONFIG: string;
+	export const CI: string;
 	export const HOMEBREW_PREFIX: string;
 	export const npm_config_cache: string;
 	export const LOGNAME: string;
 	export const npm_lifecycle_script: string;
-	export const COMPOSER_NO_INTERACTION: string;
 	export const VSCODE_IPC_HOOK: string;
 	export const VSCODE_CODE_CACHE_PATH: string;
 	export const npm_config_user_agent: string;
@@ -85,7 +86,6 @@ declare module '$env/static/private' {
 	export const INFOPATH: string;
 	export const HOMEBREW_CELLAR: string;
 	export const OSLogRateLimit: string;
-	export const VSCODE_L10N_BUNDLE_LOCATION: string;
 	export const VSCODE_CWD: string;
 	export const npm_node_execpath: string;
 	export const npm_config_prefix: string;
@@ -121,6 +121,7 @@ declare module '$env/static/public' {
  */
 declare module '$env/dynamic/private' {
 	export const env: {
+		_ZO_DOCTOR: string;
 		VSCODE_CRASH_REPORTER_PROCESS_TYPE: string;
 		NODE: string;
 		INIT_CWD: string;
@@ -130,7 +131,6 @@ declare module '$env/dynamic/private' {
 		TMPDIR: string;
 		HOMEBREW_REPOSITORY: string;
 		npm_config_global_prefix: string;
-		ORIGINAL_XDG_CURRENT_DESKTOP: string;
 		MallocNanoZone: string;
 		CURSOR_TRACE_ID: string;
 		COLOR: string;
@@ -160,6 +160,7 @@ declare module '$env/dynamic/private' {
 		LANG: string;
 		npm_config_npm_version: string;
 		XPC_FLAGS: string;
+		CURSOR_EXTENSION_HOST_ROLE: string;
 		npm_package_engines_node: string;
 		FORCE_COLOR: string;
 		npm_config_node_gyp: string;
@@ -168,11 +169,11 @@ declare module '$env/dynamic/private' {
 		SHLVL: string;
 		HOME: string;
 		VSCODE_NLS_CONFIG: string;
+		CI: string;
 		HOMEBREW_PREFIX: string;
 		npm_config_cache: string;
 		LOGNAME: string;
 		npm_lifecycle_script: string;
-		COMPOSER_NO_INTERACTION: string;
 		VSCODE_IPC_HOOK: string;
 		VSCODE_CODE_CACHE_PATH: string;
 		npm_config_user_agent: string;
@@ -180,7 +181,6 @@ declare module '$env/dynamic/private' {
 		INFOPATH: string;
 		HOMEBREW_CELLAR: string;
 		OSLogRateLimit: string;
-		VSCODE_L10N_BUNDLE_LOCATION: string;
 		VSCODE_CWD: string;
 		npm_node_execpath: string;
 		npm_config_prefix: string;
