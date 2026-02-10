@@ -128,8 +128,6 @@ export const ValidationSchemas = {
 
   office: {
     name: [ValidationRules.required(), ValidationRules.minLength(2), ValidationRules.maxLength(100)],
-    email: ValidationRules.email(),
-    phone: ValidationRules.pattern(/^\+?[\d\s\-\(\)]+$/, 'Invalid phone number'),
   },
 };
 

@@ -14,6 +14,8 @@ interface Office {
   id: number;
   name: string;
   address: string;
+  phoneOffice?: string;
+  phoneCell?: string;
 }
 
 const OfficeManagementPage = () => {

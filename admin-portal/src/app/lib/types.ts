@@ -134,8 +134,8 @@ export interface Office {
   id: number;
   name: string;
   address: string;
-  phone: string;
-  email: string;
+  phoneOffice?: string;
+  phoneCell?: string;
   managerId?: number;
   createdAt: string;
   updatedAt: string;

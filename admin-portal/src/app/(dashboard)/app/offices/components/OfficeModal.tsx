@@ -2,7 +2,8 @@
 'use client';
 
 import React, { useEffect } from 'react';
-import { Modal, Form, Input, Button, message } from 'antd';
+import { Modal, Form, Input, Button, message, Row, Col, Space } from 'antd';
+import { EnvironmentOutlined, LinkOutlined } from '@ant-design/icons';
 import { apiClient } from '@/app/lib/api';
 
 /** Load Google Maps JS API once. Uses JS API Geocoder so referrer-restricted keys work (REST Geocoding API rejects them). */
@@ -37,9 +38,21 @@ interface Office {
   id: number;
   name: string;
   address: string;
+  phoneOffice?: string;
+  phoneCell?: string;
   latitude?: number | null;
   longitude?: number | null;
 }
+
+const PHONE_PATTERN = /^[\d\s\+\-\(\)\.]{7,25}$/;
+const phoneValidator = (_: unknown, value: unknown) => {
+  const s = typeof value === 'string' ? value.trim() : '';
+  if (!s) return Promise.resolve();
+  if (!PHONE_PATTERN.test(s)) {
+    return Promise.reject(new Error('Formato inválido. Use dígitos, espacios, +, -, () o . (ej: +52 656 123 4567)'));
+  }
+  return Promise.resolve();
+};
 
 interface OfficeModalProps {
   visible: boolean;
@@ -63,7 +76,11 @@ const OfficeModal: React.FC<OfficeModalProps> = ({ visible, onClose, onSuccess, 
   useEffect(() => {
     if (visible) {
       if (office) {
-        form.setFieldsValue(office);
+        form.setFieldsValue({
+          ...office,
+          phoneOffice: office.phoneOffice ?? '',
+          phoneCell: office.phoneCell ?? '',
+        });
       } else {
         form.resetFields();
       }
@@ -101,7 +118,7 @@ const OfficeModal: React.FC<OfficeModalProps> = ({ visible, onClose, onSuccess, 
           const lat = typeof loc.lat === 'function' ? loc.lat() : loc.lat;
           const lng = typeof loc.lng === 'function' ? loc.lng() : loc.lng;
           form.setFieldsValue({ latitude: lat, longitude: lng });
-          message.success('Coordenadas obtenidas. Revisa y guarda si son correctas.');
+          message.success('Coordenadas obtenidas');
           resolve();
         });
       });
@@ -115,8 +132,12 @@ const OfficeModal: React.FC<OfficeModalProps> = ({ visible, onClose, onSuccess, 
   const handleOk = async () => {
     try {
       const values = await form.validateFields();
-      // Convert lat/lng strings to numbers for API
-      const payload = { ...values };
+      // Build payload: convert lat/lng, include optional phone fields
+      const payload = {
+        ...values,
+        phoneOffice: (values.phoneOffice ?? '').trim(),
+        phoneCell: (values.phoneCell ?? '').trim(),
+      };
       if (values.latitude !== undefined && values.latitude !== '' && values.latitude !== null) {
         payload.latitude = parseFloat(values.latitude);
       } else {
@@ -150,6 +171,16 @@ const OfficeModal: React.FC<OfficeModalProps> = ({ visible, onClose, onSuccess, 
     }
   };
 
+  const openInGoogleMaps = () => {
+    const address = form.getFieldValue('address') || '';
+    const query = (typeof address === 'string' ? address.trim() : '') || 'Ciudad Juárez, Chihuahua';
+    window.open(
+      `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`,
+      '_blank',
+      'noopener,noreferrer'
+    );
+  };
+
   return (
     <Modal
       title={isEditing ? 'Editar Oficina' : 'Crear Nueva Oficina'}
@@ -158,6 +189,7 @@ const OfficeModal: React.FC<OfficeModalProps> = ({ visible, onClose, onSuccess, 
       onOk={handleOk}
       confirmLoading={loading}
       destroyOnClose
+      width={560}
     >
       <Form form={form} layout="vertical">
         <Form.Item
@@ -165,61 +197,77 @@ const OfficeModal: React.FC<OfficeModalProps> = ({ visible, onClose, onSuccess, 
           label="Nombre de la Oficina"
           rules={[{ required: true, message: 'El nombre es requerido' }]}
         >
-          <Input />
+          <Input placeholder="Ej. Oficina Central" />
         </Form.Item>
         <Form.Item
           name="address"
           label="Dirección"
           rules={[{ required: true, message: 'La dirección es requerida' }]}
-          extra={
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 4 }}>
-              <Button
-                type="primary"
-                ghost
-                size="small"
-                loading={geocoding}
-                onClick={fetchCoordinatesFromAddress}
-                style={{ alignSelf: 'flex-start' }}
-              >
-                {geocoding ? 'Buscando…' : 'Obtener coordenadas desde dirección'}
-              </Button>
-              <a
-                href="#"
-                onClick={(e) => {
-                  e.preventDefault();
-                  const address = form.getFieldValue('address') || '';
-                  const query = (typeof address === 'string' ? address.trim() : '') || 'Ciudad Juárez, Chihuahua';
-                  window.open(
-                    `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`,
-                    '_blank',
-                    'noopener,noreferrer'
-                  );
-                }}
-                style={{ fontSize: 12 }}
-              >
-                Abrir en Google Maps (copiar lat/long manualmente)
-              </a>
-            </div>
-          }
         >
-          <Input.TextArea rows={3} />
+          <Input.TextArea rows={2} placeholder="Calle, colonia, ciudad, estado" />
         </Form.Item>
-        <Form.Item
-          name="latitude"
-          label="Latitud"
-          help="Para el mapa de la página de contacto. Usa «Obtener coordenadas desde dirección» o abre la dirección en Google Maps."
-          rules={[{ required: true, message: 'La latitud es requerida' }]}
-        >
-          <Input type="number" step="any" placeholder="31.6904" />
+        <Form.Item label=" " colon={false}>
+          <Space wrap size="small">
+            <Button
+              type="primary"
+              ghost
+              icon={<EnvironmentOutlined />}
+              loading={geocoding}
+              onClick={fetchCoordinatesFromAddress}
+            >
+              {geocoding ? 'Buscando…' : 'Obtener coordenadas'}
+            </Button>
+            <Button
+              type="default"
+              ghost
+              icon={<LinkOutlined />}
+              onClick={openInGoogleMaps}
+            >
+              Abrir en Google Maps
+            </Button>
+          </Space>
         </Form.Item>
-        <Form.Item
-          name="longitude"
-          label="Longitud"
-          help="Para el mapa de la página de contacto. Ej: -106.4245"
-          rules={[{ required: true, message: 'La longitud es requerida' }]}
-        >
-          <Input type="number" step="any" placeholder="-106.4245" />
-        </Form.Item>
+        <Row gutter={16}>
+          <Col span={12}>
+            <Form.Item
+              name="phoneOffice"
+              label="Teléfono Oficina"
+              rules={[{ validator: phoneValidator }]}
+            >
+              <Input placeholder="+52 656 123 4567" maxLength={25} />
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item
+              name="phoneCell"
+              label="Teléfono Celular"
+              rules={[{ validator: phoneValidator }]}
+            >
+              <Input placeholder="+52 656 987 6543" maxLength={25} />
+            </Form.Item>
+          </Col>
+        </Row>
+        <Row gutter={16}>
+          <Col span={12}>
+            <Form.Item
+              name="latitude"
+              label="Latitud"
+              help="Para el mapa de la página de contacto"
+              rules={[{ required: true, message: 'Requerido' }]}
+            >
+              <Input type="number" step="any" placeholder="31.6904" />
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item
+              name="longitude"
+              label="Longitud"
+              rules={[{ required: true, message: 'Requerido' }]}
+            >
+              <Input type="number" step="any" placeholder="-106.4245" />
+            </Form.Item>
+          </Col>
+        </Row>
       </Form>
     </Modal>
   );
