@@ -3,6 +3,7 @@ package repositories
 
 import (
 	"context"
+	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
@@ -52,6 +53,44 @@ func (r *OfficeRepositoryImpl) Update(ctx context.Context, office *models.Office
 // Delete permanently removes an office (hard delete)
 func (r *OfficeRepositoryImpl) Delete(ctx context.Context, id uint) error {
 	return r.db.WithContext(ctx).Delete(&models.Office{}, id).Error
+}
+
+// openCaseStatuses are statuses that block office delete; closed/completed cases live in Records and do not block.
+var openCaseStatuses = []string{"open", "in_progress", "pending", "archived"}
+
+// GetDeleteBlockReason returns a non-empty message if the office has users, open cases, appointments, or therapist capacities; empty if delete is allowed.
+func (r *OfficeRepositoryImpl) GetDeleteBlockReason(ctx context.Context, officeID uint) (string, error) {
+	db := r.db.WithContext(ctx)
+	var users, openCases, appointments, capacities int64
+	if err := db.Model(&models.User{}).Where("office_id = ?", officeID).Count(&users).Error; err != nil {
+		return "", err
+	}
+	if err := db.Model(&models.Case{}).Where("office_id = ? AND status IN ?", officeID, openCaseStatuses).Count(&openCases).Error; err != nil {
+		return "", err
+	}
+	if err := db.Model(&models.Appointment{}).Where("office_id = ?", officeID).Count(&appointments).Error; err != nil {
+		return "", err
+	}
+	if err := db.Table("therapist_office_capacities").Where("office_id = ?", officeID).Count(&capacities).Error; err != nil {
+		return "", err
+	}
+	if users == 0 && openCases == 0 && appointments == 0 && capacities == 0 {
+		return "", nil
+	}
+	parts := []string{}
+	if users > 0 {
+		parts = append(parts, fmt.Sprintf("%d usuario(s)", users))
+	}
+	if openCases > 0 {
+		parts = append(parts, fmt.Sprintf("%d caso(s) abierto(s)", openCases))
+	}
+	if appointments > 0 {
+		parts = append(parts, fmt.Sprintf("%d cita(s)", appointments))
+	}
+	if capacities > 0 {
+		parts = append(parts, fmt.Sprintf("capacidades de terapeutas configuradas (%d)", capacities))
+	}
+	return "No se puede eliminar la oficina: tiene " + strings.Join(parts, ", ") + ". Reasigne o elimine antes de eliminar la oficina.", nil
 }
 
 // ExistsByName returns true if an office with the given name exists (optionally excluding an ID)
