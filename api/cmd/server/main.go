@@ -10,6 +10,7 @@ import (
 
 	// Internal packages for our application
 	"github.com/BryanPMX/CAF/api/config"
+	"github.com/BryanPMX/CAF/api/container"
 	"github.com/BryanPMX/CAF/api/db"
 	"github.com/BryanPMX/CAF/api/handlers"
 	"github.com/BryanPMX/CAF/api/middleware"
@@ -68,6 +69,10 @@ func main() {
 	}
 
 	log.Println("INFO: Database migrations completed successfully")
+
+	// --- Step 2.5b: Initialize dependency injection container ---
+	cont := container.NewContainer(database)
+	log.Println("INFO: Dependency injection container initialized")
 
 	// --- Step 2.6: Session Service Deprecated ---
 	// Session service is no longer needed in stateless JWT system
@@ -157,7 +162,7 @@ func main() {
 		public.POST("/register", middleware.ValidateUserRegistration(), handlers.Register(database))
 		public.POST("/login", middleware.AuthRateLimit(), handlers.EnhancedLogin(database, cfg.JWTSecret))
 		// Public offices for marketing site map (no auth required)
-		public.GET("/public/offices", handlers.GetPublicOffices(database))
+		public.GET("/public/offices", handlers.GetPublicOffices(cont.GetOfficeRepository()))
 	}
 
 	// WebSocket endpoint for per-user notifications (token via query param)
@@ -279,7 +284,7 @@ func main() {
 		})
 
 		// Offices list available to authenticated staff/managers/admins
-		protected.GET("/offices", handlers.GetOffices(database))
+		protected.GET("/offices", handlers.GetOffices(cont.GetOfficeRepository()))
 
 		// Enhanced Case Management with Access Control
 		protected.GET("/cases", middleware.CaseAccessControl(database), handlers.GetCasesEnhanced(database))
@@ -341,12 +346,12 @@ func main() {
 		admin.DELETE("/users/:id", handlers.DeleteUser(database))
 		admin.DELETE("/users/:id/permanent", handlers.PermanentDeleteUser(database))
 
-		// Office Management
-		admin.POST("/offices", handlers.CreateOffice(database))
-		admin.GET("/offices", handlers.GetOffices(database))
-		admin.GET("/offices/:id", handlers.GetOfficeByID(database))
-		admin.PATCH("/offices/:id", handlers.UpdateOffice(database))
-		admin.DELETE("/offices/:id", handlers.DeleteOffice(database))
+		// Office Management (CRUD with hard delete; edit persists to DB)
+		admin.POST("/offices", handlers.CreateOffice(cont.GetOfficeRepository()))
+		admin.GET("/offices", handlers.GetOffices(cont.GetOfficeRepository()))
+		admin.GET("/offices/:id", handlers.GetOfficeByID(cont.GetOfficeRepository()))
+		admin.PATCH("/offices/:id", handlers.UpdateOffice(cont.GetOfficeRepository()))
+		admin.DELETE("/offices/:id", handlers.DeleteOffice(cont.GetOfficeRepository()))
 
 		// Enhanced Case Management (Admin can override department restrictions)
 		admin.GET("/cases", handlers.GetCasesEnhanced(database))
@@ -506,7 +511,7 @@ func main() {
 		officeManager.GET("/users/search", handlers.SearchClients(database))
 
 		// Offices list (managers can see all offices for reference)
-		officeManager.GET("/offices", handlers.GetOffices(database))
+		officeManager.GET("/offices", handlers.GetOffices(cont.GetOfficeRepository()))
 
 		// Case Management for Office Managers
 		officeManager.GET("/cases", middleware.CaseAccessControl(database), handlers.GetCasesEnhanced(database))

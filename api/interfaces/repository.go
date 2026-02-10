@@ -38,10 +38,15 @@ type UserRepository interface {
 	Update(ctx context.Context, user *models.User) error
 }
 
-// OfficeRepository defines the interface for office data operations
+// OfficeRepository defines the interface for office data operations (CRUD with hard delete only).
 type OfficeRepository interface {
 	List(ctx context.Context) ([]models.Office, error)
 	GetByID(ctx context.Context, id uint) (*models.Office, error)
+	Create(ctx context.Context, office *models.Office) error
+	Update(ctx context.Context, office *models.Office) error
+	Delete(ctx context.Context, id uint) error
+	ExistsByName(ctx context.Context, name string, excludeID uint) (bool, error)
+	GenerateUniqueCode(ctx context.Context, name string, excludeID uint) string
 }
 
 // Filter structs for query parameters

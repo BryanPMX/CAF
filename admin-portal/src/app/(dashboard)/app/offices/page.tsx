@@ -92,10 +92,12 @@ const OfficeManagementPage = () => {
               Editar
             </Button>
             <Popconfirm
-              title="¿Está seguro de que desea eliminar esta oficina?"
+              title="Eliminar oficina"
+              description="La oficina se borrará de forma permanente. Esta acción no se puede deshacer. ¿Continuar?"
               onConfirm={() => handleDelete(record.id)}
-              okText="Sí"
-              cancelText="No"
+              okText="Sí, eliminar"
+              cancelText="Cancelar"
+              okButtonProps={{ danger: true }}
             >
               <Button icon={<DeleteOutlined />} danger>
                 Eliminar
