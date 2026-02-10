@@ -41,6 +41,13 @@ interface AuthActions {
   login: (userData: AuthUser, token: string) => void;
   logout: () => void;
   clearError: () => void;
+  /**
+   * Updates the current user's profile in state and storage (e.g. after editing name in admin).
+   * Only applies when updatedUser.id matches the logged-in user.
+   * Only display/profile fields are merged; role is never changed here (set at login only).
+   * Callers must pass data from an authorized API response, not user input.
+   */
+  updateUser: (updatedUser: AuthUser) => void;
 }
 
 // Combined auth context interface
@@ -291,6 +298,40 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }));
   }, []);
 
+  // Update current user profile (display fields only). Role is never changed here to prevent client-side escalation.
+  const updateUser = useCallback((updatedUser: AuthUser) => {
+    setState(prev => {
+      if (!prev.user || prev.user.id !== updatedUser.id) return prev;
+      const nextUser: AuthUser = {
+        id: prev.user.id,
+        role: prev.user.role, // Never overwrite role from client; only set at login.
+        firstName: updatedUser.firstName ?? prev.user.firstName,
+        lastName: updatedUser.lastName ?? prev.user.lastName,
+        email: updatedUser.email ?? prev.user.email,
+        officeId: updatedUser.officeId !== undefined ? updatedUser.officeId : prev.user.officeId,
+      };
+      try {
+        localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(nextUser));
+        // Role/office in storage stay in sync with state (we did not change role)
+        localStorage.setItem(STORAGE_KEYS.USER_ROLE, nextUser.role);
+        if (nextUser.officeId != null) {
+          localStorage.setItem(STORAGE_KEYS.USER_OFFICE_ID, nextUser.officeId.toString());
+        } else {
+          localStorage.removeItem(STORAGE_KEYS.USER_OFFICE_ID);
+        }
+        Cookies.set(STORAGE_KEYS.USER_ROLE, nextUser.role, COOKIE_CONFIG);
+        if (nextUser.officeId != null) {
+          Cookies.set(STORAGE_KEYS.USER_OFFICE_ID, nextUser.officeId.toString(), COOKIE_CONFIG);
+        } else {
+          Cookies.remove(STORAGE_KEYS.USER_OFFICE_ID);
+        }
+      } catch (e) {
+        console.error('Auth updateUser storage error:', e);
+      }
+      return { ...prev, user: nextUser };
+    });
+  }, []);
+
   // Role checking functions
   const hasRole = useCallback((role: UserRole): boolean => {
     return state.user?.role === role;
@@ -317,6 +358,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     login,
     logout,
     clearError,
+    updateUser,
     
     // Role checks
     hasRole,

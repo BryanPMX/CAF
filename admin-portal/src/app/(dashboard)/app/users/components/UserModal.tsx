@@ -5,7 +5,9 @@ import React, { useState, useEffect } from 'react';
 import { Modal, Form, Input, Select, Button, message } from 'antd';
 import Cookies from 'js-cookie';
 import { apiClient } from '@/app/lib/api';
+import { useAuth } from '@/context/AuthContext';
 import { STAFF_ROLES, requiresOffice, getAllRoles, USER_ROLES, type StaffRoleKey } from '@/config/roles';
+import type { AuthUser } from '@/app/lib/types';
 
 const { Option } = Select;
 
@@ -32,6 +34,7 @@ interface UserModalProps {
 }
 
 const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user }) => {
+  const { user: currentUser, updateUser } = useAuth();
   const [form] = Form.useForm(); // Ant Design's hook to control the form state.
   const [loading, setLoading] = useState(false);
   const [offices, setOffices] = useState<Office[]>([]);
@@ -98,7 +101,19 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
 
       if (isEditing) {
         // If editing, send a PATCH request to the update endpoint.
-        await apiClient.patch(`${base}/users/${user.id}`, values);
+        const response = await apiClient.patch(`${base}/users/${user.id}`, values);
+        const updated = response?.data;
+        // If the edited user is the current user, sync auth context so the header "Bienvenido, ..." updates (server response only).
+        if (currentUser && updated && Number(updated.id) === currentUser.id && typeof updated.firstName === 'string' && typeof updated.lastName === 'string') {
+          updateUser({
+            id: updated.id,
+            role: updated.role,
+            firstName: updated.firstName,
+            lastName: updated.lastName,
+            email: updated.email,
+            officeId: updated.officeId != null ? updated.officeId : undefined,
+          });
+        }
       } else {
         // If creating, send a POST request to the create endpoint.
         // Office managers: can create clients for any office, staff only for their office
