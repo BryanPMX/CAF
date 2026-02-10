@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useEffect } from 'react';
-import { Modal, Form, Input, Button, message, Row, Col, Space } from 'antd';
+import { Modal, Form, Input, Button, message, Row, Col } from 'antd';
 import { EnvironmentOutlined, LinkOutlined } from '@ant-design/icons';
 import { apiClient } from '@/app/lib/api';
 
@@ -204,7 +204,7 @@ const OfficeModal: React.FC<OfficeModalProps> = ({ visible, onClose, onSuccess, 
           label="Dirección"
           rules={[{ required: true, message: 'La dirección es requerida' }]}
           extra={
-            <Space size="small" style={{ marginTop: 6 }}>
+            <div style={{ marginTop: 6, display: 'flex', flexWrap: 'nowrap', gap: 8, alignItems: 'center' }}>
               <Button
                 type="primary"
                 ghost
@@ -221,10 +221,11 @@ const OfficeModal: React.FC<OfficeModalProps> = ({ visible, onClose, onSuccess, 
                 size="small"
                 icon={<LinkOutlined />}
                 onClick={openInGoogleMaps}
+                style={{ flexShrink: 0 }}
               >
                 Abrir en Google Maps
               </Button>
-            </Space>
+            </div>
           }
         >
           <Input.TextArea rows={2} placeholder="Calle, colonia, ciudad, estado" />
