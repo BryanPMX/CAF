@@ -49,7 +49,7 @@ const OfficeModal: React.FC<OfficeModalProps> = ({ visible, onClose, onSuccess, 
       return;
     }
     if (!googleMapsApiKey) {
-      message.warning('Google Maps API key no configurada (NEXT_PUBLIC_GOOGLE_MAPS_API_KEY).');
+      message.warning('Google Maps API key no configurada (VITE_GOOGLE_MAPS_API_KEY en Vercel o .env.local).');
       return;
     }
     setGeocoding(true);

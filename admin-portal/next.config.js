@@ -1,5 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Expose VITE_GOOGLE_MAPS_API_KEY to client as NEXT_PUBLIC_GOOGLE_MAPS_API_KEY (same name on Vercel as marketing site)
+  env: {
+    NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: process.env.VITE_GOOGLE_MAPS_API_KEY,
+  },
+
   // Temporarily disable React Strict Mode to prevent double renders
   reactStrictMode: false,
   
