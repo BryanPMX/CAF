@@ -154,9 +154,17 @@ export const apiUtils = {
     }
     const client = new ApiClient(base);
     const result = await client.get('/public/offices');
-    if (result && result.success && Array.isArray(result.data)) {
-      return result.data;
-    }
-    return [];
+    if (!result || !result.success) return [];
+
+    // API may return raw array or { data: array }
+    const raw = result.data;
+    const list = Array.isArray(raw) ? raw : (raw && Array.isArray(raw.data) ? raw.data : []);
+
+    // Normalize each office: ensure latitude/longitude are numbers when present (API may omit or send as strings)
+    return list.map((office) => ({
+      ...office,
+      latitude: office.latitude != null && office.latitude !== '' ? Number(office.latitude) : null,
+      longitude: office.longitude != null && office.longitude !== '' ? Number(office.longitude) : null
+    }));
   }
 };

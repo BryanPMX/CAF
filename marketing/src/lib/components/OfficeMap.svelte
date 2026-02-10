@@ -18,6 +18,13 @@
 
   /** @typedef {{ id: number; name: string; address: string; latitude?: number | null; longitude?: number | null }} Office */
 
+  /** Only treat as valid when both coordinates are finite numbers (handles undefined, null, strings from API) */
+  function hasValidCoords(o) {
+    const lat = Number(o.latitude);
+    const lng = Number(o.longitude);
+    return Number.isFinite(lat) && Number.isFinite(lng);
+  }
+
   onMount(async () => {
     if (!apiKey) {
       error = 'Google Maps API key no configurado (VITE_GOOGLE_MAPS_API_KEY)';
@@ -81,10 +88,10 @@
   }
 
   function getMapCenter() {
-    const withCoords = offices.filter((o) => o.latitude != null && o.longitude != null);
+    const withCoords = offices.filter((o) => hasValidCoords(o));
     if (withCoords.length > 0) {
-      const avgLat = withCoords.reduce((s, o) => s + (o.latitude || 0), 0) / withCoords.length;
-      const avgLng = withCoords.reduce((s, o) => s + (o.longitude || 0), 0) / withCoords.length;
+      const avgLat = withCoords.reduce((s, o) => s + Number(o.latitude), 0) / withCoords.length;
+      const avgLng = withCoords.reduce((s, o) => s + Number(o.longitude), 0) / withCoords.length;
       return { lat: avgLat, lng: avgLng };
     }
     return { lat: 31.6904, lng: -106.4245 };
@@ -95,8 +102,8 @@
     const infowindow = new google.maps.InfoWindow();
 
     offices.forEach((office) => {
-      if (office.latitude != null && office.longitude != null) {
-        addMarkerAt(office, { lat: office.latitude, lng: office.longitude }, infowindow);
+      if (hasValidCoords(office)) {
+        addMarkerAt(office, { lat: Number(office.latitude), lng: Number(office.longitude) }, infowindow);
       } else if (office.address) {
         geocoder.geocode({ address: office.address }, (results, status) => {
           if (status === 'OK' && results?.[0]?.geometry?.location) {
