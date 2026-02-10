@@ -18,6 +18,8 @@
   let loading = true;
   let error = null;
   let mapLoaded = false;
+  /** When true: we have offices but no markers could be placed (no coords and geocoding failed or no address) */
+  let noMarkersShown = false;
 
   /** @typedef {{ id: number; name: string; address: string; latitude?: number | null; longitude?: number | null }} Office */
 
@@ -90,7 +92,10 @@
     }
     map = new google.maps.Map(mapContainer, mapOptions);
 
-    await addMarkers();
+    const markersAdded = await addMarkers();
+    if (offices.length > 0 && markersAdded === 0) {
+      noMarkersShown = true;
+    }
     mapLoaded = true;
   }
 
@@ -118,13 +123,21 @@
     infowindowRef.open(map, anchor);
   }
 
+  /** Returns the number of markers added. */
   async function addMarkers() {
     const geocoder = new google.maps.Geocoder();
     const infowindow = new google.maps.InfoWindow();
+    let count = 0;
+
+    const addOne = (office, position) => {
+      count += 1;
+      return position;
+    };
 
     if (mapId) {
       const { AdvancedMarkerElement } = await google.maps.importLibrary('marker');
       const addMarkerAt = (office, position) => {
+        addOne(office, position);
         const marker = new AdvancedMarkerElement({
           map,
           position,
@@ -149,12 +162,13 @@
           });
         }
       }
-      return;
+      return count;
     }
 
     for (const office of offices) {
       if (hasValidCoords(office)) {
         const position = { lat: Number(office.latitude), lng: Number(office.longitude) };
+        addOne(office, position);
         const marker = new google.maps.Marker({ map, position, title: office.name });
         marker.addListener('click', () => {
           infowindow.close();
@@ -164,6 +178,7 @@
         await new Promise((resolve) => {
           geocoder.geocode({ address: office.address }, (results, status) => {
             if (status === 'OK' && results?.[0]?.geometry?.location) {
+              addOne(office, results[0].geometry.location);
               const marker = new google.maps.Marker({
                 map,
                 position: results[0].geometry.location,
@@ -179,6 +194,7 @@
         });
       }
     }
+    return count;
   }
 
   function escapeHtml(text) {
@@ -208,13 +224,29 @@
       {/if}
     </div>
   {:else}
-    <div
-      bind:this={mapContainer}
-      class="map-canvas"
-      style="width: 100%; height: 480px; min-height: 300px;"
-      role="application"
-      aria-label="Mapa de oficinas del Centro de Apoyo para la Familia"
-    ></div>
+    {#if noMarkersShown}
+      <div class="map-placeholder map-warning" role="status">
+        <p>No se pudieron ubicar las oficinas en el mapa (faltan coordenadas o la dirección no pudo geocodificarse).</p>
+        {#if offices.length > 0}
+          <a
+            href="https://www.google.com/maps/search/?api=1&query={encodeURIComponent(offices[0].address || 'Ciudad Juárez, Chihuahua')}"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-blue-600 hover:underline text-sm mt-2 inline-block"
+          >
+            Abrir ubicaciones en Google Maps
+          </a>
+        {/if}
+      </div>
+    {:else}
+      <div
+        bind:this={mapContainer}
+        class="map-canvas"
+        style="width: 100%; height: 480px; min-height: 300px;"
+        role="application"
+        aria-label="Mapa de oficinas del Centro de Apoyo para la Familia"
+      ></div>
+    {/if}
   {/if}
 </div>
 
@@ -237,6 +269,13 @@
   .map-placeholder.map-error {
     background: #fef2f2;
     color: #991b1b;
+  }
+
+  .map-placeholder.map-warning {
+    flex-direction: column;
+    gap: 0.5rem;
+    background: #fffbeb;
+    color: #92400e;
   }
 
   .map-canvas {

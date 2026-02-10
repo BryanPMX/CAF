@@ -156,7 +156,6 @@ NEXT_PUBLIC_WS_URL=ws://localhost:8080/ws
 NEXT_PUBLIC_ENV=development
 VITE_GOOGLE_MAPS_API_KEY=your_google_maps_api_key
 ```
-`VITE_GOOGLE_MAPS_API_KEY` is exposed to the client via `next.config.js` for the office geocoding button. If you see "API keys with referer restrictions cannot be used with this API", use a key with no application restriction (or IP restriction) and restrict it to **Geocoding API** only, or call Geocoding from your backend and expose a small proxy endpoint.
 
 ## Key Design Patterns
 
