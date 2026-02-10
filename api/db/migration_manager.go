@@ -65,11 +65,15 @@ func (mm *MigrationManager) RunMigrations() error {
 	pendingMigrations := mm.findPendingMigrations(migrationFiles, appliedMigrations)
 
 	if len(pendingMigrations) == 0 {
-		log.Println("INFO: No pending migrations found")
+		log.Println("INFO: No pending migrations found (all discovered migrations already applied)")
 		return nil
 	}
 
-	log.Printf("INFO: Found %d pending migrations", len(pendingMigrations))
+	pendingVersions := make([]string, 0, len(pendingMigrations))
+	for _, m := range pendingMigrations {
+		pendingVersions = append(pendingVersions, m.Version)
+	}
+	log.Printf("INFO: Found %d pending migration(s) to run: %v", len(pendingMigrations), pendingVersions)
 
 	// Run pending migrations
 	for _, migration := range pendingMigrations {
@@ -87,15 +91,32 @@ func (mm *MigrationManager) ensureMigrationsTable() error {
 	return mm.db.AutoMigrate(&Migration{})
 }
 
-// getMigrationFiles reads all migration files from the migrations directory
+// resolveMigrationsDir returns the path to db/migrations, preferring the directory
+// next to the executable so migrations are found regardless of working directory.
+func (mm *MigrationManager) resolveMigrationsDir() string {
+	// 1. Try next to the executable (Docker: /app/main -> /app/db/migrations; local: ./main -> ./db/migrations)
+	if exe, err := os.Executable(); err == nil {
+		dir := filepath.Join(filepath.Dir(exe), "db", "migrations")
+		if _, err := os.Stat(dir); err == nil {
+			return dir
+		}
+	}
+	// 2. Fallback: relative to current working directory
+	if _, err := os.Stat("db/migrations"); err == nil {
+		return "db/migrations"
+	}
+	return ""
+}
+
+// getMigrationFiles reads all migration files from the migrations directory.
+// It looks for db/migrations relative to the executable first, then relative to current working directory.
 func (mm *MigrationManager) getMigrationFiles() ([]MigrationFile, error) {
-	migrationsDir := "db/migrations"
-	
-	// Check if migrations directory exists
-	if _, err := os.Stat(migrationsDir); os.IsNotExist(err) {
-		log.Printf("WARN: Migrations directory %s does not exist, skipping migrations", migrationsDir)
+	migrationsDir := mm.resolveMigrationsDir()
+	if migrationsDir == "" {
+		log.Printf("WARN: Migrations directory not found (tried executable-relative and cwd-relative db/migrations), skipping migrations")
 		return []MigrationFile{}, nil
 	}
+	log.Printf("INFO: Using migrations directory: %s", migrationsDir)
 
 	files, err := os.ReadDir(migrationsDir)
 	if err != nil {
@@ -138,11 +159,16 @@ func (mm *MigrationManager) getMigrationFiles() ([]MigrationFile, error) {
 		})
 	}
 
-	// Sort migrations by version
+	// Sort migrations by version (string sort: 0001, 0038, ..., 0044, 0045, 0046, 0047, 0048, 0049)
 	sort.Slice(migrationFiles, func(i, j int) bool {
 		return migrationFiles[i].Version < migrationFiles[j].Version
 	})
 
+	versions := make([]string, 0, len(migrationFiles))
+	for _, f := range migrationFiles {
+		versions = append(versions, f.Version)
+	}
+	log.Printf("INFO: Discovered %d migration file(s): %v", len(migrationFiles), versions)
 	return migrationFiles, nil
 }
 
