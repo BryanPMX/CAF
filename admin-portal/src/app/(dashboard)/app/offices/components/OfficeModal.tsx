@@ -216,7 +216,7 @@ const OfficeModal: React.FC<OfficeModalProps> = ({ visible, onClose, onSuccess, 
                 {geocoding ? 'Buscando…' : 'Obtener coordenadas'}
               </Button>
               <Button
-                type="default"
+                type="primary"
                 ghost
                 size="small"
                 icon={<LinkOutlined />}
