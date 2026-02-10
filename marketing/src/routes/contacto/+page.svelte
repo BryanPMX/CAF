@@ -79,11 +79,8 @@
       }
     }
 
-    // Initialize error handling
-    onMount(() => {
-      // Check API connectivity
-      apiUtils.checkConnectivity();
-    });
+    // Optional: run API connectivity check only if you expose GET /health on the API (avoids 404 in console)
+    // onMount(() => { apiUtils.checkConnectivity(); });
   </script>
   
   <svelte:head>
