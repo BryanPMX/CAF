@@ -5,7 +5,33 @@ import React, { useEffect } from 'react';
 import { Modal, Form, Input, Button, message } from 'antd';
 import { apiClient } from '@/app/lib/api';
 
-const GOOGLE_GEOCODE_URL = 'https://maps.googleapis.com/maps/api/geocode/json';
+/** Load Google Maps JS API once. Uses JS API Geocoder so referrer-restricted keys work (REST Geocoding API rejects them). */
+function loadGoogleMapsScript(apiKey: string): Promise<void> {
+  if (typeof window === 'undefined') return Promise.reject(new Error('Not in browser'));
+  const w = window as any;
+  if (w.google?.maps?.Geocoder) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const existing = document.querySelector('script[src*="maps.googleapis.com"]');
+    if (existing) {
+      const check = () => (w.google?.maps ? resolve() : setTimeout(check, 50));
+      check();
+      return;
+    }
+    const cb = '___adminGeocoderReady';
+    w[cb] = () => {
+      delete w[cb];
+      resolve();
+    };
+    const script = document.createElement('script');
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&callback=${cb}`;
+    script.async = true;
+    script.onerror = () => {
+      delete w[cb];
+      reject(new Error('Error cargando Google Maps'));
+    };
+    document.head.appendChild(script);
+  });
+}
 
 interface Office {
   id: number;
@@ -59,19 +85,26 @@ const OfficeModal: React.FC<OfficeModalProps> = ({ visible, onClose, onSuccess, 
     }
     setGeocoding(true);
     try {
-      const params = new URLSearchParams({ address: trimmed, key: googleMapsApiKey });
-      const res = await fetch(`${GOOGLE_GEOCODE_URL}?${params.toString()}`);
-      const data = await res.json();
-      if (data.status !== 'OK' || !data.results?.[0]?.geometry?.location) {
-        const msg = data.status === 'ZERO_RESULTS'
-          ? 'No se encontró la dirección. Prueba con una más específica.'
-          : data.error_message || `Geocoding: ${data.status}`;
-        message.error(msg);
-        return;
-      }
-      const { lat, lng } = data.results[0].geometry.location;
-      form.setFieldsValue({ latitude: lat, longitude: lng });
-      message.success('Coordenadas obtenidas. Revisa y guarda si son correctas.');
+      await loadGoogleMapsScript(googleMapsApiKey);
+      const geocoder = new (window as any).google.maps.Geocoder();
+      await new Promise<void>((resolve, reject) => {
+        geocoder.geocode({ address: trimmed }, (results: any[], status: string) => {
+          if (status !== 'OK' || !results?.[0]?.geometry?.location) {
+            const msg =
+              status === 'ZERO_RESULTS'
+                ? 'No se encontró la dirección. Prueba con una más específica.'
+                : `Geocoding: ${status}`;
+            reject(new Error(msg));
+            return;
+          }
+          const loc = results[0].geometry.location;
+          const lat = typeof loc.lat === 'function' ? loc.lat() : loc.lat;
+          const lng = typeof loc.lng === 'function' ? loc.lng() : loc.lng;
+          form.setFieldsValue({ latitude: lat, longitude: lng });
+          message.success('Coordenadas obtenidas. Revisa y guarda si son correctas.');
+          resolve();
+        });
+      });
     } catch (err: any) {
       message.error(err?.message || 'Error al obtener coordenadas.');
     } finally {
