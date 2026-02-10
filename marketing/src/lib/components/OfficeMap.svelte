@@ -6,9 +6,9 @@
 
   /** @type {string} */
   export let apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
-  /** Optional Map ID from Google Cloud (required for Advanced Markers); if unset, legacy Marker is used */
+  /** Map ID from Google Cloud (required for Advanced Markers). Set VITE_GOOGLE_MAP_ID in env; DEMO_MAP_ID is only used when unset (e.g. local dev). */
   /** @type {string} */
-  export let mapId = import.meta.env.VITE_GOOGLE_MAP_ID || '';
+  export let mapId = import.meta.env.VITE_GOOGLE_MAP_ID || 'DEMO_MAP_ID';
   /** @type {number} */
   export let defaultZoom = 12;
 
@@ -58,7 +58,7 @@
       return;
     }
     const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&loading=async&callback=window.__cafMapInit`;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places,marker&loading=async&callback=window.__cafMapInit`;
     script.async = true;
     script.defer = true;
     window.__cafMapInit = () => {
@@ -75,6 +75,7 @@
     const mapOptions = {
       center,
       zoom: defaultZoom,
+      mapId, // Required for AdvancedMarkerElement (use VITE_GOOGLE_MAP_ID in production)
       mapTypeControl: true,
       streetViewControl: false,
       fullscreenControl: true,
@@ -87,9 +88,6 @@
         }
       ]
     };
-    if (mapId) {
-      mapOptions.mapId = mapId;
-    }
     map = new google.maps.Map(mapContainer, mapOptions);
 
     const markersAdded = await addMarkers();
@@ -123,71 +121,34 @@
     infowindowRef.open(map, anchor);
   }
 
-  /** Returns the number of markers added. */
+  /** Returns the number of markers added. Uses AdvancedMarkerElement (google.maps.Marker is deprecated). */
   async function addMarkers() {
     const geocoder = new google.maps.Geocoder();
     const infowindow = new google.maps.InfoWindow();
     let count = 0;
+    const { AdvancedMarkerElement } = await google.maps.importLibrary('marker');
 
-    const addOne = (office, position) => {
+    const addMarkerAt = (office, position) => {
       count += 1;
-      return position;
+      const marker = new AdvancedMarkerElement({
+        map,
+        position,
+        title: office.name
+      });
+      marker.addListener('gmp-click', () => {
+        infowindow.close();
+        openInfoFor(office, marker, infowindow);
+      });
     };
-
-    if (mapId) {
-      const { AdvancedMarkerElement } = await google.maps.importLibrary('marker');
-      const addMarkerAt = (office, position) => {
-        addOne(office, position);
-        const marker = new AdvancedMarkerElement({
-          map,
-          position,
-          title: office.name
-        });
-        marker.addListener('gmp-click', () => {
-          infowindow.close();
-          openInfoFor(office, marker, infowindow);
-        });
-      };
-      for (const office of offices) {
-        if (hasValidCoords(office)) {
-          addMarkerAt(office, { lat: Number(office.latitude), lng: Number(office.longitude) });
-        } else if (office.address) {
-          await new Promise((resolve) => {
-            geocoder.geocode({ address: office.address }, (results, status) => {
-              if (status === 'OK' && results?.[0]?.geometry?.location) {
-                addMarkerAt(office, results[0].geometry.location);
-              }
-              resolve();
-            });
-          });
-        }
-      }
-      return count;
-    }
 
     for (const office of offices) {
       if (hasValidCoords(office)) {
-        const position = { lat: Number(office.latitude), lng: Number(office.longitude) };
-        addOne(office, position);
-        const marker = new google.maps.Marker({ map, position, title: office.name });
-        marker.addListener('click', () => {
-          infowindow.close();
-          openInfoFor(office, marker, infowindow);
-        });
+        addMarkerAt(office, { lat: Number(office.latitude), lng: Number(office.longitude) });
       } else if (office.address) {
         await new Promise((resolve) => {
           geocoder.geocode({ address: office.address }, (results, status) => {
             if (status === 'OK' && results?.[0]?.geometry?.location) {
-              addOne(office, results[0].geometry.location);
-              const marker = new google.maps.Marker({
-                map,
-                position: results[0].geometry.location,
-                title: office.name
-              });
-              marker.addListener('click', () => {
-                infowindow.close();
-                openInfoFor(office, marker, infowindow);
-              });
+              addMarkerAt(office, results[0].geometry.location);
             }
             resolve();
           });
