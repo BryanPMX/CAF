@@ -47,6 +47,8 @@ type OfficeRepository interface {
 	Delete(ctx context.Context, id uint) error
 	ExistsByName(ctx context.Context, name string, excludeID uint) (bool, error)
 	GenerateUniqueCode(ctx context.Context, name string, excludeID uint) string
+	// GetDeleteBlockReason returns a non-empty message if the office cannot be deleted (e.g. has users, cases, appointments). Empty means delete is allowed.
+	GetDeleteBlockReason(ctx context.Context, officeID uint) (string, error)
 }
 
 // Filter structs for query parameters

@@ -155,6 +155,7 @@ func UpdateOffice(repo interfaces.OfficeRepository) gin.HandlerFunc {
 }
 
 // DeleteOffice permanently deletes an office (admin-only, hard delete).
+// Blocks delete if the office has users, cases, or appointments assigned; returns 409 with a clear message.
 func DeleteOffice(repo interfaces.OfficeRepository) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		id, err := parseOfficeID(c.Param("id"))
@@ -164,6 +165,15 @@ func DeleteOffice(repo interfaces.OfficeRepository) gin.HandlerFunc {
 		}
 		if _, err := repo.GetByID(c.Request.Context(), id); err != nil {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Office not found."})
+			return
+		}
+		blockReason, err := repo.GetDeleteBlockReason(c.Request.Context(), id)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to check office dependencies."})
+			return
+		}
+		if blockReason != "" {
+			c.JSON(http.StatusConflict, gin.H{"error": blockReason})
 			return
 		}
 		if err := repo.Delete(c.Request.Context(), id); err != nil {
