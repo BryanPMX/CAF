@@ -203,29 +203,31 @@ const OfficeModal: React.FC<OfficeModalProps> = ({ visible, onClose, onSuccess, 
           name="address"
           label="Dirección"
           rules={[{ required: true, message: 'La dirección es requerida' }]}
+          extra={
+            <Space size="small" style={{ marginTop: 6 }}>
+              <Button
+                type="primary"
+                ghost
+                size="small"
+                icon={<EnvironmentOutlined />}
+                loading={geocoding}
+                onClick={fetchCoordinatesFromAddress}
+              >
+                {geocoding ? 'Buscando…' : 'Obtener coordenadas'}
+              </Button>
+              <Button
+                type="default"
+                ghost
+                size="small"
+                icon={<LinkOutlined />}
+                onClick={openInGoogleMaps}
+              >
+                Abrir en Google Maps
+              </Button>
+            </Space>
+          }
         >
           <Input.TextArea rows={2} placeholder="Calle, colonia, ciudad, estado" />
-        </Form.Item>
-        <Form.Item label=" " colon={false}>
-          <Space wrap size="small">
-            <Button
-              type="primary"
-              ghost
-              icon={<EnvironmentOutlined />}
-              loading={geocoding}
-              onClick={fetchCoordinatesFromAddress}
-            >
-              {geocoding ? 'Buscando…' : 'Obtener coordenadas'}
-            </Button>
-            <Button
-              type="default"
-              ghost
-              icon={<LinkOutlined />}
-              onClick={openInGoogleMaps}
-            >
-              Abrir en Google Maps
-            </Button>
-          </Space>
         </Form.Item>
         <Row gutter={16}>
           <Col span={12}>
