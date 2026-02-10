@@ -27,7 +27,7 @@ const OfficeModal: React.FC<OfficeModalProps> = ({ visible, onClose, onSuccess, 
   const [loading, setLoading] = React.useState(false);
   const [geocoding, setGeocoding] = React.useState(false);
   const isEditing = !!office;
-  const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? '';
+  const googleMapsApiKey = process.env.VITE_GOOGLE_MAPS_API_KEY ?? process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? '';
 
   // This effect runs when the modal opens or the 'office' prop changes.
   // It populates the form with the office data when in edit mode.
@@ -49,7 +49,7 @@ const OfficeModal: React.FC<OfficeModalProps> = ({ visible, onClose, onSuccess, 
       return;
     }
     if (!googleMapsApiKey) {
-      message.warning('Google Maps API key no configurada (VITE_GOOGLE_MAPS_API_KEY en Vercel o .env.local).');
+      message.warning('Google Maps API key no configurada (VITE_GOOGLE_MAPS_API_KEY en Vercel).');
       return;
     }
     setGeocoding(true);

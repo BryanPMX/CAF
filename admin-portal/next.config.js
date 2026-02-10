@@ -1,7 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Expose VITE_GOOGLE_MAPS_API_KEY to client as NEXT_PUBLIC_GOOGLE_MAPS_API_KEY (same name on Vercel as marketing site)
+  // Expose VITE_GOOGLE_MAPS_API_KEY to client (same name on Vercel as marketing site; Next.js only exposes vars listed here)
   env: {
+    VITE_GOOGLE_MAPS_API_KEY: process.env.VITE_GOOGLE_MAPS_API_KEY,
     NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: process.env.VITE_GOOGLE_MAPS_API_KEY,
   },
 
