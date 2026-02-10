@@ -63,7 +63,7 @@
     document.head.appendChild(script);
   }
 
-  function initMap() {
+  async function initMap() {
     if (!mapContainer || !window.google?.maps) return;
 
     const center = getMapCenter();
@@ -83,7 +83,7 @@
       ]
     });
 
-    addMarkers();
+    await addMarkers();
     mapLoaded = true;
   }
 
@@ -97,45 +97,48 @@
     return { lat: 31.6904, lng: -106.4245 };
   }
 
-  function addMarkers() {
+  async function addMarkers() {
+    const { AdvancedMarkerElement } = await google.maps.importLibrary('marker');
     const geocoder = new google.maps.Geocoder();
     const infowindow = new google.maps.InfoWindow();
 
-    offices.forEach((office) => {
+    function addMarkerAt(office, position, infowindowRef) {
+      const marker = new AdvancedMarkerElement({
+        map,
+        position,
+        title: office.name
+      });
+
+      marker.addListener('click', () => {
+        infowindowRef.close();
+        const content = `
+          <div style="padding: 8px; min-width: 180px;">
+            <strong>${escapeHtml(office.name)}</strong>
+            <p style="margin: 6px 0 0; font-size: 13px; color: #555;">${escapeHtml(office.address || '')}</p>
+            <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+              office.address || `${office.latitude},${office.longitude}`
+            )}" target="_blank" rel="noopener noreferrer" style="margin-top: 6px; display: inline-block; font-size: 12px; color: #1976d2;">Abrir en Google Maps</a>
+          </div>
+        `;
+        infowindowRef.setContent(content);
+        infowindowRef.open(map, marker);
+      });
+    }
+
+    for (const office of offices) {
       if (hasValidCoords(office)) {
         addMarkerAt(office, { lat: Number(office.latitude), lng: Number(office.longitude) }, infowindow);
       } else if (office.address) {
-        geocoder.geocode({ address: office.address }, (results, status) => {
-          if (status === 'OK' && results?.[0]?.geometry?.location) {
-            addMarkerAt(office, results[0].geometry.location, infowindow);
-          }
+        await new Promise((resolve) => {
+          geocoder.geocode({ address: office.address }, (results, status) => {
+            if (status === 'OK' && results?.[0]?.geometry?.location) {
+              addMarkerAt(office, results[0].geometry.location, infowindow);
+            }
+            resolve();
+          });
         });
       }
-    });
-  }
-
-  function addMarkerAt(office, position, infowindow) {
-    // Prefer AdvancedMarkerElement when a mapId is available: google.maps.importLibrary('marker') then new google.maps.marker.AdvancedMarkerElement
-    const marker = new google.maps.Marker({
-      map,
-      position,
-      title: office.name
-    });
-
-    marker.addListener('click', () => {
-      infowindow.close();
-      const content = `
-        <div style="padding: 8px; min-width: 180px;">
-          <strong>${escapeHtml(office.name)}</strong>
-          <p style="margin: 6px 0 0; font-size: 13px; color: #555;">${escapeHtml(office.address || '')}</p>
-          <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-            office.address || `${office.latitude},${office.longitude}`
-          )}" target="_blank" rel="noopener noreferrer" style="margin-top: 6px; display: inline-block; font-size: 12px; color: #1976d2;">Abrir en Google Maps</a>
-        </div>
-      `;
-      infowindow.setContent(content);
-      infowindow.open(map, marker);
-    });
+    }
   }
 
   function escapeHtml(text) {

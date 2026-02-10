@@ -4,10 +4,11 @@
     import { cubicOut } from 'svelte/easing';
   
     let currentSlide = 0;
+    // Use placeholders until real images are added to static/images/ (community1–3.jpg)
     let slides = [
-      { src: '/images/community1.jpg', alt: 'Taller comunitario en acción' },
-      { src: '/images/community2.jpg', alt: 'Evento familiar en el centro' },
-      { src: '/images/community3.jpg', alt: 'Voluntarios ayudando en la comunidad' }
+      { src: 'https://picsum.photos/seed/caf1/1200/600', alt: 'Taller comunitario en acción' },
+      { src: 'https://picsum.photos/seed/caf2/1200/600', alt: 'Evento familiar en el centro' },
+      { src: 'https://picsum.photos/seed/caf3/1200/600', alt: 'Voluntarios ayudando en la comunidad' }
     ];
   
     // Auto-advance carousel every 5 seconds
