@@ -137,6 +137,8 @@ gcloud-config.json
 *.bak.sql
 backup/
 backups/
+# Allow API versioned migrations (required for migration manager)
+!api/db/migrations/*.sql
 
 # === API keys and tokens ===
 *api-key*
