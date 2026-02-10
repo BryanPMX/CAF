@@ -54,27 +54,11 @@ marketing/
 
 ### 1. Application Configuration (`src/lib/config.js`)
 
-**Centralized Configuration:**
-```javascript
-export const config = {
-  // API endpoints
-  API_BASE_URL: 'https://api.caf-mexico.org/api/v1',
+**Centralized Configuration** (see `src/lib/config.js`; values can be overridden via `VITE_*` env vars):
 
-  // Site configuration
-  SITE_NAME: 'Centro de Apoyo para la Familia',
-  SITE_DESCRIPTION: 'Legal aid and support services',
-
-  // Contact information
-  CONTACT_EMAIL: 'info@caf-mexico.org',
-  CONTACT_PHONE: '+52-55-1234-5678',
-
-  // Social media links
-  SOCIAL_LINKS: {
-    facebook: 'https://facebook.com/cafmexico',
-    twitter: 'https://twitter.com/cafmexico'
-  }
-};
-```
+- `config.api.baseUrl` – API base URL (e.g. `https://api.caf-mexico.com/api/v1`); set `VITE_API_URL` in production.
+- `config.site`, `config.contact`, `config.social` – site name, contact info, social links.
+- Google Maps: `VITE_GOOGLE_MAPS_API_KEY` (required for contact page map).
 
 ### 2. Utility Functions
 

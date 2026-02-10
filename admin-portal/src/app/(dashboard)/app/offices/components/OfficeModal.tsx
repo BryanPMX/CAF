@@ -27,7 +27,10 @@ const OfficeModal: React.FC<OfficeModalProps> = ({ visible, onClose, onSuccess, 
   const [loading, setLoading] = React.useState(false);
   const [geocoding, setGeocoding] = React.useState(false);
   const isEditing = !!office;
-  const googleMapsApiKey = process.env.VITE_GOOGLE_MAPS_API_KEY ?? process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? '';
+  // Next.js exposes only vars in next.config.js env; both are inlined from VITE_GOOGLE_MAPS_API_KEY at build time.
+  // On Vercel, set VITE_GOOGLE_MAPS_API_KEY (or NEXT_PUBLIC_GOOGLE_MAPS_API_KEY) for the admin portal project.
+  const googleMapsApiKey =
+    process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? process.env.VITE_GOOGLE_MAPS_API_KEY ?? '';
 
   // This effect runs when the modal opens or the 'office' prop changes.
   // It populates the form with the office data when in edit mode.
@@ -49,7 +52,9 @@ const OfficeModal: React.FC<OfficeModalProps> = ({ visible, onClose, onSuccess, 
       return;
     }
     if (!googleMapsApiKey) {
-      message.warning('Google Maps API key no configurada (VITE_GOOGLE_MAPS_API_KEY en Vercel).');
+      message.warning(
+        'Google Maps API key no configurada. En Vercel, configure VITE_GOOGLE_MAPS_API_KEY o NEXT_PUBLIC_GOOGLE_MAPS_API_KEY para el proyecto del portal de administración.'
+      );
       return;
     }
     setGeocoding(true);
