@@ -121,15 +121,15 @@ export interface UserProfileUpdate {
 export interface CreateOfficeRequest {
   name: string;
   address?: string;
-  phone?: string;
-  email?: string;
+  phoneOffice?: string;
+  phoneCell?: string;
 }
 
 export interface UpdateOfficeRequest {
   name?: string;
   address?: string;
-  phone?: string;
-  email?: string;
+  phoneOffice?: string;
+  phoneCell?: string;
 }
 
 // Parameter Types

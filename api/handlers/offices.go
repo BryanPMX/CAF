@@ -3,6 +3,7 @@ package handlers
 
 import (
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -11,12 +12,17 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// officePhonePattern validates phone format when provided (optional fields - no error if empty)
+var officePhonePattern = regexp.MustCompile(`^[\d\s\+\-\(\)\.]{7,25}$`)
+
 // OfficeInput defines the structure for creating or updating an office.
 type OfficeInput struct {
-	Name      string   `json:"name" binding:"required"`
-	Address   string   `json:"address"`
-	Latitude  *float64 `json:"latitude"`
-	Longitude *float64 `json:"longitude"`
+	Name        string   `json:"name" binding:"required"`
+	Address     string   `json:"address"`
+	PhoneOffice string   `json:"phoneOffice"`
+	PhoneCell   string   `json:"phoneCell"`
+	Latitude    *float64 `json:"latitude"`
+	Longitude   *float64 `json:"longitude"`
 }
 
 // GetOfficeByID retrieves a single office by its ID.
@@ -58,12 +64,22 @@ func CreateOffice(repo interfaces.OfficeRepository) gin.HandlerFunc {
 			c.JSON(http.StatusConflict, gin.H{"error": "Ya existe una oficina con ese nombre. Usa un nombre distinto."})
 			return
 		}
+		if msg := validateOfficePhone(input.PhoneOffice); msg != "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+			return
+		}
+		if msg := validateOfficePhone(input.PhoneCell); msg != "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+			return
+		}
 		office := &models.Office{
-			Name:      input.Name,
-			Address:   input.Address,
-			Latitude:  input.Latitude,
-			Longitude: input.Longitude,
-			Code:      repo.GenerateUniqueCode(c.Request.Context(), input.Name, 0),
+			Name:        input.Name,
+			Address:     input.Address,
+			PhoneOffice: strings.TrimSpace(input.PhoneOffice),
+			PhoneCell:   strings.TrimSpace(input.PhoneCell),
+			Latitude:    input.Latitude,
+			Longitude:   input.Longitude,
+			Code:        repo.GenerateUniqueCode(c.Request.Context(), input.Name, 0),
 		}
 		if err := repo.Create(c.Request.Context(), office); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create office."})
@@ -135,8 +151,18 @@ func UpdateOffice(repo interfaces.OfficeRepository) gin.HandlerFunc {
 			c.JSON(http.StatusConflict, gin.H{"error": "Ya existe otra oficina con ese nombre. Usa un nombre distinto."})
 			return
 		}
+		if msg := validateOfficePhone(input.PhoneOffice); msg != "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+			return
+		}
+		if msg := validateOfficePhone(input.PhoneCell); msg != "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+			return
+		}
 		office.Name = input.Name
 		office.Address = input.Address
+		office.PhoneOffice = strings.TrimSpace(input.PhoneOffice)
+		office.PhoneCell = strings.TrimSpace(input.PhoneCell)
 		office.Code = repo.GenerateUniqueCode(c.Request.Context(), input.Name, office.ID)
 		office.Latitude = input.Latitude
 		office.Longitude = input.Longitude
@@ -190,4 +216,16 @@ func parseOfficeID(s string) (uint, error) {
 		return 0, err
 	}
 	return uint(id), nil
+}
+
+// validateOfficePhone returns an error message if the phone is non-empty and invalid; empty is OK
+func validateOfficePhone(phone string) string {
+	trimmed := strings.TrimSpace(phone)
+	if trimmed == "" {
+		return ""
+	}
+	if !officePhonePattern.MatchString(trimmed) {
+		return "Formato de teléfono inválido. Use dígitos, espacios, +, -, () o . (ej: +52 656 123 4567)"
+	}
+	return ""
 }
