@@ -82,13 +82,12 @@ class ApiClient {
     return this.request(endpoint, { method: 'DELETE', ...options });
   }
 
-  // Health check
+  // Health check (uses fetch directly so 404 = no health endpoint, treat as OK)
   async healthCheck() {
     try {
-      const response = await this.get('/health');
-      return response.success;
-    } catch (error) {
-      console.warn('Health check failed:', error);
+      const res = await fetch(`${this.baseURL}/health`, { method: 'GET', signal: AbortSignal.timeout(this.timeout) });
+      return res.ok || res.status === 404;
+    } catch {
       return false;
     }
   }
@@ -131,10 +130,13 @@ export const apiUtils = {
     }
   },
 
-  // Check API connectivity
+  // Check API connectivity (hits the backend API health endpoint, not the marketing site)
   async checkConnectivity() {
+    const base = config?.api?.baseUrl || '';
+    if (!base) return true;
     try {
-      const isHealthy = await apiClient.healthCheck();
+      const client = new ApiClient(base);
+      const isHealthy = await client.healthCheck();
       if (!isHealthy) {
         console.warn('API connectivity issues detected');
       }

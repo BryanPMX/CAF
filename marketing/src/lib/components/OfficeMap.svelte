@@ -53,7 +53,7 @@
       return;
     }
     const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&callback=window.__cafMapInit`;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&loading=async&callback=window.__cafMapInit`;
     script.async = true;
     script.defer = true;
     window.__cafMapInit = () => {
@@ -115,6 +115,7 @@
   }
 
   function addMarkerAt(office, position, infowindow) {
+    // Prefer AdvancedMarkerElement when a mapId is available: google.maps.importLibrary('marker') then new google.maps.marker.AdvancedMarkerElement
     const marker = new google.maps.Marker({
       map,
       position,
