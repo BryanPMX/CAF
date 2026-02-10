@@ -126,6 +126,7 @@ const OfficeManagementPage = () => {
         />
       </Spin>
       <OfficeModal
+        key={editingOffice ? `edit-${editingOffice.id}` : 'new'}
         visible={isModalVisible}
         onClose={() => setIsModalVisible(false)}
         onSuccess={fetchOffices}

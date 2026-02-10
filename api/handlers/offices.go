@@ -43,6 +43,16 @@ func CreateOffice(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
+		var count int64
+		if err := db.Model(&models.Office{}).Where("name = ?", input.Name).Count(&count).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create office."})
+			return
+		}
+		if count > 0 {
+			c.JSON(http.StatusConflict, gin.H{"error": "Ya existe una oficina con ese nombre. Usa un nombre distinto."})
+			return
+		}
+
 		office := models.Office{
 			Name:      input.Name,
 			Address:   input.Address,
@@ -98,6 +108,16 @@ func UpdateOffice(db *gorm.DB) gin.HandlerFunc {
 		var input OfficeInput
 		if err := c.ShouldBindJSON(&input); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		var count int64
+		if err := db.Model(&models.Office{}).Where("name = ? AND id != ?", input.Name, office.ID).Count(&count).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update office."})
+			return
+		}
+		if count > 0 {
+			c.JSON(http.StatusConflict, gin.H{"error": "Ya existe otra oficina con ese nombre. Usa un nombre distinto."})
 			return
 		}
 
