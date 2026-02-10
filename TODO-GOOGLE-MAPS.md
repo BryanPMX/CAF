@@ -52,7 +52,7 @@ Make it easier for users to fill latitude/longitude in the office form:
 
 1. **"Obtener desde dirección" button** ✅ *Done*  
    - In **OfficeModal**, button "Obtener coordenadas desde dirección" under the address field calls **Google Geocoding API** and fills Latitud/Longitud with the first result.
-   - **Requires:** Geocoding API enabled in Google Cloud, and `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` in the admin portal `.env.local` (see admin-portal README).
+   - **Requires:** Geocoding API enabled in Google Cloud. On Vercel (and locally) set `VITE_GOOGLE_MAPS_API_KEY`; admin portal maps it via next.config.js (same name as marketing site).
    - **UX:** User types or pastes address → clicks button → lat/lng are filled; they can adjust and save.
 
 2. **"Abrir en Google Maps" link next to address** ✅ *Done*  
