@@ -3,11 +3,41 @@ package handlers
 
 import (
 	"net/http"
+	"regexp"
+	"strconv"
+	"strings"
 
 	"github.com/BryanPMX/CAF/api/models"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
+
+// uniqueCodeFromName generates a short, URL-style code from name and ensures it is unique in the DB.
+// Used so multiple offices (e.g. "CAF Office 1", "CAF Office 2") never share the same empty code and hit a unique constraint.
+func uniqueCodeFromName(db *gorm.DB, name string, excludeID uint) string {
+	base := strings.ToLower(name)
+	base = regexp.MustCompile(`[^a-z0-9]+`).ReplaceAllString(base, "-")
+	base = strings.Trim(base, "-")
+	if base == "" {
+		base = "office"
+	}
+	code := base
+	suffix := 1
+	for {
+		var count int64
+		q := db.Model(&models.Office{}).Where("code = ?", code)
+		if excludeID != 0 {
+			q = q.Where("id != ?", excludeID)
+		}
+		q.Count(&count)
+		if count == 0 {
+			break
+		}
+		suffix++
+		code = base + "-" + strconv.Itoa(suffix)
+	}
+	return code
+}
 
 // OfficeInput defines the structure for creating or updating an office.
 type OfficeInput struct {
@@ -42,6 +72,11 @@ func CreateOffice(db *gorm.DB) gin.HandlerFunc {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
+		input.Name = strings.TrimSpace(input.Name)
+		if input.Name == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "El nombre de la oficina no puede estar vacío."})
+			return
+		}
 
 		var count int64
 		if err := db.Model(&models.Office{}).Where("name = ?", input.Name).Count(&count).Error; err != nil {
@@ -58,6 +93,7 @@ func CreateOffice(db *gorm.DB) gin.HandlerFunc {
 			Address:   input.Address,
 			Latitude:  input.Latitude,
 			Longitude: input.Longitude,
+			Code:      uniqueCodeFromName(db, input.Name, 0),
 		}
 		if err := db.Create(&office).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create office."})
@@ -110,6 +146,11 @@ func UpdateOffice(db *gorm.DB) gin.HandlerFunc {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
+		input.Name = strings.TrimSpace(input.Name)
+		if input.Name == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "El nombre de la oficina no puede estar vacío."})
+			return
+		}
 
 		var count int64
 		if err := db.Model(&models.Office{}).Where("name = ? AND id != ?", input.Name, office.ID).Count(&count).Error; err != nil {
@@ -125,6 +166,7 @@ func UpdateOffice(db *gorm.DB) gin.HandlerFunc {
 		updates := map[string]interface{}{
 			"name":    input.Name,
 			"address": input.Address,
+			"code":    uniqueCodeFromName(db, input.Name, office.ID),
 		}
 		if input.Latitude != nil {
 			updates["latitude"] = *input.Latitude
