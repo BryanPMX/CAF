@@ -19,14 +19,14 @@
         </p>
       </div>
 
-      <!-- Quick Links: horizontal on desktop, vertical on mobile -->
+      <!-- Quick Links: single horizontal row on desktop, vertical stack on mobile -->
       <div>
         <h4 class="font-semibold text-white mb-4 text-sm uppercase tracking-wider">Navegación</h4>
-        <ul class="flex flex-col md:flex-row md:flex-wrap gap-x-6 gap-y-2.5 md:gap-y-0">
-          <li><a href="/" class="text-sm text-gray-400 hover:text-white transition-colors">Inicio</a></li>
-          <li><a href="/servicios" class="text-sm text-gray-400 hover:text-white transition-colors">Servicios</a></li>
-          <li><a href="/eventos" class="text-sm text-gray-400 hover:text-white transition-colors">Eventos</a></li>
-          <li><a href="/contacto" class="text-sm text-gray-400 hover:text-white transition-colors">Contacto</a></li>
+        <ul class="flex flex-col md:flex-row md:flex-nowrap gap-y-2.5 md:gap-y-0 md:gap-x-6 md:items-center">
+          <li class="flex-shrink-0"><a href="/" class="text-sm text-gray-400 hover:text-white transition-colors py-2 md:py-0">Inicio</a></li>
+          <li class="flex-shrink-0"><a href="/servicios" class="text-sm text-gray-400 hover:text-white transition-colors py-2 md:py-0">Servicios</a></li>
+          <li class="flex-shrink-0"><a href="/eventos" class="text-sm text-gray-400 hover:text-white transition-colors py-2 md:py-0">Eventos</a></li>
+          <li class="flex-shrink-0"><a href="/contacto" class="text-sm text-gray-400 hover:text-white transition-colors py-2 md:py-0">Contacto</a></li>
         </ul>
       </div>
 
