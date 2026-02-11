@@ -24,9 +24,9 @@
 
 <header class="bg-white/95 backdrop-blur-md shadow-sm sticky top-0 z-50 border-b border-gray-100">
   <nav class="w-full px-4 sm:px-6 py-3 flex justify-between items-center">
-    <!-- Logo: far left, zoomed so initials read larger (crop whitespace) -->
+    <!-- Logo: far left, zoomed so initials read larger; wider wrapper to avoid left/right crop -->
     <a href="/" class="flex items-center flex-shrink-0 overflow-hidden rounded-sm" on:click={closeMenu}>
-      <span class="inline-flex h-14 w-14 sm:h-16 sm:w-16 md:h-20 md:w-20 items-center justify-center overflow-hidden">
+      <span class="inline-flex h-14 w-20 sm:h-16 sm:w-24 md:h-20 md:w-28 items-center justify-center overflow-hidden">
         <img
           src="/logo.png"
           alt="Logo del Centro de Apoyo para la Familia"
