@@ -3,7 +3,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Sidebar brand: hide label when sider is collapsed, keep logo centered */
+/* Sidebar brand: hide label when sider is collapsed, keep logo left-aligned */
 .ant-layout-sider-collapsed .sidebar-brand-label {
   display: none;
 }
@@ -11,6 +11,10 @@
 .ant-layout-sider-collapsed .sidebar-brand .min-h-\[72px\] {
   padding-left: 12px;
   padding-right: 12px;
+}
+
+.ant-layout-sider-collapsed .sidebar-brand .justify-start {
+  justify-content: center;
 }
 
 /* Custom Dashboard Styles */
