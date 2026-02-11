@@ -51,6 +51,9 @@ COPY --from=builder /app/main .
 # Copy migrations directory for database setup
 COPY --from=builder /app/db/migrations ./db/migrations
 
+# Create uploads directory for local file storage (used when S3 is not configured)
+RUN mkdir -p /app/uploads
+
 # Change ownership to non-root user
 RUN chown -R appuser:appgroup /app
 

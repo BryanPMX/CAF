@@ -1,21 +1,23 @@
-// api/handlers/case_events.go
+// api/handlers/case_event.go
+// Handlers for case timeline events: comments and document uploads.
+//
+// Document operations (upload, get, delete) use the storage.FileStorage
+// interface, supporting both S3 and local filesystem backends transparently
+// via the Strategy Pattern.
 package handlers
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
-	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 
 	"github.com/BryanPMX/CAF/api/models"
 	"github.com/BryanPMX/CAF/api/storage"
-	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -75,19 +77,12 @@ func CreateComment(db *gorm.DB) gin.HandlerFunc {
 
 		// Generate notification for client if comment is client_visible
 		if input.Visibility == "client_visible" {
-			// Get the client ID from the case
 			var client models.User
 			if err := db.Where("id = ?", caseRecord.ClientID).First(&client).Error; err == nil {
-				// Create notification message in Spanish
 				notificationMessage := "Un miembro de nuestro equipo ha añadido un comentario en su caso."
-
-				// Create link to the case
 				caseLink := "/app/cases/" + strconv.FormatUint(uint64(caseID), 10)
-
-				// Create notification for the client
 				if err := CreateNotification(db, client.ID, notificationMessage, "info", &caseLink); err != nil {
-					// Log error but don't fail the comment creation
-					_ = err // Suppress unused variable warning
+					_ = err // Log but don't fail
 				}
 			}
 		}
@@ -121,13 +116,12 @@ func UpdateComment(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		// Check if it's a comment
 		if event.EventType != "comment" {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Evento no es un comentario"})
 			return
 		}
 
-		// Check permissions: only the author can update their own comments
+		// Only the author can update their own comments
 		if event.UserID != user.ID {
 			c.JSON(http.StatusForbidden, gin.H{"error": "Solo puedes editar tus propios comentarios"})
 			return
@@ -139,7 +133,6 @@ func UpdateComment(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		// Update the comment
 		updates := map[string]interface{}{
 			"comment_text": input.Comment,
 			"visibility":   input.Visibility,
@@ -150,10 +143,7 @@ func UpdateComment(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		// Reload the event with user info
 		db.Preload("User").First(&event, eventID)
-
-		// Invalidate case cache so the updated case data is fetched on next request
 		invalidateCache(strconv.FormatUint(uint64(event.CaseID), 10))
 
 		c.JSON(http.StatusOK, event)
@@ -170,11 +160,9 @@ func DeleteComment(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		// Get current user
 		currentUser, _ := c.Get("currentUser")
-		_ = currentUser.(models.User) // Use blank identifier to avoid unused variable
+		_ = currentUser.(models.User)
 
-		// Get the event
 		var event models.CaseEvent
 		if err := db.First(&event, eventID).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -185,33 +173,30 @@ func DeleteComment(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		// Check if it's a comment
 		if event.EventType != "comment" {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Evento no es un comentario"})
 			return
 		}
 
-		// Check permissions: only admins and office managers can delete
+		// Only admins and office managers can delete comments
 		userRole, _ := c.Get("userRole")
 		if userRole != "admin" && userRole != "office_manager" {
 			c.JSON(http.StatusForbidden, gin.H{"error": "Solo administradores y gerentes de oficina pueden eliminar comentarios"})
 			return
 		}
 
-		// Soft delete the comment
 		if err := db.Delete(&event).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al eliminar el comentario"})
 			return
 		}
 
-		// Invalidate case cache so the updated case data is fetched on next request
 		invalidateCache(strconv.FormatUint(uint64(event.CaseID), 10))
-
 		c.JSON(http.StatusOK, gin.H{"message": "Comentario eliminado exitosamente"})
 	}
 }
 
-// UploadDocument is an admin-only handler to upload a file to a case.
+// UploadDocument uploads a file to a case using the active storage provider
+// (S3 or local filesystem). The storage backend is determined at startup.
 func UploadDocument(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		caseIDStr := c.Param("id")
@@ -238,13 +223,20 @@ func UploadDocument(db *gorm.DB) gin.HandlerFunc {
 
 		visibility := c.PostForm("visibility")
 		if visibility == "" {
-			visibility = "internal" // Default to internal
+			visibility = "internal"
 		}
 
-		// Upload file to S3
-		fileURL, err := storage.UploadFile(file, caseIDStr)
+		// Use the active storage provider (Strategy Pattern)
+		store := storage.GetActiveStorage()
+		if store == nil {
+			c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Almacenamiento no disponible. Contacte al administrador."})
+			return
+		}
+
+		fileURL, err := store.Upload(file, caseIDStr)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			log.Printf("ERROR: Document upload failed: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al subir el archivo"})
 			return
 		}
 
@@ -260,6 +252,10 @@ func UploadDocument(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		if err := db.Create(&event).Error; err != nil {
+			// Attempt to clean up the uploaded file if DB insert fails
+			if deleteErr := store.Delete(fileURL); deleteErr != nil {
+				log.Printf("WARN: Failed to clean up file after DB error: %v", deleteErr)
+			}
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save file record"})
 			return
 		}
@@ -278,11 +274,9 @@ func UpdateDocument(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		// Get current user
 		currentUser, _ := c.Get("currentUser")
 		user := currentUser.(models.User)
 
-		// Get the event
 		var event models.CaseEvent
 		if err := db.First(&event, eventID).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -293,19 +287,17 @@ func UpdateDocument(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		// Check if it's a file upload
 		if event.EventType != "file_upload" {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Evento no es un documento"})
 			return
 		}
 
-		// Check permissions: only the author can update their own documents
+		// Only the author can update their own documents
 		if event.UserID != user.ID {
 			c.JSON(http.StatusForbidden, gin.H{"error": "Solo puedes editar tus propios documentos"})
 			return
 		}
 
-		// Parse update input
 		var input struct {
 			FileName   string `json:"fileName"`
 			Visibility string `json:"visibility"`
@@ -315,7 +307,6 @@ func UpdateDocument(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		// Update the document metadata
 		updates := map[string]interface{}{}
 		if input.FileName != "" {
 			updates["file_name"] = input.FileName
@@ -334,14 +325,13 @@ func UpdateDocument(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		// Reload the event with user info
 		db.Preload("User").First(&event, eventID)
-
 		c.JSON(http.StatusOK, event)
 	}
 }
 
-// DeleteDocument deletes a document and its file from S3
+// DeleteDocument deletes a document record and its file from storage.
+// Uses the active storage provider for file deletion.
 func DeleteDocument(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		eventIDStr := c.Param("eventId")
@@ -351,11 +341,9 @@ func DeleteDocument(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		// Get current user
 		currentUser, _ := c.Get("currentUser")
-		_ = currentUser.(models.User) // Use blank identifier to avoid unused variable
+		_ = currentUser.(models.User)
 
-		// Get the event
 		var event models.CaseEvent
 		if err := db.First(&event, eventID).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -366,51 +354,28 @@ func DeleteDocument(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		// Check if it's a file upload
 		if event.EventType != "file_upload" {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Evento no es un documento"})
 			return
 		}
 
-		// Check permissions: only admins and office managers can delete
+		// Only admins and office managers can delete documents
 		userRole, _ := c.Get("userRole")
 		if userRole != "admin" && userRole != "office_manager" {
 			c.JSON(http.StatusForbidden, gin.H{"error": "Solo administradores y gerentes de oficina pueden eliminar documentos"})
 			return
 		}
 
-		// Delete file from S3
+		// Delete file from storage using the active provider
 		if event.FileUrl != "" {
-			// Extract object key from URL
-			parts := strings.Split(event.FileUrl, "/")
-			if len(parts) >= 4 {
-				bucketIndex := -1
-				for i, part := range parts {
-					if part == "caf-system-bucket" {
-						bucketIndex = i
-						break
-					}
+			store := storage.GetActiveStorage()
+			if store != nil {
+				if deleteErr := store.Delete(event.FileUrl); deleteErr != nil {
+					log.Printf("WARN: Failed to delete file from storage: %v", deleteErr)
+					// Continue with DB record deletion even if file deletion fails
 				}
-
-				if bucketIndex != -1 && bucketIndex+2 < len(parts) {
-					objectKey := strings.Join(parts[bucketIndex+1:], "/")
-					bucket := os.Getenv("S3_BUCKET")
-					if bucket == "" {
-						bucket = "caf-system-bucket"
-					}
-
-					s3Client := storage.GetS3Client()
-					if s3Client != nil {
-						_, deleteErr := s3Client.DeleteObject(context.TODO(), &s3.DeleteObjectInput{
-							Bucket: &bucket,
-							Key:    &objectKey,
-						})
-						if deleteErr != nil {
-							// Log the error but don't fail the request
-							log.Printf("Warning: Failed to delete file from S3: %v", deleteErr)
-						}
-					}
-				}
+			} else {
+				log.Printf("WARN: No storage provider available; skipping file deletion for URL: %s", event.FileUrl)
 			}
 		}
 
@@ -424,7 +389,8 @@ func DeleteDocument(db *gorm.DB) gin.HandlerFunc {
 	}
 }
 
-// GetDocument retrieves a document for viewing/downloading
+// GetDocument retrieves a document for viewing/downloading using the
+// active storage provider.
 func GetDocument(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		eventIDStr := c.Param("eventId")
@@ -437,8 +403,6 @@ func GetDocument(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		// Simple rate limiting - in production, use Redis or similar
-		// For now, we'll just validate the request
 		if c.Request.Header.Get("User-Agent") == "" {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "User-Agent header required"})
 			return
@@ -450,9 +414,9 @@ func GetDocument(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		// Get the case event with optimized query
+		// Get the case event
 		var event models.CaseEvent
-		if err := db.Select("id, event_type, visibility, file_url, file_name, file_type").First(&event, eventID).Error; err != nil {
+		if err := db.Select("id, event_type, visibility, file_url, file_name, file_type, updated_at").First(&event, eventID).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				c.JSON(http.StatusNotFound, gin.H{"error": "Documento no encontrado"})
 			} else {
@@ -461,7 +425,6 @@ func GetDocument(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		// Check if it's a file upload event
 		if event.EventType != "file_upload" {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Evento no es un documento"})
 			return
@@ -469,88 +432,51 @@ func GetDocument(db *gorm.DB) gin.HandlerFunc {
 
 		// Check access permissions based on visibility
 		userRole, _ := c.Get("userRole")
-
 		if event.Visibility == "internal" && userRole == "client" {
 			c.JSON(http.StatusForbidden, gin.H{"error": "Acceso denegado: documento interno"})
 			return
 		}
 
-		// Extract the object key from the file URL
-		// The URL format is: http://localstack:4566/bucket-name/cases/caseID/filename
-		// We need to extract the object key part: cases/caseID/filename
-		fileURL := event.FileUrl
-		parts := strings.Split(fileURL, "/")
-		if len(parts) < 4 {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "URL de archivo inválida"})
+		// Use the active storage provider to retrieve the file
+		store := storage.GetActiveStorage()
+		if store == nil {
+			c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Almacenamiento no disponible"})
 			return
 		}
 
-		// Find the bucket name and extract the object key
-		// The URL structure is: http://endpoint/bucket/cases/caseID/filename
-		bucketIndex := -1
-		for i, part := range parts {
-			if part == "caf-system-bucket" {
-				bucketIndex = i
-				break
-			}
-		}
-
-		if bucketIndex == -1 || bucketIndex+2 >= len(parts) {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Formato de URL de archivo inválido"})
-			return
-		}
-
-		// Extract the object key: everything after the bucket name
-		objectKey := strings.Join(parts[bucketIndex+1:], "/")
-
-		// Get the file from S3
-		bucket := os.Getenv("S3_BUCKET")
-		if bucket == "" {
-			bucket = "caf-system-bucket" // fallback
-		}
-
-		// Get the S3 client
-		s3Client := storage.GetS3Client()
-		if s3Client == nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Cliente S3 no disponible"})
-			return
-		}
-
-		// Get the object from S3
-		result, err := s3Client.GetObject(context.TODO(), &s3.GetObjectInput{
-			Bucket: &bucket,
-			Key:    &objectKey,
-		})
+		body, contentType, err := store.Get(event.FileUrl)
 		if err != nil {
-			c.JSON(http.StatusNotFound, gin.H{"error": "Archivo no encontrado en S3"})
+			log.Printf("ERROR: Failed to retrieve document: %v", err)
+			c.JSON(http.StatusNotFound, gin.H{"error": "Archivo no encontrado en almacenamiento"})
 			return
 		}
-		defer result.Body.Close()
+		defer body.Close()
 
-		// Set appropriate headers for file download/viewing
-		c.Header("Content-Type", event.FileType)
+		// Use stored content type if available, fall back to detected type
+		if event.FileType != "" {
+			contentType = event.FileType
+		}
+		c.Header("Content-Type", contentType)
 
 		// Determine content disposition based on mode and file type
 		fileExt := strings.ToLower(filepath.Ext(event.FileName))
 		canPreview := isPreviewableFile(fileExt)
 
 		if mode == "download" || !canPreview {
-			// Force download for all files or when download mode is requested
 			c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", event.FileName))
 		} else {
-			// Preview mode for supported file types
 			c.Header("Content-Disposition", fmt.Sprintf("inline; filename=\"%s\"", event.FileName))
 		}
 
-		// Add security headers
+		// Security headers
 		c.Header("X-Content-Type-Options", "nosniff")
 		c.Header("X-Frame-Options", "DENY")
 		c.Header("X-XSS-Protection", "1; mode=block")
 		c.Header("Referrer-Policy", "strict-origin-when-cross-origin")
 
-		// Add caching headers for better performance
+		// Caching headers
 		if mode == "preview" && canPreview {
-			c.Header("Cache-Control", "public, max-age=3600") // Cache for 1 hour
+			c.Header("Cache-Control", "public, max-age=3600")
 			c.Header("ETag", fmt.Sprintf("\"%d-%s\"", event.ID, event.UpdatedAt.Format("20060102150405")))
 		} else {
 			c.Header("Cache-Control", "no-cache, no-store, must-revalidate")
@@ -559,9 +485,9 @@ func GetDocument(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		// Stream the file content to the response
-		_, err = io.Copy(c.Writer, result.Body)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al transmitir el archivo"})
+		if _, err = io.Copy(c.Writer, body); err != nil {
+			log.Printf("ERROR: Failed to stream document: %v", err)
+			// Don't try to send JSON here — headers are already written
 			return
 		}
 	}

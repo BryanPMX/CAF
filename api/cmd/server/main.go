@@ -82,29 +82,59 @@ func main() {
 	performanceHandler := handlers.NewPerformanceOptimizedHandler(database, nil) // nil for Redis - can be configured later
 	log.Println("INFO: Performance optimized handler initialized successfully")
 
-	// --- Step 3: Initialize S3 Storage Client ---
-	log.Println("INFO: Initializing S3 storage client...")
+	// --- Step 3: Initialize File Storage (S3 or Local) ---
+	// Strategy Pattern: try S3 first; fall back to local filesystem storage
+	// when AWS is not configured (e.g. self-hosted production without AWS).
+	log.Println("INFO: Initializing file storage...")
 
-	// Don't delay for AWS deployment - only for LocalStack
+	var storageReady bool
+
+	// Don't delay for AWS deployment — only for LocalStack
 	if os.Getenv("AWS_ENDPOINT_URL") != "" && os.Getenv("AWS_ENDPOINT_URL") != "http://localstack:4566" {
 		// This is likely AWS, don't delay
-	} else {
+	} else if os.Getenv("AWS_ENDPOINT_URL") != "" {
 		// Add a small delay to ensure LocalStack is fully ready
 		time.Sleep(2 * time.Second)
 	}
 
 	if err := storage.InitS3(); err != nil {
-		log.Printf("WARN: Failed to initialize S3 client: %v", err)
-		log.Println("INFO: Continuing without S3 - some features may be limited")
+		log.Printf("WARN: S3 initialization failed: %v", err)
 	} else {
 		log.Println("INFO: S3 client initialized successfully. Checking bucket...")
-
 		if err := storage.CreateBucketIfNotExists(); err != nil {
 			log.Printf("WARN: Failed to ensure S3 bucket exists: %v", err)
-			log.Println("INFO: Continuing without S3 bucket verification - some features may be limited")
 		} else {
-			log.Println("INFO: S3 bucket verified/created successfully")
+			// S3 is fully ready — wrap it as the active FileStorage provider
+			s3Store, err := storage.NewS3Storage()
+			if err != nil {
+				log.Printf("WARN: Could not create S3 storage adapter: %v", err)
+			} else {
+				storage.SetActiveStorage(s3Store)
+				storageReady = true
+				log.Println("INFO: Using S3 storage backend")
+			}
 		}
+	}
+
+	// Fallback: if S3 is not available, use local filesystem storage
+	if !storageReady {
+		uploadsDir := os.Getenv("UPLOADS_DIR")
+		if uploadsDir == "" {
+			uploadsDir = storage.DefaultUploadsDir
+		}
+		localStore, err := storage.NewLocalStorage(uploadsDir)
+		if err != nil {
+			log.Printf("ERROR: Failed to initialize local storage at %s: %v", uploadsDir, err)
+			log.Println("WARN: Document upload/download will not be available")
+		} else {
+			storage.SetActiveStorage(localStore)
+			storageReady = true
+			log.Printf("INFO: Using local filesystem storage at %s", uploadsDir)
+		}
+	}
+
+	if !storageReady {
+		log.Println("WARN: No storage provider available — document features disabled")
 	}
 
 	// --- Step 4: Set up Gin HTTP Router ---
@@ -226,6 +256,25 @@ func main() {
 		c.JSON(http.StatusOK, gin.H{"status": "healthy", "service": "migrations", "migrations": migrationStatus})
 	})
 
+	r.GET("/health/storage", func(c *gin.Context) {
+		store := storage.GetActiveStorage()
+		if store == nil {
+			c.JSON(http.StatusServiceUnavailable, gin.H{"status": "unavailable", "service": "storage", "error": "no storage provider initialized"})
+			return
+		}
+		if err := store.HealthCheck(); err != nil {
+			c.JSON(http.StatusServiceUnavailable, gin.H{"status": "unhealthy", "service": "storage", "error": err.Error()})
+			return
+		}
+		// Identify which backend is active
+		backend := "s3"
+		if _, ok := store.(*storage.LocalStorage); ok {
+			backend = "local"
+		}
+		c.JSON(http.StatusOK, gin.H{"status": "healthy", "service": "storage", "backend": backend})
+	})
+
+	// Keep legacy /health/s3 endpoint for backward compatibility
 	r.GET("/health/s3", func(c *gin.Context) {
 		if err := storage.HealthCheck(); err != nil {
 			c.JSON(http.StatusServiceUnavailable, gin.H{"status": "unhealthy", "service": "S3", "error": err.Error()})
