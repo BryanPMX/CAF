@@ -6,12 +6,12 @@
   <!-- Top accent bar -->
   <div class="h-1 bg-gradient-to-r from-primary-600 to-accent-600"></div>
 
-  <div class="container mx-auto px-6 py-12">
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-x-12">
+  <div class="container mx-auto px-6 py-14 sm:py-16">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-x-16 lg:gap-x-20 md:gap-y-0 md:items-start">
       <!-- Brand -->
-      <div>
+      <div class="md:pr-4">
         <div class="flex items-center gap-3 mb-4">
-          <img src="/logo-footer.png" alt="Logo CAF" class="h-12 w-auto opacity-95" />
+          <img src="/logo-footer.png" alt="Logo CAF" class="h-14 sm:h-16 w-auto min-w-[3.5rem] opacity-95" />
           <span class="font-bold text-lg text-white">{config.site.name}</span>
         </div>
         <p class="text-gray-400 leading-relaxed text-sm max-w-md">
@@ -20,8 +20,8 @@
       </div>
 
       <!-- Navegación: centered in middle column, label centered above button row -->
-      <div class="flex flex-col items-center justify-start md:px-6 text-center">
-        <h4 class="font-semibold text-white mb-4 text-sm uppercase tracking-wider">Navegación</h4>
+      <div class="flex flex-col items-center justify-start md:px-8 lg:px-10 text-center">
+        <h4 class="font-semibold text-white mb-4 text-sm uppercase tracking-[0.12em] leading-tight">Navegación</h4>
         <ul class="flex flex-col md:flex-row md:flex-nowrap gap-y-2.5 md:gap-y-0 md:gap-x-6 md:items-center md:justify-center">
           <li class="flex-shrink-0"><a href="/" class="text-sm text-gray-400 hover:text-white transition-colors py-2 md:py-0">Inicio</a></li>
           <li class="flex-shrink-0"><a href="/servicios" class="text-sm text-gray-400 hover:text-white transition-colors py-2 md:py-0">Servicios</a></li>
@@ -31,8 +31,8 @@
       </div>
 
       <!-- Contact (address and email only; phone removed), aligned right on desktop -->
-      <div class="md:flex md:flex-col md:items-end md:text-right">
-        <h4 class="font-semibold text-white mb-4 text-sm uppercase tracking-wider">Contacto</h4>
+      <div class="md:flex md:flex-col md:items-end md:text-right md:pl-4">
+        <h4 class="font-semibold text-white mb-4 text-sm uppercase tracking-[0.12em] leading-tight">Contacto</h4>
         <ul class="space-y-2.5 text-sm text-gray-400 md:max-w-fit">
           <li class="flex items-start gap-2 md:justify-end">
             <svg class="w-4 h-4 mt-0.5 text-primary-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -54,7 +54,7 @@
     </div>
 
     <!-- Bottom bar -->
-    <div class="mt-10 pt-6 border-t border-gray-800 text-center text-xs text-gray-500">
+    <div class="mt-12 sm:mt-14 pt-8 border-t border-gray-800 text-center text-xs text-gray-500">
       <p>&copy; {new Date().getFullYear()} {config.site.name}. Todos los derechos reservados.</p>
     </div>
   </div>
