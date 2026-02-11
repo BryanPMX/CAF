@@ -7,11 +7,11 @@
   <div class="h-1 bg-gradient-to-r from-primary-600 to-accent-600"></div>
 
   <div class="container mx-auto px-6 py-12">
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-10">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-x-12">
       <!-- Brand -->
-      <div class="md:col-span-2">
+      <div>
         <div class="flex items-center gap-3 mb-4">
-          <img src="/logo.png" alt="Logo CAF" class="h-12 w-auto brightness-0 invert opacity-90" />
+          <img src="/logo.png" alt="Logo CAF" class="h-12 w-auto opacity-95" />
           <span class="font-bold text-lg text-white">{config.site.name}</span>
         </div>
         <p class="text-gray-400 leading-relaxed text-sm max-w-md">
@@ -19,10 +19,10 @@
         </p>
       </div>
 
-      <!-- Quick Links: single horizontal row on desktop, vertical stack on mobile -->
-      <div>
+      <!-- Navegación: centered in middle column, label centered above button row -->
+      <div class="flex flex-col items-center justify-start md:px-6 text-center">
         <h4 class="font-semibold text-white mb-4 text-sm uppercase tracking-wider">Navegación</h4>
-        <ul class="flex flex-col md:flex-row md:flex-nowrap gap-y-2.5 md:gap-y-0 md:gap-x-6 md:items-center">
+        <ul class="flex flex-col md:flex-row md:flex-nowrap gap-y-2.5 md:gap-y-0 md:gap-x-6 md:items-center md:justify-center">
           <li class="flex-shrink-0"><a href="/" class="text-sm text-gray-400 hover:text-white transition-colors py-2 md:py-0">Inicio</a></li>
           <li class="flex-shrink-0"><a href="/servicios" class="text-sm text-gray-400 hover:text-white transition-colors py-2 md:py-0">Servicios</a></li>
           <li class="flex-shrink-0"><a href="/eventos" class="text-sm text-gray-400 hover:text-white transition-colors py-2 md:py-0">Eventos</a></li>
