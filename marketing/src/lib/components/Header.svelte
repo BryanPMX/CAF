@@ -23,13 +23,13 @@
 </script>
 
 <header class="bg-white/95 backdrop-blur-md shadow-sm sticky top-0 z-50 border-b border-gray-100">
-  <nav class="container mx-auto px-4 sm:px-6 py-3 flex justify-between items-center">
-    <!-- Logo -->
-    <a href="/" class="flex items-center" on:click={closeMenu}>
+  <nav class="w-full px-4 sm:px-6 py-3 flex justify-between items-center">
+    <!-- Logo: far left, larger on desktop -->
+    <a href="/" class="flex items-center flex-shrink-0" on:click={closeMenu}>
       <img
         src="/logo.png"
         alt="Logo del Centro de Apoyo para la Familia"
-        class="h-14 sm:h-16 w-auto"
+        class="h-14 sm:h-16 md:h-20 w-auto"
       />
     </a>
 

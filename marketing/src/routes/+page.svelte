@@ -64,16 +64,10 @@
       >
         {hero.subtitle || 'Centro de Apoyo para la Familia A.C. brinda servicios legales, psicológicos y de asistencia social.'}
       </p>
-      <div class="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4" in:slide={{ duration: 800, delay: 400, easing: cubicOut }}>
-        <a
-          href="/contacto"
-          class="bg-white text-primary-700 font-bold py-3.5 px-8 rounded-lg text-base sm:text-lg hover:bg-primary-50 transition-all shadow-lg hover:shadow-xl text-center"
-        >
-          {hero.cta_primary || 'Contáctenos'}
-        </a>
+      <div class="flex justify-center" in:slide={{ duration: 800, delay: 400, easing: cubicOut }}>
         <a
           href="/servicios"
-          class="border-2 border-white/80 text-white font-bold py-3.5 px-8 rounded-lg text-base sm:text-lg hover:bg-white/10 transition-all text-center"
+          class="bg-white text-primary-700 font-bold py-3.5 px-8 rounded-lg text-base sm:text-lg hover:bg-primary-50 transition-all shadow-lg hover:shadow-xl text-center"
         >
           {hero.cta_secondary || 'Nuestros Servicios'}
         </a>
