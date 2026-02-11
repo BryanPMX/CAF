@@ -1,51 +1,40 @@
+// admin-portal/src/app/(dashboard)/components/SidebarBrand.tsx
+// Sidebar brand: logo + organization name. Shows "CAF" when collapsed.
 'use client';
 
 import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 
-/**
- * Sidebar brand block: logo + "CAF" + "Portal".
- * Single responsibility: present the app brand and link to home.
- * Handles logo load failure with a fallback initial.
- */
 export default function SidebarBrand() {
   const [logoError, setLogoError] = React.useState(false);
-
-  const handleLogoError = (e: React.SyntheticEvent<HTMLImageElement>) => {
-    e.currentTarget.style.display = 'none';
-    setLogoError(true);
-  };
 
   return (
     <Link
       href="/"
-      className="sidebar-brand flex items-center gap-3 pl-4 pr-3 py-4 min-h-[64px] w-full text-left transition-colors hover:bg-white/[0.06] active:bg-white/[0.08]"
+      className="sidebar-brand flex items-center gap-3 px-4 py-4 min-h-[64px] w-full transition-colors hover:bg-white/[0.06]"
     >
-      <div className="sidebar-brand-logo relative flex-shrink-0 w-11 h-11 rounded-lg bg-gradient-to-br from-indigo-500/90 to-violet-600/90 flex items-center justify-center overflow-hidden shadow-lg shadow-black/20">
-        {!logoError && (
+      <div className="sidebar-brand-logo relative flex-shrink-0 w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center overflow-hidden">
+        {!logoError ? (
           <Image
             src="/logo.png"
-            alt=""
-            width={44}
-            height={44}
+            alt="CAF"
+            width={40}
+            height={40}
             className="object-contain p-0.5"
-            onError={handleLogoError}
+            onError={() => setLogoError(true)}
             priority
           />
-        )}
-        {logoError && (
-          <span className="text-lg font-bold text-white/95 tracking-tight" aria-hidden>
-            C
-          </span>
+        ) : (
+          <span className="text-base font-bold text-white/90">C</span>
         )}
       </div>
-      <div className="sidebar-brand-label flex flex-col items-start justify-center min-w-0 flex-1">
-        <span className="text-[1.15rem] font-semibold tracking-tight text-white leading-none">
-          CAF
+      <div className="sidebar-brand-label flex flex-col min-w-0 flex-1">
+        <span className="text-sm font-semibold text-white leading-tight truncate">
+          Centro de Apoyo
         </span>
-        <span className="text-[10px] font-medium tracking-[0.2em] text-white/50 uppercase mt-0.5">
-          Portal
+        <span className="text-[11px] text-white/50 leading-tight truncate">
+          para la Familia A.C.
         </span>
       </div>
     </Link>

@@ -95,6 +95,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (pathname.startsWith('/app/cases')) return 'cases';
     if (pathname.startsWith('/app/users')) return 'users';
     if (pathname.startsWith('/app/offices')) return 'offices';
+    if (pathname.startsWith('/app/web-content')) return 'web-content';
     if (pathname.startsWith('/app/reports')) return 'reports';
     if (pathname.startsWith('/app/records')) return 'records';
     return 'dashboard';
@@ -191,35 +192,33 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </Sider>
         
         <Layout>
-          <Header style={{ background: '#fff', padding: '0 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div className="flex items-center">
-              <h1 className="text-xl font-semibold text-gray-800">
+          <Header className="dashboard-header" style={{ background: '#fff', padding: '0 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9' }}>
+            <div className="flex items-center min-w-0 flex-1">
+              <h1 className="text-base sm:text-lg font-semibold text-gray-800 truncate">
                 {user?.firstName && user?.lastName
                   ? `Bienvenido, ${user.firstName} ${user.lastName}`
                   : user?.firstName
                   ? `Bienvenido, ${user.firstName}`
-                  : '¡Bienvenido al Sistema CAF!'}
+                  : 'Sistema CAF'}
               </h1>
               {roleDisplay && (
-                <span className={`ml-3 px-3 py-1 rounded-full text-xs font-medium ${roleDisplay.color}`}>
+                <span className={`hidden sm:inline-block ml-3 px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap ${roleDisplay.color}`}>
                   {roleDisplay.label}
                 </span>
               )}
             </div>
             
-            <Space>
-              <Button 
-                type="text" 
-                icon={<LogoutOutlined />} 
-                onClick={logout}
-                className="text-gray-600 hover:text-red-600"
-              >
-                Cerrar Sesión
-              </Button>
-            </Space>
+            <Button 
+              type="text" 
+              icon={<LogoutOutlined />} 
+              onClick={logout}
+              className="text-gray-600 hover:text-red-600 flex-shrink-0"
+            >
+              <span className="hidden sm:inline">Cerrar Sesión</span>
+            </Button>
           </Header>
           
-          <Content style={{ margin: '24px', background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)', borderRadius: '12px', padding: '24px', boxShadow: '0 2px 12px rgba(0, 0, 0, 0.08)' }}>
+          <Content style={{ margin: '12px', background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)', borderRadius: '12px', padding: '16px', boxShadow: '0 2px 12px rgba(0, 0, 0, 0.08)' }} className="dashboard-content">
             {profileError && (
               <Alert
                 message="Profile Error"

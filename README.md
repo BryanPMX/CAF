@@ -89,7 +89,10 @@ admin-portal/src/
 - **Server-Side Rendering**: SEO optimization and performance
 - **Route Protection**: Authentication guards and role-based access
 - **Real-time Updates**: WebSocket integration for live notifications
-- **Responsive Design**: Mobile-first approach with Ant Design + Tailwind CSS
+- **Responsive Design**: Mobile-first approach with Ant Design + Tailwind CSS  
+- **Login Page**: Split-panel design with CAF branding and indigo/violet gradient  
+- **Sidebar**: Full organization name "Centro de Apoyo para la Familia A.C." with logo  
+- **CMS Image Upload**: Local file upload to server for "Sitio Web" gallery management
 
 ### Mobile Application (Flutter) - Provider Pattern
 

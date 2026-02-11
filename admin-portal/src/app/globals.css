@@ -132,11 +132,51 @@
 /* Responsive Enhancements */
 @media (max-width: 768px) {
   .admin-dashboard {
-    padding: 16px;
+    padding: 8px;
   }
-  
+
   .ant-card {
+    margin-bottom: 12px;
+    border-radius: 8px !important;
+  }
+
+  .dashboard-content {
+    margin: 8px !important;
+    padding: 12px !important;
+  }
+
+  .dashboard-header {
+    padding: 0 12px !important;
+    height: 56px !important;
+  }
+
+  /* Ant Design table mobile scroll */
+  .ant-table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Modal full-width on mobile */
+  .ant-modal {
+    max-width: calc(100vw - 32px) !important;
+    margin: 16px auto !important;
+  }
+
+  /* Form items tighter on mobile */
+  .ant-form-item {
     margin-bottom: 16px;
+  }
+
+  /* Tabs scrollable on mobile */
+  .ant-tabs-nav {
+    overflow-x: auto;
+  }
+}
+
+@media (min-width: 769px) {
+  .dashboard-content {
+    margin: 24px !important;
+    padding: 24px !important;
   }
 }
 
