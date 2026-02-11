@@ -23,7 +23,8 @@ import {
   BankOutlined,
   FileOutlined,
   BarChartOutlined,
-  HomeOutlined
+  HomeOutlined,
+  GlobalOutlined
 } from '@ant-design/icons';
 import ClientOnly from '@/components/ClientOnly';
 import ErrorBoundary from '@/components/ErrorBoundary';
@@ -52,6 +53,7 @@ const ICON_MAP = {
   'FileOutlined': FileOutlined,
   'BarChartOutlined': BarChartOutlined,
   'HomeOutlined': HomeOutlined,
+  'GlobalOutlined': GlobalOutlined,
 } as const;
 
 export default function DashboardLayout({ children }: { children: React.ReactNode; }) {

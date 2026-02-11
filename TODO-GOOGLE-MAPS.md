@@ -63,11 +63,18 @@ Make it easier for users to fill latitude/longitude in the office form:
 3. **Make lat/lng optional in the form**  
    - Marketing map already geocodes by address when lat/lng are missing. You can make lat/lng optional in the modal (remove "required" rule) and add help text: "Opcional. Si no se llenan, el mapa intentará ubicar la oficina por la dirección."
 
+### Contact Directory ✅ *Done*
+
+The contact page now includes a **Contact Directory** section that dynamically displays all offices from the API:
+- Office name, address, phone numbers (office + cell), and "Ver en Google Maps" links
+- Fetched from `apiUtils.fetchOffices()` on the client side
+- Card grid layout with responsive columns (1/2/3 depending on screen size)
+- Graceful loading state and empty state handling
+
 ### Other optional improvements
 
-- [ ] Make address in **ContactInfo** clickable (opens in Google Maps).
+- [x] ~~Sync ContactInfo with API (show offices from `GET /public/offices`)~~ → Done via Contact Directory
 - [ ] Add loading or fallback UI if the map script fails to load.
-- [ ] Sync **ContactInfo** with API (e.g. show primary office address from `GET /public/offices`) or keep it separate for general contact.
 
 ---
 

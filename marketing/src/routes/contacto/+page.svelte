@@ -1,235 +1,264 @@
 <script>
-    import { fade, slide } from 'svelte/transition';
-    import { cubicOut } from 'svelte/easing';
-    import { onMount } from 'svelte';
-    import ContactInfo from '$lib/components/ContactInfo.svelte';
-    import OfficeMap from '$lib/components/OfficeMap.svelte';
-    import { formValidator, commonRules } from '$lib/utils/formValidator.js';
-    import { apiUtils } from '$lib/utils/apiClient.js';
-    import { errorHandler } from '$lib/utils/errorHandler.js';
+  import { fade, slide } from 'svelte/transition';
+  import { cubicOut } from 'svelte/easing';
+  import { onMount } from 'svelte';
+  import OfficeMap from '$lib/components/OfficeMap.svelte';
+  import { formValidator, commonRules } from '$lib/utils/formValidator.js';
+  import { apiUtils } from '$lib/utils/apiClient.js';
+  import { errorHandler } from '$lib/utils/errorHandler.js';
+  import { config } from '$lib/config.js';
 
-    let formData = {
-      name: '',
-      email: '',
-      phone: '',
-      message: ''
-    };
+  let formData = { name: '', email: '', phone: '', message: '' };
+  let isSubmitting = false;
+  let formErrors = {};
+  let offices = [];
+  let loadingOffices = true;
 
-    let isSubmitting = false;
-    let formErrors = {};
+  onMount(async () => {
+    try {
+      const data = await apiUtils.fetchOffices();
+      offices = data || [];
+    } catch (err) {
+      console.warn('Failed to load offices:', err);
+    } finally {
+      loadingOffices = false;
+    }
+  });
 
-    // Handle form submission
-    async function handleSubmit(event) {
-      event.preventDefault();
-      
-      // Clear previous errors
-      formErrors = {};
-      formValidator.clearFieldErrors(document.getElementById('form'));
-      
-      // Validate form
-      const validation = formValidator.validateForm(formData, commonRules.contactForm);
-      
-      if (!validation.isValid) {
-        formErrors = validation.errors;
-        showFieldErrors();
-        return;
-      }
+  async function handleSubmit(event) {
+    event.preventDefault();
+    formErrors = {};
+    formValidator.clearFieldErrors(document.getElementById('form'));
 
-      isSubmitting = true;
-      
-      try {
-        const success = await apiUtils.submitContactForm(formData);
-        if (success) {
-          // Reset form
-          formData = { name: '', email: '', phone: '', message: '' };
-          formErrors = {};
-        }
-      } catch (error) {
-        errorHandler.handleError(error, 'contact_form_submission');
-      } finally {
-        isSubmitting = false;
-      }
+    const validation = formValidator.validateForm(formData, commonRules.contactForm);
+    if (!validation.isValid) {
+      formErrors = validation.errors;
+      showFieldErrors();
+      return;
     }
 
-    // Show field errors
-    function showFieldErrors() {
-      Object.keys(formErrors).forEach(fieldName => {
-        const field = document.getElementById(fieldName);
-        const container = field?.parentElement;
-        if (container) {
-          formValidator.showFieldErrors(fieldName, formErrors[fieldName], container);
-          formValidator.addErrorStyling(field);
-        }
-      });
+    isSubmitting = true;
+    try {
+      const success = await apiUtils.submitContactForm(formData);
+      if (success) {
+        formData = { name: '', email: '', phone: '', message: '' };
+        formErrors = {};
+      }
+    } catch (error) {
+      errorHandler.handleError(error, 'contact_form_submission');
+    } finally {
+      isSubmitting = false;
     }
+  }
 
-    // Handle field changes
-    function handleFieldChange(fieldName, value) {
-      formData[fieldName] = value;
-      
-      // Clear field errors when user starts typing
-      if (formErrors[fieldName]) {
-        delete formErrors[fieldName];
-        const field = document.getElementById(fieldName);
-        const container = field?.parentElement;
-        if (container) {
-          formValidator.clearFieldErrors(container);
-          formValidator.removeErrorStyling(field);
-        }
+  function showFieldErrors() {
+    Object.keys(formErrors).forEach(fieldName => {
+      const field = document.getElementById(fieldName);
+      const container = field?.parentElement;
+      if (container) {
+        formValidator.showFieldErrors(fieldName, formErrors[fieldName], container);
+        formValidator.addErrorStyling(field);
+      }
+    });
+  }
+
+  function handleFieldChange(fieldName, value) {
+    formData[fieldName] = value;
+    if (formErrors[fieldName]) {
+      delete formErrors[fieldName];
+      const field = document.getElementById(fieldName);
+      const container = field?.parentElement;
+      if (container) {
+        formValidator.clearFieldErrors(container);
+        formValidator.removeErrorStyling(field);
       }
     }
+  }
+</script>
 
-    // Optional: run API connectivity check only if you expose GET /health on the API (avoids 404 in console)
-    // onMount(() => { apiUtils.checkConnectivity(); });
-  </script>
-  
-  <svelte:head>
-    <title>Contacto y Ubicaciones - Centro de Apoyo para la Familia A.C.</title>
-    <meta name="description" content="Encuentre nuestras 5 oficinas en Ciudad Juárez. Póngase en contacto con nosotros por teléfono, correo electrónico o a través de nuestro formulario." />
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
-  </svelte:head>
-  
-  <!-- Page Header -->
-  <section class="relative bg-gradient-to-b from-blue-700 to-blue-800 text-white text-center overflow-hidden py-16 md:py-20">
-    <div class="absolute inset-0 bg-repeat bg-center opacity-5" style="background-image: url('/patterns/subtle-dots.svg');"></div>
-    <div class="container mx-auto px-6 relative z-10">
-      <h1
-        class="text-4xl md:text-5xl font-extrabold leading-tight mb-4 transform hover:scale-105 transition-transform duration-300"
-        in:fade={{ duration: 800, easing: cubicOut }}
-        aria-label="Contáctanos"
-      >
-        Contáctanos
-      </h1>
-      <p
-        class="text-lg md:text-xl text-blue-100 mb-8 max-w-3xl mx-auto"
-        in:slide={{ duration: 800, delay: 200, easing: cubicOut }}
-      >
-        Estamos aquí para escucharte. Encuentra la oficina más cercana o envíanos un mensaje.
-      </p>
-      <div in:slide={{ duration: 800, delay: 400, easing: cubicOut }}>
-        <a
-          href="#form"
-          class="bg-white text-blue-700 font-bold py-3 px-8 rounded-full text-lg hover:bg-blue-100 transition-transform transform hover:scale-105 shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          aria-label="Ir al formulario de contacto"
-        >
-          Enviar Mensaje
-        </a>
-      </div>
-    </div>
-    <div class="absolute bottom-0 left-0 w-full leading-[0] animate-wave">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320" preserveAspectRatio="none">
-        <path
-          fill="#ffffff"
-          fill-opacity="0.3"
-          d="M0,160L48,170.7C96,181,192,203,288,208C384,213,480,203,576,170.7C672,139,768,85,864,80C960,75,1056,117,1152,133.3C1248,149,1344,139,1392,133.3L1440,128L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"
-        ></path>
-        <path
-          fill="#f9fafb"
-          fill-opacity="1"
-          d="M0,224L48,208C96,192,192,160,288,160C384,160,480,192,576,218.7C672,245,768,267,864,250.7C960,235,1056,181,1152,170.7C1248,160,1344,192,1392,208L1440,224L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"
-        ></path>
-      </svg>
-    </div>
-  </section>
-  
-  <!-- Main Content Area -->
-  <section class="container mx-auto px-6 py-16">
-    <!-- Contact Information Section -->
-    <div class="mb-12" in:fade={{ duration: 800, easing: cubicOut }}>
-      <ContactInfo />
-    </div>
-    
-    <div class="grid lg:grid-cols-2 gap-8 md:gap-16">
-      <!-- Left Side: Map -->
-      <div in:fade={{ duration: 800, easing: cubicOut }}>
-        <h2 class="text-2xl md:text-3xl font-bold text-gray-800 mb-4">
-          Nuestras Oficinas en Ciudad Juárez
-        </h2>
-        <div class="rounded-lg overflow-hidden transform hover:scale-[1.02] transition-transform duration-300">
+<svelte:head>
+  <title>Contacto y Ubicaciones - Centro de Apoyo para la Familia A.C.</title>
+  <meta name="description" content="Encuentre nuestras oficinas y póngase en contacto con nosotros." />
+</svelte:head>
+
+<!-- Page Header -->
+<section class="relative bg-gradient-to-br from-primary-700 via-primary-800 to-accent-700 text-white overflow-hidden py-16 md:py-20">
+  <div class="container mx-auto px-6 relative z-10 text-center">
+    <h1 class="text-4xl md:text-5xl font-extrabold leading-tight mb-4" in:fade={{ duration: 800, easing: cubicOut }}>
+      Contáctanos
+    </h1>
+    <p class="text-lg md:text-xl text-primary-100 max-w-3xl mx-auto" in:slide={{ duration: 800, delay: 200, easing: cubicOut }}>
+      Estamos aquí para escucharte. Encuentra la oficina más cercana o envíanos un mensaje.
+    </p>
+  </div>
+  <div class="absolute bottom-0 left-0 w-full leading-[0]">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 120" preserveAspectRatio="none" class="w-full h-16 md:h-24">
+      <path fill="#f9fafb" d="M0,64L80,69.3C160,75,320,85,480,80C640,75,800,53,960,48C1120,43,1280,53,1360,58.7L1440,64L1440,120L0,120Z"></path>
+    </svg>
+  </div>
+</section>
+
+<!-- Contact Info + Map + Directory -->
+<section class="py-16 bg-gray-50">
+  <div class="container mx-auto px-6">
+    <!-- Map and Form side by side -->
+    <div class="grid lg:grid-cols-2 gap-10">
+      <!-- Left: Map -->
+      <div>
+        <h2 class="text-2xl font-bold text-gray-900 mb-4">Nuestras Oficinas</h2>
+        <div class="rounded-xl overflow-hidden shadow-md border border-gray-200">
           <OfficeMap defaultZoom={12} />
         </div>
       </div>
-  
-      <!-- Right Side: Contact Form and Info -->
-      <div in:slide={{ duration: 800, delay: 200, easing: cubicOut }}>
-        <h2 class="text-2xl md:text-3xl font-bold text-gray-800 mb-4">Envíanos un Mensaje</h2>
-        <form id="form" class="space-y-6 bg-white p-8 rounded-lg shadow-lg" on:submit={handleSubmit}>
+
+      <!-- Right: Contact Form -->
+      <div>
+        <h2 class="text-2xl font-bold text-gray-900 mb-4">Envíanos un Mensaje</h2>
+        <form id="form" class="space-y-5 bg-white p-8 rounded-xl shadow-sm border border-gray-100" on:submit={handleSubmit}>
           <div>
-            <label for="name" class="block text-sm font-medium text-gray-700">Nombre Completo</label>
+            <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Nombre Completo</label>
             <input
-              type="text"
-              id="name"
+              type="text" id="name"
               bind:value={formData.name}
               on:input={(e) => handleFieldChange('name', e.target.value)}
-              class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
               placeholder="Ingresa tu nombre completo"
-              required
-              aria-required="true"
-              disabled={isSubmitting}
+              required disabled={isSubmitting}
+              class="focus:ring-primary-500 focus:border-primary-500"
             />
           </div>
           <div>
-            <label for="email" class="block text-sm font-medium text-gray-700">Correo Electrónico</label>
+            <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Correo Electrónico</label>
             <input
-              type="email"
-              id="email"
+              type="email" id="email"
               bind:value={formData.email}
               on:input={(e) => handleFieldChange('email', e.target.value)}
-              class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
-              placeholder="Ingresa tu correo electrónico"
-              required
-              aria-required="true"
-              disabled={isSubmitting}
+              placeholder="correo@ejemplo.com"
+              required disabled={isSubmitting}
+              class="focus:ring-primary-500 focus:border-primary-500"
             />
           </div>
           <div>
-            <label for="phone" class="block text-sm font-medium text-gray-700">Teléfono (Opcional)</label>
+            <label for="phone" class="block text-sm font-medium text-gray-700 mb-1">Teléfono (Opcional)</label>
             <input
-              type="tel"
-              id="phone"
+              type="tel" id="phone"
               bind:value={formData.phone}
               on:input={(e) => handleFieldChange('phone', e.target.value)}
-              class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
-              placeholder="Ingresa tu número de teléfono"
+              placeholder="(###) ###-####"
               disabled={isSubmitting}
+              class="focus:ring-primary-500 focus:border-primary-500"
             />
           </div>
           <div>
-            <label for="message" class="block text-sm font-medium text-gray-700">Mensaje</label>
+            <label for="message" class="block text-sm font-medium text-gray-700 mb-1">Mensaje</label>
             <textarea
-              id="message"
+              id="message" rows="4"
               bind:value={formData.message}
               on:input={(e) => handleFieldChange('message', e.target.value)}
-              rows="4"
-              class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
               placeholder="Escribe tu mensaje aquí"
-              required
-              aria-required="true"
-              disabled={isSubmitting}
+              required disabled={isSubmitting}
+              class="focus:ring-primary-500 focus:border-primary-500"
             ></textarea>
           </div>
-          <div>
-            <button
-              type="submit"
-              class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition-transform transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-              aria-label="Enviar mensaje"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? 'Enviando...' : 'Enviar Mensaje'}
-            </button>
-          </div>
+          <button
+            type="submit"
+            class="w-full bg-gradient-to-r from-primary-600 to-accent-600 text-white font-bold py-3 px-4 rounded-lg hover:opacity-90 transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? 'Enviando...' : 'Enviar Mensaje'}
+          </button>
         </form>
       </div>
     </div>
-  </section>
-  
-  <style>
-    @keyframes wave {
-      0% { transform: translateY(0); }
-      50% { transform: translateY(-10px); }
-      100% { transform: translateY(0); }
-    }
-    .animate-wave {
-      animation: wave 4s ease-in-out infinite;
-    }
-  </style>
+
+    <!-- Office Directory -->
+    <div class="mt-16">
+      <h2 class="text-2xl font-bold text-gray-900 mb-6 text-center">Directorio de Oficinas</h2>
+      {#if loadingOffices}
+        <div class="text-center py-10 text-gray-500">Cargando directorio...</div>
+      {:else if offices.length > 0}
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {#each offices as office, i}
+            <div
+              class="bg-white rounded-xl p-6 shadow-sm border border-gray-100 card-lift"
+              in:slide={{ duration: 500, delay: i * 80, easing: cubicOut }}
+            >
+              <div class="flex items-start gap-3 mb-4">
+                <div class="w-10 h-10 bg-primary-100 text-primary-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                  </svg>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-900">{office.name}</h3>
+              </div>
+              <div class="space-y-2 text-sm text-gray-600">
+                {#if office.address}
+                  <div class="flex items-start gap-2">
+                    <svg class="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    <span>{office.address}</span>
+                  </div>
+                {/if}
+                {#if office.phoneOffice}
+                  <div class="flex items-center gap-2">
+                    <svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                    </svg>
+                    <a href="tel:{office.phoneOffice}" class="text-primary-600 hover:text-primary-700">{office.phoneOffice}</a>
+                  </div>
+                {/if}
+                {#if office.phoneCell}
+                  <div class="flex items-center gap-2">
+                    <svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                    </svg>
+                    <a href="tel:{office.phoneCell}" class="text-primary-600 hover:text-primary-700">{office.phoneCell}</a>
+                  </div>
+                {/if}
+              </div>
+              {#if office.latitude && office.longitude}
+                <div class="mt-4 pt-3 border-t border-gray-100">
+                  <a
+                    href="https://www.google.com/maps?q={office.latitude},{office.longitude}"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="text-xs text-primary-600 hover:text-primary-700 font-medium inline-flex items-center gap-1"
+                  >
+                    Ver en Google Maps
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                  </a>
+                </div>
+              {/if}
+            </div>
+          {/each}
+        </div>
+      {:else}
+        <div class="text-center py-10">
+          <p class="text-gray-500">No hay oficinas registradas.</p>
+        </div>
+      {/if}
+    </div>
+
+    <!-- General Contact Info -->
+    <div class="mt-12 bg-white rounded-xl p-8 shadow-sm border border-gray-100 max-w-2xl mx-auto text-center">
+      <h3 class="text-lg font-bold text-gray-900 mb-4">Información General</h3>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 text-sm">
+        <div>
+          <div class="text-gray-400 mb-1">Correo</div>
+          <a href="mailto:{config.contact.email}" class="text-primary-600 font-medium">{config.contact.email}</a>
+        </div>
+        <div>
+          <div class="text-gray-400 mb-1">Teléfono</div>
+          <a href="tel:{config.contact.phone}" class="text-primary-600 font-medium">{config.contact.phone}</a>
+        </div>
+        <div>
+          <div class="text-gray-400 mb-1">Horario</div>
+          <span class="text-gray-700">Lun-Vie: 8AM-6PM</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
