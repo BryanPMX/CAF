@@ -2,7 +2,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Modal, Form, Input, Select, Button, message } from 'antd';
+import { Modal, Form, Input, Select, Button, message, Row, Col } from 'antd';
+import { UserOutlined, MailOutlined, PhoneOutlined } from '@ant-design/icons';
 import Cookies from 'js-cookie';
 import { apiClient } from '@/app/lib/api';
 import { useAuth } from '@/context/AuthContext';
@@ -22,7 +23,9 @@ interface User {
   lastName: string;
   email: string;
   role: string;
-  officeId?: number; // officeId is optional, especially for clients.
+  officeId?: number;
+  phone?: string;
+  personalAddress?: string;
 }
 
 // Define the props (properties) that this component accepts from its parent.
@@ -68,7 +71,9 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
       if (isEditing) {
         form.setFieldsValue({
           ...user,
-          officeId: user.officeId, // Ensure officeId is set correctly
+          officeId: user.officeId,
+          phone: user.phone ?? '',
+          personalAddress: user.personalAddress ?? '',
         });
         setSelectedRole(user.role);
       } else {
@@ -163,6 +168,14 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
     return allRoles;
   };
 
+  const phonePattern = /^[\d\s\+\-\(\)\.]{7,25}$/;
+  const validatePhone = (_: unknown, value: string) => {
+    const s = (value ?? '').trim();
+    if (!s) return Promise.reject(new Error('El número de teléfono es requerido'));
+    if (!phonePattern.test(s)) return Promise.reject(new Error('Formato inválido. Use dígitos, espacios, +, -, () o . (ej: +52 656 123 4567)'));
+    return Promise.resolve();
+  };
+
   return (
     <Modal
       title={isEditing ? 'Editar Usuario' : 'Crear Nuevo Usuario'}
@@ -170,87 +183,111 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
       onCancel={onClose}
       onOk={handleOk}
       confirmLoading={loading}
-      destroyOnClose // This is a helpful prop that resets form fields when the modal is closed.
+      destroyOnClose
+      width={560}
     >
-      <Form form={form} layout="vertical">
-        <Form.Item name="firstName" label="Nombre(s)" rules={[{ required: true, message: 'El nombre es requerido' }]}>
-          <Input />
-        </Form.Item>
-        <Form.Item name="lastName" label="Apellidos" rules={[{ required: true, message: 'El apellido es requerido' }]}>
-          <Input />
-        </Form.Item>
+      <Form form={form} layout="vertical" className="mt-2">
+        <Row gutter={16}>
+          <Col xs={24} sm={12}>
+            <Form.Item name="firstName" label="Nombre(s)" rules={[{ required: true, message: 'El nombre es requerido' }]}>
+              <Input prefix={<UserOutlined style={{ color: '#bfbfbf' }} />} placeholder="Ej. María" />
+            </Form.Item>
+          </Col>
+          <Col xs={24} sm={12}>
+            <Form.Item name="lastName" label="Apellidos" rules={[{ required: true, message: 'El apellido es requerido' }]}>
+              <Input prefix={<UserOutlined style={{ color: '#bfbfbf' }} />} placeholder="Ej. García López" />
+            </Form.Item>
+          </Col>
+        </Row>
+
         <Form.Item
           name="email"
           label="Correo Electrónico Organizacional"
           rules={[
-            { required: true, message: 'El correo electrónico organizacional es requerido' },
+            { required: true, message: 'El correo electrónico es requerido' },
             { type: 'email', message: 'Ingrese un correo válido' },
           ]}
-          extra={selectedRole && selectedRole !== 'client' ? 'Requerido: ingrese el correo organizacional o se generará uno corporativo automáticamente.' : undefined}
+          extra={selectedRole && selectedRole !== 'client' ? 'Si se deja vacío se generará uno corporativo automáticamente.' : undefined}
         >
-          <Input placeholder="ejemplo@caf.org" />
+          <Input prefix={<MailOutlined style={{ color: '#bfbfbf' }} />} placeholder="ejemplo@caf.org" />
         </Form.Item>
-        {/* The password field is only required and visible when creating a new user. */}
+
+        <Form.Item
+          name="phone"
+          label="Número de Teléfono"
+          rules={[{ required: true, message: 'El teléfono es requerido' }, { validator: validatePhone }]}
+        >
+          <Input prefix={<PhoneOutlined style={{ color: '#bfbfbf' }} />} placeholder="+52 656 123 4567" />
+        </Form.Item>
+
+        <Form.Item
+          name="personalAddress"
+          label="Domicilio Personal (opcional)"
+        >
+          <Input.TextArea
+            placeholder="Calle, número, colonia, ciudad, estado, CP"
+            rows={2}
+            showCount
+            maxLength={500}
+          />
+        </Form.Item>
+
         {!isEditing && (
           <Form.Item name="password" label="Contraseña Temporal" rules={[{ required: true, min: 8, message: 'La contraseña debe tener al menos 8 caracteres' }]}>
-            <Input.Password />
+            <Input.Password placeholder="Mínimo 8 caracteres" />
           </Form.Item>
         )}
-        <Form.Item name="role" label="Rol" rules={[{ required: true, message: 'Seleccione un rol' }]}>
-          <Select placeholder="Asignar un rol" onChange={handleRoleChange}>
-            {getAvailableRoles().map((role) => (
-               <Option key={role.value} value={role.value}>
-                 {role.label}
-              </Option>
-            ))}
-          </Select>
-        </Form.Item>
-        {/* Office assignment field - always visible */}
-        <Form.Item 
-          name="officeId" 
-          label="Oficina"
-          rules={
-            // For office managers creating staff, backend auto-assigns office, so not required on frontend
-            selectedRole && requiresOffice(selectedRole as StaffRoleKey) && currentUserRole !== 'office_manager'
-              ? [{ required: true, message: 'Debe asignar una oficina al personal' }]
-              : []
-          }
-        >
-          <Select
-            placeholder={selectedRole ? "Seleccione una oficina" : "Primero seleccione un rol"}
-            allowClear={selectedRole === USER_ROLES.CLIENT}
-            disabled={
-              !selectedRole || 
-              // Office managers can only choose office for clients, not for staff
-              (currentUserRole === 'office_manager' && selectedRole !== USER_ROLES.CLIENT)
-            }
-            showSearch
-            filterOption={(input, option) =>
-              option?.children?.toString().toLowerCase().includes(input.toLowerCase()) ?? false
-            }
-          >
-            {offices.map(office => (
-              <Option key={office.id} value={office.id}>
-                {office.name}
-              </Option>
-            ))}
-          </Select>
-        </Form.Item>
-        {/* Helper text for office managers creating staff */}
+
+        <Row gutter={16}>
+          <Col xs={24} sm={12}>
+            <Form.Item name="role" label="Rol" rules={[{ required: true, message: 'Seleccione un rol' }]}>
+              <Select placeholder="Asignar un rol" onChange={handleRoleChange}>
+                {getAvailableRoles().map((role) => (
+                  <Option key={role.value} value={role.value}>{role.label}</Option>
+                ))}
+              </Select>
+            </Form.Item>
+          </Col>
+          <Col xs={24} sm={12}>
+            <Form.Item
+              name="officeId"
+              label="Oficina"
+              rules={
+                selectedRole && requiresOffice(selectedRole as StaffRoleKey) && currentUserRole !== 'office_manager'
+                  ? [{ required: true, message: 'Debe asignar una oficina al personal' }]
+                  : []
+              }
+            >
+              <Select
+                placeholder={selectedRole ? 'Seleccione una oficina' : 'Primero seleccione un rol'}
+                allowClear={selectedRole === USER_ROLES.CLIENT}
+                disabled={!selectedRole || (currentUserRole === 'office_manager' && selectedRole !== USER_ROLES.CLIENT)}
+                showSearch
+                filterOption={(input, option) =>
+                  (option?.children?.toString() ?? '').toLowerCase().includes(input.toLowerCase())
+                }
+              >
+                {offices.map(office => (
+                  <Option key={office.id} value={office.id}>{office.name}</Option>
+                ))}
+              </Select>
+            </Form.Item>
+          </Col>
+        </Row>
+
         {currentUserRole === 'office_manager' && selectedRole && selectedRole !== USER_ROLES.CLIENT && (
-          <div style={{ color: '#1890ff', fontSize: '12px', marginTop: '-16px', marginBottom: '8px' }}>
+          <div style={{ color: '#1890ff', fontSize: '12px', marginTop: -8, marginBottom: 8 }}>
             ℹ️ El personal se asignará automáticamente a su oficina
           </div>
         )}
-        {/* Helper text and status messages */}
         {!selectedRole && (
-          <div style={{ color: '#999', fontSize: '12px', marginTop: '-16px', marginBottom: '8px' }}>
+          <div style={{ color: '#999', fontSize: '12px', marginTop: -8, marginBottom: 8 }}>
             ℹ️ Seleccione un rol primero para asignar una oficina
           </div>
         )}
         {offices.length === 0 && (
-          <div style={{ color: 'red', fontSize: '12px', marginTop: '-16px', marginBottom: '8px' }}>
-            ⚠️ No hay oficinas disponibles. contacte al administrador.
+          <div style={{ color: '#ff4d4f', fontSize: '12px', marginTop: -8, marginBottom: 8 }}>
+            ⚠️ No hay oficinas disponibles. Contacte al administrador.
           </div>
         )}
       </Form>

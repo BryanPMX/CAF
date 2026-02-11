@@ -18,6 +18,10 @@ type User struct {
 	OfficeID *uint   `json:"officeId,omitempty"`
 	Office   *Office `gorm:"foreignKey:OfficeID" json:"office,omitempty"`
 
+	// Contact and address
+	Phone          string  `gorm:"size:50" json:"phone"`
+	PersonalAddress *string `gorm:"type:text" json:"personalAddress,omitempty"`
+
 	// NEW: Department/Specialty for staff members
 	Department *string `gorm:"size:100" json:"department,omitempty"` // e.g., "Legal", "Psychology", "Administration"
 	Specialty  *string `gorm:"size:100" json:"specialty,omitempty"`  // e.g., "Criminal Law", "Family Therapy", "HR"

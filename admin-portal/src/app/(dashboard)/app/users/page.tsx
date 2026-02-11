@@ -18,8 +18,10 @@ interface User {
   lastName: string;
   email: string;
   role: string;
-  officeId?: number; // officeId for form editing
-  office?: { name: string }; // The office is optional, as clients won't have one.
+  officeId?: number;
+  office?: { name: string };
+  phone?: string;
+  personalAddress?: string;
 }
 
 interface Office { id: number; name: string; }
