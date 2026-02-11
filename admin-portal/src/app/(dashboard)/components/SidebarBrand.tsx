@@ -18,36 +18,35 @@ export default function SidebarBrand() {
   };
 
   return (
-    <Link href="/" className="sidebar-brand block border-b border-white/10">
-      <div className="flex flex-col items-center justify-center text-white py-5 pl-4 pr-4 min-h-[72px]">
-        <div className="flex items-center gap-3 w-full justify-start">
-          <div className="relative flex-shrink-0 w-[72px] min-w-[72px] h-10 rounded-xl bg-white/10 flex items-center justify-center overflow-hidden ring-1 ring-white/5">
-            {!logoError && (
-              <Image
-                src="/logo.png"
-                alt=""
-                width={72}
-                height={40}
-                className="object-contain object-left"
-                onError={handleLogoError}
-                priority
-              />
-            )}
-            {logoError && (
-              <span className="text-lg font-bold tracking-wider text-white" aria-hidden>
-                C
-              </span>
-            )}
-          </div>
-          <div className="sidebar-brand-label flex flex-col items-start min-w-0">
-            <span className="text-xl font-bold tracking-widest text-white leading-tight">
-              CAF
-            </span>
-            <span className="text-[11px] font-medium text-white/70 tracking-widest uppercase">
-              Portal
-            </span>
-          </div>
-        </div>
+    <Link
+      href="/"
+      className="sidebar-brand flex items-center gap-3 pl-4 pr-3 py-4 min-h-[64px] w-full text-left transition-colors hover:bg-white/[0.06] active:bg-white/[0.08]"
+    >
+      <div className="sidebar-brand-logo relative flex-shrink-0 w-11 h-11 rounded-lg bg-gradient-to-br from-indigo-500/90 to-violet-600/90 flex items-center justify-center overflow-hidden shadow-lg shadow-black/20">
+        {!logoError && (
+          <Image
+            src="/logo.png"
+            alt=""
+            width={44}
+            height={44}
+            className="object-contain p-0.5"
+            onError={handleLogoError}
+            priority
+          />
+        )}
+        {logoError && (
+          <span className="text-lg font-bold text-white/95 tracking-tight" aria-hidden>
+            C
+          </span>
+        )}
+      </div>
+      <div className="sidebar-brand-label flex flex-col items-start justify-center min-w-0 flex-1">
+        <span className="text-[1.15rem] font-semibold tracking-tight text-white leading-none">
+          CAF
+        </span>
+        <span className="text-[10px] font-medium tracking-[0.2em] text-white/50 uppercase mt-0.5">
+          Portal
+        </span>
       </div>
     </Link>
   );
