@@ -19,16 +19,16 @@ export default function SidebarBrand() {
 
   return (
     <Link href="/" className="sidebar-brand block border-b border-white/10">
-      <div className="flex flex-col items-center justify-center text-white py-5 px-4 min-h-[72px]">
-        <div className="flex items-center gap-3 w-full justify-center">
-          <div className="relative flex-shrink-0 w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center overflow-hidden ring-1 ring-white/5">
+      <div className="flex flex-col items-center justify-center text-white py-5 pl-4 pr-4 min-h-[72px]">
+        <div className="flex items-center gap-3 w-full justify-start">
+          <div className="relative flex-shrink-0 w-[72px] min-w-[72px] h-10 rounded-xl bg-white/10 flex items-center justify-center overflow-hidden ring-1 ring-white/5">
             {!logoError && (
               <Image
                 src="/logo.png"
                 alt=""
-                width={40}
+                width={72}
                 height={40}
-                className="object-contain"
+                className="object-contain object-left"
                 onError={handleLogoError}
                 priority
               />
