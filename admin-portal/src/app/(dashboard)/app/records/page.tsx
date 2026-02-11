@@ -543,7 +543,7 @@ const RecordsPage: React.FC = () => {
         subTitle="No tiene permisos para acceder a esta sección. Solo administradores y gerentes de oficina pueden acceder a los archivos."
         extra={
           <Button type="primary" onClick={() => router.push('/')}>
-            Volver al Dashboard
+            Volver al Tablero
           </Button>
         }
       />

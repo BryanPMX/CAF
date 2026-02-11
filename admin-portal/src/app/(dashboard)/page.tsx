@@ -80,10 +80,10 @@ const RoleBasedDashboard: React.FC<{
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <Typography.Title level={2} className="!mb-1">
-            Dashboard
+            Panel de Control
           </Typography.Title>
           <Typography.Text type="secondary">
-            Resumen de casos y citas
+            Resumen de Casos y Citas Asignados
             {selectedOfficeId && data.offices && data.offices.length > 0 && (
               <span> - {data.offices.find(o => o.id.toString() === selectedOfficeId)?.name || 'Oficina'}</span>
             )}
