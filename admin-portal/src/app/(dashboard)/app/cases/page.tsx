@@ -325,11 +325,11 @@ const CaseManagementPage = () => {
     fetchCases(1);
   }, [cache, fetchCases]);
 
-  // Optimized table columns with memoization
+  // Optimized table columns with memoization. Widths set so headers (e.g. "Fecha de Creación") are not cut off; table scrolls horizontally when needed.
   const columns = useMemo(() => [
-    { 
-      title: 'Título del Caso', 
-      dataIndex: 'title', 
+    {
+      title: 'Título del Caso',
+      dataIndex: 'title',
       key: 'title',
       width: 200,
       ellipsis: true,
@@ -337,37 +337,42 @@ const CaseManagementPage = () => {
         <Tooltip title={text}>
           <span>{text}</span>
         </Tooltip>
-      )
+      ),
     },
-    { 
-      title: 'Departamento', 
-      dataIndex: 'category', 
+    {
+      title: 'Departamento',
+      dataIndex: 'category',
       key: 'category',
-      width: 120,
+      width: 130,
     },
     {
       title: 'Número de Expediente',
       dataIndex: 'docketNumber',
       key: 'docketNumber',
-      width: 150,
+      width: 160,
       render: (docketNumber: string) => docketNumber || '-',
     },
     {
       title: 'Juzgado',
       dataIndex: 'court',
       key: 'court',
-      width: 150,
+      width: 140,
       render: (court: string) => court || '-',
     },
     {
       title: 'Cliente',
       dataIndex: ['client'],
       key: 'client',
-      width: 150,
+      width: 160,
+      ellipsis: true,
       render: (_: any, record: any) => {
-        // Display actual client name if available
         if (record.client && record.client.firstName && record.client.lastName) {
-          return `${record.client.firstName} ${record.client.lastName}`;
+          const name = `${record.client.firstName} ${record.client.lastName}`;
+          return (
+            <Tooltip title={name}>
+              <span>{name}</span>
+            </Tooltip>
+          );
         }
         return 'Sin asignar';
       },
@@ -376,12 +381,9 @@ const CaseManagementPage = () => {
       title: 'Oficina',
       dataIndex: ['office', 'name'],
       key: 'office',
-      width: 120,
+      width: 130,
       render: (_: any, record: any) => {
-        // Display actual office name if available
-        if (record.office && record.office.name) {
-          return record.office.name;
-        }
+        if (record.office && record.office.name) return record.office.name;
         return 'Sin asignar';
       },
     },
@@ -389,12 +391,10 @@ const CaseManagementPage = () => {
       title: 'Fase del Caso',
       dataIndex: 'currentStage',
       key: 'currentStage',
-      width: 150,
+      width: 160,
       render: (currentStage: string, record: any) => {
-        // Get proper Spanish label for the stage
         const stageLabels = getStageLabels(record.category || '');
         const stageLabel = stageLabels[currentStage] || currentStage || 'Sin definir';
-        
         let color = 'default';
         if (record.category === 'Familiar' || record.category === 'Civil') {
           switch (currentStage) {
@@ -416,7 +416,6 @@ const CaseManagementPage = () => {
             default: color = 'default';
           }
         }
-        
         return <Tag color={color}>{stageLabel}</Tag>;
       },
     },
@@ -424,7 +423,7 @@ const CaseManagementPage = () => {
       title: 'Fecha de Creación',
       dataIndex: 'createdAt',
       key: 'createdAt',
-      width: 120,
+      width: 150,
       render: (date: string) => new Date(date).toLocaleDateString(),
       sorter: (a: CaseType, b: CaseType) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
     },
@@ -440,6 +439,9 @@ const CaseManagementPage = () => {
       ),
     },
   ], []);
+
+  // Minimum table width so all column headers fit; horizontal scroll on narrow viewports
+  const tableScroll = useMemo(() => ({ x: 1320 }), []);
 
   const DEPARTMENTS = ['Familiar', 'Civil', 'Psicologia', 'Recursos'];
   const CASE_TYPES = [
@@ -540,6 +542,7 @@ const CaseManagementPage = () => {
           dataSource={Array.isArray(cases) ? cases : []}
           rowKey="id"
           loading={loading}
+          scroll={tableScroll}
           pagination={{
             current: currentPage,
             pageSize: pageSize,
