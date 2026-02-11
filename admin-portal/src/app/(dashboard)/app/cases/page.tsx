@@ -553,7 +553,6 @@ const CaseManagementPage = () => {
               `${range[0]}-${range[1]} de ${total} casos`,
             onChange: (page) => fetchCases(page),
           }}
-          scroll={{ x: 1200 }}
           locale={{ 
             emptyText: loading ? 'Cargando casos...' : (
               <div style={{ padding: '40px 20px', textAlign: 'center' }}>

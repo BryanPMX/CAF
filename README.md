@@ -287,12 +287,26 @@ NEXT_PUBLIC_API_URL=http://localhost:8080/api/v1
 NEXT_PUBLIC_ENV=development
 ```
 
-## Local Development Only
+## File Storage
 
-This system is designed exclusively for local development:
-- **S3 Storage**: Simulated using LocalStack (http://localhost:4566)
+Document uploads use a **Strategy Pattern** with two backends:
+
+| Backend | When Used | Storage Location |
+|---------|-----------|------------------|
+| **S3** | AWS credentials / LocalStack configured | S3 bucket (`caf-system-bucket`) |
+| **Local** | No AWS configured (self-hosted / production) | Docker volume at `/app/uploads` |
+
+The storage provider is selected automatically at startup:
+1. If `InitS3()` succeeds and the bucket is accessible → **S3Storage**
+2. Otherwise → **LocalStorage** (files on server disk, persisted via Docker volume)
+
+Local file URLs use the `local://` scheme (e.g. `local://cases/42/uuid.pdf`).
+
+### Local Development
+
+- **S3 Storage**: Simulated using LocalStack (http://localhost:4566) when Docker dev stack is running
 - **Database**: Local PostgreSQL container
-- **File Uploads**: Stored locally in LocalStack S3 simulation
+- **File Uploads**: Stored in LocalStack S3 or local filesystem depending on environment
 - **Environment**: Pre-configured for development
 - **Cost**: Zero ongoing costs
 
@@ -483,7 +497,7 @@ docker-compose up -d
 
 ### DevOps & Deployment
 - **Containerization**: Docker + Docker Compose
-- **Local Development**: Full local stack (API, DB, S3)
+- **Local Development**: Full local stack (API, DB, S3 or local storage)
 - **Testing**: Comprehensive automated test suite
 - **CI/CD**: Git-based workflow with automated testing
 - **Monitoring**: Health checks and metrics endpoints
