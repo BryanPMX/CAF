@@ -11,6 +11,28 @@ export interface ValidationSchema<T = any> {
   [key: string]: ValidationRule<T> | ValidationRule<T>[];
 }
 
+/** Phone number: digits, spaces, +, -, (), . ; length 7–25. Shared by user and office forms. */
+export const PHONE_PATTERN = /^[\d\s\+\-\(\)\.]{7,25}$/;
+
+export const PHONE_FORMAT_MESSAGE =
+  'Formato inválido. Use dígitos, espacios, +, -, () o . (ej: +52 656 123 4567)';
+
+/**
+ * Returns an Ant Design Form rule validator for phone.
+ * @param required - If true, empty value fails validation.
+ */
+export function createPhoneFormRule(required: boolean) {
+  return (_: unknown, value: unknown): Promise<void> => {
+    const s = typeof value === 'string' ? value.trim() : '';
+    if (!s) {
+      if (required) return Promise.reject(new Error('El número de teléfono es requerido'));
+      return Promise.resolve();
+    }
+    if (!PHONE_PATTERN.test(s)) return Promise.reject(new Error(PHONE_FORMAT_MESSAGE));
+    return Promise.resolve();
+  };
+}
+
 // Common Validation Rules
 export const ValidationRules = {
   required: (message = 'This field is required'): ValidationRule => ({

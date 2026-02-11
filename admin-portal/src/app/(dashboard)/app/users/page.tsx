@@ -119,7 +119,9 @@ const UserManagementPage = () => {
       const endpoint = user.role === 'admin' ? '/admin/offices' : '/offices';
       apiClient.get(endpoint).then(res => setOffices(res.data)).catch(() => {});
     }
-  }, [isHydrated, user]); // Re-run when user changes
+    // Intentionally omit fetchUsers/searchParams from deps: run once when hydrated and user is set; re-running on fetchUsers identity would cause redundant fetches.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isHydrated, user]);
 
   useEffect(() => {
     // Persist filters to sessionStorage and URL; refetch
@@ -151,6 +153,8 @@ const UserManagementPage = () => {
     if (shouldFetch) {
       fetchUsers();
     }
+    // Omit fetchUsers and router: we only want to run when filter state changes; fetchUsers is stable in practice and router is stable from Next.js.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedOfficeId, activity, roleFilter, debouncedQ, page, pageSize]);
 
   // Debounce free-text search input

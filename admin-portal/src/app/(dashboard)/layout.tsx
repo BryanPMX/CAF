@@ -5,8 +5,8 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { Layout, Menu, Spin, Button, Space, Alert } from 'antd';
-import Image from 'next/image';
 import { LogoutOutlined } from '@ant-design/icons';
+import SidebarBrand from './components/SidebarBrand';
 import { useAuth } from '@/context/AuthContext';
 import { UserRole } from '@/app/lib/types';
 import {
@@ -179,22 +179,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <ClientOnly fallback={<div className="flex items-center justify-center min-h-screen"><Spin size="large" /></div>}>
         <Layout style={{ minHeight: '100vh' }}>
         <Sider collapsible>
-          <div className="flex flex-col items-start text-white py-4 px-4">
-            <div className="flex items-center gap-3">
-              <Image 
-                src="/logo.png" 
-                alt="CAF" 
-                width={32} 
-                height={32} 
-                onError={(e:any)=>{e.currentTarget.style.display='none';}}
-                priority
-              />
-              <span className="text-lg font-bold">CAF</span>
-            </div>
-          </div>
-          <Menu 
-            theme="dark" 
-            selectedKeys={[selectedKey]} 
+          <SidebarBrand />
+          <Menu
+            theme="dark"
+            selectedKeys={[selectedKey]}
             mode="inline"
             items={filteredMenuItems}
           />
