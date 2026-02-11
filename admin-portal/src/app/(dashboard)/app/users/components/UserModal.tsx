@@ -2,13 +2,13 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Modal, Form, Input, Select, Button, message, Row, Col } from 'antd';
+import { Modal, Form, Input, Select, message, Row, Col } from 'antd';
 import { UserOutlined, MailOutlined, PhoneOutlined } from '@ant-design/icons';
 import Cookies from 'js-cookie';
 import { apiClient } from '@/app/lib/api';
 import { useAuth } from '@/context/AuthContext';
-import { STAFF_ROLES, requiresOffice, getAllRoles, USER_ROLES, type StaffRoleKey } from '@/config/roles';
-import type { AuthUser } from '@/app/lib/types';
+import { requiresOffice, getAllRoles, USER_ROLES, type StaffRoleKey } from '@/config/roles';
+import { createPhoneFormRule } from '@/core/validation';
 
 const { Option } = Select;
 
@@ -168,14 +168,6 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
     return allRoles;
   };
 
-  const phonePattern = /^[\d\s\+\-\(\)\.]{7,25}$/;
-  const validatePhone = (_: unknown, value: string) => {
-    const s = (value ?? '').trim();
-    if (!s) return Promise.reject(new Error('El número de teléfono es requerido'));
-    if (!phonePattern.test(s)) return Promise.reject(new Error('Formato inválido. Use dígitos, espacios, +, -, () o . (ej: +52 656 123 4567)'));
-    return Promise.resolve();
-  };
-
   return (
     <Modal
       title={isEditing ? 'Editar Usuario' : 'Crear Nuevo Usuario'}
@@ -215,7 +207,7 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
         <Form.Item
           name="phone"
           label="Número de Teléfono"
-          rules={[{ required: true, message: 'El teléfono es requerido' }, { validator: validatePhone }]}
+          rules={[{ required: true, message: 'El teléfono es requerido' }, { validator: createPhoneFormRule(true) }]}
         >
           <Input prefix={<PhoneOutlined style={{ color: '#bfbfbf' }} />} placeholder="+52 656 123 4567" />
         </Form.Item>
