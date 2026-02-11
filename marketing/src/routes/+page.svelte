@@ -50,30 +50,30 @@
   <div class="absolute inset-0 opacity-10">
     <div class="absolute inset-0" style="background-image: radial-gradient(circle at 25% 25%, rgba(255,255,255,0.15) 0%, transparent 50%);"></div>
   </div>
-  <div class="container mx-auto px-6 py-20 md:py-28 relative z-10">
+  <div class="container mx-auto px-4 sm:px-6 py-14 sm:py-20 md:py-28 relative z-10">
     <div class="max-w-4xl mx-auto text-center">
       <h1
-        class="text-4xl md:text-6xl font-extrabold leading-tight mb-6 tracking-tight"
+        class="text-3xl sm:text-4xl md:text-6xl font-extrabold leading-tight mb-4 sm:mb-6 tracking-tight"
         in:fade={{ duration: 800, easing: cubicOut }}
       >
         {hero.title || 'Fortaleciendo Familias, Construyendo Comunidad'}
       </h1>
       <p
-        class="text-lg md:text-xl text-primary-100 mb-10 max-w-3xl mx-auto leading-relaxed"
+        class="text-base sm:text-lg md:text-xl text-primary-100 mb-8 sm:mb-10 max-w-3xl mx-auto leading-relaxed"
         in:slide={{ duration: 800, delay: 200, easing: cubicOut }}
       >
         {hero.subtitle || 'Centro de Apoyo para la Familia A.C. brinda servicios legales, psicológicos y de asistencia social.'}
       </p>
-      <div class="flex flex-col sm:flex-row justify-center gap-4" in:slide={{ duration: 800, delay: 400, easing: cubicOut }}>
+      <div class="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4" in:slide={{ duration: 800, delay: 400, easing: cubicOut }}>
         <a
           href="/contacto"
-          class="bg-white text-primary-700 font-bold py-3.5 px-8 rounded-lg text-lg hover:bg-primary-50 transition-all shadow-lg hover:shadow-xl"
+          class="bg-white text-primary-700 font-bold py-3.5 px-8 rounded-lg text-base sm:text-lg hover:bg-primary-50 transition-all shadow-lg hover:shadow-xl text-center"
         >
           {hero.cta_primary || 'Contáctenos'}
         </a>
         <a
           href="/servicios"
-          class="border-2 border-white/80 text-white font-bold py-3.5 px-8 rounded-lg text-lg hover:bg-white/10 transition-all"
+          class="border-2 border-white/80 text-white font-bold py-3.5 px-8 rounded-lg text-base sm:text-lg hover:bg-white/10 transition-all text-center"
         >
           {hero.cta_secondary || 'Nuestros Servicios'}
         </a>
@@ -89,9 +89,9 @@
 </section>
 
 <!-- About / Mission Section -->
-<section class="py-20 bg-gray-50">
-  <div class="container mx-auto px-6">
-    <div class="max-w-3xl mx-auto text-center mb-16">
+<section class="py-12 sm:py-20 bg-gray-50">
+  <div class="container mx-auto px-4 sm:px-6">
+    <div class="max-w-3xl mx-auto text-center mb-10 sm:mb-16">
       <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-6">
         {about.title || 'Sobre Nosotros'}
       </h2>
@@ -131,9 +131,9 @@
 </section>
 
 <!-- Services Overview -->
-<section class="py-20 bg-white">
-  <div class="container mx-auto px-6">
-    <div class="text-center mb-14">
+<section class="py-12 sm:py-20 bg-white">
+  <div class="container mx-auto px-4 sm:px-6">
+    <div class="text-center mb-10 sm:mb-14">
       <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Nuestros Servicios</h2>
       <p class="text-lg text-gray-600 max-w-2xl mx-auto">Un enfoque integral para el bienestar de su familia.</p>
     </div>

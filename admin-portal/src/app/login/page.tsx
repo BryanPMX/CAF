@@ -1,8 +1,10 @@
+// admin-portal/src/app/login/page.tsx
+// Login page with CAF indigo/violet branding, mobile-responsive, and secure auth.
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import { Form, Input, Button, Card, message, Alert, Typography, Spin } from 'antd';
-import { UserOutlined, LockOutlined, HeartOutlined, TeamOutlined } from '@ant-design/icons';
+import { Form, Input, Button, message, Alert, Typography, Spin } from 'antd';
+import { UserOutlined, LockOutlined } from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { apiClient } from '@/app/lib/api';
@@ -12,9 +14,8 @@ import { useAuth } from '@/context/AuthContext';
 import ClientOnly from '@/components/ClientOnly';
 import { logVersionInfo, isCorrectDomain } from '@/app/lib/version';
 
-const { Title, Text, Paragraph } = Typography;
+const { Title, Text } = Typography;
 
-// Role-based redirect configuration
 const ROLE_REDIRECTS: Record<UserRole, string> = {
   admin: '/admin',
   office_manager: '/admin',
@@ -31,79 +32,57 @@ export default function LoginPage() {
   const router = useRouter();
   const { login, error: authError, clearError, isAuthenticated } = useAuth();
 
-  // Ensure component is mounted before rendering
   useEffect(() => {
     setMounted(true);
     logVersionInfo();
-    
-    // Check if we're on the correct domain
     if (!isCorrectDomain()) {
-      console.warn('⚠️ Login page loaded on unexpected domain:', window.location.hostname);
+      console.warn('Login page loaded on unexpected domain:', window.location.hostname);
     }
   }, []);
 
-  // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated) {
       router.replace('/');
     }
   }, [isAuthenticated, router]);
 
-  // Centralized login orchestrator - delegates all state management to AuthContext
   const handleLogin = useCallback(async (values: LoginFormData) => {
     setLoading(true);
     clearError();
-    
+
     try {
-      // Step 1: Make the login API call
       const response = await apiClient.post('/login', values);
-      
+
       if (response.data.token && response.data.user) {
-        // Step 2: CRITICAL - Delegate state management to AuthContext
-        // AuthContext.login() is the single authoritative method for setting auth state
-        // It will atomically store token and user data in localStorage
-        // and update the React state immediately
         login(response.data.user, response.data.token);
-        
-        // Step 3: Log success
         logApiSuccess('User logged in successfully', 'LoginPage', { email: values.email });
-        
-        // Step 4: Show the single, correct welcome message
-        message.success('¡Bienvenido al Sistema CAF!');
-        
-        // Step 5: Determine redirect path based on user role
+        message.success('Bienvenido al Sistema CAF');
+
         const userRole = response.data.user?.role as UserRole;
         const redirectPath = ROLE_REDIRECTS[userRole] || '/';
-        
-        // Step 6: Redirect immediately after state is updated
-        // No setTimeout, no delays, no race conditions
         router.push(redirectPath);
-        
       } else {
         throw new Error('Invalid response from server');
       }
-      
     } catch (error: any) {
       console.error('Login error:', error);
       handleApiError(error, 'LoginPage');
-      
-      // Show user-friendly error message
+
       if (error?.response?.status === 401) {
-        message.error('Credenciales inválidas. Verifica tu email y contraseña.');
+        message.error('Credenciales inválidas. Verifique su correo y contraseña.');
       } else if (error?.response?.status === 429) {
-        message.error('Demasiados intentos. Espera un momento antes de intentar nuevamente.');
+        message.error('Demasiados intentos. Espere un momento antes de intentar nuevamente.');
       } else {
-        message.error('Error al iniciar sesión. Intenta nuevamente.');
+        message.error('Error al iniciar sesión. Intente nuevamente.');
       }
     } finally {
       setLoading(false);
     }
   }, [login, clearError, router]);
 
-  // Don't render if not mounted or already authenticated
   if (!mounted || isAuthenticated) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
         <Spin size="large" />
       </div>
     );
@@ -111,131 +90,232 @@ export default function LoginPage() {
 
   return (
     <ClientOnly>
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-        <div className="w-full max-w-md">
-          {/* Header */}
-          <div className="text-center mb-8">
-            <div className="flex justify-center mb-4">
-              <Image 
-                src="/logo.png" 
-                alt="CAF Logo" 
-                width={80} 
+      <div className="login-page">
+        {/* Left decorative panel (hidden on mobile) */}
+        <div className="login-brand-panel">
+          <div className="login-brand-inner">
+            <div className="login-brand-logo-wrap">
+              <Image
+                src="/logo.png"
+                alt="CAF Logo"
+                width={80}
                 height={80}
-                className="rounded-full shadow-lg"
+                className="login-brand-logo"
                 onError={(e: any) => { e.currentTarget.style.display = 'none'; }}
                 priority
               />
             </div>
-            <Title level={2} className="text-gray-800 mb-2">
-              Sistema CAF
-            </Title>
-            <Text className="text-gray-600">
-              Centro de Apoyo para la Familia
-            </Text>
+            <h1 className="login-brand-title">Centro de Apoyo<br/>para la Familia A.C.</h1>
+            <p className="login-brand-subtitle">
+              Brindamos apoyo legal, psicol&oacute;gico y social a familias que lo necesitan.
+            </p>
           </div>
+          <div className="login-brand-dots" />
+        </div>
 
-          {/* Login Card */}
-          <Card className="shadow-xl border-0 rounded-2xl">
-            <div className="text-center mb-6">
-              <Title level={3} className="text-gray-800 mb-2">
-                Iniciar Sesión
+        {/* Right login form */}
+        <div className="login-form-panel">
+          <div className="login-form-container">
+            {/* Mobile-only logo */}
+            <div className="login-mobile-logo">
+              <Image
+                src="/logo.png"
+                alt="CAF Logo"
+                width={56}
+                height={56}
+                onError={(e: any) => { e.currentTarget.style.display = 'none'; }}
+                priority
+              />
+            </div>
+
+            <div style={{ textAlign: 'center', marginBottom: 32 }}>
+              <Title level={3} style={{ margin: 0, color: '#1e293b', fontWeight: 700 }}>
+                Iniciar Sesi&oacute;n
               </Title>
-              <Text className="text-gray-600">
-                Accede a tu cuenta para continuar
+              <Text style={{ color: '#64748b', fontSize: 14 }}>
+                Acceda a su cuenta para continuar
               </Text>
             </div>
 
-            {/* Error Alert */}
             {authError && (
               <Alert
-                message="Error de Autenticación"
+                message="Error de Autenticaci&oacute;n"
                 description={authError}
                 type="error"
                 showIcon
-                className="mb-4"
+                style={{ marginBottom: 16, borderRadius: 8 }}
                 closable
                 onClose={clearError}
               />
             )}
 
-            {/* Login Form */}
             <Form
               name="login"
               onFinish={handleLogin}
               layout="vertical"
               size="large"
               autoComplete="off"
+              requiredMark={false}
             >
               <Form.Item
                 name="email"
-                label="Correo Electrónico"
+                label={<span style={{ fontWeight: 500, color: '#374151' }}>Correo Electr&oacute;nico</span>}
                 rules={[
-                  { required: true, message: 'Por favor ingresa tu correo electrónico' },
-                  { type: 'email', message: 'Por favor ingresa un correo válido' }
+                  { required: true, message: 'Ingrese su correo electr\u00F3nico' },
+                  { type: 'email', message: 'Ingrese un correo v\u00E1lido' }
                 ]}
               >
                 <Input
-                  prefix={<UserOutlined className="text-gray-400" />}
-                  placeholder="tu@email.com"
+                  prefix={<UserOutlined style={{ color: '#9ca3af' }} />}
+                  placeholder="correo@ejemplo.com"
                   autoComplete="email"
+                  style={{ borderRadius: 10, height: 48 }}
                 />
               </Form.Item>
 
               <Form.Item
                 name="password"
-                label="Contraseña"
+                label={<span style={{ fontWeight: 500, color: '#374151' }}>Contrase&ntilde;a</span>}
                 rules={[
-                  { required: true, message: 'Por favor ingresa tu contraseña' },
-                  { min: 6, message: 'La contraseña debe tener al menos 6 caracteres' }
+                  { required: true, message: 'Ingrese su contrase\u00F1a' },
+                  { min: 6, message: 'M\u00EDnimo 6 caracteres' }
                 ]}
               >
                 <Input.Password
-                  prefix={<LockOutlined className="text-gray-400" />}
-                  placeholder="Tu contraseña"
+                  prefix={<LockOutlined style={{ color: '#9ca3af' }} />}
+                  placeholder="Su contrase\u00F1a"
                   autoComplete="current-password"
+                  style={{ borderRadius: 10, height: 48 }}
                 />
               </Form.Item>
 
-              <Form.Item className="mb-0">
+              <Form.Item style={{ marginBottom: 0, marginTop: 8 }}>
                 <Button
                   type="primary"
                   htmlType="submit"
                   loading={loading}
-                  className="w-full h-12 text-lg font-medium rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
+                  block
                   style={{
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    height: 50,
+                    fontSize: 16,
+                    fontWeight: 600,
+                    borderRadius: 10,
+                    background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
                     border: 'none',
+                    boxShadow: '0 4px 14px rgba(79, 70, 229, 0.35)',
                   }}
                 >
-                  {loading ? 'Iniciando Sesión...' : 'Iniciar Sesión'}
+                  {loading ? 'Iniciando Sesi\u00F3n...' : 'Iniciar Sesi\u00F3n'}
                 </Button>
               </Form.Item>
             </Form>
 
-            {/* Footer */}
-            <div className="text-center mt-6 pt-6 border-t border-gray-100">
-              <div className="flex items-center justify-center space-x-2 text-gray-500">
-                <HeartOutlined className="text-red-400" />
-                <Text className="text-sm">
-                  Hecho con amor para las familias
-                </Text>
-              </div>
-              <div className="flex items-center justify-center space-x-2 text-gray-400 mt-2">
-                <TeamOutlined />
-                <Text className="text-xs">
-                  Centro de Apoyo para la Familia
-                </Text>
-              </div>
+            <div style={{ textAlign: 'center', marginTop: 32, paddingTop: 20, borderTop: '1px solid #f1f5f9' }}>
+              <Text style={{ fontSize: 12, color: '#94a3b8' }}>
+                Centro de Apoyo para la Familia A.C.
+              </Text>
             </div>
-          </Card>
-
-          {/* Version Info */}
-          <div className="text-center mt-4">
-            <Text className="text-xs text-gray-400">
-              Versión 1.0.0 | Sistema de Gestión CAF
-            </Text>
           </div>
         </div>
+
+        <style jsx global>{`
+          .login-page {
+            display: flex;
+            min-height: 100vh;
+            background: #f8fafc;
+          }
+
+          .login-brand-panel {
+            display: none;
+            position: relative;
+            width: 45%;
+            background: linear-gradient(135deg, #4f46e5 0%, #6d28d9 50%, #7c3aed 100%);
+            overflow: hidden;
+          }
+
+          .login-brand-inner {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            padding: 48px;
+            text-align: center;
+          }
+
+          .login-brand-logo-wrap {
+            width: 88px;
+            height: 88px;
+            border-radius: 20px;
+            background: rgba(255,255,255,0.15);
+            backdrop-filter: blur(8px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 24px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+          }
+
+          .login-brand-logo {
+            border-radius: 12px;
+          }
+
+          .login-brand-title {
+            font-size: 28px;
+            font-weight: 800;
+            color: white;
+            line-height: 1.3;
+            margin-bottom: 12px;
+          }
+
+          .login-brand-subtitle {
+            font-size: 15px;
+            color: rgba(255,255,255,0.75);
+            max-width: 320px;
+            line-height: 1.6;
+          }
+
+          .login-brand-dots {
+            position: absolute;
+            inset: 0;
+            z-index: 1;
+            background-image: radial-gradient(circle, rgba(255,255,255,0.08) 1px, transparent 1px);
+            background-size: 24px 24px;
+          }
+
+          .login-form-panel {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+          }
+
+          .login-form-container {
+            width: 100%;
+            max-width: 400px;
+          }
+
+          .login-mobile-logo {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 24px;
+          }
+
+          @media (min-width: 768px) {
+            .login-brand-panel {
+              display: block;
+            }
+            .login-mobile-logo {
+              display: none;
+            }
+            .login-form-panel {
+              padding: 48px;
+            }
+          }
+        `}</style>
       </div>
     </ClientOnly>
   );

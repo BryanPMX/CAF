@@ -142,18 +142,36 @@ function ContentTab() {
     }
   };
 
+  // User-friendly Spanish labels for sections and content keys
   const sectionLabels: Record<string, string> = {
-    hero: 'Sección Principal (Hero)',
+    hero: 'Portada Principal',
     about: 'Sobre Nosotros',
     footer: 'Pie de Página',
     contact: 'Contacto',
+  };
+
+  const keyLabels: Record<string, string> = {
+    title: 'Título',
+    subtitle: 'Subtítulo',
+    description: 'Descripción',
+    cta_primary: 'Botón Principal',
+    cta_secondary: 'Botón Secundario',
+    mission: 'Misión',
+    vision: 'Visión',
+    copyright: 'Derechos de Autor',
+    privacy_text: 'Texto de Privacidad',
+    hours: 'Horario de Atención',
+    emergency: 'Información de Emergencia',
   };
 
   const sections = [...new Set(content.map(c => c.section))];
 
   return (
     <Spin spinning={loading}>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
+        <Text type="secondary" style={{ fontSize: 13 }}>
+          Edite el texto que aparece en cada sección del sitio web público.
+        </Text>
         <Button icon={<ReloadOutlined />} onClick={fetchContent}>Actualizar</Button>
       </div>
       {sections.length === 0 && !loading && (
@@ -168,30 +186,28 @@ function ContentTab() {
         >
           {content.filter(c => c.section === section).map(item => {
             const isEditing = editingKey === `${item.section}-${item.contentKey}`;
+            const friendlyLabel = keyLabels[item.contentKey] || item.contentKey;
             return (
-              <div key={item.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '8px 0', borderBottom: '1px solid #f0f0f0' }}>
-                <div style={{ flex: '0 0 180px' }}>
-                  <Text strong>{item.contentKey}</Text>
-                  <br />
-                  <Tag color={item.isActive ? 'green' : 'default'} style={{ fontSize: 11 }}>
-                    {item.contentType}
-                  </Tag>
+              <div key={item.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '10px 0', borderBottom: '1px solid #f5f5f5', flexWrap: 'wrap' }}>
+                <div style={{ flex: '0 0 160px', minWidth: 120 }}>
+                  <Text strong style={{ fontSize: 13, color: '#374151' }}>{friendlyLabel}</Text>
                 </div>
-                <div style={{ flex: 1 }}>
+                <div style={{ flex: 1, minWidth: 200 }}>
                   {isEditing ? (
                     <TextArea
                       value={editValue}
                       onChange={e => setEditValue(e.target.value)}
                       rows={3}
                       autoFocus
+                      style={{ borderRadius: 8 }}
                     />
                   ) : (
-                    <Text style={{ whiteSpace: 'pre-wrap', color: '#555' }}>
+                    <Text style={{ whiteSpace: 'pre-wrap', color: '#6b7280', fontSize: 13 }}>
                       {item.contentValue.length > 200 ? item.contentValue.slice(0, 200) + '...' : item.contentValue}
                     </Text>
                   )}
                 </div>
-                <div style={{ flex: '0 0 80px', textAlign: 'right' }}>
+                <div style={{ flex: '0 0 auto' }}>
                   {isEditing ? (
                     <Space>
                       <Button type="primary" size="small" icon={<SaveOutlined />} onClick={() => handleSave(item)}>
@@ -538,6 +554,7 @@ function EventsTab() {
 function GalleryTab() {
   const [images, setImages] = useState<SiteImage[]>([]);
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<SiteImage | null>(null);
   const [form] = Form.useForm();
@@ -555,6 +572,38 @@ function GalleryTab() {
   }, []);
 
   useEffect(() => { fetchImages(); }, [fetchImages]);
+
+  // Upload a local file to the server and set the resulting URL in the form
+  const handleFileUpload = async (file: File) => {
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
+    if (!allowedTypes.includes(file.type)) {
+      message.error('Tipo de archivo no permitido. Use: JPG, PNG, GIF, WebP o SVG.');
+      return false;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      message.error('El archivo es demasiado grande. Máximo 10 MB.');
+      return false;
+    }
+
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await api.post('/admin/site-images/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      const url = res.data.url;
+      if (url) {
+        form.setFieldsValue({ imageUrl: url });
+        message.success('Imagen subida correctamente');
+      }
+    } catch {
+      message.error('Error al subir la imagen');
+    } finally {
+      setUploading(false);
+    }
+    return false; // Prevent default Upload behavior
+  };
 
   const handleSave = async () => {
     try {
@@ -600,8 +649,15 @@ function GalleryTab() {
     setModalOpen(true);
   };
 
+  const sectionLabels: Record<string, string> = {
+    hero: 'Portada',
+    gallery: 'Galería',
+    about: 'Sobre Nosotros',
+    services: 'Servicios',
+  };
+
   const sectionOptions = [
-    { label: 'Hero (Portada)', value: 'hero' },
+    { label: 'Portada', value: 'hero' },
     { label: 'Galería', value: 'gallery' },
     { label: 'Sobre Nosotros', value: 'about' },
     { label: 'Servicios', value: 'services' },
@@ -609,8 +665,8 @@ function GalleryTab() {
 
   return (
     <>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-        <Text type="secondary">Imágenes del sitio web público (portada, galería, servicios)</Text>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
+        <Text type="secondary" style={{ fontSize: 13 }}>Imágenes del sitio web (portada, galería, servicios)</Text>
         <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>Nueva Imagen</Button>
       </div>
 
@@ -618,13 +674,13 @@ function GalleryTab() {
 
       <Row gutter={[16, 16]}>
         {images.map(img => (
-          <Col key={img.id} xs={24} sm={12} md={8} lg={6}>
+          <Col key={img.id} xs={12} sm={12} md={8} lg={6}>
             <Card
               hoverable
               size="small"
               style={{ borderRadius: 8, overflow: 'hidden' }}
               cover={
-                <div style={{ height: 150, background: '#f5f5f5', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                <div style={{ height: 140, background: '#f5f5f5', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={img.imageUrl}
@@ -636,20 +692,15 @@ function GalleryTab() {
               }
               actions={[
                 <Tooltip key="edit" title="Editar"><EditOutlined onClick={() => openEdit(img)} /></Tooltip>,
-                <Popconfirm key="del" title="¿Eliminar?" onConfirm={() => handleDelete(img.id!)} okText="Sí" cancelText="No">
+                <Popconfirm key="del" title="¿Eliminar imagen?" onConfirm={() => handleDelete(img.id!)} okText="Sí" cancelText="No">
                   <DeleteOutlined style={{ color: '#ff4d4f' }} />
                 </Popconfirm>,
               ]}
             >
               <Card.Meta
-                title={<span style={{ fontSize: 13 }}>{img.title || 'Sin título'}</span>}
+                title={<span style={{ fontSize: 12 }}>{img.title || 'Sin título'}</span>}
                 description={
-                  <Space>
-                    <Tag color="blue" style={{ fontSize: 11 }}>{img.section}</Tag>
-                    <Tag color={img.isActive ? 'green' : 'default'} style={{ fontSize: 11 }}>
-                      {img.isActive ? 'Activo' : 'Inactivo'}
-                    </Tag>
-                  </Space>
+                  <Tag style={{ fontSize: 11 }}>{sectionLabels[img.section] || img.section}</Tag>
                 }
               />
             </Card>
@@ -664,11 +715,28 @@ function GalleryTab() {
         onCancel={() => { setModalOpen(false); setEditing(null); }}
         okText="Guardar"
         cancelText="Cancelar"
-        width={500}
+        width={520}
       >
         <Form form={form} layout="vertical">
-          <Form.Item name="imageUrl" label="URL de Imagen" rules={[{ required: true, message: 'Requerido' }]}>
-            <Input placeholder="https://ejemplo.com/imagen.jpg" />
+          {/* Upload section */}
+          <div style={{ marginBottom: 16, padding: 16, background: '#fafafa', borderRadius: 8, border: '1px dashed #d9d9d9', textAlign: 'center' }}>
+            <Upload
+              accept="image/*"
+              showUploadList={false}
+              beforeUpload={(file) => handleFileUpload(file as unknown as File)}
+              disabled={uploading}
+            >
+              <Button icon={<UploadOutlined />} loading={uploading} type="dashed">
+                {uploading ? 'Subiendo...' : 'Subir Imagen desde Computadora'}
+              </Button>
+            </Upload>
+            <div style={{ marginTop: 8, fontSize: 12, color: '#999' }}>
+              JPG, PNG, GIF, WebP o SVG. Máximo 10 MB.
+            </div>
+          </div>
+
+          <Form.Item name="imageUrl" label="URL de Imagen" rules={[{ required: true, message: 'Suba una imagen o ingrese una URL' }]}>
+            <Input placeholder="Se completará automáticamente al subir, o ingrese una URL" />
           </Form.Item>
           <Row gutter={16}>
             <Col span={12}>
@@ -677,23 +745,23 @@ function GalleryTab() {
               </Form.Item>
             </Col>
             <Col span={12}>
-              <Form.Item name="altText" label="Texto Alternativo">
-                <Input placeholder="Descripción de la imagen" />
+              <Form.Item name="altText" label="Descripción">
+                <Input placeholder="Descripción breve" />
               </Form.Item>
             </Col>
           </Row>
           <Row gutter={16}>
-            <Col span={8}>
+            <Col xs={24} sm={8}>
               <Form.Item name="section" label="Sección">
                 <Select options={sectionOptions} />
               </Form.Item>
             </Col>
-            <Col span={8}>
+            <Col xs={12} sm={8}>
               <Form.Item name="sortOrder" label="Orden">
                 <InputNumber style={{ width: '100%' }} min={0} />
               </Form.Item>
             </Col>
-            <Col span={8}>
+            <Col xs={12} sm={8}>
               <Form.Item name="isActive" label="Activo" valuePropName="checked">
                 <Switch />
               </Form.Item>

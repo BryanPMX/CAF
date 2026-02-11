@@ -51,7 +51,39 @@
 /* Form inputs */
 input, textarea, select {
   @apply border border-gray-300 rounded-lg px-4 py-2.5 w-full transition-colors duration-200;
+  -webkit-appearance: none;
+  font-size: 16px; /* Prevents iOS zoom on focus */
 }
 input:focus, textarea:focus, select:focus {
   @apply outline-none ring-2 ring-primary-500 border-primary-500;
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* Mobile touch improvements */
+a, button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Better mobile spacing */
+@media (max-width: 640px) {
+  .container {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+}
+
+/* Reduce motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in-down,
+  .animate-fade-in-up,
+  .animate-wave,
+  .card-lift {
+    animation: none !important;
+    transition: none !important;
+  }
 }
