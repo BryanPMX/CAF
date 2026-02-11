@@ -44,7 +44,7 @@ export default function FilesPage() {
               onClick={() => router.push('/')}
               style={{ marginRight: '8px' }}
             >
-              Volver al Dashboard
+              Volver al Tablero
             </Button>,
             <Button 
               key="cases" 

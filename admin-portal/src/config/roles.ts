@@ -155,29 +155,30 @@ export const canViewDocumentType = (userRole: string, documentType: string): boo
   return allowedTypes.includes(documentType);
 };
 
+// Sidebar section labels in formal Mexican Spanish (usted form / formal register)
 export const getNavigationItemsForRole = (role: string) => {
   const baseItems = [
-    { key: 'dashboard', label: 'Dashboard', path: '/', icon: 'DashboardOutlined' },
-    { key: 'cases', label: 'Cases', path: '/app/cases', icon: 'FileTextOutlined' },
-    { key: 'appointments', label: 'Appointments', path: '/app/appointments', icon: 'CalendarOutlined' },
+    { key: 'dashboard', label: 'Panel de Control', path: '/', icon: 'DashboardOutlined' },
+    { key: 'cases', label: 'Expedientes', path: '/app/cases', icon: 'FileTextOutlined' },
+    { key: 'appointments', label: 'Citas', path: '/app/appointments', icon: 'CalendarOutlined' },
   ];
 
   if (isAdminRole(role)) {
     return [
       ...baseItems,
-      { key: 'users', label: 'Users', path: '/app/users', icon: 'UserOutlined' },
-      { key: 'offices', label: 'Offices', path: '/app/offices', icon: 'BankOutlined' },
-      { key: 'records', label: 'Records', path: '/app/records', icon: 'FileOutlined' },
-      { key: 'reports', label: 'Reports', path: '/app/reports', icon: 'BarChartOutlined' },
+      { key: 'users', label: 'Usuarios', path: '/app/users', icon: 'UserOutlined' },
+      { key: 'offices', label: 'Oficinas', path: '/app/offices', icon: 'BankOutlined' },
+      { key: 'records', label: 'Archivos', path: '/app/records', icon: 'FileOutlined' },
+      { key: 'reports', label: 'Reportes', path: '/app/reports', icon: 'BarChartOutlined' },
     ];
   }
 
   if (isManagementRole(role)) {
     return [
       ...baseItems,
-      { key: 'users', label: 'Users', path: '/app/users', icon: 'UserOutlined' },
-      { key: 'records', label: 'Records', path: '/app/records', icon: 'FileOutlined' },
-      { key: 'reports', label: 'Reports', path: '/app/reports', icon: 'BarChartOutlined' },
+      { key: 'users', label: 'Usuarios', path: '/app/users', icon: 'UserOutlined' },
+      { key: 'records', label: 'Archivo', path: '/app/records', icon: 'FileOutlined' },
+      { key: 'reports', label: 'Reportes', path: '/app/reports', icon: 'BarChartOutlined' },
     ];
   }
 

@@ -56,7 +56,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
               key="dashboard" 
               onClick={() => router.push('/')}
             >
-              Volver al Dashboard
+              Volver al Tablero
             </Button>
           ]}
         />
