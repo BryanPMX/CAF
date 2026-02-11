@@ -1,39 +1,57 @@
 /* marketing/src/app.css */
-/* stylelint-disable-next-line at-rule-no-unknown */
+/* Enhanced styles aligned with admin portal indigo/violet theme */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
 @tailwind base;
-/* stylelint-disable-next-line at-rule-no-unknown */
 @tailwind components;
-/* stylelint-disable-next-line at-rule-no-unknown */
 @tailwind utilities;
 
-/* Custom animation keyframes */
+@layer base {
+  body {
+    @apply font-sans text-gray-700 antialiased;
+  }
+}
+
+/* Animations */
 @keyframes fade-in-down {
-    0% {
-        opacity: 0;
-        transform: translateY(-20px);
-    }
-    100% {
-        opacity: 1;
-        transform: translateY(0);
-    }
+  0% { opacity: 0; transform: translateY(-20px); }
+  100% { opacity: 1; transform: translateY(0); }
 }
-
 @keyframes fade-in-up {
-    0% {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    100% {
-        opacity: 1;
-        transform: translateY(0);
-    }
+  0% { opacity: 0; transform: translateY(20px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+@keyframes wave {
+  0% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+  100% { transform: translateY(0); }
 }
 
-/* Applying animations using Tailwind's 'animate' utility */
-.animate-fade-in-down {
-    animation: fade-in-down 0.8s ease-out forwards;
+.animate-fade-in-down { animation: fade-in-down 0.8s ease-out forwards; }
+.animate-fade-in-up   { animation: fade-in-up 0.8s ease-out forwards; }
+.animate-wave         { animation: wave 4s ease-in-out infinite; }
+
+/* Gradient text utility */
+.text-gradient {
+  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
-.animate-fade-in-up {
-    animation: fade-in-up 0.8s ease-out forwards;
+/* Card hover lift */
+.card-lift {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.card-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgba(79, 70, 229, 0.12);
+}
+
+/* Form inputs */
+input, textarea, select {
+  @apply border border-gray-300 rounded-lg px-4 py-2.5 w-full transition-colors duration-200;
+}
+input:focus, textarea:focus, select:focus {
+  @apply outline-none ring-2 ring-primary-500 border-primary-500;
 }

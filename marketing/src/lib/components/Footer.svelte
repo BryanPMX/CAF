@@ -1,129 +1,69 @@
 <script>
-  import { fade, slide } from 'svelte/transition';
-  import { cubicOut } from 'svelte/easing';
+  import { config } from '$lib/config.js';
 </script>
 
-<footer class="relative bg-gradient-to-b from-gray-200 to-gray-300 text-black overflow-hidden" in:fade={{ duration: 800, easing: cubicOut }}>
-  <div class="absolute inset-0 bg-repeat bg-center opacity-5" style="background-image: url('/patterns/subtle-dots.svg');"></div>
-  <div class="absolute top-0 left-0 w-full leading-[0] animate-wave">
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320" preserveAspectRatio="none">
-      <path
-        fill="#f9fafb"
-        fill-opacity="0.3"
-        d="M0,160L48,149.3C96,139,192,117,288,112C384,107,480,117,576,149.3C672,181,768,235,864,250.7C960,267,1056,245,1152,218.7C1248,192,1344,160,1392,144L1440,128L1440,0L1392,0C1344,0,1248,0,1152,0C1056,0,960,0,864,0C768,0,672,0,576,0C480,0,384,0,288,0C192,0,96,0,48,0L0,0Z"
-      ></path>
-      <path
-        fill="#f9fafb"
-        fill-opacity="1"
-        d="M0,224L48,208C96,192,192,160,288,160C384,160,480,192,576,218.7C672,245,768,267,864,250.7C960,235,1056,181,1152,170.7C1248,160,1344,192,1392,208L1440,224L1440,0L1392,0C1344,0,1248,0,1152,0C1056,0,960,0,864,0C768,0,672,0,576,0C480,0,384,0,288,0C192,0,96,0,48,0L0,0Z"
-      ></path>
-    </svg>
-  </div>
-  <div class="container mx-auto px-4 sm:px-6 py-10 relative z-10">
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
-      <!-- About Section with Logo -->
-      <div class="col-span-1 md:col-span-2" in:slide={{ duration: 800, delay: 200, easing: cubicOut }}>
-        <div class="flex items-center space-x-3 mb-4">
-          <img
-            src="/logo.png"
-            alt="Logo del Centro de Apoyo para la Familia"
-            class="h-16 w-auto transition-transform duration-300 hover:scale-110"
-            aria-label="Logo del Centro de Apoyo para la Familia"
-          />
-          <h3 class="font-bold text-xl text-black">Centro de Apoyo para la Familia A.C.</h3>
+<footer class="bg-gray-900 text-gray-300">
+  <!-- Top accent bar -->
+  <div class="h-1 bg-gradient-to-r from-primary-600 to-accent-600"></div>
+
+  <div class="container mx-auto px-6 py-12">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-10">
+      <!-- Brand -->
+      <div class="md:col-span-2">
+        <div class="flex items-center gap-3 mb-4">
+          <img src="/logo.png" alt="Logo CAF" class="h-12 w-auto brightness-0 invert opacity-90" />
+          <span class="font-bold text-lg text-white">{config.site.name}</span>
         </div>
-        <p class="text-black leading-relaxed">
-          Desde 20XX, empoderando a las familias de nuestra comunidad con apoyo integral, profesional y confidencial.
+        <p class="text-gray-400 leading-relaxed text-sm max-w-md">
+          {config.site.description}
         </p>
       </div>
+
       <!-- Quick Links -->
-      <div in:slide={{ duration: 800, delay: 400, easing: cubicOut }}>
-        <h3 class="font-bold text-lg mb-2 text-black">Navegación</h3>
-        <ul class="space-y-2">
-          <li>
-            <a
-              href="/"
-              class="text-black hover:text-gray-800 transition-transform duration-200 hover:scale-105 inline-block"
-              aria-label="Ir a la página de inicio"
-            >
-              Inicio
-            </a>
-          </li>
-          <li>
-            <a
-              href="/servicios"
-              class="text-black hover:text-gray-800 transition-transform duration-200 hover:scale-105 inline-block"
-              aria-label="Ir a la página de servicios"
-            >
-              Servicios
-            </a>
-          </li>
-          <li>
-            <a
-              href="/eventos"
-              class="text-black hover:text-gray-800 transition-transform duration-200 hover:scale-105 inline-block"
-              aria-label="Ir a la página de eventos"
-            >
-              Eventos
-            </a>
-          </li>
-          <li>
-            <a
-              href="/contacto"
-              class="text-black hover:text-gray-800 transition-transform duration-200 hover:scale-105 inline-block"
-              aria-label="Ir a la página de contacto"
-            >
-              Contacto
-            </a>
-          </li>
+      <div>
+        <h4 class="font-semibold text-white mb-4 text-sm uppercase tracking-wider">Navegación</h4>
+        <ul class="space-y-2.5">
+          <li><a href="/" class="text-sm text-gray-400 hover:text-white transition-colors">Inicio</a></li>
+          <li><a href="/servicios" class="text-sm text-gray-400 hover:text-white transition-colors">Servicios</a></li>
+          <li><a href="/eventos" class="text-sm text-gray-400 hover:text-white transition-colors">Eventos</a></li>
+          <li><a href="/contacto" class="text-sm text-gray-400 hover:text-white transition-colors">Contacto</a></li>
         </ul>
       </div>
-      <!-- Contact Info -->
-      <div in:slide={{ duration: 800, delay: 600, easing: cubicOut }}>
-        <h3 class="font-bold text-lg mb-2 text-black">Contáctanos</h3>
-        <ul class="space-y-2 text-black">
-          <li>123 Calle Ficticia, El Paso, TX</li>
+
+      <!-- Contact -->
+      <div>
+        <h4 class="font-semibold text-white mb-4 text-sm uppercase tracking-wider">Contacto</h4>
+        <ul class="space-y-2.5 text-sm text-gray-400">
+          <li class="flex items-start gap-2">
+            <svg class="w-4 h-4 mt-0.5 text-primary-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            <span>{config.contact.address}</span>
+          </li>
           <li>
-            <a
-              href="mailto:contacto@caf.org"
-              class="hover:text-gray-800 transition-transform duration-200 hover:scale-105 inline-block"
-              aria-label="Enviar correo a contacto@caf.org"
-            >
-              Email: contacto@caf.org
+            <a href="mailto:{config.contact.email}" class="flex items-start gap-2 hover:text-white transition-colors">
+              <svg class="w-4 h-4 mt-0.5 text-primary-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+              <span>{config.contact.email}</span>
             </a>
           </li>
           <li>
-            <a
-              href="tel:+19151234567"
-              class="hover:text-gray-800 transition-transform duration-200 hover:scale-105 inline-block"
-              aria-label="Llamar al (915) 123-4567"
-            >
-              Tel: (915) 123-4567
+            <a href="tel:{config.contact.phone}" class="flex items-start gap-2 hover:text-white transition-colors">
+              <svg class="w-4 h-4 mt-0.5 text-primary-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+              </svg>
+              <span>{config.contact.phone}</span>
             </a>
           </li>
         </ul>
       </div>
     </div>
-    <div class="mt-10 border-t border-gray-400 pt-6 text-center text-black text-sm" in:fade={{ duration: 800, delay: 800, easing: cubicOut }}>
-      © {new Date().getFullYear()} Centro de Apoyo para la Familia A.C. | 
-      <a
-        href="/privacidad"
-        class="hover:text-gray-800 transition-transform duration-200 hover:scale-105 inline-block"
-        aria-label="Ver el aviso de privacidad"
-      >
-        Aviso de Privacidad
-      </a>
+
+    <!-- Bottom bar -->
+    <div class="mt-10 pt-6 border-t border-gray-800 text-center text-xs text-gray-500">
+      <p>&copy; {new Date().getFullYear()} {config.site.name}. Todos los derechos reservados.</p>
     </div>
   </div>
 </footer>
-
-<style>
-  @keyframes wave {
-    0% { transform: translateY(0); }
-    50% { transform: translateY(10px); }
-    100% { transform: translateY(0); }
-  }
-  .animate-wave {
-    animation: wave 4s ease-in-out infinite;
-  }
-</style>

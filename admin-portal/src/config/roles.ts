@@ -168,6 +168,7 @@ export const getNavigationItemsForRole = (role: string) => {
       ...baseItems,
       { key: 'users', label: 'Usuarios', path: '/app/users', icon: 'UserOutlined' },
       { key: 'offices', label: 'Oficinas', path: '/app/offices', icon: 'BankOutlined' },
+      { key: 'web-content', label: 'Sitio Web', path: '/app/web-content', icon: 'GlobalOutlined' },
       { key: 'records', label: 'Archivos', path: '/app/records', icon: 'FileOutlined' },
       { key: 'reports', label: 'Reportes', path: '/app/reports', icon: 'BarChartOutlined' },
     ];

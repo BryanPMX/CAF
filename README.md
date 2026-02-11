@@ -26,8 +26,17 @@ api/
 ├── container/           # Dependency injection
 │   └── container.go     # Service container & DI
 ├── handlers/            # HTTP request handlers (thin layer)
+│   ├── site_content.go  # CMS handlers (public + admin CRUD)
+│   └── case_event.go    # Document upload via FileStorage interface
+├── storage/             # File storage (Strategy Pattern)
+│   ├── storage.go       # FileStorage interface (DIP)
+│   ├── s3.go            # S3 client initialization
+│   ├── s3_adapter.go    # S3Storage implements FileStorage
+│   ├── local.go         # LocalStorage implements FileStorage
+│   └── local_test.go    # Unit tests (11 tests)
 ├── middleware/          # Cross-cutting concerns
 └── models/             # Data models
+    └── site_content.go  # CMS models (SiteContent, SiteService, SiteEvent, SiteImage)
 ```
 
 **SOLID Principles Applied:**
@@ -309,6 +318,27 @@ Local file URLs use the `local://` scheme (e.g. `local://cases/42/uuid.pdf`).
 - **File Uploads**: Stored in LocalStack S3 or local filesystem depending on environment
 - **Environment**: Pre-configured for development
 - **Cost**: Zero ongoing costs
+
+## Content Management System (CMS)
+
+The admin portal includes a **CMS** for managing the marketing website content. Admins can control all public-facing content without code changes.
+
+### CMS Content Types
+
+| Type | Admin Route | Public API | Description |
+|------|-------------|------------|-------------|
+| **Site Content** | `/app/web-content` → Contenido | `GET /public/site-content` | Key-value text (hero title, about, footer) |
+| **Services** | `/app/web-content` → Servicios | `GET /public/site-services` | Services offered (title, description, details) |
+| **Events** | `/app/web-content` → Eventos | `GET /public/site-events` | Public events (date, location, description) |
+| **Gallery** | `/app/web-content` → Galería | `GET /public/site-images` | Images (hero carousel, gallery, about) |
+| **Offices** | `/app/offices` | `GET /public/offices` | Office directory (name, address, phones, coords) |
+
+### Architecture
+
+- **API**: CMS models in `models/site_content.go`, handlers in `handlers/site_content.go`
+- **Admin Portal**: Full CRUD at `/app/web-content` with tabbed interface (Ant Design)
+- **Marketing Site**: SvelteKit SSR pages fetch from public API with graceful fallbacks
+- **Contact Directory**: Automatically syncs office data from the admin portal into the contact page
 
 ## Comprehensive Testing Suite
 

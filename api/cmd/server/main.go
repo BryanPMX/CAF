@@ -191,8 +191,12 @@ func main() {
 	{
 		public.POST("/register", middleware.ValidateUserRegistration(), handlers.Register(database))
 		public.POST("/login", middleware.AuthRateLimit(), handlers.EnhancedLogin(database, cfg.JWTSecret))
-		// Public offices for marketing site map (no auth required)
+		// Public endpoints for marketing site (no auth required)
 		public.GET("/public/offices", handlers.GetPublicOffices(cont.GetOfficeRepository()))
+		public.GET("/public/site-content", handlers.GetPublicSiteContent(database))
+		public.GET("/public/site-services", handlers.GetPublicSiteServices(database))
+		public.GET("/public/site-events", handlers.GetPublicSiteEvents(database))
+		public.GET("/public/site-images", handlers.GetPublicSiteImages(database))
 	}
 
 	// WebSocket endpoint for per-user notifications (token via query param)
@@ -483,6 +487,27 @@ func main() {
 		admin.GET("/reports/cases-report", reportsHandler.GetCasesReport())
 		admin.GET("/reports/appointments-report", reportsHandler.GetAppointmentsReport())
 		admin.GET("/reports/export", reportsHandler.ExportReport())
+
+		// CMS: Website Content Management
+		admin.GET("/site-content", handlers.GetAllSiteContent(database))
+		admin.POST("/site-content", handlers.UpsertSiteContent(database))
+		admin.DELETE("/site-content/:id", handlers.DeleteSiteContent(database))
+
+		admin.GET("/site-services", handlers.GetAllSiteServices(database))
+		admin.POST("/site-services", handlers.CreateSiteService(database))
+		admin.PATCH("/site-services/:id", handlers.UpdateSiteService(database))
+		admin.DELETE("/site-services/:id", handlers.DeleteSiteService(database))
+
+		admin.GET("/site-events", handlers.GetAllSiteEvents(database))
+		admin.POST("/site-events", handlers.CreateSiteEvent(database))
+		admin.PATCH("/site-events/:id", handlers.UpdateSiteEvent(database))
+		admin.DELETE("/site-events/:id", handlers.DeleteSiteEvent(database))
+
+		admin.GET("/site-images", handlers.GetAllSiteImages(database))
+		admin.POST("/site-images", handlers.CreateSiteImage(database))
+		admin.PATCH("/site-images/:id", handlers.UpdateSiteImage(database))
+		admin.DELETE("/site-images/:id", handlers.DeleteSiteImage(database))
+		admin.POST("/site-images/upload", handlers.UploadSiteImage(database))
 	}
 
 	// Group 4: Staff-Specific Routes (Enhanced access control for staff members)
