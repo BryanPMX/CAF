@@ -18,12 +18,14 @@ import (
 // CreateUserInput defines the structure for an admin creating a new user.
 // Email is optional for staff - it will be auto-generated if not provided.
 type CreateUserInput struct {
-	FirstName string `json:"firstName" binding:"required"`
-	LastName  string `json:"lastName" binding:"required"`
-	Email     string `json:"email" binding:"omitempty,email"`
-	Password  string `json:"password" binding:"required,min=8"`
-	Role      string `json:"role" binding:"required"`
-	OfficeID  *uint  `json:"officeId"`
+	FirstName        string  `json:"firstName" binding:"required"`
+	LastName         string  `json:"lastName" binding:"required"`
+	Email            string  `json:"email" binding:"omitempty,email"`
+	Password         string  `json:"password" binding:"required,min=8"`
+	Role             string  `json:"role" binding:"required"`
+	OfficeID         *uint   `json:"officeId"`
+	Phone            string  `json:"phone" binding:"required"`
+	PersonalAddress  *string `json:"personalAddress"`
 }
 
 // CreateUser handles the creation of a new user by an administrator.
@@ -77,12 +79,14 @@ func CreateUser(db *gorm.DB) gin.HandlerFunc {
 
 		// Create the new user model.
 		user := models.User{
-			FirstName: input.FirstName,
-			LastName:  input.LastName,
-			Email:     input.Email,
-			Password:  string(hashedPassword),
-			Role:      input.Role,
-			OfficeID:  input.OfficeID,
+			FirstName:        input.FirstName,
+			LastName:         input.LastName,
+			Email:            input.Email,
+			Password:         string(hashedPassword),
+			Role:             input.Role,
+			OfficeID:         input.OfficeID,
+			Phone:            strings.TrimSpace(input.Phone),
+			PersonalAddress:  input.PersonalAddress,
 		}
 
 		// Check if a soft-deleted user with the same email exists
@@ -96,6 +100,8 @@ func CreateUser(db *gorm.DB) gin.HandlerFunc {
 				existingUser.Password = string(hashedPassword)
 				existingUser.Role = input.Role
 				existingUser.OfficeID = input.OfficeID
+				existingUser.Phone = strings.TrimSpace(input.Phone)
+				existingUser.PersonalAddress = input.PersonalAddress
 				existingUser.DeletedAt = gorm.DeletedAt{} // Clear the soft delete
 
 				if err := db.Unscoped().Save(&existingUser).Error; err != nil {
@@ -200,12 +206,14 @@ func CreateUserScoped(db *gorm.DB) gin.HandlerFunc {
 
 		// Create the new user model.
 		user := models.User{
-			FirstName: input.FirstName,
-			LastName:  input.LastName,
-			Email:     input.Email,
-			Password:  string(hashedPassword),
-			Role:      input.Role,
-			OfficeID:  input.OfficeID,
+			FirstName:        input.FirstName,
+			LastName:         input.LastName,
+			Email:            input.Email,
+			Password:         string(hashedPassword),
+			Role:             input.Role,
+			OfficeID:         input.OfficeID,
+			Phone:            strings.TrimSpace(input.Phone),
+			PersonalAddress:  input.PersonalAddress,
 		}
 
 		// Check if a soft-deleted user with the same email exists
@@ -218,6 +226,8 @@ func CreateUserScoped(db *gorm.DB) gin.HandlerFunc {
 				existingUser.Password = string(hashedPassword)
 				existingUser.Role = input.Role
 				existingUser.OfficeID = input.OfficeID
+				existingUser.Phone = strings.TrimSpace(input.Phone)
+				existingUser.PersonalAddress = input.PersonalAddress
 				existingUser.DeletedAt = gorm.DeletedAt{}
 
 				if err := db.Unscoped().Save(&existingUser).Error; err != nil {
@@ -376,11 +386,13 @@ func GetUsers(db *gorm.DB) gin.HandlerFunc {
 
 // UpdateUserInput defines the structure for updating a user's details.
 type UpdateUserInput struct {
-	FirstName string `json:"firstName" binding:"required"`
-	LastName  string `json:"lastName" binding:"required"`
-	Email     string `json:"email" binding:"required,email"`
-	Role      string `json:"role" binding:"required"`
-	OfficeID  *uint  `json:"officeId"`
+	FirstName       string  `json:"firstName" binding:"required"`
+	LastName        string  `json:"lastName" binding:"required"`
+	Email           string  `json:"email" binding:"required,email"`
+	Role            string  `json:"role" binding:"required"`
+	OfficeID        *uint   `json:"officeId"`
+	Phone           string  `json:"phone" binding:"required"`
+	PersonalAddress *string `json:"personalAddress"`
 }
 
 // UpdateUser handles modifying an existing user's details.
@@ -427,6 +439,8 @@ func UpdateUser(db *gorm.DB) gin.HandlerFunc {
 		user.Email = input.Email
 		user.Role = input.Role
 		user.OfficeID = input.OfficeID
+		user.Phone = strings.TrimSpace(input.Phone)
+		user.PersonalAddress = input.PersonalAddress
 
 		// Save the changes to the database.
 		if err := db.Save(&user).Error; err != nil {
@@ -510,6 +524,8 @@ func UpdateUserScoped(db *gorm.DB) gin.HandlerFunc {
 		user.Email = input.Email
 		user.Role = input.Role
 		user.OfficeID = input.OfficeID
+		user.Phone = strings.TrimSpace(input.Phone)
+		user.PersonalAddress = input.PersonalAddress
 
 		if err := db.Save(&user).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update user."})

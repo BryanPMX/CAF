@@ -23,6 +23,8 @@ export interface User {
   email: string;
   role: UserRole;
   officeId?: number;
+  phone?: string;
+  personalAddress?: string;
   createdAt: string;
   updatedAt: string;
 }
