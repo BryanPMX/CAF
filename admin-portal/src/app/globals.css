@@ -3,18 +3,24 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Sidebar brand: hide label when sider is collapsed, keep logo left-aligned */
+/* Sidebar brand: modern block with accent; collapsed = logo only centered */
+.sidebar-brand {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.ant-layout-sider-collapsed .sidebar-brand {
+  justify-content: center;
+  padding-left: 12px;
+  padding-right: 12px;
+  min-height: 64px;
+}
+
 .ant-layout-sider-collapsed .sidebar-brand-label {
   display: none;
 }
 
-.ant-layout-sider-collapsed .sidebar-brand .min-h-\[72px\] {
-  padding-left: 12px;
-  padding-right: 12px;
-}
-
-.ant-layout-sider-collapsed .sidebar-brand .justify-start {
-  justify-content: center;
+.ant-layout-sider-collapsed .sidebar-brand-logo {
+  margin: 0;
 }
 
 /* Custom Dashboard Styles */
