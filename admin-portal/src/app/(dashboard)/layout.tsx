@@ -184,12 +184,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           >
             <div className="admin-sider-inner">
               <SidebarBrand />
-              {!collapsed && roleDisplay && (
-                <div className="admin-sider-role-card" aria-label={`Rol activo: ${roleDisplay.label}`}>
-                  <span className="admin-sider-role-caption">Rol activo</span>
-                  <span className="admin-sider-role-value">{roleDisplay.label}</span>
-                </div>
-              )}
               {!collapsed && <p className="admin-sider-section-label">Navegación</p>}
               <Menu
                 theme="dark"
