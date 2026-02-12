@@ -88,30 +88,6 @@
   line-height: 1.2;
 }
 
-.admin-sider-role-card {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin: 8px 12px 12px;
-  padding: 10px 12px;
-  border-radius: 12px;
-  border: 1px solid rgba(56, 189, 248, 0.26);
-  background: linear-gradient(140deg, rgba(37, 99, 235, 0.22) 0%, rgba(8, 145, 178, 0.2) 100%);
-}
-
-.admin-sider-role-caption {
-  font-size: 0.68rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: rgba(226, 232, 240, 0.72);
-}
-
-.admin-sider-role-value {
-  color: #ffffff;
-  font-size: 0.84rem;
-  font-weight: 600;
-}
-
 .admin-sider-section-label {
   margin: 0 18px 8px;
   color: var(--sidebar-muted);
