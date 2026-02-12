@@ -24,25 +24,25 @@ export default function SidebarBrand() {
       className="sidebar-brand flex items-center justify-center px-3 py-4 min-h-[64px] w-full transition-colors hover:bg-white/[0.06]"
       aria-label="Ir a mi perfil"
     >
-      <div className="sidebar-brand-logo relative flex-shrink-0 flex items-center justify-center overflow-hidden rounded-full">
+      <div className="sidebar-brand-logo relative flex-shrink-0 flex items-center justify-center overflow-hidden rounded-full w-full max-w-[168px] aspect-square">
         {hasAvatar ? (
           <AuthAvatar
             avatarUrl={user!.avatarUrl}
             alt="Mi perfil"
-            size={48}
-            className="sidebar-brand-img object-cover"
+            size={168}
+            className="sidebar-brand-img object-cover w-full h-full"
             onError={() => setAvatarLoadError(true)}
           />
         ) : !logoError ? (
           <Image
             src="/logo.png"
             alt="CAF - Centro de Apoyo para la Familia"
-            width={140}
-            height={48}
-            className="object-contain sidebar-brand-img"
+            width={168}
+            height={168}
+            className="object-contain sidebar-brand-img w-full h-full"
             onError={() => setLogoError(true)}
             priority
-            style={{ maxHeight: 48, width: 'auto' }}
+            style={{ maxWidth: '100%', maxHeight: '100%', width: 'auto', height: 'auto' }}
           />
         ) : (
           <div className="flex items-center gap-2">
