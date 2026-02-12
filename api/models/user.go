@@ -22,6 +22,9 @@ type User struct {
 	Phone          string  `gorm:"size:50" json:"phone"`
 	PersonalAddress *string `gorm:"type:text" json:"personalAddress,omitempty"`
 
+	// Profile image: URL (external or local storage reference)
+	AvatarURL *string `gorm:"size:512;column:avatar_url" json:"avatarUrl,omitempty"`
+
 	// NEW: Department/Specialty for staff members
 	Department *string `gorm:"size:100" json:"department,omitempty"` // e.g., "Legal", "Psychology", "Administration"
 	Specialty  *string `gorm:"size:100" json:"specialty,omitempty"`  // e.g., "Criminal Law", "Family Therapy", "HR"

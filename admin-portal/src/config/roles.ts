@@ -161,7 +161,6 @@ export const getNavigationItemsForRole = (role: string) => {
     { key: 'dashboard', label: 'Panel de Control', path: '/', icon: 'DashboardOutlined' },
     { key: 'cases', label: 'Expedientes', path: '/app/cases', icon: 'FileTextOutlined' },
     { key: 'appointments', label: 'Citas', path: '/app/appointments', icon: 'CalendarOutlined' },
-    { key: 'profile', label: 'Mi perfil', path: '/app/profile', icon: 'IdcardOutlined' },
   ];
 
   if (isAdminRole(role)) {

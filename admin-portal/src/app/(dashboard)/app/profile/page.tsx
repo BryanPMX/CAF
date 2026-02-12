@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
-import { Card, Descriptions, Typography, Spin, message, Table, Tag, Empty } from 'antd';
-import { IdcardOutlined, MailOutlined, TeamOutlined, BankOutlined, UserOutlined } from '@ant-design/icons';
+import React, { useState, useEffect } from 'react';
+import { Card, Typography, Spin, message, Avatar, Divider, Input, Button, Space } from 'antd';
+import { MailOutlined, TeamOutlined, BankOutlined, UserOutlined, UploadOutlined, LinkOutlined } from '@ant-design/icons';
 import { apiClient } from '@/app/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { getRoleDisplayName } from '@/config/roles';
+import AuthAvatar from '../../components/AuthAvatar';
 
 const { Title, Text } = Typography;
 
@@ -16,25 +17,38 @@ interface ProfileData {
   lastName: string;
   office?: { id: number; name: string };
   officeId?: number;
+  avatarUrl?: string;
 }
 
-interface ContactSubmission {
-  id: number;
-  name: string;
-  email: string;
-  phone?: string;
-  message: string;
-  source: string;
-  createdAt: string;
+function getInitials(firstName?: string, lastName?: string): string {
+  const first = (firstName ?? '').trim().charAt(0).toUpperCase();
+  const last = (lastName ?? '').trim().charAt(0).toUpperCase();
+  if (first || last) return `${first}${last}`;
+  return '?';
 }
 
 export default function ProfilePage() {
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const [profile, setProfile] = useState<ProfileData | null>(null);
-  const [contactSubmissions, setContactSubmissions] = useState<ContactSubmission[]>([]);
   const [loadingProfile, setLoadingProfile] = useState(true);
-  const [loadingContactos, setLoadingContactos] = useState(false);
-  const contactosRef = useRef<HTMLDivElement>(null);
+  const [avatarUrlInput, setAvatarUrlInput] = useState('');
+  const [savingAvatar, setSavingAvatar] = useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const fetchProfile = async () => {
+    try {
+      setLoadingProfile(true);
+      const res = await apiClient.get('/profile');
+      setProfile(res.data);
+      if (res.data?.avatarUrl && user) {
+        updateUser({ ...user, avatarUrl: res.data.avatarUrl });
+      }
+    } catch {
+      message.error('No se pudo cargar el perfil');
+    } finally {
+      setLoadingProfile(false);
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -42,7 +56,12 @@ export default function ProfilePage() {
       try {
         setLoadingProfile(true);
         const res = await apiClient.get('/profile');
-        if (!cancelled) setProfile(res.data);
+        if (!cancelled) {
+          setProfile(res.data);
+          if (res.data?.avatarUrl && user) {
+            updateUser({ ...user, avatarUrl: res.data.avatarUrl });
+          }
+        }
       } catch {
         if (!cancelled) message.error('No se pudo cargar el perfil');
       } finally {
@@ -52,135 +71,191 @@ export default function ProfilePage() {
     return () => { cancelled = true; };
   }, []);
 
-  const isAdmin = user?.role === 'admin';
-
-  useEffect(() => {
-    if (!isAdmin) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        setLoadingContactos(true);
-        const res = await apiClient.get('/admin/contact-submissions', { params: { page: 1, limit: 50 } });
-        if (!cancelled && res.data?.data) setContactSubmissions(res.data.data);
-      } catch {
-        if (!cancelled) message.error('No se pudieron cargar los intereses de contacto');
-      } finally {
-        if (!cancelled) setLoadingContactos(false);
+  const handleSaveAvatarUrl = async () => {
+    const url = avatarUrlInput.trim();
+    if (url) {
+      const lower = url.toLowerCase();
+      if (!lower.startsWith('http://') && !lower.startsWith('https://')) {
+        message.warning('La URL debe comenzar con http:// o https://');
+        return;
       }
-    })();
-    return () => { cancelled = true; };
-  }, [isAdmin]);
-
-  useEffect(() => {
-    if (typeof window === 'undefined' || !contactosRef.current) return;
-    if (window.location.hash === '#contactos') {
-      contactosRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      if (url.length > 512) {
+        message.warning('La URL no puede superar 512 caracteres');
+        return;
+      }
     }
-  }, [loadingContactos]);
+    setSavingAvatar(true);
+    try {
+      await apiClient.patch('/profile', { avatarUrl: url || null });
+      message.success('Foto de perfil actualizada');
+      setAvatarUrlInput('');
+      await fetchProfile();
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { error?: string } } };
+      message.error(err?.response?.data?.error || 'No se pudo actualizar la foto');
+    } finally {
+      setSavingAvatar(false);
+    }
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!allowed.includes(file.type)) {
+      message.error('Solo se permiten imágenes (JPEG, PNG, GIF, WebP)');
+      return;
+    }
+    const maxSizeMB = 2;
+    if (file.size > maxSizeMB * 1024 * 1024) {
+      message.error(`El archivo no debe superar ${maxSizeMB} MB`);
+      return;
+    }
+    setSavingAvatar(true);
+    try {
+      const formData = new FormData();
+      formData.append('avatar', file);
+      const res = await apiClient.post('/profile/avatar', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      const newUrl = res.data?.avatarUrl;
+      if (newUrl && user) {
+        updateUser({ ...user, avatarUrl: newUrl });
+      }
+      message.success('Foto de perfil actualizada');
+      await fetchProfile();
+    } catch {
+      message.error('No se pudo subir la imagen');
+    } finally {
+      setSavingAvatar(false);
+      e.target.value = '';
+    }
+  };
 
   if (loadingProfile && !profile) {
     return (
-      <div className="flex justify-center items-center min-h-[300px]">
+      <div className="flex justify-center items-center min-h-[320px]">
         <Spin size="large" tip="Cargando perfil..." />
       </div>
     );
   }
 
+  const displayName = [profile?.firstName, profile?.lastName].filter(Boolean).join(' ') || 'Usuario';
+  const initials = getInitials(profile?.firstName, profile?.lastName);
+  const email = user?.email ?? '—';
+  const roleLabel = getRoleDisplayName(profile?.role ?? user?.role ?? '');
+  const officeName = profile?.office?.name ?? '—';
+
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      <Title level={2} className="!mb-0">
-        <IdcardOutlined className="mr-2" />
-        Mi perfil
-      </Title>
-
-      <Card title="Datos de la cuenta" loading={loadingProfile}>
-        <Descriptions column={{ xs: 1, sm: 1, md: 2 }} bordered size="small">
-          <Descriptions.Item label={<><UserOutlined className="mr-1" /> Nombre</>}>
-            {profile?.firstName} {profile?.lastName}
-          </Descriptions.Item>
-          <Descriptions.Item label={<><MailOutlined className="mr-1" /> Correo</>}>
-            {user?.email ?? '—'}
-          </Descriptions.Item>
-          <Descriptions.Item label={<><TeamOutlined className="mr-1" /> Rol</>}>
-            <Tag color="blue">{getRoleDisplayName(profile?.role ?? user?.role ?? '')}</Tag>
-          </Descriptions.Item>
-          <Descriptions.Item label={<><BankOutlined className="mr-1" /> Oficina</>}>
-            {profile?.office?.name ?? '—'}
-          </Descriptions.Item>
-        </Descriptions>
-      </Card>
-
-      {isAdmin && (
-        <div ref={contactosRef} id="contactos">
-          <Card
-            title="Intereses desde Contacto (sitio web)"
-            loading={loadingContactos}
-            extra={
-              <Text type="secondary">
-                {contactSubmissions.length} registro(s)
-              </Text>
-            }
-          >
-            {contactSubmissions.length === 0 && !loadingContactos ? (
-              <Empty description="No hay mensajes de contacto aún" />
-            ) : (
-              <Table
-                dataSource={contactSubmissions}
-                rowKey="id"
-                pagination={{ pageSize: 10, showSizeChanger: false }}
-                size="small"
-                columns={[
-                  {
-                    title: 'Nombre',
-                    dataIndex: 'name',
-                    key: 'name',
-                    render: (name: string) => <Text strong>{name}</Text>,
-                  },
-                  {
-                    title: 'Correo',
-                    dataIndex: 'email',
-                    key: 'email',
-                    render: (email: string) => (
-                      <a href={`mailto:${email}`}>{email}</a>
-                    ),
-                  },
-                  {
-                    title: 'Teléfono',
-                    dataIndex: 'phone',
-                    key: 'phone',
-                    render: (phone: string) => phone || '—',
-                  },
-                  {
-                    title: 'Mensaje',
-                    dataIndex: 'message',
-                    key: 'message',
-                    ellipsis: true,
-                    render: (msg: string) => (
-                      <span title={msg}>
-                        {msg.length > 60 ? `${msg.slice(0, 60)}…` : msg}
-                      </span>
-                    ),
-                  },
-                  {
-                    title: 'Fecha',
-                    dataIndex: 'createdAt',
-                    key: 'createdAt',
-                    width: 120,
-                    render: (createdAt: string) =>
-                      new Date(createdAt).toLocaleDateString('es-MX', {
-                        day: '2-digit',
-                        month: 'short',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      }),
-                  },
-                ]}
-              />
-            )}
-          </Card>
+    <div className="max-w-2xl mx-auto">
+      <Card className="overflow-hidden" style={{ borderRadius: 12 }}>
+        {/* Profile header: avatar + name + role */}
+        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 pb-6">
+          {profile?.avatarUrl ? (
+            <div className="flex-shrink-0 w-[120px] h-[120px] rounded-full overflow-hidden bg-gray-100">
+              <AuthAvatar avatarUrl={profile.avatarUrl} alt={displayName} size={120} className="w-full h-full" />
+            </div>
+          ) : (
+            <Avatar
+              size={120}
+              className="flex-shrink-0 !bg-indigo-100 !text-indigo-700 !text-3xl"
+              icon={initials === '?' ? <UserOutlined /> : undefined}
+            >
+              {initials !== '?' ? initials : null}
+            </Avatar>
+          )}
+          <div className="flex-1 text-center sm:text-left min-w-0">
+            <Title level={3} className="!mb-1 !font-semibold">
+              {displayName}
+            </Title>
+            <Text type="secondary" className="text-base">
+              {email}
+            </Text>
+            <div className="mt-2">
+              <span className="inline-block px-3 py-1 rounded-full text-sm font-medium bg-blue-50 text-blue-700">
+                {roleLabel}
+              </span>
+            </div>
+          </div>
         </div>
-      )}
+
+        <Divider className="!my-4" />
+
+        {/* Essential info list */}
+        <div className="space-y-4">
+          <div className="flex items-start gap-3">
+            <span className="flex items-center justify-center w-9 h-9 rounded-lg bg-gray-100 text-gray-600 shrink-0">
+              <UserOutlined />
+            </span>
+            <div className="min-w-0">
+              <Text type="secondary" className="text-xs uppercase tracking-wide">Nombre completo</Text>
+              <p className="!mb-0 font-medium text-gray-900">{displayName}</p>
+            </div>
+          </div>
+          <div className="flex items-start gap-3">
+            <span className="flex items-center justify-center w-9 h-9 rounded-lg bg-gray-100 text-gray-600 shrink-0">
+              <MailOutlined />
+            </span>
+            <div className="min-w-0">
+              <Text type="secondary" className="text-xs uppercase tracking-wide">Correo electrónico</Text>
+              <p className="!mb-0 font-medium text-gray-900">{email}</p>
+            </div>
+          </div>
+          <div className="flex items-start gap-3">
+            <span className="flex items-center justify-center w-9 h-9 rounded-lg bg-gray-100 text-gray-600 shrink-0">
+              <TeamOutlined />
+            </span>
+            <div className="min-w-0">
+              <Text type="secondary" className="text-xs uppercase tracking-wide">Rol</Text>
+              <p className="!mb-0 font-medium text-gray-900">{roleLabel}</p>
+            </div>
+          </div>
+          <div className="flex items-start gap-3">
+            <span className="flex items-center justify-center w-9 h-9 rounded-lg bg-gray-100 text-gray-600 shrink-0">
+              <BankOutlined />
+            </span>
+            <div className="min-w-0">
+              <Text type="secondary" className="text-xs uppercase tracking-wide">Oficina</Text>
+              <p className="!mb-0 font-medium text-gray-900">{officeName}</p>
+            </div>
+          </div>
+
+        <Divider className="!my-6" />
+
+          <div className="rounded-lg border border-gray-100 bg-gray-50/50 p-4">
+            <Title level={5} className="!mb-1">Foto de perfil</Title>
+            <p className="text-sm text-gray-500 mb-3">
+              Sube una imagen (JPEG, PNG, GIF o WebP, máx. 2 MB) o pega una URL que comience con https://
+            </p>
+            <Space wrap className="w-full" size="middle">
+              <Input
+                placeholder="https://ejemplo.com/mi-foto.jpg"
+                value={avatarUrlInput}
+                onChange={(e) => setAvatarUrlInput(e.target.value)}
+                onPressEnter={handleSaveAvatarUrl}
+                maxLength={512}
+                showCount={false}
+                style={{ maxWidth: 340 }}
+                prefix={<LinkOutlined className="text-gray-400" />}
+                allowClear
+              />
+              <Button type="primary" loading={savingAvatar} onClick={handleSaveAvatarUrl} icon={<LinkOutlined />}>
+                Usar URL
+              </Button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/gif,image/webp"
+                className="hidden"
+                onChange={handleFileSelect}
+              />
+              <Button loading={savingAvatar} onClick={() => fileInputRef.current?.click()} icon={<UploadOutlined />}>
+                Subir imagen
+              </Button>
+            </Space>
+          </div>
+        </div>
+      </Card>
     </div>
   );
 }

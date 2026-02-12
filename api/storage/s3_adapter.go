@@ -52,6 +52,11 @@ func (ss *S3Storage) Upload(file *multipart.FileHeader, caseID string) (string, 
 	return UploadFile(file, caseID)
 }
 
+// UploadAvatar delegates to UploadAvatarFile.
+func (ss *S3Storage) UploadAvatar(file *multipart.FileHeader, userID string) (string, error) {
+	return UploadAvatarFile(file, userID)
+}
+
 // Get retrieves a file from S3 and returns an io.ReadCloser + content type.
 func (ss *S3Storage) Get(fileURL string) (io.ReadCloser, string, error) {
 	objectKey, err := ss.extractObjectKey(fileURL)

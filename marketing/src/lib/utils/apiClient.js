@@ -109,12 +109,19 @@ export const apiUtils = {
         return false;
       }
       const client = new ApiClient(base);
-      const response = await client.post('/public/contact', {
+      const payload = {
         name: formData.name,
         email: formData.email,
         phone: formData.phone || '',
         message: formData.message
-      });
+      };
+      const officeId = formData.officeId != null && String(formData.officeId).trim() !== ''
+        ? parseInt(String(formData.officeId), 10)
+        : null;
+      if (officeId != null && !Number.isNaN(officeId)) {
+        payload.officeId = officeId;
+      }
+      const response = await client.post('/public/contact', payload);
       if (response && response.success && response.data) {
         const data = response.data;
         if (data.success) {

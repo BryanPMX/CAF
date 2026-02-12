@@ -36,6 +36,9 @@ The CAF System uses a custom migration system that:
 - **0051_add_user_phone_and_address.sql**: Add phone, personal_address to users
 - **0052_site_content_cms.sql**: CMS tables (site_content, site_services, site_events, site_images)
 - **0053_notifications_entity_and_contact.sql**: Notifications entity_type, entity_id, dedup_key; contact_submissions table
+- **0054_contact_submissions_office_id.sql**: Add office_id to contact_submissions for contact form office selection
+- **0055_contact_submissions_user_id.sql**: Add user_id to contact_submissions to link submissions to client user (created from form)
+- **0056_users_avatar_url.sql**: Add avatar_url to users for profile image (URL or stored upload)
 
 ## Adding New Migrations
 

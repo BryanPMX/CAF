@@ -83,6 +83,39 @@ func (ls *LocalStorage) Upload(file *multipart.FileHeader, caseID string) (strin
 	return LocalURLPrefix + relativePath, nil
 }
 
+// UploadAvatar saves a profile image under avatars/{userID}.{ext} and returns local://avatars/...
+func (ls *LocalStorage) UploadAvatar(file *multipart.FileHeader, userID string) (string, error) {
+	avatarDir := filepath.Join(ls.baseDir, "avatars")
+	if err := os.MkdirAll(avatarDir, 0755); err != nil {
+		return "", fmt.Errorf("failed to create avatars directory: %w", err)
+	}
+	ext := filepath.Ext(file.Filename)
+	if ext == "" {
+		ext = ".jpg"
+	}
+	destPath := filepath.Join(avatarDir, userID+ext)
+
+	src, err := file.Open()
+	if err != nil {
+		return "", fmt.Errorf("failed to open uploaded file: %w", err)
+	}
+	defer src.Close()
+
+	dst, err := os.Create(destPath)
+	if err != nil {
+		return "", fmt.Errorf("failed to create destination file: %w", err)
+	}
+	defer dst.Close()
+
+	if _, err := io.Copy(dst, src); err != nil {
+		os.Remove(destPath)
+		return "", fmt.Errorf("failed to write file to disk: %w", err)
+	}
+
+	relativePath := fmt.Sprintf("avatars/%s%s", userID, ext)
+	return LocalURLPrefix + relativePath, nil
+}
+
 // Get opens a local file and returns an io.ReadCloser + content type.
 func (ls *LocalStorage) Get(fileURL string) (io.ReadCloser, string, error) {
 	diskPath, err := ls.resolvePath(fileURL)

@@ -15,6 +15,9 @@ type FileStorage interface {
 	// Upload saves a file for the given case and returns its stored URL.
 	Upload(file *multipart.FileHeader, caseID string) (string, error)
 
+	// UploadAvatar saves a profile image for the given user and returns its stored URL.
+	UploadAvatar(file *multipart.FileHeader, userID string) (string, error)
+
 	// Get retrieves a file by its stored URL.
 	// Returns a ReadCloser for the file body and the detected content type.
 	Get(fileURL string) (io.ReadCloser, string, error)
