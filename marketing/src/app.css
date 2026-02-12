@@ -193,6 +193,42 @@
   box-shadow: 0 8px 18px rgba(16, 43, 75, 0.08);
 }
 
+.footer-glass-card {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  background:
+    linear-gradient(145deg, rgba(22, 37, 64, 0.78), rgba(58, 38, 96, 0.6)),
+    rgba(16, 28, 48, 0.7);
+  backdrop-filter: blur(14px) saturate(130%);
+  border: 1px solid rgba(192, 209, 246, 0.24);
+  box-shadow:
+    0 20px 42px rgba(2, 8, 20, 0.46),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.footer-glass-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(120deg, rgba(255, 255, 255, 0.14) 0%, transparent 62%);
+  opacity: 0.72;
+}
+
+.footer-nav-pill {
+  background: linear-gradient(135deg, rgba(92, 121, 183, 0.24), rgba(142, 109, 247, 0.18));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 8px 14px rgba(7, 11, 23, 0.26);
+}
+
+.footer-nav-pill:hover {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    0 12px 22px rgba(15, 23, 42, 0.35);
+}
+
 .brand-logo-shell {
   position: relative;
   display: inline-flex;
@@ -239,17 +275,76 @@
   transform: translateX(130%);
 }
 
+.header-shell {
+  position: relative;
+  overflow: hidden;
+}
+
+.header-shell::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(100deg, rgba(255, 255, 255, 0.52), rgba(240, 233, 255, 0.32) 50%, rgba(236, 245, 255, 0.4));
+  opacity: 0.76;
+}
+
+.header-shell::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(140, 171, 224, 0.5), rgba(166, 133, 255, 0.5), transparent);
+}
+
+.header-logo {
+  display: block;
+  background: linear-gradient(155deg, rgba(255, 255, 255, 0.94), rgba(241, 249, 255, 0.88));
+  border: 1px solid rgba(186, 201, 234, 0.66);
+  box-shadow:
+    0 10px 24px rgba(18, 43, 80, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.88);
+  transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+}
+
+.header-logo:hover {
+  transform: translateY(-1px);
+  border-color: rgba(141, 107, 247, 0.45);
+  box-shadow:
+    0 14px 28px rgba(18, 43, 80, 0.24),
+    inset 0 1px 0 rgba(255, 255, 255, 0.94);
+}
+
 .nav-link {
   position: relative;
-  transition: color 0.24s ease, opacity 0.24s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.24s ease, opacity 0.24s ease, transform 0.24s ease, box-shadow 0.24s ease, background-color 0.24s ease;
+}
+
+.nav-link:hover {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.62);
+  box-shadow: 0 8px 18px rgba(20, 37, 66, 0.12);
+}
+
+.nav-link.is-active {
+  background: linear-gradient(125deg, rgba(96, 132, 211, 0.18), rgba(157, 122, 255, 0.2));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.64),
+    0 8px 18px rgba(26, 44, 78, 0.14);
 }
 
 .nav-link::after {
   content: '';
   position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -4px;
+  left: 0.9rem;
+  right: 0.9rem;
+  bottom: 0.2rem;
   height: 2px;
   border-radius: 999px;
   background: linear-gradient(90deg, #5a86db, #9d7aff);
@@ -284,6 +379,7 @@
   .animate-fade-in-up,
   .animate-float,
   .card-lift,
+  .header-logo,
   .brand-logo-shell,
   .btn-elevated::after {
     animation: none !important;
