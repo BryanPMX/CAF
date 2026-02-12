@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   Button,
   Typography,
@@ -36,6 +36,12 @@ export default function NotificationsPage() {
     refreshNotifications,
     clearError,
   } = useNotifications();
+
+  // Reload notifications when entering the page so data is always fresh
+  useEffect(() => {
+    refreshNotifications();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run once on mount when user enters page
+  }, []);
 
   const handleNotificationClick = (notification: Notification) => {
     if (!notification.isRead) {

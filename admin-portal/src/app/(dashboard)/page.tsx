@@ -14,8 +14,8 @@ import {
 } from '@ant-design/icons';
 import { apiClient } from '../lib/api';
 import { useAuth } from '@/context/AuthContext';
+import { useNotifications, type Notification } from '@/context/NotificationContext';
 import { useHydrationSafe } from '@/hooks/useHydrationSafe';
-import type { Notification } from '@/context/NotificationContext';
 import NotificationCard from './components/NotificationCard';
 
 const { Text, Title } = Typography;
@@ -51,30 +51,6 @@ interface DashboardData {
   offices?: Array<{ id: number; name: string }>;
 }
 
-// Map API notification shape to context Notification for NotificationCard
-function toContextNotification(raw: {
-  id: number;
-  message: string;
-  type: string;
-  isRead: boolean;
-  createdAt: string;
-  link?: string;
-  entityType?: string;
-  entityId?: number;
-}): Notification {
-  return {
-    id: raw.id,
-    title: raw.message,
-    message: raw.message,
-    type: (raw.type || 'info') as 'info' | 'success' | 'warning' | 'error',
-    isRead: raw.isRead,
-    createdAt: raw.createdAt,
-    link: raw.link,
-    entityType: raw.entityType,
-    entityId: raw.entityId,
-  };
-}
-
 // --- Stat Card Component ---
 const StatCard: React.FC<{
   title: string;
@@ -107,8 +83,10 @@ const TrueDashboardPage = () => {
   const [loading, setLoading] = useState(true);
   const [selectedOfficeId, setSelectedOfficeId] = useState<string>('');
   const [offices, setOffices] = useState<Array<{ id: number; name: string }>>([]);
-  const [recentNotifications, setRecentNotifications] = useState<Notification[]>([]);
   const initializedRef = useRef(false);
+
+  const { notifications: contextNotifications, unreadCount: contextUnreadCount, markAsRead, refreshNotifications } = useNotifications();
+  const recentNotifications = contextNotifications.slice(0, 5);
 
   const isStaffRole = useMemo(() =>
     ['lawyer', 'psychologist', 'receptionist', 'event_coordinator'].includes(userRole || ''),
@@ -124,18 +102,6 @@ const TrueDashboardPage = () => {
       setOffices(response.data || []);
     } catch {
       // Non-critical, continue without offices
-    }
-  };
-
-  // Fetch recent notifications for dashboard (first 5)
-  const fetchNotifications = async () => {
-    try {
-      const response = await apiClient.get('/notifications');
-      const data = response.data;
-      const raw = Array.isArray(data?.notifications) ? data.notifications.slice(0, 5) : [];
-      setRecentNotifications(raw.map(toContextNotification));
-    } catch {
-      // Non-critical
     }
   };
 
@@ -245,7 +211,7 @@ const TrueDashboardPage = () => {
     const role = user.role;
     setUserRole(role);
     fetchOffices();
-    fetchNotifications();
+    refreshNotifications();
     const managerOfficeId =
       role === 'office_manager' &&
       (user?.officeId != null
@@ -285,7 +251,7 @@ const TrueDashboardPage = () => {
     );
   }
 
-  const unreadCount = recentNotifications.filter(n => !n.isRead).length;
+  const unreadCount = contextUnreadCount;
 
   return (
     <div className="space-y-6">
@@ -437,7 +403,10 @@ const TrueDashboardPage = () => {
               <NotificationCard
                 key={item.id}
                 notification={item}
-                onClick={item.link ? () => router.push(item.link!) : undefined}
+                onClick={() => {
+                  if (!item.isRead) markAsRead(item.id);
+                  if (item.link) router.push(item.link);
+                }}
                 compact
               />
             ))}

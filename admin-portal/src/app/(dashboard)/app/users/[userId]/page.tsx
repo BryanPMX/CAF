@@ -228,7 +228,7 @@ export default function UserProfilePage() {
           <>
             <Divider className="!my-6" />
             <Title level={5} className="!mb-3">
-              Intereses desde Contacto (sitio web)
+              Mensajes Web
             </Title>
             <Table
               dataSource={contactSubmissions}
@@ -260,12 +260,6 @@ export default function UserProfilePage() {
                       {msg.length > 80 ? `${msg.slice(0, 80)}…` : msg}
                     </span>
                   ),
-                },
-                {
-                  title: 'Origen',
-                  dataIndex: 'source',
-                  key: 'source',
-                  width: 90,
                 },
               ]}
             />
