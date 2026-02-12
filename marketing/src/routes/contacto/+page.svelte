@@ -81,17 +81,15 @@
   <meta name="description" content="Encuentre nuestras oficinas y póngase en contacto con nosotros." />
 </svelte:head>
 
-<section class="relative overflow-hidden bg-gradient-to-br from-primary-800 via-primary-700 to-accent-700 py-16 text-white md:py-24">
-  <div class="absolute inset-0 bg-[radial-gradient(circle_at_18%_20%,rgba(255,255,255,0.24),transparent_42%),radial-gradient(circle_at_82%_18%,rgba(125,255,231,0.2),transparent_38%)]"></div>
+<section class="relative overflow-hidden bg-gradient-to-br from-primary-900 via-primary-700 to-[#8d6bf7] py-16 text-white md:py-24">
+  <div class="absolute inset-0 bg-[radial-gradient(circle_at_18%_20%,rgba(255,255,255,0.22),transparent_42%),radial-gradient(circle_at_82%_18%,rgba(221,191,255,0.32),transparent_38%)]"></div>
   <div class="container relative z-10 mx-auto px-6 text-center">
-    <div class="glass-panel mx-auto max-w-4xl rounded-3xl px-6 py-8 sm:px-10 sm:py-10">
-      <h1 class="mb-4 text-4xl font-extrabold leading-tight md:text-5xl" in:fade={{ duration: 800, easing: cubicOut }}>
-        Contáctanos
-      </h1>
-      <p class="mx-auto max-w-3xl text-lg text-primary-100 md:text-xl" in:slide={{ duration: 800, delay: 200, easing: cubicOut }}>
-        Estamos aquí para escucharte. Encuentra la oficina más cercana o envíanos un mensaje.
-      </p>
-    </div>
+    <h1 class="mb-4 text-4xl font-extrabold leading-tight md:text-5xl" in:fade={{ duration: 800, easing: cubicOut }}>
+      Contáctanos
+    </h1>
+    <p class="mx-auto max-w-3xl text-lg text-primary-100 md:text-xl" in:slide={{ duration: 800, delay: 200, easing: cubicOut }}>
+      Estamos aquí para escucharte. Encuentra la oficina más cercana o envíanos un mensaje.
+    </p>
   </div>
   <div class="absolute bottom-0 left-0 w-full leading-[0]">
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 220" preserveAspectRatio="none" class="w-full h-24 md:h-36 lg:h-40">
@@ -100,7 +98,7 @@
   </div>
 </section>
 
-<section class="py-16 bg-[radial-gradient(circle_at_15%_15%,rgba(56,120,214,0.16),transparent_35%),radial-gradient(circle_at_86%_14%,rgba(23,183,165,0.17),transparent_38%),linear-gradient(180deg,#eef6ff_0%,#edf6ff_52%,#edf9f6_100%)]">
+<section class="py-16 bg-[radial-gradient(circle_at_15%_15%,rgba(141,107,247,0.18),transparent_35%),radial-gradient(circle_at_86%_14%,rgba(56,120,214,0.16),transparent_38%),linear-gradient(180deg,#ffffff_0%,#f8f1ff_52%,#edf6ff_100%)]">
   <div class="container mx-auto px-6">
     <div class="grid lg:grid-cols-2 gap-10">
       <div>
@@ -112,7 +110,7 @@
 
       <div>
         <h2 class="text-2xl font-bold text-slate-900 mb-4">Envíanos un Mensaje</h2>
-        <form id="form" class="glass-panel space-y-5 p-8 rounded-xl" on:submit={handleSubmit}>
+        <form id="form" class="space-y-5 rounded-2xl border border-violet-100/90 bg-white/85 p-8 shadow-[0_12px_30px_rgba(41,67,120,0.1)]" on:submit={handleSubmit}>
           <div>
             <label for="officeId" class="block text-sm font-medium text-slate-700 mb-1">Oficina</label>
             <select
@@ -258,7 +256,7 @@
       {/if}
     </div>
 
-    <div class="glass-subtle mt-12 rounded-xl p-8 max-w-2xl mx-auto text-center">
+    <div class="mt-12 rounded-xl border border-violet-100/90 bg-white/85 p-8 max-w-2xl mx-auto text-center shadow-[0_10px_24px_rgba(41,67,120,0.08)]">
       <h3 class="text-lg font-bold text-slate-900 mb-4">Información General</h3>
       <div class="flex flex-col gap-4 text-sm">
         <div>
