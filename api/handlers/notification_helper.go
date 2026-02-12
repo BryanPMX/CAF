@@ -52,7 +52,14 @@ func CreateNotificationWithMeta(db *gorm.DB, userID uint, message, notifType str
 // GetAdminUserIDs returns all user IDs with role "admin" (active, not deleted).
 func GetAdminUserIDs(db *gorm.DB) ([]uint, error) {
 	var ids []uint
-	err := db.Model(&models.User{}).Where("role = ? AND is_active = ?", "admin", true).Pluck("id", &ids).Error
+	err := db.Model(&models.User{}).Where("role = ? AND is_active = ? AND deleted_at IS NULL", "admin", true).Pluck("id", &ids).Error
+	return ids, err
+}
+
+// GetOfficeManagerUserIDs returns user IDs with role "office_manager" for the given office (active, not deleted).
+func GetOfficeManagerUserIDs(db *gorm.DB, officeID uint) ([]uint, error) {
+	var ids []uint
+	err := db.Model(&models.User{}).Where("role = ? AND office_id = ? AND is_active = ? AND deleted_at IS NULL", "office_manager", officeID, true).Pluck("id", &ids).Error
 	return ids, err
 }
 
@@ -64,6 +71,42 @@ func NotifyAdmins(db *gorm.DB, message, notifType string, link *string, entityTy
 		return
 	}
 	for _, id := range adminIDs {
+		_ = CreateNotificationWithMeta(db, id, message, notifType, link, entityType, entityID, dedupKey)
+		SendUserNotification(strconv.FormatUint(uint64(id), 10), map[string]interface{}{
+			"message": message, "type": notifType, "link": link, "entityType": entityType, "entityId": entityID,
+		})
+	}
+}
+
+// NotifyAdminsAndOfficeManagersForContact notifies all admins and, when officeID is set, the manager(s) of that office.
+// Recipients are deduplicated (e.g. an office manager who is also admin gets one notification).
+func NotifyAdminsAndOfficeManagersForContact(db *gorm.DB, message, notifType string, link *string, entityType string, entityID *uint, dedupKey string, officeID *uint) {
+	seen := make(map[uint]struct{})
+	var recipientIDs []uint
+
+	adminIDs, err := GetAdminUserIDs(db)
+	if err == nil {
+		for _, id := range adminIDs {
+			if _, ok := seen[id]; !ok {
+				seen[id] = struct{}{}
+				recipientIDs = append(recipientIDs, id)
+			}
+		}
+	}
+
+	if officeID != nil && *officeID != 0 {
+		managerIDs, err := GetOfficeManagerUserIDs(db, *officeID)
+		if err == nil {
+			for _, id := range managerIDs {
+				if _, ok := seen[id]; !ok {
+					seen[id] = struct{}{}
+					recipientIDs = append(recipientIDs, id)
+				}
+			}
+		}
+	}
+
+	for _, id := range recipientIDs {
 		_ = CreateNotificationWithMeta(db, id, message, notifType, link, entityType, entityID, dedupKey)
 		SendUserNotification(strconv.FormatUint(uint64(id), 10), map[string]interface{}{
 			"message": message, "type": notifType, "link": link, "entityType": entityType, "entityId": entityID,

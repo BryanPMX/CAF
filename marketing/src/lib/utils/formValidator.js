@@ -133,7 +133,8 @@ export const commonRules = {
     name: { required: true, minLength: 2, maxLength: 50 },
     email: { required: true, email: true },
     phone: { phone: true },
-    message: { required: true, minLength: 10, maxLength: 1000 }
+    message: { required: true, minLength: 10, maxLength: 1000 },
+    officeId: { required: true }
   },
   newsletterForm: {
     email: { required: true, email: true }

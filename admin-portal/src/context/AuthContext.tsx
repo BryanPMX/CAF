@@ -220,6 +220,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     initializeAuth();
   }, []); // Empty dependency - run once after mount, no decodeToken dependency
 
+  // When authenticated, fetch profile to populate avatarUrl for sidebar (non-blocking)
+  useEffect(() => {
+    if (typeof window === 'undefined' || !state.isAuthenticated || !state.user || state.user.avatarUrl) return;
+    const token = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN) || Cookies.get(STORAGE_KEYS.AUTH_TOKEN);
+    const base = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/$/, '');
+    if (!token || !base) return;
+    fetch(`${base}/profile`, { headers: { Authorization: `Bearer ${token}` } })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data?.avatarUrl) {
+          setState((prev) =>
+            prev.user ? { ...prev, user: { ...prev.user, avatarUrl: data.avatarUrl } } : prev
+          );
+        }
+      })
+      .catch(() => {});
+  }, [state.isAuthenticated, state.user?.id]);
+
   // Login function - THE SINGLE AUTHORITATIVE METHOD FOR SETTING AUTH STATE
   const login = useCallback((userData: AuthUser, token: string) => {
     try {
@@ -309,6 +327,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         lastName: updatedUser.lastName ?? prev.user.lastName,
         email: updatedUser.email ?? prev.user.email,
         officeId: updatedUser.officeId !== undefined ? updatedUser.officeId : prev.user.officeId,
+        avatarUrl: updatedUser.avatarUrl !== undefined ? updatedUser.avatarUrl : prev.user.avatarUrl,
       };
       try {
         localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(nextUser));

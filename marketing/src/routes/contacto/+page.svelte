@@ -8,7 +8,7 @@
   import { errorHandler } from '$lib/utils/errorHandler.js';
   import { config } from '$lib/config.js';
 
-  let formData = { name: '', email: '', phone: '', message: '' };
+  let formData = { name: '', email: '', phone: '', message: '', officeId: '' };
   let isSubmitting = false;
   let formErrors = {};
   let offices = [];
@@ -41,7 +41,7 @@
     try {
       const success = await apiUtils.submitContactForm(formData);
       if (success) {
-        formData = { name: '', email: '', phone: '', message: '' };
+        formData = { name: '', email: '', phone: '', message: '', officeId: '' };
         formErrors = {};
       }
     } catch (error) {
@@ -115,6 +115,25 @@
       <div>
         <h2 class="text-2xl font-bold text-gray-900 mb-4">Envíanos un Mensaje</h2>
         <form id="form" class="space-y-5 bg-white p-8 rounded-xl shadow-sm border border-gray-100" on:submit={handleSubmit}>
+          <div>
+            <label for="officeId" class="block text-sm font-medium text-gray-700 mb-1">Oficina</label>
+            <select
+              id="officeId"
+              bind:value={formData.officeId}
+              on:change={(e) => handleFieldChange('officeId', e.target.value)}
+              required
+              disabled={isSubmitting || loadingOffices}
+              class="focus:ring-primary-500 focus:border-primary-500 w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm"
+            >
+              <option value="">Seleccione una oficina</option>
+              {#each offices as office}
+                <option value={office.id}>{office.name}</option>
+              {/each}
+            </select>
+            {#if loadingOffices}
+              <p class="text-xs text-gray-500 mt-1">Cargando oficinas...</p>
+            {/if}
+          </div>
           <div>
             <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Nombre Completo</label>
             <input

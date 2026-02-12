@@ -315,6 +315,7 @@ func main() {
 		protected.DELETE("/notes/:id", handlers.DeleteUserNote(database))
 
 		// Profile and user info (include office for managers to prefill office selection)
+		apiBaseURL := strings.TrimSuffix(os.Getenv("API_BASE_URL"), "/")
 		protected.GET("/profile", func(c *gin.Context) {
 			userID, _ := c.Get("userID")
 			var user models.User
@@ -327,6 +328,7 @@ func main() {
 			if user.LastLogin == nil || user.LastLogin.Before(now.Add(-1*time.Hour)) {
 				_ = database.Model(&user).Update("last_login", &now).Error
 			}
+			avatarUrl := handlers.BuildProfileAvatarURL(user.AvatarURL, apiBaseURL)
 			c.JSON(http.StatusOK, gin.H{
 				"userID":    userID,
 				"role":      user.Role,
@@ -334,8 +336,12 @@ func main() {
 				"lastName":  user.LastName,
 				"office":    user.Office,
 				"officeId":  user.OfficeID,
+				"avatarUrl": avatarUrl,
 			})
 		})
+		protected.PATCH("/profile", handlers.UpdateProfile(database))
+		protected.POST("/profile/avatar", handlers.UploadProfileAvatar(database, apiBaseURL))
+		protected.GET("/avatar", handlers.GetProfileAvatar(database))
 
 		// Offices list available to authenticated staff/managers/admins
 		protected.GET("/offices", handlers.GetOffices(cont.GetOfficeRepository()))
@@ -585,6 +591,7 @@ func main() {
 		// Users management for Office Managers
 		// Office managers can create/update clients for any office, but staff only for their office
 		officeManager.POST("/users", handlers.CreateUserScoped(database))
+		officeManager.GET("/users/:id", handlers.GetUserByID(database))
 		officeManager.PATCH("/users/:id", handlers.UpdateUserScoped(database))
 		officeManager.GET("/users", handlers.GetUsers(database))
 		officeManager.GET("/users/search", handlers.SearchClients(database))

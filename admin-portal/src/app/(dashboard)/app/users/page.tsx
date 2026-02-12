@@ -163,6 +163,36 @@ const UserManagementPage = () => {
     return () => clearTimeout(t);
   }, [q]);
 
+  // Open edit modal when navigating from user profile (e.g. /app/users?edit=123)
+  useEffect(() => {
+    const editId = searchParams.get('edit');
+    if (!editId || !user?.role) return;
+    const base = user.role === 'office_manager' ? '/manager' : '/admin';
+    (async () => {
+      try {
+        const res = await apiClient.get(`${base}/users/${editId}`);
+        const u = res.data?.user;
+        if (u) {
+          setEditingUser({
+            id: u.id,
+            firstName: u.firstName,
+            lastName: u.lastName,
+            email: u.email,
+            role: u.role,
+            officeId: u.officeId,
+            office: u.office,
+            phone: u.phone,
+            personalAddress: u.personalAddress,
+          });
+          setIsModalVisible(true);
+        }
+        router.replace('/app/users');
+      } catch {
+        // ignore
+      }
+    })();
+  }, [searchParams, user?.role, router]);
+
   // --- Event Handlers ---
   // Opens the modal in "create" mode by ensuring `editingUser` is null.
   const handleCreate = () => {

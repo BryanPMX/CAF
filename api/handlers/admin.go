@@ -644,6 +644,16 @@ func GetUserByID(db *gorm.DB) gin.HandlerFunc {
 			"totalCases":      len(caseAssignments),
 		}
 
+		// For clients, include contact form submissions (interest metadata)
+		if user.Role == "client" {
+			var contactSubmissions []models.ContactSubmission
+			if err := db.Where("user_id = ?", user.ID).Order("created_at DESC").Find(&contactSubmissions).Error; err == nil {
+				response["contactSubmissions"] = contactSubmissions
+			} else {
+				response["contactSubmissions"] = []models.ContactSubmission{}
+			}
+		}
+
 		c.JSON(http.StatusOK, response)
 	}
 }

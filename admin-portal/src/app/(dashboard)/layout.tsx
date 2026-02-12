@@ -25,7 +25,6 @@ import {
   BarChartOutlined,
   HomeOutlined,
   GlobalOutlined,
-  IdcardOutlined
 } from '@ant-design/icons';
 import ClientOnly from '@/components/ClientOnly';
 import ErrorBoundary from '@/components/ErrorBoundary';
@@ -51,7 +50,6 @@ const ICON_MAP = {
   'FileTextOutlined': FileTextOutlined,
   'CalendarOutlined': CalendarOutlined,
   'UserOutlined': UserOutlined,
-  'IdcardOutlined': IdcardOutlined,
   'BankOutlined': BankOutlined,
   'FileOutlined': FileOutlined,
   'BarChartOutlined': BarChartOutlined,
@@ -96,7 +94,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (pathname === '/') return 'dashboard';
     if (pathname.startsWith('/app/appointments')) return 'appointments';
     if (pathname.startsWith('/app/cases')) return 'cases';
-    if (pathname.startsWith('/app/profile')) return 'profile';
     if (pathname.startsWith('/app/users')) return 'users';
     if (pathname.startsWith('/app/offices')) return 'offices';
     if (pathname.startsWith('/app/web-content')) return 'web-content';

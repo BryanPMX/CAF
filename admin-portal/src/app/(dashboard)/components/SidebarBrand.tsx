@@ -1,22 +1,39 @@
 // admin-portal/src/app/(dashboard)/components/SidebarBrand.tsx
-// Sidebar brand: displays the organization logo prominently.
-// Shows full logo when expanded, compact "CAF" mark when collapsed.
+// Sidebar brand: user avatar when set, otherwise organization logo. Click goes to profile.
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useAuth } from '@/context/AuthContext';
+import AuthAvatar from './AuthAvatar';
 
 export default function SidebarBrand() {
   const [logoError, setLogoError] = React.useState(false);
+  const [avatarLoadError, setAvatarLoadError] = React.useState(false);
+  const { user } = useAuth();
+  const hasAvatar = Boolean(user?.avatarUrl) && !avatarLoadError;
+
+  useEffect(() => {
+    setAvatarLoadError(false);
+  }, [user?.avatarUrl]);
 
   return (
     <Link
-      href="/"
+      href="/app/profile"
       className="sidebar-brand flex items-center justify-center px-3 py-4 min-h-[64px] w-full transition-colors hover:bg-white/[0.06]"
+      aria-label="Ir a mi perfil"
     >
-      <div className="sidebar-brand-logo relative flex-shrink-0 flex items-center justify-center overflow-hidden">
-        {!logoError ? (
+      <div className="sidebar-brand-logo relative flex-shrink-0 flex items-center justify-center overflow-hidden rounded-full">
+        {hasAvatar ? (
+          <AuthAvatar
+            avatarUrl={user!.avatarUrl}
+            alt="Mi perfil"
+            size={48}
+            className="sidebar-brand-img object-cover"
+            onError={() => setAvatarLoadError(true)}
+          />
+        ) : !logoError ? (
           <Image
             src="/logo.png"
             alt="CAF - Centro de Apoyo para la Familia"

@@ -172,3 +172,40 @@ func UploadFile(file *multipart.FileHeader, caseID string) (string, error) {
 
 	return fileURL, nil
 }
+
+// UploadAvatarFile uploads a profile image to S3 at avatars/{userID}.{ext} and returns the public URL.
+func UploadAvatarFile(file *multipart.FileHeader, userID string) (string, error) {
+	bucketName := os.Getenv("S3_BUCKET")
+	if s3Client == nil {
+		return "", fmt.Errorf("S3 client not initialized")
+	}
+
+	src, err := file.Open()
+	if err != nil {
+		return "", fmt.Errorf("failed to open file: %w", err)
+	}
+	defer src.Close()
+
+	ext := filepath.Ext(file.Filename)
+	if ext == "" {
+		ext = ".jpg"
+	}
+	objectKey := fmt.Sprintf("avatars/%s%s", userID, ext)
+
+	_, err = s3Client.PutObject(context.TODO(), &s3.PutObjectInput{
+		Bucket: &bucketName,
+		Key:    &objectKey,
+		Body:   src,
+		ACL:    types.ObjectCannedACLPublicRead,
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to upload avatar to S3: %w", err)
+	}
+
+	endpoint := os.Getenv("AWS_ENDPOINT_URL")
+	region := os.Getenv("AWS_REGION")
+	if endpoint != "" {
+		return fmt.Sprintf("%s/%s/%s", endpoint, bucketName, objectKey), nil
+	}
+	return fmt.Sprintf("https://%s.s3.%s.amazonaws.com/%s", bucketName, region, objectKey), nil
+}

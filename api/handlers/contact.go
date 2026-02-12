@@ -1,8 +1,10 @@
 // Package handlers: public contact/interest form from marketing site.
-// Stores submission and notifies admins (with dedup to avoid duplicate notifications).
+// Creates or finds a client user, stores submission linked to that user, and notifies admins.
 package handlers
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -10,6 +12,7 @@ import (
 
 	"github.com/BryanPMX/CAF/api/models"
 	"github.com/gin-gonic/gin"
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
@@ -19,10 +22,74 @@ type ContactSubmitInput struct {
 	Email   string `json:"email" binding:"required,email,max=255"`
 	Phone   string `json:"phone" binding:"omitempty,max=50"`
 	Message string `json:"message" binding:"required,max=5000"`
+	OfficeID *uint `json:"officeId" binding:"omitempty"` // optional: selected office from dropdown
+}
+
+// findOrCreateClientUser finds an existing client by email or creates a new client user.
+// Name is split into firstName and lastName (first word / rest; if single word, lastName = firstName).
+// Returns the user ID and nil error, or 0 and error.
+func findOrCreateClientUser(db *gorm.DB, name, email, phone string, officeID *uint) (uint, error) {
+	firstName, lastName := splitName(name)
+	if lastName == "" {
+		lastName = firstName
+	}
+
+	var existing models.User
+	err := db.Unscoped().Where("email = ? AND role = ?", email, "client").First(&existing).Error
+	if err == nil {
+		// Update if needed and reactivate if soft-deleted
+		existing.FirstName = firstName
+		existing.LastName = lastName
+		existing.Phone = phone
+		existing.OfficeID = officeID
+		existing.DeletedAt = gorm.DeletedAt{}
+		if err := db.Unscoped().Save(&existing).Error; err != nil {
+			return 0, err
+		}
+		return existing.ID, nil
+	}
+	if err != gorm.ErrRecordNotFound {
+		return 0, err
+	}
+
+	// Create new client with a random unusable password (no login until reset)
+	b := make([]byte, 24)
+	if _, err := rand.Read(b); err != nil {
+		return 0, err
+	}
+	rawPass := base64.URLEncoding.EncodeToString(b)
+	hashed, err := bcrypt.GenerateFromPassword([]byte(rawPass), bcrypt.DefaultCost)
+	if err != nil {
+		return 0, err
+	}
+
+	user := models.User{
+		FirstName: firstName,
+		LastName:  lastName,
+		Email:     email,
+		Password:  string(hashed),
+		Role:      "client",
+		OfficeID:  officeID,
+		Phone:     phone,
+		IsActive:  true,
+	}
+	if err := db.Create(&user).Error; err != nil {
+		return 0, err
+	}
+	return user.ID, nil
+}
+
+func splitName(name string) (first, last string) {
+	name = strings.TrimSpace(name)
+	i := strings.IndexFunc(name, func(r rune) bool { return r == ' ' || r == '\t' })
+	if i <= 0 {
+		return name, ""
+	}
+	return strings.TrimSpace(name[:i]), strings.TrimSpace(name[i+1:])
 }
 
 // SubmitContact is the public handler for marketing "Contacto" interest form.
-// Rate-limited by ContactFormRateLimit. Creates a contact_submission and notifies all admins.
+// Rate-limited. Finds or creates a client user, creates contact_submission linked to that user, notifies admins with link to client profile.
 func SubmitContact(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var input ContactSubmitInput
@@ -31,12 +98,22 @@ func SubmitContact(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		input.Name = strings.TrimSpace(input.Name)
+		input.Name = strings.TrimSpace(sanitizePrintable(input.Name))
 		input.Email = strings.TrimSpace(strings.ToLower(input.Email))
-		input.Phone = strings.TrimSpace(input.Phone)
-		input.Message = strings.TrimSpace(input.Message)
+		input.Phone = strings.TrimSpace(sanitizePrintable(input.Phone))
+		input.Message = strings.TrimSpace(sanitizePrintable(input.Message))
 		if input.Name == "" || input.Email == "" || input.Message == "" {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Nombre, correo y mensaje son obligatorios"})
+			return
+		}
+		if len(input.Name) > 255 || len(input.Message) > 5000 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Datos inválidos"})
+			return
+		}
+
+		clientID, err := findOrCreateClientUser(db, input.Name, input.Email, input.Phone, input.OfficeID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al registrar el contacto"})
 			return
 		}
 
@@ -46,23 +123,42 @@ func SubmitContact(db *gorm.DB) gin.HandlerFunc {
 			Phone:   input.Phone,
 			Message: input.Message,
 			Source:  "contacto",
+			OfficeID: input.OfficeID,
+			UserID:  &clientID,
 		}
 		if err := db.Create(&sub).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al guardar el mensaje"})
 			return
 		}
 
-		// Notify all admins with full contact info (dedup by submission id). Link to profile contactos section.
+		// Notify all admins and the manager(s) of the selected office (if any); link to client profile
 		msg := fmt.Sprintf("Nuevo interés desde Contacto: %s (%s). Mensaje: %s", input.Name, input.Email, truncate(input.Message, 200))
-		link := "/app/profile#contactos"
+		link := fmt.Sprintf("/app/users/%d", clientID)
 		eid := sub.ID
-		NotifyAdmins(db, msg, "info", &link, "contact_interest", &eid, fmt.Sprintf("contact_interest:%d", sub.ID))
+		NotifyAdminsAndOfficeManagersForContact(db, msg, "info", &link, "contact_interest", &eid, fmt.Sprintf("contact_interest:%d", sub.ID), input.OfficeID)
 
 		c.JSON(http.StatusOK, gin.H{
 			"success": true,
 			"message": "Mensaje enviado correctamente. Nos pondremos en contacto pronto.",
 		})
 	}
+}
+
+// sanitizePrintable keeps only printable ASCII and common UTF-8 (letters, numbers, punctuation, newlines).
+// Strips null bytes and control chars to prevent injection.
+func sanitizePrintable(s string) string {
+	return strings.Map(func(r rune) rune {
+		if r == 0 || r == '\x00' {
+			return -1
+		}
+		if r < 32 && r != '\n' && r != '\r' && r != '\t' {
+			return -1
+		}
+		if r > 0x7F && r < 0xA0 {
+			return -1
+		}
+		return r
+	}, s)
 }
 
 func truncate(s string, max int) string {
