@@ -279,23 +279,36 @@
 <section class="relative overflow-hidden bg-gradient-to-br from-primary-900 via-primary-700 to-[#8d6bf7] text-white">
   <div class="spotlight -left-24 top-10 h-40 w-72 bg-primary-300"></div>
   <div class="spotlight -right-20 bottom-8 h-40 w-72 bg-accent-400"></div>
+  <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_18%,rgba(255,255,255,0.16),transparent_42%),radial-gradient(circle_at_86%_20%,rgba(232,206,255,0.2),transparent_38%)]"></div>
 
   <div class="container relative mx-auto px-6 py-16 text-center md:py-20">
-    <div class="glass-panel mx-auto max-w-3xl rounded-3xl border-white/35 bg-white/18 p-8 text-white sm:p-10">
-      <h2 class="mb-4 text-3xl font-bold md:text-4xl">
-        <span class="inline-block rounded-2xl border border-white/35 bg-[linear-gradient(130deg,rgba(27,68,136,0.9),rgba(123,96,217,0.88))] px-5 py-2.5 text-white shadow-[0_12px_28px_rgba(6,19,40,0.34)]">
-          ¿Listo para dar el primer paso?
-        </span>
-      </h2>
-      <p class="mb-8 text-lg leading-relaxed text-primary-100">
-        Nuestro equipo está aquí para ayudarle. Contáctenos hoy para programar una consulta confidencial.
-      </p>
-      <a
-        href="/contacto"
-        class="btn-elevated fade-interact inline-block rounded-xl bg-white px-8 py-3.5 text-lg font-bold text-primary-800 shadow-[0_18px_34px_rgba(3,20,41,0.34)] transition-all duration-300 hover:-translate-y-1 hover:bg-primary-50"
-      >
-        Habla con Nosotros
-      </a>
+    <div class="mx-auto max-w-4xl rounded-[2rem] border border-white/28 bg-[linear-gradient(140deg,rgba(255,255,255,0.2),rgba(255,255,255,0.08))] p-1 shadow-[0_26px_56px_rgba(5,17,38,0.34)] backdrop-blur-xl">
+      <div class="relative overflow-hidden rounded-[1.8rem] bg-[linear-gradient(135deg,rgba(21,53,108,0.9),rgba(53,83,165,0.78)_42%,rgba(110,88,198,0.76)_100%)] px-8 py-10 sm:px-12 sm:py-12">
+        <div class="pointer-events-none absolute inset-0 bg-[linear-gradient(120deg,rgba(255,255,255,0.22)_0%,rgba(255,255,255,0.04)_52%,transparent_75%)]"></div>
+        <div class="pointer-events-none absolute -left-10 top-10 h-28 w-48 rounded-full bg-primary-300/35 blur-3xl"></div>
+        <div class="pointer-events-none absolute -right-10 bottom-8 h-28 w-52 rounded-full bg-[#cdb1ff]/45 blur-3xl"></div>
+
+        <div class="relative mx-auto max-w-2xl">
+          <span class="mb-4 inline-flex items-center rounded-full border border-white/28 bg-white/12 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-white/90">
+            Orientación Profesional CAF
+          </span>
+
+          <h2 class="mb-4 text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
+            ¿Listo para dar el primer paso?
+          </h2>
+
+          <p class="mb-8 text-base leading-relaxed text-blue-100/95 sm:text-lg">
+            Nuestro equipo está aquí para ayudarle. Contáctenos hoy para programar una consulta confidencial con acompañamiento legal, psicológico o social.
+          </p>
+
+          <a
+            href="/contacto"
+            class="btn-elevated fade-interact inline-flex items-center justify-center rounded-xl bg-white px-8 py-3.5 text-lg font-bold text-primary-800 shadow-[0_18px_34px_rgba(3,20,41,0.34)] transition-all duration-300 hover:-translate-y-1 hover:bg-primary-50"
+          >
+            Habla con Nosotros
+          </a>
+        </div>
+      </div>
     </div>
   </div>
 </section>
