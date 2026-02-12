@@ -665,14 +665,13 @@ function GalleryTab() {
 
   const sectionLabels: Record<string, string> = {
     inicio: 'Inicio (carousel)',
-    hero: 'Portada',
+    hero: 'Portada', // legacy; no longer in dropdown
     gallery: 'Galería',
     about: 'Sobre Nosotros',
   };
 
   const sectionOptions = [
     { label: 'Inicio (carousel)', value: 'inicio' },
-    { label: 'Portada', value: 'hero' },
     { label: 'Galería', value: 'gallery' },
     { label: 'Sobre Nosotros', value: 'about' },
   ];
@@ -809,7 +808,7 @@ function GalleryTab() {
               <Form.Item
                 name="section"
                 label="Sección"
-                tooltip="Inicio: carousel en Inicio. Portada: respaldo del carousel. Galería: cuadrícula en Inicio. Sobre Nosotros: imágenes en bloque About."
+                tooltip="Inicio: carousel en Inicio. Galería: cuadrícula en Inicio. Sobre Nosotros: imágenes en bloque About."
               >
                 <Select options={sectionOptions} />
               </Form.Item>
