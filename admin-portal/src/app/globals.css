@@ -163,34 +163,6 @@
   background: rgba(148, 163, 184, 0.65);
 }
 
-.admin-sider-footer {
-  padding: 10px 12px 14px;
-  border-top: 1px solid rgba(148, 163, 184, 0.16);
-}
-
-.admin-sider-profile-link {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  min-height: 42px;
-  padding: 9px 11px;
-  border-radius: 12px;
-  border: 1px solid rgba(148, 163, 184, 0.26);
-  background: rgba(15, 23, 42, 0.34);
-  color: var(--sidebar-text);
-  font-size: 0.8rem;
-  font-weight: 500;
-  text-decoration: none;
-  transition: all 0.2s ease;
-}
-
-.admin-sider-profile-link:hover {
-  border-color: rgba(148, 163, 184, 0.45);
-  background: var(--sidebar-surface-strong);
-  color: #ffffff;
-}
-
 .admin-sider .ant-layout-sider-trigger {
   border-top: 1px solid rgba(148, 163, 184, 0.18);
   background: rgba(15, 23, 42, 0.6) !important;
@@ -225,20 +197,15 @@
   height: 100% !important;
 }
 
-.ant-layout-sider-collapsed .admin-nav-menu.ant-menu-dark .ant-menu-item {
+.ant-layout-sider-collapsed .admin-nav-menu.ant-menu-inline-collapsed > .ant-menu-item,
+.ant-layout-sider-collapsed .admin-nav-menu.ant-menu-inline-collapsed > .ant-menu-submenu > .ant-menu-submenu-title {
+  inset-inline-start: 0 !important;
+  width: 52px !important;
+  margin-inline: auto !important;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding-inline: calc(50% - 22px) !important;
-}
-
-.ant-layout-sider-collapsed .admin-sider-footer {
-  padding-inline: 8px;
-}
-
-.ant-layout-sider-collapsed .admin-sider-profile-link {
-  justify-content: center;
-  padding-inline: 0;
+  padding-inline: 0 !important;
 }
 
 /* Custom Dashboard Styles */
