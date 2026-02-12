@@ -81,9 +81,9 @@ func GetRecordsArchivedCases(db *gorm.DB) gin.HandlerFunc {
 		for _, caseData := range cases {
 			// Determine the correct archive timestamp and user:
 			// Completed cases use ArchivedAt/ArchivedBy; deleted cases use DeletedAt/DeletedBy
-			var archivedAt interface{} = caseData.ArchivedAt
-			var archivedBy interface{} = caseData.ArchivedBy
-			if archivedAt == nil && caseData.DeletedAt != nil {
+			archivedAt := interface{}(caseData.ArchivedAt)
+			archivedBy := interface{}(caseData.ArchivedBy)
+			if caseData.ArchivedAt == nil && caseData.DeletedAt != nil {
 				archivedAt = caseData.DeletedAt
 				archivedBy = caseData.DeletedBy
 			}
@@ -376,7 +376,7 @@ func GetRecordsArchiveStats(db *gorm.DB) gin.HandlerFunc {
 	}
 }
 
-// RestoreCase restores a soft-deleted case
+// RestoreCase restores an archived case (either soft-deleted or completed/archived).
 func RestoreCase(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		caseID := c.Param("id")
@@ -385,7 +385,6 @@ func RestoreCase(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		// Find the archived case using Unscoped() to include soft-deleted records
 		var caseData models.Case
 		if err := db.Unscoped().First(&caseData, caseID).Error; err != nil {
 			if err == gorm.ErrRecordNotFound {
@@ -399,16 +398,25 @@ func RestoreCase(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		// Check if the case is actually archived
-		if caseData.DeletedAt == nil {
+		// Consider archived if soft-deleted OR completed/archived (same as Archivos list)
+		softDeleted := caseData.DeletedAt != nil
+		completedArchived := caseData.IsArchived
+		if !softDeleted && !completedArchived {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Case is not archived"})
 			return
 		}
 
-		// Restore the case by setting DeletedAt to nil
-		caseData.DeletedAt = nil
-		caseData.DeletedBy = nil
-		caseData.DeletionReason = ""
+		if softDeleted {
+			caseData.DeletedAt = nil
+			caseData.DeletedBy = nil
+			caseData.DeletionReason = ""
+		}
+		if completedArchived {
+			caseData.IsArchived = false
+			caseData.ArchivedAt = nil
+			caseData.ArchivedBy = nil
+			caseData.ArchiveReason = ""
+		}
 
 		if err := db.Unscoped().Save(&caseData).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
@@ -418,7 +426,6 @@ func RestoreCase(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		// Load relationships for response
 		if err := db.Preload("Client").Preload("Office").Preload("PrimaryStaff").First(&caseData, caseData.ID).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"error":   "Failed to load case relationships",
@@ -499,7 +506,6 @@ func PermanentlyDeleteCase(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		// Find the archived case using Unscoped() to include soft-deleted records
 		var caseData models.Case
 		if err := db.Unscoped().First(&caseData, caseID).Error; err != nil {
 			if err == gorm.ErrRecordNotFound {
@@ -513,8 +519,8 @@ func PermanentlyDeleteCase(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		// Check if the case is actually archived
-		if caseData.DeletedAt == nil {
+		// Allow permanent delete if case is in archives: soft-deleted OR completed/archived
+		if caseData.DeletedAt == nil && !caseData.IsArchived {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Case is not archived"})
 			return
 		}

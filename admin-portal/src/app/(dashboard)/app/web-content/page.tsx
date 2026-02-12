@@ -283,6 +283,7 @@ function ServicesTab() {
 
       const payload = { ...values, details, isActive: values.isActive ?? true };
       delete payload.detailsText;
+      delete payload.sortOrder;
 
       if (editing?.id) {
         await api.patch(`/admin/site-services/${editing.id}`, payload);
@@ -322,12 +323,11 @@ function ServicesTab() {
   const openCreate = () => {
     setEditing(null);
     form.resetFields();
-    form.setFieldsValue({ isActive: true, sortOrder: services.length + 1 });
+    form.setFieldsValue({ isActive: true });
     setModalOpen(true);
   };
 
   const columns = [
-    { title: 'Orden', dataIndex: 'sortOrder', key: 'sortOrder', width: 70 },
     { title: 'Título', dataIndex: 'title', key: 'title' },
     {
       title: 'Descripción', dataIndex: 'description', key: 'description',
@@ -384,17 +384,12 @@ function ServicesTab() {
             <TextArea rows={4} placeholder="Derecho Familiar&#10;Asuntos Civiles&#10;Orientación migratoria" />
           </Form.Item>
           <Row gutter={16}>
-            <Col span={8}>
+            <Col span={12}>
               <Form.Item name="icon" label="Ícono">
                 <Input placeholder="balance-scale" />
               </Form.Item>
             </Col>
-            <Col span={8}>
-              <Form.Item name="sortOrder" label="Orden">
-                <InputNumber style={{ width: '100%' }} min={0} />
-              </Form.Item>
-            </Col>
-            <Col span={8}>
+            <Col span={12}>
               <Form.Item name="isActive" label="Activo" valuePropName="checked">
                 <Switch />
               </Form.Item>
@@ -621,6 +616,7 @@ function GalleryTab() {
     try {
       const values = await form.validateFields();
       const payload = { ...values, isActive: values.isActive ?? true };
+      delete payload.sortOrder;
 
       if (editing?.id) {
         await api.patch(`/admin/site-images/${editing.id}`, payload);
@@ -657,7 +653,7 @@ function GalleryTab() {
   const openCreate = () => {
     setEditing(null);
     form.resetFields();
-    form.setFieldsValue({ isActive: true, section: 'inicio', sortOrder: images.length + 1 });
+    form.setFieldsValue({ isActive: true, section: 'inicio' });
     setModalOpen(true);
   };
 
@@ -797,17 +793,12 @@ function GalleryTab() {
             </Col>
           </Row>
           <Row gutter={16}>
-            <Col xs={24} sm={8}>
+            <Col xs={24} sm={12}>
               <Form.Item name="section" label="Sección">
                 <Select options={sectionOptions} />
               </Form.Item>
             </Col>
-            <Col xs={12} sm={8}>
-              <Form.Item name="sortOrder" label="Orden">
-                <InputNumber style={{ width: '100%' }} min={0} />
-              </Form.Item>
-            </Col>
-            <Col xs={12} sm={8}>
+            <Col xs={24} sm={12}>
               <Form.Item name="isActive" label="Activo" valuePropName="checked">
                 <Switch />
               </Form.Item>
