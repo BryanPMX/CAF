@@ -12,7 +12,7 @@
 
   <div class="container relative mx-auto px-6 py-10 sm:py-12">
     <div class="grid grid-cols-1 gap-6 md:grid-cols-3 md:gap-8">
-      <div class="rounded-2xl border border-white/10 bg-white/[0.04] p-6 shadow-[0_16px_34px_rgba(1,8,19,0.26)]">
+      <div class="glass-panel rounded-2xl border-white/30 bg-white/[0.12] p-6 text-slate-100 shadow-[0_22px_40px_rgba(1,8,19,0.3)]">
         <div class="mb-4 flex items-center gap-3">
           <span class="brand-logo-shell">
             <span class="block rounded-[0.95rem] bg-white p-1.5">
@@ -26,7 +26,7 @@
         </p>
       </div>
 
-      <div class="rounded-2xl border border-white/10 bg-white/[0.04] p-6 shadow-[0_16px_34px_rgba(1,8,19,0.26)]">
+      <div class="glass-panel rounded-2xl border-white/30 bg-white/[0.1] p-6 shadow-[0_22px_40px_rgba(1,8,19,0.3)]">
         <h4 class="mb-4 text-sm font-semibold uppercase tracking-[0.18em] text-slate-100">Navegación</h4>
         <ul class="space-y-2.5">
           <li>
@@ -56,7 +56,7 @@
         </ul>
       </div>
 
-      <div class="rounded-2xl border border-white/10 bg-white/[0.04] p-6 shadow-[0_16px_34px_rgba(1,8,19,0.26)]">
+      <div class="glass-panel rounded-2xl border-white/30 bg-white/[0.1] p-6 shadow-[0_22px_40px_rgba(1,8,19,0.3)]">
         <h4 class="mb-4 text-sm font-semibold uppercase tracking-[0.18em] text-slate-100">Contacto</h4>
         <ul class="space-y-3 text-sm text-slate-300/90">
           <li class="flex items-start gap-2.5">
