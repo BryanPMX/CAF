@@ -24,13 +24,13 @@
 
 <header class="bg-white/95 backdrop-blur-md shadow-sm sticky top-0 z-50 border-b border-gray-100">
   <nav class="w-full px-4 sm:px-6 py-3 flex justify-between items-center">
-    <!-- Logo: larger for visibility of text/initials; responsive, professional -->
+    <!-- Logo: larger for visibility; responsive, professional -->
     <a href="/" class="flex items-center flex-shrink-0 overflow-hidden rounded-sm" on:click={closeMenu}>
-      <span class="inline-flex h-16 w-24 sm:h-20 sm:w-32 md:h-24 md:w-40 items-center justify-center overflow-hidden">
+      <span class="inline-flex h-20 w-28 sm:h-24 sm:w-36 md:h-28 md:w-44 items-center justify-center overflow-hidden">
         <img
           src="/logo-header.jpg"
           alt="Logo del Centro de Apoyo para la Familia"
-          class="h-16 w-auto sm:h-20 md:h-24 origin-center object-contain scale-[1.4] sm:scale-[1.55] md:scale-[1.7]"
+          class="h-20 w-auto sm:h-24 md:h-28 origin-center object-contain scale-[1.4] sm:scale-[1.55] md:scale-[1.7]"
         />
       </span>
     </a>
