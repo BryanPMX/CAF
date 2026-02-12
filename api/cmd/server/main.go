@@ -456,6 +456,9 @@ func main() {
 		admin.PATCH("/appointments/:id", handlers.UpdateAppointmentEnhanced(database))
 		admin.DELETE("/appointments/:id", handlers.DeleteAppointmentAdmin(database))
 
+		// Contact form submissions (marketing "Contacto" interest)
+		admin.GET("/contact-submissions", handlers.GetContactSubmissions(database))
+
 		// Records Management (Archived Cases and Appointments)
 		admin.GET("/records/stats", handlers.GetRecordsArchiveStats(database))
 		admin.GET("/records/cases", handlers.GetRecordsArchivedCases(database))

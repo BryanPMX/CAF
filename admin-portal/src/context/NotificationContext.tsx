@@ -12,7 +12,9 @@ export interface Notification {
   isRead: boolean;
   createdAt: string;
   userId?: number;
-  link?: string; // Optional link for clickable notifications
+  link?: string;
+  entityType?: string;
+  entityId?: number;
 }
 
 // Context interface
@@ -79,7 +81,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
 
       const data = await response.json();
       const raw = data.notifications || [];
-      setNotifications(raw.map((n: { id: number; message: string; title?: string; type: string; isRead: boolean; createdAt: string; link?: string }) => ({
+      setNotifications(raw.map((n: { id: number; message: string; title?: string; type: string; isRead: boolean; createdAt: string; link?: string; entityType?: string; entityId?: number }) => ({
         id: n.id,
         title: n.title ?? n.message ?? '',
         message: n.message,
@@ -87,6 +89,8 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
         isRead: n.isRead,
         createdAt: n.createdAt,
         link: n.link,
+        entityType: n.entityType,
+        entityId: n.entityId,
       })));
     } catch (err) {
       console.error('Error fetching notifications:', err);

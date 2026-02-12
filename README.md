@@ -91,7 +91,9 @@ admin-portal/src/
 - **Real-time Updates**: WebSocket integration for live notifications
 - **Responsive Design**: Mobile-first approach with Ant Design + Tailwind CSS  
 - **Login Page**: Split-panel design with CAF branding and indigo/violet gradient  
-- **Sidebar**: Full organization name "Centro de Apoyo para la Familia A.C." with logo  
+- **Sidebar**: Full organization name "Centro de Apoyo para la Familia A.C." with logo; includes **Mi perfil** and **Notificaciones** for all roles  
+- **Profile**: Account view at `/app/profile` with role and office; admins see an "Intereses desde Contacto" table (contact form submissions) in a dedicated section; notification links from the marketing Contact form open profile and scroll to that section  
+- **Notifications**: Centro de Notificaciones with card-style list (type icon, entity tag, relative time, unread indicator); cards are clickable and link to cases, appointments, or profile; dashboard shows recent notifications with the same card design  
 - **CMS Image Upload**: Local file upload to server for "Sitio Web" gallery management
 
 ### Mobile Application (Flutter) - Provider Pattern
