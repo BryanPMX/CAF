@@ -3,8 +3,10 @@ package handlers
 
 import (
 	"net/http"
+	"strconv"
 	"time"
 
+	"github.com/BryanPMX/CAF/api/config"
 	"github.com/BryanPMX/CAF/api/models"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -73,26 +75,52 @@ func GetStaffDashboardSummary(db *gorm.DB) gin.HandlerFunc {
 }
 
 // GetDashboardSummary provides key metrics for the admin dashboard.
+// Office filter: use query param "officeId" when provided (admin); otherwise use context officeScopeID (office_manager).
 func GetDashboardSummary(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Context from middleware
-		officeScopeID, _ := c.Get("officeScopeID")
+		var officeFilter uint
+		roleVal, _ := c.Get("userRole")
+		role, _ := roleVal.(string)
+		if officeIdStr := c.Query("officeId"); officeIdStr != "" {
+			if parsed, err := strconv.ParseUint(officeIdStr, 10, 32); err == nil {
+				officeFilter = uint(parsed)
+				// Office manager may only see their own office; ignore query if different
+				if role == config.RoleOfficeManager {
+					if scope, ok := c.Get("officeScopeID"); ok {
+						if sid, ok2 := scope.(uint); ok2 && sid != officeFilter {
+							officeFilter = sid
+						}
+					}
+				}
+			}
+		}
+		if officeFilter == 0 {
+			if scope, ok := c.Get("officeScopeID"); ok {
+				if sid, ok2 := scope.(uint); ok2 {
+					officeFilter = sid
+				}
+			}
+		}
 
 		// Get all required metrics for admin/office manager dashboard
 		var totalCases int64
-		db.Model(&models.Case{}).Where("is_archived = ? AND deleted_at IS NULL", false).Count(&totalCases)
+		totalCasesQuery := db.Model(&models.Case{}).Where("is_archived = ? AND deleted_at IS NULL", false)
+		if officeFilter != 0 {
+			totalCasesQuery = totalCasesQuery.Where("office_id = ?", officeFilter)
+		}
+		totalCasesQuery.Count(&totalCases)
 
 		var openCases int64
 		casesQuery := db.Model(&models.Case{}).Where("status IN (?) AND is_archived = ? AND deleted_at IS NULL", []string{"open", "active", "in_progress"}, false)
-		if officeID, ok := officeScopeID.(uint); ok {
-			casesQuery = casesQuery.Where("office_id = ?", officeID)
+		if officeFilter != 0 {
+			casesQuery = casesQuery.Where("office_id = ?", officeFilter)
 		}
 		casesQuery.Count(&openCases)
 
 		var completedCases int64
 		completedCasesQuery := db.Model(&models.Case{}).Where("status IN (?) AND is_archived = ? AND deleted_at IS NULL", []string{"completed", "closed"}, false)
-		if officeID, ok := officeScopeID.(uint); ok {
-			completedCasesQuery = completedCasesQuery.Where("office_id = ?", officeID)
+		if officeFilter != 0 {
+			completedCasesQuery = completedCasesQuery.Where("office_id = ?", officeFilter)
 		}
 		completedCasesQuery.Count(&completedCases)
 
@@ -100,25 +128,29 @@ func GetDashboardSummary(db *gorm.DB) gin.HandlerFunc {
 		now := time.Now()
 		currentMonthStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
 		casesMonthQuery := db.Model(&models.Case{}).Where("created_at >= ? AND is_archived = ? AND deleted_at IS NULL", currentMonthStart, false)
-		if officeID, ok := officeScopeID.(uint); ok {
-			casesMonthQuery = casesMonthQuery.Where("office_id = ?", officeID)
+		if officeFilter != 0 {
+			casesMonthQuery = casesMonthQuery.Where("office_id = ?", officeFilter)
 		}
 		casesMonthQuery.Count(&casesThisMonth)
 
 		var totalAppointments int64
-		db.Model(&models.Appointment{}).Where("deleted_at IS NULL").Count(&totalAppointments)
+		totalApptQuery := db.Model(&models.Appointment{}).Where("deleted_at IS NULL")
+		if officeFilter != 0 {
+			totalApptQuery = totalApptQuery.Where("office_id = ?", officeFilter)
+		}
+		totalApptQuery.Count(&totalAppointments)
 
 		var pendingAppointments int64
 		pendingApptQuery := db.Model(&models.Appointment{}).Where("status = ? AND deleted_at IS NULL", "pending")
-		if officeID, ok := officeScopeID.(uint); ok {
-			pendingApptQuery = pendingApptQuery.Where("office_id = ?", officeID)
+		if officeFilter != 0 {
+			pendingApptQuery = pendingApptQuery.Where("office_id = ?", officeFilter)
 		}
 		pendingApptQuery.Count(&pendingAppointments)
 
 		var completedAppointments int64
 		completedApptQuery := db.Model(&models.Appointment{}).Where("status = ? AND deleted_at IS NULL", "completed")
-		if officeID, ok := officeScopeID.(uint); ok {
-			completedApptQuery = completedApptQuery.Where("office_id = ?", officeID)
+		if officeFilter != 0 {
+			completedApptQuery = completedApptQuery.Where("office_id = ?", officeFilter)
 		}
 		completedApptQuery.Count(&completedAppointments)
 
@@ -126,8 +158,8 @@ func GetDashboardSummary(db *gorm.DB) gin.HandlerFunc {
 		todayStart := time.Now().Truncate(24 * time.Hour)
 		todayEnd := todayStart.Add(24 * time.Hour)
 		apptTodayQuery := db.Model(&models.Appointment{}).Where("start_time >= ? AND start_time < ? AND deleted_at IS NULL", todayStart, todayEnd)
-		if officeID, ok := officeScopeID.(uint); ok {
-			apptTodayQuery = apptTodayQuery.Where("office_id = ?", officeID)
+		if officeFilter != 0 {
+			apptTodayQuery = apptTodayQuery.Where("office_id = ?", officeFilter)
 		}
 		apptTodayQuery.Count(&appointmentsToday)
 
@@ -137,8 +169,8 @@ func GetDashboardSummary(db *gorm.DB) gin.HandlerFunc {
 		// Additional stats for enhanced dashboard
 		var totalStaff int64
 		staffQuery := db.Model(&models.User{}).Where("role != 'client' AND deleted_at IS NULL")
-		if officeID, ok := officeScopeID.(uint); ok {
-			staffQuery = staffQuery.Where("office_id = ?", officeID)
+		if officeFilter != 0 {
+			staffQuery = staffQuery.Where("office_id = ?", officeFilter)
 		}
 		staffQuery.Count(&totalStaff)
 
@@ -154,8 +186,8 @@ func GetDashboardSummary(db *gorm.DB) gin.HandlerFunc {
 		weekEnd := weekStart.AddDate(0, 0, 7)
 		var appointmentsThisWeek int64
 		apptWeekQuery := db.Model(&models.Appointment{}).Where("start_time >= ? AND start_time < ? AND deleted_at IS NULL", weekStart, weekEnd)
-		if officeID, ok := officeScopeID.(uint); ok {
-			apptWeekQuery = apptWeekQuery.Where("office_id = ?", officeID)
+		if officeFilter != 0 {
+			apptWeekQuery = apptWeekQuery.Where("office_id = ?", officeFilter)
 		}
 		apptWeekQuery.Count(&appointmentsThisWeek)
 
