@@ -75,9 +75,9 @@ func CaseAccessControl(db *gorm.DB) gin.HandlerFunc {
 		if currentUser.Role == config.RoleOfficeManager {
 			caseID := c.Param("id")
 			if caseID != "" {
-				// For specific case access, verify it belongs to their office
+				// For specific case access, verify it belongs to their office (include soft-deleted for records restore/delete)
 				var caseRecord models.Case
-				if err := db.Select("office_id").First(&caseRecord, caseID).Error; err != nil {
+				if err := db.Unscoped().Select("office_id").First(&caseRecord, caseID).Error; err != nil {
 					c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "Case not found"})
 					return
 				}

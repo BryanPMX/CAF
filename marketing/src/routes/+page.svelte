@@ -184,7 +184,7 @@
       <h2 class="text-3xl md:text-4xl font-bold text-gray-900">Nuestra Comunidad</h2>
       <p class="text-gray-600 mt-2">Momentos de nuestros talleres, eventos y actividades.</p>
     </div>
-    <div class="relative w-full max-w-4xl mx-auto h-80 md:h-96 rounded-2xl overflow-hidden shadow-xl" role="region" aria-label="Carrusel de fotos">
+    <div class="relative w-full max-w-4xl mx-auto h-[28rem] sm:h-[32rem] md:h-[36rem] rounded-2xl overflow-hidden shadow-xl" role="region" aria-label="Carrusel de fotos">
       {#each slides as slide, index}
         {#if index === currentSlide}
           <div class="absolute inset-0" transition:fade={{ duration: 500 }}>

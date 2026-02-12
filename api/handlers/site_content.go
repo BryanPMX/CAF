@@ -54,11 +54,11 @@ func GetPublicSiteContent(db *gorm.DB) gin.HandlerFunc {
 	}
 }
 
-// GetPublicSiteServices returns active services sorted by sort_order.
+// GetPublicSiteServices returns active services ordered by id (creation order).
 func GetPublicSiteServices(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var services []models.SiteService
-		if err := db.Where("is_active = ?", true).Order("sort_order").Find(&services).Error; err != nil {
+		if err := db.Where("is_active = ?", true).Order("id").Find(&services).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al obtener servicios"})
 			return
 		}
@@ -85,7 +85,7 @@ func GetPublicSiteImages(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		section := c.Query("section")
 		var images []models.SiteImage
-		q := db.Where("is_active = ?", true).Order("section, sort_order")
+		q := db.Where("is_active = ?", true).Order("section, id")
 		if section != "" {
 			q = q.Where("section = ?", section)
 		}
@@ -193,7 +193,7 @@ func DeleteSiteContent(db *gorm.DB) gin.HandlerFunc {
 func GetAllSiteServices(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var items []models.SiteService
-		if err := db.Order("sort_order").Find(&items).Error; err != nil {
+		if err := db.Order("id").Find(&items).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al obtener servicios"})
 			return
 		}
@@ -249,7 +249,6 @@ func UpdateSiteService(db *gorm.DB) gin.HandlerFunc {
 			"details":     input.Details,
 			"icon":        input.Icon,
 			"image_url":   input.ImageURL,
-			"sort_order":  input.SortOrder,
 			"is_active":   input.IsActive,
 			"updated_by":  uid,
 		}
@@ -387,7 +386,7 @@ func DeleteSiteEvent(db *gorm.DB) gin.HandlerFunc {
 func GetAllSiteImages(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var items []models.SiteImage
-		if err := db.Order("section, sort_order").Find(&items).Error; err != nil {
+		if err := db.Order("section, id").Find(&items).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al obtener imágenes"})
 			return
 		}
@@ -442,7 +441,6 @@ func UpdateSiteImage(db *gorm.DB) gin.HandlerFunc {
 			"alt_text":   input.AltText,
 			"image_url":  input.ImageURL,
 			"section":    input.Section,
-			"sort_order": input.SortOrder,
 			"is_active":  input.IsActive,
 			"updated_by": uid,
 		}
