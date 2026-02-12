@@ -14,7 +14,7 @@
   <div class="container relative mx-auto px-6 py-10 sm:py-12">
     <div class="grid grid-cols-1 gap-6 md:grid-cols-[1fr_1.6fr_1fr] md:gap-6 lg:gap-8">
       <div class="footer-glass-card rounded-2xl p-6 text-slate-100">
-        <div class="mb-4 flex items-center gap-3">
+        <div class="mb-4 flex items-center justify-center gap-3">
           <span class="brand-logo-shell">
             <span class="block rounded-[0.95rem] bg-white p-1.5">
               <img src="/logo-footer.png" alt="Logo CAF" class="h-12 w-12 object-contain sm:h-14 sm:w-14" />
@@ -22,14 +22,14 @@
           </span>
           <span class="text-lg font-bold text-white">{config.site.name}</span>
         </div>
-        <p class="max-w-md text-sm leading-relaxed text-slate-100/90">
+        <p class="mx-auto max-w-md text-center text-sm leading-relaxed text-slate-100/90">
           {config.site.description}
         </p>
       </div>
 
       <div class="footer-glass-card rounded-2xl p-6">
-        <h4 class="mb-4 text-sm font-semibold uppercase tracking-[0.18em] text-slate-100">Navegación</h4>
-        <ul class="footer-nav-row flex items-center gap-1.5 sm:gap-2">
+        <h4 class="mb-4 text-center text-sm font-semibold uppercase tracking-[0.18em] text-slate-100">Navegación</h4>
+        <ul class="flex flex-nowrap items-center justify-center gap-1.5 sm:gap-2">
           <li>
             <a href="/" class="footer-nav-pill group inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-white/20 px-3 py-1.5 text-[0.82rem] font-medium text-slate-100/95 transition-all duration-200 hover:-translate-y-0.5 hover:border-white/35 hover:text-white sm:text-sm">
               <span class="h-1.5 w-1.5 rounded-full bg-primary-300 transition-colors duration-200 group-hover:bg-accent-300"></span>
@@ -57,10 +57,10 @@
         </ul>
       </div>
 
-      <div class="footer-glass-card rounded-2xl p-6">
+      <div class="footer-glass-card rounded-2xl p-6 text-center">
         <h4 class="mb-4 text-sm font-semibold uppercase tracking-[0.18em] text-slate-100">Contacto</h4>
         <ul class="space-y-3 text-sm text-slate-100/90">
-          <li class="flex items-start gap-2.5">
+          <li class="flex items-start justify-center gap-2.5 text-left">
             <svg class="mt-0.5 h-4 w-4 flex-shrink-0 text-accent-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -68,7 +68,7 @@
             <span>{config.contact.address}</span>
           </li>
           <li>
-            <a href="mailto:{config.contact.email}" class="inline-flex items-center gap-2.5 text-sm text-slate-100/90 transition-colors duration-200 hover:text-white">
+            <a href="mailto:{config.contact.email}" class="inline-flex items-center justify-center gap-2.5 text-sm text-slate-100/90 transition-colors duration-200 hover:text-white">
               <svg class="h-4 w-4 flex-shrink-0 text-accent-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
               </svg>

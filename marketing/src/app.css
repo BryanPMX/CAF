@@ -324,18 +324,6 @@
     0 12px 22px rgba(15, 23, 42, 0.35);
 }
 
-.footer-nav-row {
-  flex-wrap: nowrap;
-  overflow-x: auto;
-  padding-bottom: 0.25rem;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-
-.footer-nav-row::-webkit-scrollbar {
-  display: none;
-}
-
 .brand-logo-shell {
   position: relative;
   display: inline-flex;

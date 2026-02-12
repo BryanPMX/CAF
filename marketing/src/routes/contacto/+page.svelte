@@ -259,16 +259,60 @@
       {/if}
     </div>
 
-    <div class="mt-12 rounded-xl border border-violet-100/90 bg-white/85 p-8 max-w-2xl mx-auto text-center shadow-[0_10px_24px_rgba(41,67,120,0.08)]">
-      <h3 class="text-lg font-bold text-slate-900 mb-4">Información General</h3>
-      <div class="flex flex-col gap-4 text-sm">
-        <div>
-          <div class="text-slate-400 mb-1">Correo</div>
-          <a href="mailto:{config.contact.email}" class="text-primary-600 font-medium">{config.contact.email}</a>
-        </div>
-        <div>
-          <div class="text-slate-400 mb-1">Horario</div>
-          <span class="text-slate-700">Lun-Vie: 8AM-6PM</span>
+    <div class="mt-14 max-w-3xl mx-auto">
+      <div class="relative overflow-hidden rounded-3xl border border-white/65 bg-[linear-gradient(140deg,rgba(255,255,255,0.72),rgba(246,241,255,0.62),rgba(239,247,255,0.68))] p-[1px] shadow-[0_18px_38px_rgba(34,63,112,0.12)]">
+        <div class="pointer-events-none absolute -left-10 top-8 h-24 w-40 rounded-full bg-primary-200/55 blur-3xl"></div>
+        <div class="pointer-events-none absolute -right-8 bottom-8 h-24 w-44 rounded-full bg-[#d5beff]/55 blur-3xl"></div>
+
+        <div class="relative rounded-[1.45rem] bg-[linear-gradient(160deg,rgba(255,255,255,0.9),rgba(246,241,255,0.86),rgba(239,247,255,0.88))] p-7 sm:p-9">
+          <div class="text-center">
+            <span class="inline-flex items-center rounded-full border border-primary-100 bg-white/75 px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.17em] text-primary-700">Canales Oficiales</span>
+            <h3 class="mt-3 text-2xl font-extrabold text-slate-900">Información General</h3>
+            <p class="mt-1 text-sm text-slate-500">Respuestas rápidas para contacto y atención.</p>
+          </div>
+
+          <div class="mt-6 grid gap-3 sm:grid-cols-3">
+            <div class="rounded-2xl border border-white/70 bg-white/78 px-4 py-4 text-left shadow-[0_8px_16px_rgba(49,79,131,0.08)]">
+              <div class="mb-3 inline-flex h-9 w-9 items-center justify-center rounded-xl bg-primary-100 text-primary-600">
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <div class="mb-1 text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-slate-400">Correo</div>
+              <a href="mailto:{config.contact.email}" class="text-sm font-semibold text-primary-700 transition-colors hover:text-primary-800">{config.contact.email}</a>
+            </div>
+
+            <div class="rounded-2xl border border-white/70 bg-white/78 px-4 py-4 text-left shadow-[0_8px_16px_rgba(49,79,131,0.08)]">
+              <div class="mb-3 inline-flex h-9 w-9 items-center justify-center rounded-xl bg-accent-100 text-accent-700">
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                </svg>
+              </div>
+              <div class="mb-1 text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-slate-400">Teléfono</div>
+              <a href="tel:{config.contact.phone}" class="text-sm font-semibold text-primary-700 transition-colors hover:text-primary-800">{config.contact.phone}</a>
+            </div>
+
+            <div class="rounded-2xl border border-white/70 bg-white/78 px-4 py-4 text-left shadow-[0_8px_16px_rgba(49,79,131,0.08)]">
+              <div class="mb-3 inline-flex h-9 w-9 items-center justify-center rounded-xl bg-violet-100 text-violet-700">
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div class="mb-1 text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-slate-400">Horario</div>
+              <span class="text-sm font-semibold text-slate-700">Lun-Vie: 8AM-6PM</span>
+            </div>
+          </div>
+
+          <div class="mt-4 rounded-2xl border border-white/70 bg-white/78 px-4 py-4 text-left shadow-[0_8px_16px_rgba(49,79,131,0.08)]">
+            <div class="mb-2 inline-flex h-9 w-9 items-center justify-center rounded-xl bg-sky-100 text-sky-700">
+              <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            </div>
+            <div class="mb-1 text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-slate-400">Dirección General</div>
+            <p class="text-sm font-medium text-slate-700">{config.contact.address}</p>
+          </div>
         </div>
       </div>
     </div>
