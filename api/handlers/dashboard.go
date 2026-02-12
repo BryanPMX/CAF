@@ -36,11 +36,38 @@ func GetStaffDashboardSummary(db *gorm.DB) gin.HandlerFunc {
 		var myPendingAppointments int64
 		db.Model(&models.Appointment{}).Where("case_id IN (SELECT case_id FROM user_case_assignments WHERE user_id = ?) AND status = ?", userIDStr, "pending").Count(&myPendingAppointments)
 
+		// Today's appointments for this staff member
+		todayStart := time.Now().Truncate(24 * time.Hour)
+		todayEnd := todayStart.Add(24 * time.Hour)
+		var myAppointmentsToday int64
+		db.Model(&models.Appointment{}).Where(
+			"staff_id = ? AND start_time >= ? AND start_time < ? AND deleted_at IS NULL",
+			userIDStr, todayStart, todayEnd,
+		).Count(&myAppointmentsToday)
+
+		// Pending tasks assigned to this staff member
+		var myPendingTasks int64
+		db.Model(&models.Task{}).Where(
+			"assigned_to = ? AND status IN (?) AND deleted_at IS NULL",
+			userIDStr, []string{"pending", "in_progress"},
+		).Count(&myPendingTasks)
+
+		// Completed cases this month
+		currentMonthStart := time.Date(time.Now().Year(), time.Now().Month(), 1, 0, 0, 0, 0, time.Now().Location())
+		var myCompletedCases int64
+		db.Model(&models.Case{}).Where(
+			"id IN (SELECT case_id FROM user_case_assignments WHERE user_id = ?) AND status IN (?) AND updated_at >= ?",
+			userIDStr, []string{"completed", "closed"}, currentMonthStart,
+		).Count(&myCompletedCases)
+
 		c.JSON(http.StatusOK, gin.H{
-			"myCases":              myCases,
-			"myOpenCases":          myOpenCases,
-			"myAppointments":       myAppointments,
+			"myCases":               myCases,
+			"myOpenCases":           myOpenCases,
+			"myAppointments":        myAppointments,
 			"myPendingAppointments": myPendingAppointments,
+			"myAppointmentsToday":   myAppointmentsToday,
+			"myPendingTasks":        myPendingTasks,
+			"myCompletedCases":      myCompletedCases,
 		})
 	}
 }
@@ -107,6 +134,31 @@ func GetDashboardSummary(db *gorm.DB) gin.HandlerFunc {
 		var offices []models.Office
 		db.Find(&offices)
 
+		// Additional stats for enhanced dashboard
+		var totalStaff int64
+		staffQuery := db.Model(&models.User{}).Where("role != 'client' AND deleted_at IS NULL")
+		if officeID, ok := officeScopeID.(uint); ok {
+			staffQuery = staffQuery.Where("office_id = ?", officeID)
+		}
+		staffQuery.Count(&totalStaff)
+
+		var totalClients int64
+		db.Model(&models.User{}).Where("role = 'client' AND deleted_at IS NULL").Count(&totalClients)
+
+		// Pending tasks count
+		var pendingTasks int64
+		db.Model(&models.Task{}).Where("status IN (?) AND deleted_at IS NULL", []string{"pending", "in_progress"}).Count(&pendingTasks)
+
+		// Appointments this week
+		weekStart := todayStart.AddDate(0, 0, -int(todayStart.Weekday()))
+		weekEnd := weekStart.AddDate(0, 0, 7)
+		var appointmentsThisWeek int64
+		apptWeekQuery := db.Model(&models.Appointment{}).Where("start_time >= ? AND start_time < ? AND deleted_at IS NULL", weekStart, weekEnd)
+		if officeID, ok := officeScopeID.(uint); ok {
+			apptWeekQuery = apptWeekQuery.Where("office_id = ?", officeID)
+		}
+		apptWeekQuery.Count(&appointmentsThisWeek)
+
 		summary := gin.H{
 			"totalCases":            totalCases,
 			"openCases":             openCases,
@@ -116,6 +168,10 @@ func GetDashboardSummary(db *gorm.DB) gin.HandlerFunc {
 			"pendingAppointments":   pendingAppointments,
 			"completedAppointments": completedAppointments,
 			"appointmentsToday":     appointmentsToday,
+			"appointmentsThisWeek":  appointmentsThisWeek,
+			"totalStaff":            totalStaff,
+			"totalClients":          totalClients,
+			"pendingTasks":          pendingTasks,
 			"offices":               offices,
 		}
 

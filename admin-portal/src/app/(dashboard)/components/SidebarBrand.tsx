@@ -1,5 +1,6 @@
 // admin-portal/src/app/(dashboard)/components/SidebarBrand.tsx
-// Sidebar brand: logo + organization name. Shows "CAF" when collapsed.
+// Sidebar brand: displays the organization logo prominently.
+// Shows full logo when expanded, compact "CAF" mark when collapsed.
 'use client';
 
 import React from 'react';
@@ -12,30 +13,28 @@ export default function SidebarBrand() {
   return (
     <Link
       href="/"
-      className="sidebar-brand flex items-center gap-3 px-4 py-4 min-h-[64px] w-full transition-colors hover:bg-white/[0.06]"
+      className="sidebar-brand flex items-center justify-center px-3 py-4 min-h-[64px] w-full transition-colors hover:bg-white/[0.06]"
     >
-      <div className="sidebar-brand-logo relative flex-shrink-0 w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center overflow-hidden">
+      <div className="sidebar-brand-logo relative flex-shrink-0 flex items-center justify-center overflow-hidden">
         {!logoError ? (
           <Image
             src="/logo.png"
-            alt="CAF"
-            width={40}
-            height={40}
-            className="object-contain p-0.5"
+            alt="CAF - Centro de Apoyo para la Familia"
+            width={140}
+            height={48}
+            className="object-contain sidebar-brand-img"
             onError={() => setLogoError(true)}
             priority
+            style={{ maxHeight: 48, width: 'auto' }}
           />
         ) : (
-          <span className="text-base font-bold text-white/90">C</span>
+          <div className="flex items-center gap-2">
+            <div className="w-9 h-9 rounded-lg bg-white/20 flex items-center justify-center">
+              <span className="text-base font-bold text-white">C</span>
+            </div>
+            <span className="sidebar-brand-label text-sm font-bold text-white tracking-wide">CAF</span>
+          </div>
         )}
-      </div>
-      <div className="sidebar-brand-label flex flex-col min-w-0 flex-1">
-        <span className="text-sm font-semibold text-white leading-tight truncate">
-          Centro de Apoyo
-        </span>
-        <span className="text-[11px] text-white/50 leading-tight truncate">
-          para la Familia A.C.
-        </span>
       </div>
     </Link>
   );

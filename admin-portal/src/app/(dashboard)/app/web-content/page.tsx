@@ -144,18 +144,19 @@ function ContentTab() {
 
   // User-friendly Spanish labels for sections and content keys
   const sectionLabels: Record<string, string> = {
-    hero: 'Portada Principal',
     about: 'Sobre Nosotros',
+    hero: 'Portada Principal',
     footer: 'Pie de Página',
     contact: 'Contacto',
   };
+
+  // Define the display order for sections
+  const sectionOrder = ['about', 'hero', 'footer', 'contact'];
 
   const keyLabels: Record<string, string> = {
     title: 'Título',
     subtitle: 'Subtítulo',
     description: 'Descripción',
-    cta_primary: 'Botón Principal',
-    cta_secondary: 'Botón Secundario',
     mission: 'Misión',
     vision: 'Visión',
     copyright: 'Derechos de Autor',
@@ -164,7 +165,18 @@ function ContentTab() {
     emergency: 'Información de Emergencia',
   };
 
-  const sections = [...new Set(content.map(c => c.section))];
+  // Content keys to exclude from editing (non-functional buttons removed)
+  const excludedKeys = new Set(['cta_primary', 'cta_secondary']);
+
+  const sections = [...new Set(content.map(c => c.section))]
+    .sort((a, b) => {
+      const aIdx = sectionOrder.indexOf(a);
+      const bIdx = sectionOrder.indexOf(b);
+      if (aIdx === -1 && bIdx === -1) return 0;
+      if (aIdx === -1) return 1;
+      if (bIdx === -1) return -1;
+      return aIdx - bIdx;
+    });
 
   return (
     <Spin spinning={loading}>
@@ -184,7 +196,7 @@ function ContentTab() {
           size="small"
           style={{ marginBottom: 16, borderRadius: 8 }}
         >
-          {content.filter(c => c.section === section).map(item => {
+          {content.filter(c => c.section === section && !excludedKeys.has(c.contentKey)).map(item => {
             const isEditing = editingKey === `${item.section}-${item.contentKey}`;
             const friendlyLabel = keyLabels[item.contentKey] || item.contentKey;
             return (
@@ -680,14 +692,34 @@ function GalleryTab() {
               size="small"
               style={{ borderRadius: 8, overflow: 'hidden' }}
               cover={
-                <div style={{ height: 140, background: '#f5f5f5', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={img.imageUrl}
-                    alt={img.altText || img.title || 'Imagen'}
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                    onError={(e) => { (e.target as HTMLImageElement).src = 'https://placehold.co/300x150/e2e8f0/94a3b8?text=Sin+imagen'; }}
-                  />
+                <div style={{ height: 140, background: '#f5f5f5', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', position: 'relative' }}>
+                  {img.imageUrl ? (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img
+                      src={img.imageUrl}
+                      alt={img.altText || img.title || 'Imagen'}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        // Prevent infinite loop by checking if already showing fallback
+                        if (!target.dataset.fallback) {
+                          target.dataset.fallback = 'true';
+                          target.style.display = 'none';
+                          const parent = target.parentElement;
+                          if (parent) {
+                            const fallback = document.createElement('div');
+                            fallback.style.cssText = 'display:flex;align-items:center;justify-content:center;width:100%;height:100%;background:#f0f0f0;color:#999;font-size:12px;text-align:center;padding:8px;';
+                            fallback.innerHTML = '<div><div style="font-size:24px;margin-bottom:4px;">🖼️</div>Error al cargar</div>';
+                            parent.appendChild(fallback);
+                          }
+                        }
+                      }}
+                    />
+                  ) : (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', background: '#f0f0f0', color: '#999', fontSize: 12, textAlign: 'center', padding: 8 }}>
+                      <div><div style={{ fontSize: 24, marginBottom: 4 }}>🖼️</div>Sin URL</div>
+                    </div>
+                  )}
                 </div>
               }
               actions={[
@@ -738,6 +770,18 @@ function GalleryTab() {
           <Form.Item name="imageUrl" label="URL de Imagen" rules={[{ required: true, message: 'Suba una imagen o ingrese una URL' }]}>
             <Input placeholder="Se completará automáticamente al subir, o ingrese una URL" />
           </Form.Item>
+          {form.getFieldValue('imageUrl') && (
+            <div style={{ marginBottom: 16, textAlign: 'center' }}>
+              <Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>Vista previa:</Text>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={form.getFieldValue('imageUrl')}
+                alt="Vista previa"
+                style={{ maxHeight: 120, maxWidth: '100%', borderRadius: 8, border: '1px solid #d9d9d9' }}
+                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+              />
+            </div>
+          )}
           <Row gutter={16}>
             <Col span={12}>
               <Form.Item name="title" label="Título">

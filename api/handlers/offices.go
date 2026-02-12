@@ -10,6 +10,7 @@ import (
 	"github.com/BryanPMX/CAF/api/interfaces"
 	"github.com/BryanPMX/CAF/api/models"
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 // officePhonePattern validates phone format when provided (optional fields - no error if empty)
@@ -207,6 +208,63 @@ func DeleteOffice(repo interfaces.OfficeRepository) gin.HandlerFunc {
 			return
 		}
 		c.Status(http.StatusNoContent)
+	}
+}
+
+// GetOfficeDetailWithStaff retrieves an office along with its staff members and stats.
+func GetOfficeDetailWithStaff(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		id, err := parseOfficeID(c.Param("id"))
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid office ID"})
+			return
+		}
+
+		// Get the office
+		var office models.Office
+		if err := db.First(&office, id).Error; err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Office not found"})
+			return
+		}
+
+		// Get staff members for this office
+		var staff []models.User
+		if err := db.Where("office_id = ? AND deleted_at IS NULL", id).
+			Select("id, first_name, last_name, email, role, phone, is_active").
+			Order("role, first_name").
+			Find(&staff).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch staff"})
+			return
+		}
+
+		// Get counts for cases and appointments
+		var activeCases int64
+		db.Model(&models.Case{}).Where("office_id = ? AND deleted_at IS NULL AND status != 'closed'", id).Count(&activeCases)
+
+		var totalAppointments int64
+		db.Model(&models.Appointment{}).Where("office_id = ?", id).Count(&totalAppointments)
+
+		// Transform staff for response
+		staffList := make([]gin.H, 0, len(staff))
+		for _, s := range staff {
+			staffList = append(staffList, gin.H{
+				"id":        s.ID,
+				"firstName": s.FirstName,
+				"lastName":  s.LastName,
+				"email":     s.Email,
+				"role":      s.Role,
+				"phone":     s.Phone,
+				"isActive":  s.IsActive,
+			})
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"office":            office,
+			"staff":             staffList,
+			"activeCases":       activeCases,
+			"totalAppointments": totalAppointments,
+			"staffCount":        len(staffList),
+		})
 	}
 }
 

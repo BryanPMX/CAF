@@ -11,45 +11,56 @@ The frontend follows modern React patterns with TypeScript, implementing a servi
 ```
 admin-portal/
 ├── src/
-│   ├── app/                    # Next.js 14 App Router
-│   │   ├── (dashboard)/       # Protected dashboard routes
-│   │   │   ├── layout.tsx     # Dashboard layout with navigation
-│   │   │   ├── page.tsx       # Main dashboard page
-│   │   │   ├── admin/         # Admin-only pages
-│   │   │   └── app/           # Main application pages
-│   │   │       ├── cases/     # Case management
-│   │   │       ├── users/     # User management
-│   │   │       └── appointments/ # Appointment scheduling
-│   │   ├── login/             # Authentication page
-│   │   ├── layout.tsx         # Root layout
-│   │   └── globals.css        # Global styles
-│   ├── components/            # Reusable UI components
-│   │   ├── ui/               # Basic UI components (buttons, forms)
-│   │   ├── forms/            # Complex form components
-│   │   └── layouts/          # Layout components
-│   ├── context/              # React Context providers
-│   │   ├── AuthContext.tsx   # Authentication state management
-│   │   └── NotificationContext.tsx # Notification system
-│   ├── hooks/                # Custom React hooks
-│   │   ├── useAuth.ts       # Authentication hook
-│   │   ├── useWebSocket.ts   # WebSocket connection hook
-│   │   └── useHydrationSafe.ts # SSR-safe state hook
-│   ├── lib/                  # Utility libraries
-│   │   ├── api.ts           # HTTP client configuration
-│   │   ├── config.ts        # Application configuration
-│   │   ├── types.ts         # TypeScript type definitions
-│   │   ├── validation.ts    # Form validation schemas
-│   │   └── logger.ts        # Logging utilities
-│   └── utils/               # Helper functions
-│       ├── date.ts          # Date formatting utilities
-│       ├── format.ts        # Data formatting helpers
-│       └── security.ts      # Client-side security utilities
-├── public/                  # Static assets
-│   ├── images/             # Image files
-│   └── icons/              # Icon files
-├── styles/                 # CSS and styling files
-├── types/                  # Global type definitions
-└── middleware.ts           # Next.js middleware (if used)
+│   ├── app/                        # Next.js 14 App Router
+│   │   ├── (dashboard)/            # Protected dashboard routes
+│   │   │   ├── layout.tsx          # Dashboard layout with sidebar, header, auth guard
+│   │   │   ├── page.tsx            # Panel de Control - role-based dashboard with stats
+│   │   │   ├── components/         # Dashboard-scoped shared components
+│   │   │   │   ├── SidebarBrand.tsx     # Sidebar brand logo (brand-only, no text)
+│   │   │   │   ├── AppointmentModal.tsx # Multi-step appointment creation wizard
+│   │   │   │   ├── EditAppointmentModal.tsx
+│   │   │   │   ├── SmartSearchBar.tsx   # Debounced search + filter component
+│   │   │   │   └── ...
+│   │   │   └── app/                # Main application pages
+│   │   │       ├── cases/          # Expedientes - Case management with pagination
+│   │   │       ├── appointments/   # Citas - Appointment scheduling with filters
+│   │   │       ├── users/          # Usuarios - User management (admin/manager)
+│   │   │       ├── offices/        # Oficinas - Office management with staff detail drawer
+│   │   │       ├── web-content/    # Gestión de Contenido Web - CMS for marketing site
+│   │   │       ├── records/        # Archivos - Archives of completed/deleted cases & appointments
+│   │   │       ├── reports/        # Reportes
+│   │   │       └── notifications/  # Notificaciones
+│   │   ├── login/                  # Authentication page
+│   │   ├── lib/                    # Utility libraries
+│   │   │   ├── api.ts              # Axios HTTP client with JWT interceptors
+│   │   │   ├── config.ts           # Centralized app configuration
+│   │   │   ├── types.ts            # TypeScript type definitions
+│   │   │   └── caseTaxonomy.ts     # Case type→department mapping
+│   │   ├── components/             # Global components (ErrorBoundary, ClientOnly)
+│   │   ├── layout.tsx              # Root layout
+│   │   └── globals.css             # Global styles + Tailwind
+│   ├── config/                     # Centralized configuration
+│   │   ├── roles.ts                # RBAC roles, permissions, navigation items
+│   │   └── statuses.ts             # Case/appointment status definitions
+│   ├── context/                    # React Context providers
+│   │   ├── AuthContext.tsx          # Authentication state (JWT, user profile)
+│   │   └── NotificationContext.tsx  # Notification system
+│   ├── hooks/                      # Custom React hooks
+│   │   ├── useHydrationSafe.ts     # SSR-safe hydration hook
+│   │   ├── useWebSocket.ts         # WebSocket real-time connection
+│   │   └── useIsomorphicLayoutEffect.ts
+│   ├── services/                   # Service layer (role-based API routing)
+│   │   ├── caseService.ts          # Case CRUD with endpoint resolution
+│   │   ├── appointmentService.ts   # Appointment CRUD
+│   │   ├── recordService.ts        # Archive operations (stats, restore, delete)
+│   │   ├── officeService.ts        # Office CRUD
+│   │   ├── userService.ts          # User management
+│   │   └── index.ts                # Barrel exports
+│   ├── interfaces/                 # TypeScript interfaces for DI
+│   └── middleware.ts               # Next.js route protection middleware
+├── public/
+│   └── logo.png                    # Brand logo
+└── package.json
 ```
 
 ## Key Components

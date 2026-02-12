@@ -30,20 +30,22 @@ func GetRecordsArchivedCases(db *gorm.DB) gin.HandlerFunc {
 		offset := (page - 1) * limit
 
 		// Build query for archived cases
-		query := db.Model(&models.Case{}).Where("deleted_at IS NOT NULL")
+		// Include both soft-deleted cases (deleted_at IS NOT NULL) and
+		// completed/archived cases (is_archived = true) to capture all records
+		query := db.Model(&models.Case{}).Where("deleted_at IS NOT NULL OR is_archived = ?", true)
 
 		// Apply search filter
 		if search != "" {
-			query = query.Where("title ILIKE ? OR docket_number ILIKE ?",
+			query = query.Where("(title ILIKE ? OR docket_number ILIKE ?)",
 				"%"+search+"%", "%"+search+"%")
 		}
 
 		// Apply archive type filter
 		switch archiveType {
 		case "completed":
-			query = query.Where("is_completed = ?", true)
+			query = query.Where("is_completed = ? AND is_archived = ?", true, true)
 		case "deleted":
-			query = query.Where("is_completed = ?", false)
+			query = query.Where("deleted_at IS NOT NULL AND (is_completed = ? OR archive_reason = ?)", false, "manual_deletion")
 		}
 
 		// Get total count
@@ -77,6 +79,25 @@ func GetRecordsArchivedCases(db *gorm.DB) gin.HandlerFunc {
 		// Transform cases to match frontend interface expectations
 		var transformedCases []gin.H
 		for _, caseData := range cases {
+			// Determine the correct archive timestamp and user:
+			// Completed cases use ArchivedAt/ArchivedBy; deleted cases use DeletedAt/DeletedBy
+			var archivedAt interface{} = caseData.ArchivedAt
+			var archivedBy interface{} = caseData.ArchivedBy
+			if archivedAt == nil && caseData.DeletedAt != nil {
+				archivedAt = caseData.DeletedAt
+				archivedBy = caseData.DeletedBy
+			}
+
+			// Determine archive reason
+			archiveReason := caseData.ArchiveReason
+			if archiveReason == "" {
+				if caseData.IsCompleted {
+					archiveReason = "completed"
+				} else if caseData.DeletedAt != nil {
+					archiveReason = "manual_deletion"
+				}
+			}
+
 			transformedCase := gin.H{
 				"id":             caseData.ID,
 				"title":          caseData.Title,
@@ -85,9 +106,9 @@ func GetRecordsArchivedCases(db *gorm.DB) gin.HandlerFunc {
 				"status":         caseData.Status,
 				"isCompleted":    caseData.IsCompleted,
 				"isArchived":     caseData.IsArchived,
-				"archiveReason":  caseData.ArchiveReason,
-				"archivedAt":     caseData.DeletedAt, // Map DeletedAt to archivedAt for frontend compatibility
-				"archivedBy":     caseData.DeletedBy,  // Map DeletedBy to archivedBy
+				"archiveReason":  archiveReason,
+				"archivedAt":     archivedAt,
+				"archivedBy":     archivedBy,
 				"completedAt":    caseData.CompletedAt,
 				"completedBy":    caseData.CompletedBy,
 				"completionNote": caseData.CompletionNote,
@@ -152,10 +173,27 @@ func GetArchivedAppointments(db *gorm.DB) gin.HandlerFunc {
 
 		offset := (page - 1) * limit
 
-		// Use raw SQL to bypass GORM's soft delete handling
-		var total int64
+		// Count archived appointments using raw SQL to bypass GORM soft-delete filter
+		search := c.Query("search")
+		archiveType := c.DefaultQuery("type", "all")
+
 		countSQL := `SELECT COUNT(*) FROM appointments WHERE deleted_at IS NOT NULL`
-		if err := db.Raw(countSQL).Scan(&total).Error; err != nil {
+		countArgs := []interface{}{}
+
+		if search != "" {
+			countSQL += ` AND title ILIKE ?`
+			countArgs = append(countArgs, "%"+search+"%")
+		}
+
+		switch archiveType {
+		case "completed":
+			countSQL += ` AND status = 'completed'`
+		case "deleted":
+			countSQL += ` AND status = 'cancelled'`
+		}
+
+		var total int64
+		if err := db.Raw(countSQL, countArgs...).Scan(&total).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"error":   "Failed to count archived appointments",
 				"message": err.Error(),
@@ -163,17 +201,32 @@ func GetArchivedAppointments(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		// Get archived appointments with raw SQL
-		var appointments []models.Appointment
+		// Build the select query with proper joins for relationships
 		selectSQL := `
-			SELECT a.* FROM appointments a
-			LEFT JOIN cases c ON a.case_id = c.id
-			LEFT JOIN users client ON c.client_id = client.id
+			SELECT a.id, a.title, a.start_time, a.end_time, a.status, a.deleted_at,
+			       a.case_id, a.staff_id, a.office_id
+			FROM appointments a
 			WHERE a.deleted_at IS NOT NULL
-			ORDER BY a.deleted_at DESC
-			LIMIT ? OFFSET ?
 		`
-		err := db.Raw(selectSQL, limit, offset).Scan(&appointments).Error
+		selectArgs := []interface{}{}
+
+		if search != "" {
+			selectSQL += ` AND a.title ILIKE ?`
+			selectArgs = append(selectArgs, "%"+search+"%")
+		}
+
+		switch archiveType {
+		case "completed":
+			selectSQL += ` AND a.status = 'completed'`
+		case "deleted":
+			selectSQL += ` AND a.status = 'cancelled'`
+		}
+
+		selectSQL += ` ORDER BY a.deleted_at DESC LIMIT ? OFFSET ?`
+		selectArgs = append(selectArgs, limit, offset)
+
+		var appointments []models.Appointment
+		err := db.Raw(selectSQL, selectArgs...).Scan(&appointments).Error
 
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
@@ -183,42 +236,53 @@ func GetArchivedAppointments(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		// Transform appointments to match frontend interface expectations
+		// Manually load relationships since raw SQL doesn't support Preload
 		var transformedAppointments []gin.H
 		for _, appointment := range appointments {
 			transformedAppointment := gin.H{
-				"id":           appointment.ID,
-				"title":        appointment.Title,
-				"description":  "", // Appointments don't have description field
-				"startTime":    appointment.StartTime,
-				"endTime":      appointment.EndTime,
-				"status":       appointment.Status,
-				"isArchived":   true, // Since we're querying deleted_at IS NOT NULL
-				"archiveReason": "manual_deletion", // Default reason for appointments
-				"archivedAt":   appointment.DeletedAt, // Map DeletedAt to archivedAt for frontend compatibility
-				"archivedBy":   nil, // Appointments don't have this field, but frontend expects it
+				"id":            appointment.ID,
+				"title":         appointment.Title,
+				"description":   "",
+				"startTime":     appointment.StartTime,
+				"endTime":       appointment.EndTime,
+				"status":        appointment.Status,
+				"isArchived":    true,
+				"archiveReason": "manual_deletion",
+				"archivedAt":    appointment.DeletedAt,
+				"archivedBy":    nil,
 			}
 
-			// Flatten client data from Case.Client to direct client field
-			if appointment.Case.Client != nil {
-				transformedAppointment["client"] = gin.H{
-					"firstName": appointment.Case.Client.FirstName,
-					"lastName":  appointment.Case.Client.LastName,
+			// Load client data through the case relationship
+			if appointment.CaseID != 0 {
+				var caseRecord models.Case
+				if err := db.Unscoped().Preload("Client").First(&caseRecord, appointment.CaseID).Error; err == nil {
+					if caseRecord.Client != nil {
+						transformedAppointment["client"] = gin.H{
+							"firstName": caseRecord.Client.FirstName,
+							"lastName":  caseRecord.Client.LastName,
+						}
+					}
 				}
 			}
 
-			// Add office data if exists
-			if appointment.Office != nil {
-				transformedAppointment["office"] = gin.H{
-					"name": appointment.Office.Name,
+			// Load office data
+			if appointment.OfficeID != 0 {
+				var office models.Office
+				if err := db.First(&office, appointment.OfficeID).Error; err == nil {
+					transformedAppointment["office"] = gin.H{
+						"name": office.Name,
+					}
 				}
 			}
 
-			// Add staff data if exists
-			if appointment.Staff.FirstName != "" || appointment.Staff.LastName != "" {
-				transformedAppointment["staff"] = gin.H{
-					"firstName": appointment.Staff.FirstName,
-					"lastName":  appointment.Staff.LastName,
+			// Load staff data
+			if appointment.StaffID != 0 {
+				var staff models.User
+				if err := db.First(&staff, appointment.StaffID).Error; err == nil {
+					transformedAppointment["staff"] = gin.H{
+						"firstName": staff.FirstName,
+						"lastName":  staff.LastName,
+					}
 				}
 			}
 
@@ -253,8 +317,8 @@ func GetRecordsArchiveStats(db *gorm.DB) gin.HandlerFunc {
 			LastMonth         int64 `json:"lastMonth"`
 		}
 
-		// Count total archived cases
-		if err := db.Model(&models.Case{}).Where("deleted_at IS NOT NULL").Count(&stats.TotalArchived).Error; err != nil {
+		// Count total archived cases (both soft-deleted and completed/archived)
+		if err := db.Model(&models.Case{}).Where("deleted_at IS NOT NULL OR is_archived = ?", true).Count(&stats.TotalArchived).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"error":   "Failed to count total archived cases",
 				"message": err.Error(),
@@ -263,7 +327,7 @@ func GetRecordsArchiveStats(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		// Count completed archived cases
-		if err := db.Model(&models.Case{}).Where("deleted_at IS NOT NULL AND is_completed = ?", true).Count(&stats.CompletedArchived).Error; err != nil {
+		if err := db.Model(&models.Case{}).Where("is_completed = ? AND is_archived = ?", true, true).Count(&stats.CompletedArchived).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"error":   "Failed to count completed archived cases",
 				"message": err.Error(),
@@ -271,7 +335,7 @@ func GetRecordsArchiveStats(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		// Count manually deleted cases (not completed)
+		// Count manually deleted cases (soft-deleted but not completed)
 		if err := db.Model(&models.Case{}).Where("deleted_at IS NOT NULL AND is_completed = ?", false).Count(&stats.ManuallyDeleted).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"error":   "Failed to count manually deleted cases",
@@ -280,10 +344,13 @@ func GetRecordsArchiveStats(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		// Count this month's archives
+		// Count this month's archives (using both deleted_at and archived_at)
 		now := time.Now()
 		startOfMonth := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
-		if err := db.Model(&models.Case{}).Where("deleted_at IS NOT NULL AND deleted_at >= ?", startOfMonth).Count(&stats.ThisMonth).Error; err != nil {
+		if err := db.Model(&models.Case{}).Where(
+			"(deleted_at IS NOT NULL AND deleted_at >= ?) OR (archived_at IS NOT NULL AND archived_at >= ?)",
+			startOfMonth, startOfMonth,
+		).Count(&stats.ThisMonth).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"error":   "Failed to count this month's archives",
 				"message": err.Error(),
@@ -294,8 +361,10 @@ func GetRecordsArchiveStats(db *gorm.DB) gin.HandlerFunc {
 		// Count last month's archives
 		startOfLastMonth := startOfMonth.AddDate(0, -1, 0)
 		endOfLastMonth := startOfMonth.Add(-time.Nanosecond)
-		if err := db.Model(&models.Case{}).Where("deleted_at IS NOT NULL AND deleted_at >= ? AND deleted_at <= ?",
-			startOfLastMonth, endOfLastMonth).Count(&stats.LastMonth).Error; err != nil {
+		if err := db.Model(&models.Case{}).Where(
+			"(deleted_at IS NOT NULL AND deleted_at >= ? AND deleted_at <= ?) OR (archived_at IS NOT NULL AND archived_at >= ? AND archived_at <= ?)",
+			startOfLastMonth, endOfLastMonth, startOfLastMonth, endOfLastMonth,
+		).Count(&stats.LastMonth).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"error":   "Failed to count last month's archives",
 				"message": err.Error(),

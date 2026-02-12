@@ -4,31 +4,20 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  Card,
-  Col,
-  Row,
-  Statistic,
-  Spin,
-  message,
-  Button,
-  Space,
-  Select,
-  Typography,
-  Alert
+  Card, Col, Row, Statistic, Spin, message, Select, Typography, Alert, Divider, Badge, List, Empty
 } from 'antd';
 import {
-  FolderOpenOutlined,
-  CalendarOutlined,
-  TeamOutlined,
-  PlusOutlined,
-  ReloadOutlined,
-  BarChartOutlined,
-  ClockCircleOutlined,
-  CheckCircleOutlined
+  FolderOpenOutlined, CalendarOutlined, TeamOutlined, BarChartOutlined,
+  ClockCircleOutlined, CheckCircleOutlined, BellOutlined,
+  FileTextOutlined, UserOutlined, BankOutlined,
+  ScheduleOutlined, ExclamationCircleOutlined, RiseOutlined
 } from '@ant-design/icons';
 import { apiClient } from '../lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { useHydrationSafe } from '@/hooks/useHydrationSafe';
+import { getRoleDisplayName } from '@/config/roles';
+
+const { Text, Title } = Typography;
 
 // --- TypeScript Interfaces ---
 interface DashboardData {
@@ -39,210 +28,56 @@ interface DashboardData {
   casesThisMonth: number;
   myCases?: number;
   myOpenCases?: number;
+  myCompletedCases?: number;
 
   // Appointment statistics
   totalAppointments: number;
   pendingAppointments: number;
   completedAppointments: number;
   appointmentsToday: number;
+  appointmentsThisWeek?: number;
   myAppointments?: number;
   myPendingAppointments?: number;
+  myAppointmentsToday?: number;
 
-  // Office filter (for admins)
+  // Admin-only stats
+  totalStaff?: number;
+  totalClients?: number;
+  pendingTasks?: number;
+  myPendingTasks?: number;
+
+  // Office filter
   offices?: Array<{ id: number; name: string }>;
 }
 
-interface Office {
+interface Notification {
   id: number;
-  name: string;
+  message: string;
+  type: string;
+  isRead: boolean;
+  createdAt: string;
+  link?: string;
 }
 
-// Removed StatCard component - using inline cards to avoid undefined component issues
-
-// --- Secure Role-Based Dashboard Component ---
-const RoleBasedDashboard: React.FC<{
-  data: DashboardData;
-  userRole: string;
-  selectedOfficeId?: string;
-  onOfficeChange?: (officeId: string) => void;
-  onRefresh: () => void;
-  loading: boolean;
-}> = ({ data, userRole, selectedOfficeId, onOfficeChange, onRefresh, loading }) => {
-  // Determine what statistics to show based on role
-  const canSeeAllOffices = userRole === 'admin';
-  const canSeeOfficeFilter = userRole === 'admin' || userRole === 'office_manager';
-  const isStaffRole = ['lawyer', 'psychologist', 'receptionist', 'event_coordinator'].includes(userRole);
-
-
-  return (
-    <div className="space-y-6">
-      {/* Header with controls */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <Typography.Title level={2} className="!mb-1">
-            Panel de Control
-          </Typography.Title>
-          <Typography.Text type="secondary">
-            Resumen de Casos y Citas Asignados
-            {selectedOfficeId && data.offices && data.offices.length > 0 && (
-              <span> - {data.offices.find(o => o.id.toString() === selectedOfficeId)?.name || 'Oficina'}</span>
-            )}
-          </Typography.Text>
-        </div>
-
-      </div>
-
-      {/* Office Filter for admins and office managers */}
-      {canSeeOfficeFilter && data.offices && data.offices.length > 0 && (
-        <Card size="small">
-          <div className="flex items-center gap-4">
-            <Typography.Text strong>Filtrar por Oficina:</Typography.Text>
-            <Select
-              placeholder="Seleccionar oficina"
-              value={selectedOfficeId}
-              onChange={onOfficeChange}
-              style={{ minWidth: 200 }}
-              allowClear
-            >
-              {data.offices.map(office => (
-                <Select.Option key={office.id} value={office.id.toString()}>
-                  {office.name || `Office ${office.id}`}
-                </Select.Option>
-              ))}
-            </Select>
-          </div>
-        </Card>
-      )}
-
-      {/* Statistics Cards */}
-      {data && (
-        <Row gutter={[16, 16]}>
-          {/* Case Statistics */}
-          <Col xs={24} sm={12} md={6}>
-            <Card className="text-center">
-              <div className="flex items-center justify-center mb-2">
-                <FolderOpenOutlined style={{ fontSize: '24px', color: '#1890ff' }} />
-              </div>
-              <Statistic
-                title="Total Casos"
-                value={isStaffRole ? (data.myCases || 0) : (data.totalCases || 0)}
-                valueStyle={{ color: '#1890ff', fontSize: '24px', fontWeight: 'bold' }}
-              />
-            </Card>
-          </Col>
-
-          <Col xs={24} sm={12} md={6}>
-            <Card className="text-center">
-              <div className="flex items-center justify-center mb-2">
-                <ClockCircleOutlined style={{ fontSize: '24px', color: '#fa8c16' }} />
-              </div>
-              <Statistic
-                title="Casos Activos"
-                value={isStaffRole ? (data.myOpenCases || 0) : (data.openCases || 0)}
-                valueStyle={{ color: '#fa8c16', fontSize: '24px', fontWeight: 'bold' }}
-              />
-            </Card>
-          </Col>
-
-          <Col xs={24} sm={12} md={6}>
-            <Card className="text-center">
-              <div className="flex items-center justify-center mb-2">
-                <CheckCircleOutlined style={{ fontSize: '24px', color: '#52c41a' }} />
-              </div>
-              <Statistic
-                title="Casos Completados"
-                value={data.completedCases || 0}
-                valueStyle={{ color: '#52c41a', fontSize: '24px', fontWeight: 'bold' }}
-              />
-            </Card>
-          </Col>
-
-          <Col xs={24} sm={12} md={6}>
-            <Card className="text-center">
-              <div className="flex items-center justify-center mb-2">
-                <BarChartOutlined style={{ fontSize: '24px', color: '#722ed1' }} />
-              </div>
-              <Statistic
-                title="Casos Este Mes"
-                value={data.casesThisMonth || 0}
-                valueStyle={{ color: '#722ed1', fontSize: '24px', fontWeight: 'bold' }}
-              />
-            </Card>
-          </Col>
-
-          {/* Appointment Statistics */}
-          <Col xs={24} sm={12} md={6}>
-            <Card className="text-center">
-              <div className="flex items-center justify-center mb-2">
-                <CalendarOutlined style={{ fontSize: '24px', color: '#13c2c2' }} />
-              </div>
-              <Statistic
-                title="Total Citas"
-                value={isStaffRole ? (data.myAppointments || 0) : (data.totalAppointments || 0)}
-                valueStyle={{ color: '#13c2c2', fontSize: '24px', fontWeight: 'bold' }}
-              />
-            </Card>
-          </Col>
-
-          <Col xs={24} sm={12} md={6}>
-            <Card className="text-center">
-              <div className="flex items-center justify-center mb-2">
-                <ClockCircleOutlined style={{ fontSize: '24px', color: '#fa8c16' }} />
-              </div>
-              <Statistic
-                title="Citas Pendientes"
-                value={isStaffRole ? (data.myPendingAppointments || 0) : (data.pendingAppointments || 0)}
-                valueStyle={{ color: '#fa8c16', fontSize: '24px', fontWeight: 'bold' }}
-              />
-            </Card>
-          </Col>
-
-          <Col xs={24} sm={12} md={6}>
-            <Card className="text-center">
-              <div className="flex items-center justify-center mb-2">
-                <CheckCircleOutlined style={{ fontSize: '24px', color: '#52c41a' }} />
-              </div>
-              <Statistic
-                title="Citas Completadas"
-                value={data.completedAppointments || 0}
-                valueStyle={{ color: '#52c41a', fontSize: '24px', fontWeight: 'bold' }}
-              />
-            </Card>
-          </Col>
-
-          <Col xs={24} sm={12} md={6}>
-            <Card className="text-center">
-              <div className="flex items-center justify-center mb-2">
-                <CalendarOutlined style={{ fontSize: '24px', color: '#722ed1' }} />
-              </div>
-              <Statistic
-                title="Citas Hoy"
-                value={data.appointmentsToday || 0}
-                valueStyle={{ color: '#722ed1', fontSize: '24px', fontWeight: 'bold' }}
-              />
-            </Card>
-          </Col>
-        </Row>
-      )}
-
-      {/* Staff-specific message */}
-      {isStaffRole && (
-        <Alert
-          message="Vista de Personal"
-          description="Mostrando solo casos y citas asignados a usted."
-          type="info"
-          showIcon
-        />
-      )}
+// --- Stat Card Component ---
+const StatCard: React.FC<{
+  title: string;
+  value: number;
+  icon: React.ReactNode;
+  color: string;
+  suffix?: string;
+}> = ({ title, value, icon, color, suffix }) => (
+  <Card className="text-center" hoverable size="small" style={{ borderTop: `3px solid ${color}` }}>
+    <div className="flex items-center justify-center mb-1" style={{ color }}>
+      {icon}
     </div>
-  );
-};
-
-// Loading component for lazy-loaded sections
-const SectionLoading = () => (
-  <div className="flex justify-center items-center h-32">
-    <Spin size="large" tip="Cargando sección..." />
-  </div>
+    <Statistic
+      title={<span style={{ fontSize: 12 }}>{title}</span>}
+      value={value}
+      suffix={suffix}
+      valueStyle={{ color, fontSize: 22, fontWeight: 'bold' }}
+    />
+  </Card>
 );
 
 // --- Main Page Component ---
@@ -251,27 +86,43 @@ const TrueDashboardPage = () => {
   const isHydrated = useHydrationSafe();
   const { user } = useAuth();
 
-  // ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONAL RETURNS
-  // Rules of Hooks: Same order, same number on every render
   const [userRole, setUserRole] = useState<string | null>(null);
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedOfficeId, setSelectedOfficeId] = useState<string>('');
-  const [offices, setOffices] = useState<Office[]>([]);
+  const [offices, setOffices] = useState<Array<{ id: number; name: string }>>([]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const initializedRef = useRef(false);
 
-  // Fetch offices for admin/office manager filtering
+  const isStaffRole = useMemo(() =>
+    ['lawyer', 'psychologist', 'receptionist', 'event_coordinator'].includes(userRole || ''),
+    [userRole]
+  );
+  const isAdmin = userRole === 'admin';
+  const isManager = userRole === 'office_manager';
+
+  // Fetch offices
   const fetchOffices = async () => {
     try {
       const response = await apiClient.get('/offices');
       setOffices(response.data || []);
-    } catch (error) {
-      console.warn('Failed to fetch offices:', error);
-      // Don't show error for offices, just continue without them
+    } catch {
+      // Non-critical, continue without offices
     }
   };
 
-  // Secure dashboard data fetching with role-based filtering
+  // Fetch notifications
+  const fetchNotifications = async () => {
+    try {
+      const response = await apiClient.get('/notifications');
+      const data = response.data;
+      setNotifications(Array.isArray(data.notifications) ? data.notifications.slice(0, 5) : []);
+    } catch {
+      // Non-critical
+    }
+  };
+
+  // Fetch dashboard data
   const fetchDashboardData = async (officeId?: string, overrideRole?: string) => {
     const effectiveRole = overrideRole || userRole;
     if (!effectiveRole) return;
@@ -279,29 +130,24 @@ const TrueDashboardPage = () => {
     try {
       setLoading(true);
 
-      // Build query parameters based on role and selected office
       const params = new URLSearchParams();
       if (officeId && (effectiveRole === 'admin' || effectiveRole === 'office_manager')) {
         params.append('officeId', officeId);
       }
 
-      // Determine endpoint based on role
       let endpoint = '/dashboard-summary';
-      if (effectiveRole !== 'admin' && effectiveRole !== 'office_manager') {
+      if (!['admin', 'office_manager'].includes(effectiveRole)) {
         endpoint = '/staff/dashboard-summary';
       }
 
       const queryString = params.toString();
       const fullEndpoint = queryString ? `${endpoint}?${queryString}` : endpoint;
-
       const response = await apiClient.get(fullEndpoint);
-
-      // Transform data based on role permissions
       const rawData = response.data;
+
       let processedData: DashboardData;
 
       if (effectiveRole === 'admin') {
-        // Admin sees all data
         processedData = {
           totalCases: rawData.totalCases || 0,
           openCases: rawData.openCases || 0,
@@ -311,10 +157,13 @@ const TrueDashboardPage = () => {
           pendingAppointments: rawData.pendingAppointments || 0,
           completedAppointments: rawData.completedAppointments || 0,
           appointmentsToday: rawData.appointmentsToday || 0,
+          appointmentsThisWeek: rawData.appointmentsThisWeek || 0,
+          totalStaff: rawData.totalStaff || 0,
+          totalClients: rawData.totalClients || 0,
+          pendingTasks: rawData.pendingTasks || 0,
           offices: offices.length > 0 ? offices : undefined,
         };
       } else if (effectiveRole === 'office_manager') {
-        // Office manager sees office-specific or all-office data
         processedData = {
           totalCases: rawData.totalCases || 0,
           openCases: rawData.openCases || 0,
@@ -324,10 +173,12 @@ const TrueDashboardPage = () => {
           pendingAppointments: rawData.pendingAppointments || 0,
           completedAppointments: rawData.completedAppointments || 0,
           appointmentsToday: rawData.appointmentsToday || 0,
+          appointmentsThisWeek: rawData.appointmentsThisWeek || 0,
+          totalStaff: rawData.totalStaff || 0,
+          pendingTasks: rawData.pendingTasks || 0,
           offices: offices.length > 0 ? offices : undefined,
         };
       } else {
-        // Staff roles see only their assigned data
         processedData = {
           totalCases: 0,
           openCases: 0,
@@ -335,90 +186,65 @@ const TrueDashboardPage = () => {
           casesThisMonth: 0,
           myCases: rawData.myCases || 0,
           myOpenCases: rawData.myOpenCases || 0,
+          myCompletedCases: rawData.myCompletedCases || 0,
           totalAppointments: 0,
           pendingAppointments: 0,
           completedAppointments: 0,
           appointmentsToday: 0,
           myAppointments: rawData.myAppointments || 0,
           myPendingAppointments: rawData.myPendingAppointments || 0,
+          myAppointmentsToday: rawData.myAppointmentsToday || 0,
+          myPendingTasks: rawData.myPendingTasks || 0,
         };
       }
 
       setDashboardData(processedData);
-    } catch (error: any) {
-      console.error('Dashboard data fetch error:', error);
+    } catch {
       message.error('No se pudo cargar el resumen del dashboard.');
     } finally {
       setLoading(false);
     }
   };
 
-  // Handle office filter change
   const handleOfficeChange = (officeId: string) => {
     setSelectedOfficeId(officeId);
     fetchDashboardData(officeId);
   };
 
-  // Handle refresh
-  const handleRefresh = () => {
-    fetchDashboardData(selectedOfficeId || undefined);
-  };
-
-  // Auto-refresh dashboard data every 15 seconds for better UX
+  // Auto-refresh
   useEffect(() => {
     if (!userRole || !dashboardData) return;
-
     const interval = setInterval(() => {
       fetchDashboardData(selectedOfficeId || undefined);
-    }, 15000); // 15 seconds
-
+    }, 30000);
     return () => clearInterval(interval);
   }, [userRole, dashboardData, selectedOfficeId]);
 
-  // CRITICAL FIX: Initialize dashboard only once when user becomes available
-  // Previous issue: Race condition where useEffect ran before user?.role was available,
-  // causing initializedRef to be set to true without actually initializing
+  // Initialize
   useEffect(() => {
-    // Guard conditions: Wait for hydration, user data, and prevent double initialization
     if (!isHydrated || !user?.role || initializedRef.current) return;
-
-    // Mark as initialized immediately to prevent race conditions
     initializedRef.current = true;
     const role = user.role;
     setUserRole(role);
-
-    // Step 1: Fetch office list for filtering dropdown (UI prerequisite)
     fetchOffices();
-
-    // Step 2: Auto-select office for office managers
-    // TODO: Replace with proper office assignment from user profile API
+    fetchNotifications();
     if (role === 'office_manager') {
-      setSelectedOfficeId('2'); // Temporary hardcoded default
+      setSelectedOfficeId('2');
     }
-
-    // Step 3: Fetch dashboard metrics with role-based filtering
-    // Pass office ID for managers to get office-scoped data
     fetchDashboardData(role === 'office_manager' ? '2' : undefined, role);
-  }, [isHydrated, user?.role]); // Added user?.role dependency to ensure proper initialization timing
+  }, [isHydrated, user?.role]);
 
-  // Handle user logout only - run once on mount and track user state internally
+  // Handle logout
   const prevUserRef = useRef(user);
   useEffect(() => {
-    const prevUser = prevUserRef.current;
-    const currentUser = user;
-
-    // Only handle logout (user going from exists to null)
-    if (prevUser && !currentUser) {
+    if (prevUserRef.current && !user) {
       setUserRole(null);
       setDashboardData(null);
       initializedRef.current = false;
     }
+    prevUserRef.current = user;
+  }, []);
 
-    prevUserRef.current = currentUser;
-  }, []); // Empty dependency array - handle logout manually
-
-
-  // Show loading until hydrated and loaded
   if (!isHydrated || loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -427,33 +253,196 @@ const TrueDashboardPage = () => {
     );
   }
 
+  if (!userRole || !dashboardData) {
+    return (
+      <div className="flex justify-center items-center h-32">
+        <Spin size="large" tip="Cargando datos del dashboard..." />
+      </div>
+    );
+  }
+
+  const unreadCount = notifications.filter(n => !n.isRead).length;
+
   return (
     <div className="space-y-6">
-      {/* Statistics Cards */}
-      <div className="mb-8">
-        {userRole && dashboardData ? (
-          <RoleBasedDashboard
-            data={dashboardData}
-            userRole={userRole}
-            selectedOfficeId={selectedOfficeId}
-            onOfficeChange={handleOfficeChange}
-            onRefresh={handleRefresh}
-            loading={loading}
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <Title level={2} className="!mb-1">Panel de Control</Title>
+          <Text type="secondary">
+            {isStaffRole ? 'Resumen de tus casos y citas asignadas' : 'Resumen general del sistema'}
+          </Text>
+        </div>
+      </div>
+
+      {/* Office Filter - Admin/Manager only */}
+      {(isAdmin || isManager) && offices.length > 0 && (
+        <Card size="small">
+          <div className="flex items-center gap-4">
+            <BankOutlined />
+            <Text strong>Filtrar por Oficina:</Text>
+            <Select
+              placeholder="Todas las oficinas"
+              value={selectedOfficeId || undefined}
+              onChange={handleOfficeChange}
+              style={{ minWidth: 200 }}
+              allowClear
+            >
+              {offices.map(office => (
+                <Select.Option key={office.id} value={office.id.toString()}>
+                  {office.name}
+                </Select.Option>
+              ))}
+            </Select>
+          </div>
+        </Card>
+      )}
+
+      {/* ========== ADMIN/MANAGER SECTIONS ========== */}
+      {(isAdmin || isManager) && (
+        <>
+          {/* Admin-Only: System Overview */}
+          {isAdmin && (
+            <>
+              <Divider orientation="left" style={{ fontSize: 14, color: '#6b7280' }}>
+                <TeamOutlined /> Resumen del Sistema
+              </Divider>
+              <Row gutter={[12, 12]}>
+                <Col xs={12} sm={8} md={6}>
+                  <StatCard title="Total Personal" value={dashboardData.totalStaff || 0} icon={<TeamOutlined style={{ fontSize: 20 }} />} color="#1890ff" />
+                </Col>
+                <Col xs={12} sm={8} md={6}>
+                  <StatCard title="Total Clientes" value={dashboardData.totalClients || 0} icon={<UserOutlined style={{ fontSize: 20 }} />} color="#13c2c2" />
+                </Col>
+                <Col xs={12} sm={8} md={6}>
+                  <StatCard title="Tareas Pendientes" value={dashboardData.pendingTasks || 0} icon={<ExclamationCircleOutlined style={{ fontSize: 20 }} />} color="#fa8c16" />
+                </Col>
+                <Col xs={12} sm={8} md={6}>
+                  <StatCard title="Citas Esta Semana" value={dashboardData.appointmentsThisWeek || 0} icon={<ScheduleOutlined style={{ fontSize: 20 }} />} color="#722ed1" />
+                </Col>
+              </Row>
+            </>
+          )}
+
+          {/* Case Statistics */}
+          <Divider orientation="left" style={{ fontSize: 14, color: '#6b7280' }}>
+            <FolderOpenOutlined /> Estadísticas de Casos
+          </Divider>
+          <Row gutter={[12, 12]}>
+            <Col xs={12} sm={12} md={6}>
+              <StatCard title="Total Casos" value={dashboardData.totalCases} icon={<FolderOpenOutlined style={{ fontSize: 20 }} />} color="#1890ff" />
+            </Col>
+            <Col xs={12} sm={12} md={6}>
+              <StatCard title="Casos Activos" value={dashboardData.openCases} icon={<ClockCircleOutlined style={{ fontSize: 20 }} />} color="#fa8c16" />
+            </Col>
+            <Col xs={12} sm={12} md={6}>
+              <StatCard title="Completados" value={dashboardData.completedCases} icon={<CheckCircleOutlined style={{ fontSize: 20 }} />} color="#52c41a" />
+            </Col>
+            <Col xs={12} sm={12} md={6}>
+              <StatCard title="Este Mes" value={dashboardData.casesThisMonth} icon={<RiseOutlined style={{ fontSize: 20 }} />} color="#722ed1" />
+            </Col>
+          </Row>
+
+          {/* Appointment Statistics */}
+          <Divider orientation="left" style={{ fontSize: 14, color: '#6b7280' }}>
+            <CalendarOutlined /> Estadísticas de Citas
+          </Divider>
+          <Row gutter={[12, 12]}>
+            <Col xs={12} sm={12} md={6}>
+              <StatCard title="Total Citas" value={dashboardData.totalAppointments} icon={<CalendarOutlined style={{ fontSize: 20 }} />} color="#13c2c2" />
+            </Col>
+            <Col xs={12} sm={12} md={6}>
+              <StatCard title="Pendientes" value={dashboardData.pendingAppointments} icon={<ClockCircleOutlined style={{ fontSize: 20 }} />} color="#fa8c16" />
+            </Col>
+            <Col xs={12} sm={12} md={6}>
+              <StatCard title="Completadas" value={dashboardData.completedAppointments} icon={<CheckCircleOutlined style={{ fontSize: 20 }} />} color="#52c41a" />
+            </Col>
+            <Col xs={12} sm={12} md={6}>
+              <StatCard title="Hoy" value={dashboardData.appointmentsToday} icon={<CalendarOutlined style={{ fontSize: 20 }} />} color="#722ed1" />
+            </Col>
+          </Row>
+        </>
+      )}
+
+      {/* ========== STAFF SECTIONS ========== */}
+      {isStaffRole && (
+        <>
+          {/* Quick Overview */}
+          <Divider orientation="left" style={{ fontSize: 14, color: '#6b7280' }}>
+            <BarChartOutlined /> Tu Resumen
+          </Divider>
+          <Row gutter={[12, 12]}>
+            <Col xs={12} sm={8} md={6}>
+              <StatCard title="Mis Casos" value={dashboardData.myCases || 0} icon={<FolderOpenOutlined style={{ fontSize: 20 }} />} color="#1890ff" />
+            </Col>
+            <Col xs={12} sm={8} md={6}>
+              <StatCard title="Casos Abiertos" value={dashboardData.myOpenCases || 0} icon={<ClockCircleOutlined style={{ fontSize: 20 }} />} color="#fa8c16" />
+            </Col>
+            <Col xs={12} sm={8} md={6}>
+              <StatCard title="Completados Este Mes" value={dashboardData.myCompletedCases || 0} icon={<CheckCircleOutlined style={{ fontSize: 20 }} />} color="#52c41a" />
+            </Col>
+            <Col xs={12} sm={8} md={6}>
+              <StatCard title="Mis Citas" value={dashboardData.myAppointments || 0} icon={<CalendarOutlined style={{ fontSize: 20 }} />} color="#13c2c2" />
+            </Col>
+            <Col xs={12} sm={8} md={6}>
+              <StatCard title="Citas Pendientes" value={dashboardData.myPendingAppointments || 0} icon={<ClockCircleOutlined style={{ fontSize: 20 }} />} color="#fa8c16" />
+            </Col>
+            <Col xs={12} sm={8} md={6}>
+              <StatCard title="Citas Hoy" value={dashboardData.myAppointmentsToday || 0} icon={<CalendarOutlined style={{ fontSize: 20 }} />} color="#722ed1" />
+            </Col>
+            <Col xs={12} sm={8} md={6}>
+              <StatCard title="Tareas Pendientes" value={dashboardData.myPendingTasks || 0} icon={<ExclamationCircleOutlined style={{ fontSize: 20 }} />} color="#eb2f96" />
+            </Col>
+          </Row>
+        </>
+      )}
+
+      {/* Notifications Panel - All Roles */}
+      <Divider orientation="left" style={{ fontSize: 14, color: '#6b7280' }}>
+        <Badge count={unreadCount} offset={[8, 0]} size="small">
+          <BellOutlined />
+        </Badge>
+        {' '}Notificaciones Recientes
+      </Divider>
+      <Card size="small">
+        {notifications.length > 0 ? (
+          <List
+            dataSource={notifications}
+            renderItem={(item: Notification) => (
+              <List.Item
+                style={{
+                  background: item.isRead ? 'transparent' : '#f0f5ff',
+                  padding: '8px 12px',
+                  borderRadius: 6,
+                  marginBottom: 4,
+                  cursor: item.link ? 'pointer' : 'default',
+                }}
+                onClick={() => item.link && router.push(item.link)}
+              >
+                <List.Item.Meta
+                  avatar={
+                    <Badge dot={!item.isRead} offset={[-2, 2]}>
+                      <BellOutlined style={{ fontSize: 16, color: item.isRead ? '#d9d9d9' : '#1890ff' }} />
+                    </Badge>
+                  }
+                  title={<Text style={{ fontSize: 13 }}>{item.message}</Text>}
+                  description={
+                    <Text type="secondary" style={{ fontSize: 11 }}>
+                      {new Date(item.createdAt).toLocaleString('es-MX', {
+                        day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit',
+                      })}
+                    </Text>
+                  }
+                />
+              </List.Item>
+            )}
           />
         ) : (
-          <div className="flex justify-center items-center h-32">
-            <Spin size="large" tip="Cargando datos del dashboard..." />
-          </div>
+          <Empty description="No hay notificaciones recientes" image={Empty.PRESENTED_IMAGE_SIMPLE} />
         )}
-      </div>
+      </Card>
     </div>
   );
 };
 
 export default TrueDashboardPage;
-
-
-
-
-
-
