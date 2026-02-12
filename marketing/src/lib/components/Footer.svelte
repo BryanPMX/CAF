@@ -12,7 +12,7 @@
   <div class="relative h-[3px] bg-gradient-to-r from-primary-500 via-accent-500 to-primary-500"></div>
 
   <div class="container relative mx-auto px-6 py-10 sm:py-12">
-    <div class="grid grid-cols-1 gap-6 md:grid-cols-3 md:gap-8">
+    <div class="grid grid-cols-1 gap-6 md:grid-cols-[1fr_1.6fr_1fr] md:gap-6 lg:gap-8">
       <div class="footer-glass-card rounded-2xl p-6 text-slate-100">
         <div class="mb-4 flex items-center gap-3">
           <span class="brand-logo-shell">
@@ -29,27 +29,27 @@
 
       <div class="footer-glass-card rounded-2xl p-6">
         <h4 class="mb-4 text-sm font-semibold uppercase tracking-[0.18em] text-slate-100">Navegación</h4>
-        <ul class="flex flex-wrap items-center gap-2.5 sm:gap-3">
+        <ul class="footer-nav-row flex items-center gap-1.5 sm:gap-2">
           <li>
-            <a href="/" class="footer-nav-pill group inline-flex items-center gap-2 rounded-full border border-white/20 px-4 py-2 text-sm font-medium text-slate-100/95 transition-all duration-200 hover:-translate-y-0.5 hover:border-white/35 hover:text-white">
+            <a href="/" class="footer-nav-pill group inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-white/20 px-3 py-1.5 text-[0.82rem] font-medium text-slate-100/95 transition-all duration-200 hover:-translate-y-0.5 hover:border-white/35 hover:text-white sm:text-sm">
               <span class="h-1.5 w-1.5 rounded-full bg-primary-300 transition-colors duration-200 group-hover:bg-accent-300"></span>
               <span>Inicio</span>
             </a>
           </li>
           <li>
-            <a href="/servicios" data-sveltekit-reload class="footer-nav-pill group inline-flex items-center gap-2 rounded-full border border-white/20 px-4 py-2 text-sm font-medium text-slate-100/95 transition-all duration-200 hover:-translate-y-0.5 hover:border-white/35 hover:text-white">
+            <a href="/servicios" data-sveltekit-reload class="footer-nav-pill group inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-white/20 px-3 py-1.5 text-[0.82rem] font-medium text-slate-100/95 transition-all duration-200 hover:-translate-y-0.5 hover:border-white/35 hover:text-white sm:text-sm">
               <span class="h-1.5 w-1.5 rounded-full bg-primary-300 transition-colors duration-200 group-hover:bg-accent-300"></span>
               <span>Servicios</span>
             </a>
           </li>
           <li>
-            <a href="/eventos" class="footer-nav-pill group inline-flex items-center gap-2 rounded-full border border-white/20 px-4 py-2 text-sm font-medium text-slate-100/95 transition-all duration-200 hover:-translate-y-0.5 hover:border-white/35 hover:text-white">
+            <a href="/eventos" class="footer-nav-pill group inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-white/20 px-3 py-1.5 text-[0.82rem] font-medium text-slate-100/95 transition-all duration-200 hover:-translate-y-0.5 hover:border-white/35 hover:text-white sm:text-sm">
               <span class="h-1.5 w-1.5 rounded-full bg-primary-300 transition-colors duration-200 group-hover:bg-accent-300"></span>
               <span>Eventos</span>
             </a>
           </li>
           <li>
-            <a href="/contacto" class="footer-nav-pill group inline-flex items-center gap-2 rounded-full border border-white/20 px-4 py-2 text-sm font-medium text-slate-100/95 transition-all duration-200 hover:-translate-y-0.5 hover:border-white/35 hover:text-white">
+            <a href="/contacto" class="footer-nav-pill group inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-white/20 px-3 py-1.5 text-[0.82rem] font-medium text-slate-100/95 transition-all duration-200 hover:-translate-y-0.5 hover:border-white/35 hover:text-white sm:text-sm">
               <span class="h-1.5 w-1.5 rounded-full bg-primary-300 transition-colors duration-200 group-hover:bg-accent-300"></span>
               <span>Contacto</span>
             </a>
