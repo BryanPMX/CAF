@@ -21,38 +21,35 @@
   ];
 </script>
 
-<header class="sticky top-0 z-50 border-b border-white/70 bg-white/65 backdrop-blur-xl shadow-[0_10px_24px_rgba(20,43,79,0.1)]">
+<header class="header-shell sticky top-0 z-50 border-b border-white/45 bg-white/70 backdrop-blur-2xl shadow-[0_14px_34px_rgba(15,30,58,0.14)]">
   <div class="pointer-events-none absolute inset-x-0 top-0 h-20 overflow-hidden">
-    <div class="spotlight -left-40 -top-8 h-24 w-72 bg-primary-300"></div>
-    <div class="spotlight -right-32 -top-10 h-24 w-64 bg-accent-400"></div>
+    <div class="spotlight -left-40 -top-8 h-24 w-72 bg-primary-300/90"></div>
+    <div class="spotlight -right-32 -top-10 h-24 w-64 bg-accent-400/90"></div>
+    <div class="spotlight left-1/2 -top-10 h-24 w-64 -translate-x-1/2 bg-[rgba(166,133,255,0.38)]"></div>
   </div>
 
-  <nav class="relative flex w-full items-center justify-between px-2 py-3 sm:px-4 lg:px-6">
-    <a href="/" class="group flex items-center gap-3" on:click={closeMenu}>
-      <span class="brand-logo-shell">
-        <span class="block rounded-[0.95rem] bg-white p-1.5">
-          <img
-            src="/logo-header.jpg"
-            alt="Logo del Centro de Apoyo para la Familia"
-            class="h-12 w-16 rounded-xl object-contain sm:h-14 sm:w-20"
-          />
-        </span>
-      </span>
+  <nav class="relative mx-auto flex w-full max-w-[1380px] items-center px-3 py-3 sm:px-5 lg:px-8">
+    <a href="/" class="group flex min-w-fit items-center gap-3 pr-4 md:pr-8" on:click={closeMenu}>
+      <img
+        src="/logo-header.jpg"
+        alt="Logo del Centro de Apoyo para la Familia"
+        class="header-logo h-12 w-16 rounded-xl object-contain sm:h-14 sm:w-20"
+      />
       <span class="hidden lg:block">
         <span class="block text-sm font-bold text-slate-800">Centro de Apoyo para la Familia</span>
-        <span class="block text-xs font-medium tracking-[0.04em] text-slate-500">Atención integral y profesional</span>
+        <span class="block text-xs font-semibold tracking-[0.045em] text-slate-600/85">Atención integral y profesional</span>
       </span>
     </a>
 
-    <div class="absolute left-1/2 hidden -translate-x-1/2 items-center gap-11 md:flex">
+    <div class="absolute left-1/2 hidden -translate-x-1/2 items-center gap-8 md:flex lg:gap-11">
       {#each navLinks as link}
         <a
           href={link.href}
           data-sveltekit-reload={link.href === '/servicios'}
-          class="nav-link text-lg font-semibold tracking-[0.02em]"
+          class="nav-link rounded-full px-3.5 py-1.5 text-[1.04rem] font-semibold tracking-[0.015em]"
           class:is-active={$page.url.pathname === link.href}
           class:text-primary-700={$page.url.pathname === link.href}
-          class:text-slate-600={$page.url.pathname !== link.href}
+          class:text-slate-700={$page.url.pathname !== link.href}
         >
           {link.label}
         </a>
@@ -60,7 +57,7 @@
     </div>
 
     <button
-      class="ml-auto rounded-xl border border-slate-200 bg-white p-2 text-slate-700 shadow-sm transition-colors hover:bg-slate-50 md:hidden"
+      class="ml-auto rounded-xl border border-white/70 bg-white/85 p-2.5 text-slate-700 shadow-[0_8px_20px_rgba(15,30,58,0.16)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-white md:hidden"
       on:click={toggleMenu}
       aria-label={mobileMenuOpen ? 'Cerrar menú' : 'Abrir menú'}
       aria-expanded={mobileMenuOpen}
@@ -79,7 +76,7 @@
 
   {#if mobileMenuOpen}
     <div
-      class="md:hidden border-t border-slate-200 bg-white/95 shadow-lg backdrop-blur-xl"
+      class="md:hidden border-t border-white/60 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(244,237,255,0.9))] shadow-[0_20px_34px_rgba(15,30,58,0.16)] backdrop-blur-2xl"
       transition:slide={{ duration: 250, easing: cubicOut }}
     >
       <div class="container mx-auto space-y-1 px-4 py-4">
@@ -87,11 +84,10 @@
           <a
             href={link.href}
             data-sveltekit-reload={link.href === '/servicios'}
-            class="block rounded-lg px-4 py-3 text-base font-semibold transition-colors"
+            class="block rounded-xl border border-transparent px-4 py-3 text-base font-semibold transition-all duration-200 hover:border-primary-200/65 hover:bg-white/75"
             class:bg-primary-50={$page.url.pathname === link.href}
             class:text-primary-700={$page.url.pathname === link.href}
-            class:text-slate-600={$page.url.pathname !== link.href}
-            class:hover:bg-slate-50={$page.url.pathname !== link.href}
+            class:text-slate-700={$page.url.pathname !== link.href}
             on:click={closeMenu}
           >
             {link.label}
