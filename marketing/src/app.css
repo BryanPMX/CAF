@@ -12,6 +12,9 @@
   --marketing-border: rgba(125, 165, 206, 0.38);
   --marketing-glass-bg: rgba(224, 239, 255, 0.5);
   --marketing-glass-border: rgba(176, 208, 238, 0.52);
+  --marketing-purple-100: #f1eaff;
+  --marketing-purple-200: #e4d6ff;
+  --marketing-purple-500: #9d7aff;
 }
 
 @layer base {
@@ -23,10 +26,10 @@
   body {
     @apply font-sans text-slate-700 antialiased bg-slate-50;
     background-image:
-      radial-gradient(circle at 10% -5%, rgba(59, 130, 246, 0.24), transparent 40%),
-      radial-gradient(circle at 95% 8%, rgba(45, 212, 191, 0.22), transparent 36%),
-      radial-gradient(circle at 50% 45%, rgba(255, 255, 255, 0.4), transparent 58%),
-      linear-gradient(180deg, #f8fbff 0%, #f5f8fc 55%, #eef3f9 100%);
+      radial-gradient(circle at 8% -5%, rgba(157, 122, 255, 0.2), transparent 38%),
+      radial-gradient(circle at 88% 8%, rgba(56, 120, 214, 0.22), transparent 36%),
+      radial-gradient(circle at 56% 42%, rgba(255, 255, 255, 0.6), transparent 60%),
+      linear-gradient(180deg, #ffffff 0%, #f9f4ff 52%, #eef6ff 100%);
     background-attachment: fixed;
   }
 
@@ -112,7 +115,7 @@
 }
 
 .text-gradient {
-  background: linear-gradient(125deg, #154f8d 0%, #0f8a7d 85%);
+  background: linear-gradient(125deg, #326cc3 0%, #8d6bf7 85%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -130,10 +133,10 @@
   overflow: hidden;
   isolation: isolate;
   background:
-    linear-gradient(145deg, rgba(226, 239, 255, 0.62), rgba(220, 244, 238, 0.46)),
-    rgba(233, 243, 255, 0.22);
-  backdrop-filter: blur(16px) saturate(128%);
-  border: 1px solid var(--marketing-glass-border);
+    linear-gradient(145deg, rgba(255, 255, 255, 0.78), rgba(244, 236, 255, 0.58)),
+    rgba(245, 248, 255, 0.5);
+  backdrop-filter: blur(10px) saturate(118%);
+  border: 1px solid rgba(193, 207, 237, 0.65);
   box-shadow: var(--marketing-shadow-soft);
 }
 
@@ -142,8 +145,8 @@
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: linear-gradient(130deg, rgba(255, 255, 255, 0.34) 0%, rgba(255, 255, 255, 0.1) 48%, transparent 72%);
-  opacity: 0.3;
+  background: linear-gradient(130deg, rgba(255, 255, 255, 0.3) 0%, rgba(255, 255, 255, 0.08) 55%, transparent 75%);
+  opacity: 0.22;
 }
 
 .glass-panel::after {
@@ -160,12 +163,10 @@
 .card-lift {
   position: relative;
   overflow: hidden;
-  border: 1px solid rgba(164, 196, 228, 0.44);
+  border: 1px solid rgba(189, 200, 231, 0.56);
   background:
-    linear-gradient(160deg, rgba(231, 242, 255, 0.76) 0%, rgba(225, 245, 240, 0.56) 100%),
-    var(--marketing-glass-bg);
-  backdrop-filter: blur(10px) saturate(120%);
-  box-shadow: 0 12px 26px rgba(16, 36, 66, 0.1);
+    linear-gradient(165deg, rgba(255, 255, 255, 0.94) 0%, rgba(247, 241, 255, 0.86) 56%, rgba(237, 246, 255, 0.9) 100%);
+  box-shadow: 0 10px 24px rgba(16, 36, 66, 0.08);
   transition: transform 0.35s ease, box-shadow 0.35s ease, border-color 0.35s ease;
 }
 
@@ -174,23 +175,22 @@
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: linear-gradient(120deg, rgba(255, 255, 255, 0.24) 0%, transparent 54%);
-  opacity: 0.38;
+  background: linear-gradient(122deg, rgba(255, 255, 255, 0.36) 0%, rgba(255, 255, 255, 0.08) 52%, transparent 72%);
+  opacity: 0.28;
 }
 
 .card-lift:hover {
-  transform: translateY(-6px);
-  border-color: rgba(104, 174, 236, 0.55);
+  transform: translateY(-5px) scale(1.01);
+  border-color: rgba(141, 107, 247, 0.36);
   box-shadow: var(--marketing-shadow-strong);
 }
 
 .glass-subtle {
   background:
-    linear-gradient(180deg, rgba(231, 245, 255, 0.65), rgba(225, 243, 238, 0.42)),
-    rgba(221, 238, 255, 0.22);
-  border: 1px solid rgba(164, 197, 231, 0.44);
-  backdrop-filter: blur(10px) saturate(122%);
-  box-shadow: 0 10px 22px rgba(16, 43, 75, 0.1);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(247, 239, 255, 0.7)),
+    rgba(228, 239, 255, 0.36);
+  border: 1px solid rgba(186, 201, 235, 0.52);
+  box-shadow: 0 8px 18px rgba(16, 43, 75, 0.08);
 }
 
 .brand-logo-shell {
@@ -237,6 +237,39 @@
 
 .btn-elevated:hover::after {
   transform: translateX(130%);
+}
+
+.nav-link {
+  position: relative;
+  transition: color 0.24s ease, opacity 0.24s ease;
+}
+
+.nav-link::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -4px;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #5a86db, #9d7aff);
+  transform: scaleX(0);
+  transform-origin: center;
+  transition: transform 0.24s ease;
+}
+
+.nav-link:hover::after,
+.nav-link.is-active::after {
+  transform: scaleX(1);
+}
+
+.fade-interact {
+  transition: opacity 0.28s ease, transform 0.28s ease;
+}
+
+.fade-interact:hover {
+  opacity: 0.92;
+  transform: translateY(-1px);
 }
 
 @media (max-width: 640px) {
