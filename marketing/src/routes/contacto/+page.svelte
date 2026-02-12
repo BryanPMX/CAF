@@ -127,7 +127,7 @@
             >
               <option value="">Seleccione una oficina</option>
               {#each offices as office}
-                <option value={office.id}>{office.name}</option>
+                <option value={String(office.id)}>{office.name}</option>
               {/each}
             </select>
             {#if loadingOffices}
@@ -264,14 +264,10 @@
     <!-- General Contact Info -->
     <div class="mt-12 bg-white rounded-xl p-8 shadow-sm border border-gray-100 max-w-2xl mx-auto text-center">
       <h3 class="text-lg font-bold text-gray-900 mb-4">Información General</h3>
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 text-sm">
+      <div class="flex flex-col gap-4 text-sm">
         <div>
           <div class="text-gray-400 mb-1">Correo</div>
           <a href="mailto:{config.contact.email}" class="text-primary-600 font-medium">{config.contact.email}</a>
-        </div>
-        <div>
-          <div class="text-gray-400 mb-1">Teléfono</div>
-          <a href="tel:{config.contact.phone}" class="text-primary-600 font-medium">{config.contact.phone}</a>
         </div>
         <div>
           <div class="text-gray-400 mb-1">Horario</div>
