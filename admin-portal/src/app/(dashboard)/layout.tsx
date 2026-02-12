@@ -122,13 +122,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return ROLE_DISPLAY_CONFIG.client;
   }, [user?.role]);
 
-  const sidebarUserLabel = useMemo(() => {
-    if (user?.firstName && user?.lastName) return `${user.firstName} ${user.lastName}`;
-    if (user?.firstName) return user.firstName;
-    if (user?.email) return user.email;
-    return 'Mi perfil';
-  }, [user?.firstName, user?.lastName, user?.email]);
-
   // Robust authentication guard - prevents infinite loading loops
   // Only perform redirect if hydrated to avoid server-side rendering issues
   useEffect(() => {
@@ -192,12 +185,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 mode="inline"
                 items={filteredMenuItems}
               />
-              <div className="admin-sider-footer">
-                <Link href="/app/profile" className="admin-sider-profile-link" aria-label="Ir al perfil">
-                  <UserOutlined />
-                  {!collapsed && <span className="truncate">{sidebarUserLabel}</span>}
-                </Link>
-              </div>
             </div>
           </Sider>
         

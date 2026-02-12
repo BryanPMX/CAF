@@ -28,15 +28,15 @@
     <div class="spotlight left-1/2 -top-10 h-24 w-64 -translate-x-1/2 bg-[rgba(166,133,255,0.38)]"></div>
   </div>
 
-  <nav class="relative mx-auto flex w-full max-w-[1380px] items-center px-3 py-3 sm:px-5 lg:px-8">
-    <a href="/" class="group flex min-w-fit items-center gap-3 pr-4 md:pr-8" on:click={closeMenu}>
+  <nav class="relative flex w-full items-center py-3 pl-1 pr-3 sm:pl-2 sm:pr-4 lg:pl-4 lg:pr-6">
+    <a href="/" class="group flex min-w-fit items-center gap-3 pr-2 md:pr-6" on:click={closeMenu}>
       <img
         src="/logo-header.jpg"
         alt="Logo del Centro de Apoyo para la Familia"
         class="header-logo h-12 w-16 rounded-xl object-contain sm:h-14 sm:w-20"
       />
       <span class="hidden lg:block">
-        <span class="block text-sm font-bold text-slate-800">Centro de Apoyo para la Familia</span>
+        <span class="block text-sm font-bold text-slate-800">Centro de Apoyo para la Familia A.C.</span>
         <span class="block text-xs font-semibold tracking-[0.045em] text-slate-600/85">Atención integral y profesional</span>
       </span>
     </a>
