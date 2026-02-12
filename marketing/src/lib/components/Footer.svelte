@@ -24,7 +24,7 @@
         <h4 class="font-semibold text-white mb-3 text-sm uppercase tracking-[0.12em] leading-tight">Navegación</h4>
         <ul class="flex flex-col md:flex-row md:flex-nowrap gap-y-1.5 md:gap-y-0 md:gap-x-6 md:items-center md:justify-center">
           <li class="flex-shrink-0"><a href="/" class="text-sm text-gray-400 hover:text-white transition-colors py-1.5 md:py-0">Inicio</a></li>
-          <li class="flex-shrink-0"><a href="/servicios" class="text-sm text-gray-400 hover:text-white transition-colors py-1.5 md:py-0">Servicios</a></li>
+          <li class="flex-shrink-0"><a href="/servicios" data-sveltekit-reload class="text-sm text-gray-400 hover:text-white transition-colors py-1.5 md:py-0">Servicios</a></li>
           <li class="flex-shrink-0"><a href="/eventos" class="text-sm text-gray-400 hover:text-white transition-colors py-1.5 md:py-0">Eventos</a></li>
           <li class="flex-shrink-0"><a href="/contacto" class="text-sm text-gray-400 hover:text-white transition-colors py-1.5 md:py-0">Contacto</a></li>
         </ul>

@@ -580,16 +580,19 @@ function GalleryTab() {
 
   useEffect(() => { fetchImages(); }, [fetchImages]);
 
-  // Upload a local file to the server and set the resulting URL in the form
-  const handleFileUpload = async (file: File) => {
+  // Upload a local file to the server and set the resulting URL in the form.
+  // Use customRequest pattern so we never return a Promise from beforeUpload (avoids Ant Design internal "e is not a function").
+  const handleFileUpload = async (file: File, onSuccess?: (url: string) => void, onError?: (err: unknown) => void) => {
     const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
     if (!allowedTypes.includes(file.type)) {
       message.error('Tipo de archivo no permitido. Use: JPG, PNG, GIF, WebP o SVG.');
-      return false;
+      onError?.(new Error('Invalid type'));
+      return;
     }
     if (file.size > 10 * 1024 * 1024) {
       message.error('El archivo es demasiado grande. Máximo 10 MB.');
-      return false;
+      onError?.(new Error('File too large'));
+      return;
     }
 
     setUploading(true);
@@ -599,17 +602,20 @@ function GalleryTab() {
       const res = await api.post('/admin/site-images/upload', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      const url = res.data.url;
+      const url = res.data?.url;
       if (url) {
         form.setFieldsValue({ imageUrl: url });
         message.success('Imagen subida correctamente');
+        onSuccess?.(url);
+      } else {
+        onError?.(new Error('No URL in response'));
       }
-    } catch {
+    } catch (err) {
       message.error('Error al subir la imagen');
+      onError?.(err);
     } finally {
       setUploading(false);
     }
-    return false; // Prevent default Upload behavior
   };
 
   const handleSave = async () => {
@@ -751,7 +757,15 @@ function GalleryTab() {
             <Upload
               accept="image/*"
               showUploadList={false}
-              beforeUpload={(file) => handleFileUpload(file as unknown as File)}
+              beforeUpload={() => false}
+              customRequest={({ file, onSuccess, onError }: { file?: File | Blob; onSuccess?: (res: unknown) => void; onError?: (err: unknown) => void }) => {
+                const f = file as File | undefined;
+                if (!f) {
+                  onError?.(new Error('No file'));
+                  return;
+                }
+                handleFileUpload(f, (url) => onSuccess?.(url != null ? { url } : undefined), onError);
+              }}
               disabled={uploading}
             >
               <Button icon={<UploadOutlined />} loading={uploading} type="dashed">
