@@ -758,13 +758,13 @@ function GalleryTab() {
               accept="image/*"
               showUploadList={false}
               beforeUpload={() => false}
-              customRequest={({ file, onSuccess, onError }: { file?: File | Blob; onSuccess?: (res: unknown) => void; onError?: (err: unknown) => void }) => {
-                const f = file as File | undefined;
+              customRequest={({ file, onSuccess, onError }: any) => {
+                const f = file instanceof File || file instanceof Blob ? file : undefined;
                 if (!f) {
                   onError?.(new Error('No file'));
                   return;
                 }
-                handleFileUpload(f, (url) => onSuccess?.(url != null ? { url } : undefined), onError);
+                handleFileUpload(f as File, (url) => onSuccess?.(url != null ? { url } : undefined), onError);
               }}
               disabled={uploading}
             >
