@@ -81,49 +81,47 @@
   <meta name="description" content="Encuentre nuestras oficinas y póngase en contacto con nosotros." />
 </svelte:head>
 
-<!-- Page Header -->
-<section class="relative bg-gradient-to-br from-primary-700 via-primary-800 to-accent-700 text-white overflow-hidden py-16 md:py-20">
-  <div class="container mx-auto px-6 relative z-10 text-center">
-    <h1 class="text-4xl md:text-5xl font-extrabold leading-tight mb-4" in:fade={{ duration: 800, easing: cubicOut }}>
-      Contáctanos
-    </h1>
-    <p class="text-lg md:text-xl text-primary-100 max-w-3xl mx-auto" in:slide={{ duration: 800, delay: 200, easing: cubicOut }}>
-      Estamos aquí para escucharte. Encuentra la oficina más cercana o envíanos un mensaje.
-    </p>
+<section class="relative overflow-hidden bg-gradient-to-br from-primary-800 via-primary-700 to-accent-700 py-16 text-white md:py-24">
+  <div class="absolute inset-0 bg-[radial-gradient(circle_at_18%_20%,rgba(255,255,255,0.24),transparent_42%),radial-gradient(circle_at_82%_18%,rgba(125,255,231,0.2),transparent_38%)]"></div>
+  <div class="container relative z-10 mx-auto px-6 text-center">
+    <div class="glass-panel mx-auto max-w-4xl rounded-3xl px-6 py-8 sm:px-10 sm:py-10">
+      <h1 class="mb-4 text-4xl font-extrabold leading-tight md:text-5xl" in:fade={{ duration: 800, easing: cubicOut }}>
+        Contáctanos
+      </h1>
+      <p class="mx-auto max-w-3xl text-lg text-primary-100 md:text-xl" in:slide={{ duration: 800, delay: 200, easing: cubicOut }}>
+        Estamos aquí para escucharte. Encuentra la oficina más cercana o envíanos un mensaje.
+      </p>
+    </div>
   </div>
   <div class="absolute bottom-0 left-0 w-full leading-[0]">
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 120" preserveAspectRatio="none" class="w-full h-16 md:h-24">
-      <path fill="#f9fafb" d="M0,64L80,69.3C160,75,320,85,480,80C640,75,800,53,960,48C1120,43,1280,53,1360,58.7L1440,64L1440,120L0,120Z"></path>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 220" preserveAspectRatio="none" class="w-full h-24 md:h-36 lg:h-40">
+      <path fill="#eef6ff" d="M0,128L60,138.7C120,149,240,171,360,170.7C480,171,600,149,720,133.3C840,117,960,107,1080,112C1200,117,1320,139,1380,149.3L1440,160L1440,220L0,220Z"></path>
     </svg>
   </div>
 </section>
 
-<!-- Contact Info + Map + Directory -->
-<section class="py-16 bg-gray-50">
+<section class="py-16 bg-[radial-gradient(circle_at_15%_15%,rgba(56,120,214,0.16),transparent_35%),radial-gradient(circle_at_86%_14%,rgba(23,183,165,0.17),transparent_38%),linear-gradient(180deg,#eef6ff_0%,#edf6ff_52%,#edf9f6_100%)]">
   <div class="container mx-auto px-6">
-    <!-- Map and Form side by side -->
     <div class="grid lg:grid-cols-2 gap-10">
-      <!-- Left: Map -->
       <div>
-        <h2 class="text-2xl font-bold text-gray-900 mb-4">Nuestras Oficinas</h2>
-        <div class="rounded-xl overflow-hidden shadow-md border border-gray-200">
+        <h2 class="text-2xl font-bold text-slate-900 mb-4">Nuestras Oficinas</h2>
+        <div class="card-lift rounded-xl overflow-hidden">
           <OfficeMap defaultZoom={12} />
         </div>
       </div>
 
-      <!-- Right: Contact Form -->
       <div>
-        <h2 class="text-2xl font-bold text-gray-900 mb-4">Envíanos un Mensaje</h2>
-        <form id="form" class="space-y-5 bg-white p-8 rounded-xl shadow-sm border border-gray-100" on:submit={handleSubmit}>
+        <h2 class="text-2xl font-bold text-slate-900 mb-4">Envíanos un Mensaje</h2>
+        <form id="form" class="glass-panel space-y-5 p-8 rounded-xl" on:submit={handleSubmit}>
           <div>
-            <label for="officeId" class="block text-sm font-medium text-gray-700 mb-1">Oficina</label>
+            <label for="officeId" class="block text-sm font-medium text-slate-700 mb-1">Oficina</label>
             <select
               id="officeId"
               bind:value={formData.officeId}
               on:change={(e) => handleFieldChange('officeId', e.target.value)}
               required
               disabled={isSubmitting || loadingOffices}
-              class="focus:ring-primary-500 focus:border-primary-500 w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm"
+              class="focus:ring-primary-500 focus:border-primary-500 w-full rounded-lg border border-slate-300 px-3 py-2 shadow-sm bg-white/70"
             >
               <option value="">Seleccione una oficina</option>
               {#each offices as office}
@@ -131,11 +129,11 @@
               {/each}
             </select>
             {#if loadingOffices}
-              <p class="text-xs text-gray-500 mt-1">Cargando oficinas...</p>
+              <p class="text-xs text-slate-500 mt-1">Cargando oficinas...</p>
             {/if}
           </div>
           <div>
-            <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Nombre Completo</label>
+            <label for="name" class="block text-sm font-medium text-slate-700 mb-1">Nombre Completo</label>
             <input
               type="text" id="name"
               bind:value={formData.name}
@@ -146,7 +144,7 @@
             />
           </div>
           <div>
-            <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Correo Electrónico</label>
+            <label for="email" class="block text-sm font-medium text-slate-700 mb-1">Correo Electrónico</label>
             <input
               type="email" id="email"
               bind:value={formData.email}
@@ -157,7 +155,7 @@
             />
           </div>
           <div>
-            <label for="phone" class="block text-sm font-medium text-gray-700 mb-1">Teléfono (Opcional)</label>
+            <label for="phone" class="block text-sm font-medium text-slate-700 mb-1">Teléfono (Opcional)</label>
             <input
               type="tel" id="phone"
               bind:value={formData.phone}
@@ -168,7 +166,7 @@
             />
           </div>
           <div>
-            <label for="message" class="block text-sm font-medium text-gray-700 mb-1">Mensaje</label>
+            <label for="message" class="block text-sm font-medium text-slate-700 mb-1">Mensaje</label>
             <textarea
               id="message" rows="4"
               bind:value={formData.message}
@@ -189,16 +187,15 @@
       </div>
     </div>
 
-    <!-- Office Directory -->
     <div class="mt-16">
-      <h2 class="text-2xl font-bold text-gray-900 mb-6 text-center">Directorio de Oficinas</h2>
+      <h2 class="text-2xl font-bold text-slate-900 mb-6 text-center">Directorio de Oficinas</h2>
       {#if loadingOffices}
-        <div class="text-center py-10 text-gray-500">Cargando directorio...</div>
+        <div class="text-center py-10 text-slate-500">Cargando directorio...</div>
       {:else if offices.length > 0}
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {#each offices as office, i}
             <div
-              class="bg-white rounded-xl p-6 shadow-sm border border-gray-100 card-lift"
+              class="rounded-xl p-6 card-lift"
               in:slide={{ duration: 500, delay: i * 80, easing: cubicOut }}
             >
               <div class="flex items-start gap-3 mb-4">
@@ -207,12 +204,12 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                   </svg>
                 </div>
-                <h3 class="text-lg font-semibold text-gray-900">{office.name}</h3>
+                <h3 class="text-lg font-semibold text-slate-900">{office.name}</h3>
               </div>
-              <div class="space-y-2 text-sm text-gray-600">
+              <div class="space-y-2 text-sm text-slate-600">
                 {#if office.address}
                   <div class="flex items-start gap-2">
-                    <svg class="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-4 h-4 text-slate-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                     </svg>
@@ -221,7 +218,7 @@
                 {/if}
                 {#if office.phoneOffice}
                   <div class="flex items-center gap-2">
-                    <svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-4 h-4 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                     </svg>
                     <a href="tel:{office.phoneOffice}" class="text-primary-600 hover:text-primary-700">{office.phoneOffice}</a>
@@ -229,7 +226,7 @@
                 {/if}
                 {#if office.phoneCell}
                   <div class="flex items-center gap-2">
-                    <svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-4 h-4 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
                     </svg>
                     <a href="tel:{office.phoneCell}" class="text-primary-600 hover:text-primary-700">{office.phoneCell}</a>
@@ -237,7 +234,7 @@
                 {/if}
               </div>
               {#if office.latitude && office.longitude}
-                <div class="mt-4 pt-3 border-t border-gray-100">
+                <div class="mt-4 pt-3 border-t border-white/40">
                   <a
                     href="https://www.google.com/maps?q={office.latitude},{office.longitude}"
                     target="_blank"
@@ -256,22 +253,21 @@
         </div>
       {:else}
         <div class="text-center py-10">
-          <p class="text-gray-500">No hay oficinas registradas.</p>
+          <p class="text-slate-500">No hay oficinas registradas.</p>
         </div>
       {/if}
     </div>
 
-    <!-- General Contact Info -->
-    <div class="mt-12 bg-white rounded-xl p-8 shadow-sm border border-gray-100 max-w-2xl mx-auto text-center">
-      <h3 class="text-lg font-bold text-gray-900 mb-4">Información General</h3>
+    <div class="glass-subtle mt-12 rounded-xl p-8 max-w-2xl mx-auto text-center">
+      <h3 class="text-lg font-bold text-slate-900 mb-4">Información General</h3>
       <div class="flex flex-col gap-4 text-sm">
         <div>
-          <div class="text-gray-400 mb-1">Correo</div>
+          <div class="text-slate-400 mb-1">Correo</div>
           <a href="mailto:{config.contact.email}" class="text-primary-600 font-medium">{config.contact.email}</a>
         </div>
         <div>
-          <div class="text-gray-400 mb-1">Horario</div>
-          <span class="text-gray-700">Lun-Vie: 8AM-6PM</span>
+          <div class="text-slate-400 mb-1">Horario</div>
+          <span class="text-slate-700">Lun-Vie: 8AM-6PM</span>
         </div>
       </div>
     </div>
