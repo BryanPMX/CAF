@@ -183,7 +183,6 @@ export default function LoginPage() {
               >
                 <Input.Password
                   prefix={<LockOutlined style={{ color: '#9ca3af' }} />}
-                  placeholder="Su contrase\u00F1a"
                   autoComplete="current-password"
                   style={{ borderRadius: 10, height: 48 }}
                 />
