@@ -28,7 +28,7 @@
     <a href="/" class="flex items-center flex-shrink-0 overflow-hidden rounded-sm" on:click={closeMenu}>
       <span class="inline-flex h-14 w-20 sm:h-16 sm:w-24 md:h-20 md:w-28 items-center justify-center overflow-hidden">
         <img
-          src="/logo.png"
+          src="/logo-header.jpg"
           alt="Logo del Centro de Apoyo para la Familia"
           class="h-14 w-auto sm:h-16 md:h-20 origin-center scale-125 sm:scale-[1.35] md:scale-150"
         />
