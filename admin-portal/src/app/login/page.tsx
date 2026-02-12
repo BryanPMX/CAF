@@ -107,7 +107,7 @@ export default function LoginPage() {
             </div>
             <h1 className="login-brand-title">Centro de Apoyo<br/>para la Familia A.C.</h1>
             <p className="login-brand-subtitle">
-              Brindamos apoyo legal, psicol&oacute;gico y social a familias que lo necesitan.
+              Brindamos apoyo legal, psicológico y social a familias que lo necesitan.
             </p>
           </div>
           <div className="login-brand-dots" />
@@ -130,7 +130,7 @@ export default function LoginPage() {
 
             <div style={{ textAlign: 'center', marginBottom: 32 }}>
               <Title level={3} style={{ margin: 0, color: '#1e293b', fontWeight: 700 }}>
-                Iniciar Sesi&oacute;n
+                Iniciar Sesión
               </Title>
               <Text style={{ color: '#64748b', fontSize: 14 }}>
                 Acceda a su cuenta para continuar
@@ -139,7 +139,7 @@ export default function LoginPage() {
 
             {authError && (
               <Alert
-                message="Error de Autenticaci&oacute;n"
+                message="Error de Autenticación"
                 description={authError}
                 type="error"
                 showIcon
@@ -159,7 +159,7 @@ export default function LoginPage() {
             >
               <Form.Item
                 name="email"
-                label={<span style={{ fontWeight: 500, color: '#374151' }}>Correo Electr&oacute;nico</span>}
+                label={<span style={{ fontWeight: 500, color: '#374151' }}>Correo Electrónico</span>}
                 rules={[
                   { required: true, message: 'Ingrese su correo electr\u00F3nico' },
                   { type: 'email', message: 'Ingrese un correo v\u00E1lido' }
@@ -175,7 +175,7 @@ export default function LoginPage() {
 
               <Form.Item
                 name="password"
-                label={<span style={{ fontWeight: 500, color: '#374151' }}>Contrase&ntilde;a</span>}
+                label={<span style={{ fontWeight: 500, color: '#374151' }}>Contraseña</span>}
                 rules={[
                   { required: true, message: 'Ingrese su contrase\u00F1a' },
                   { min: 6, message: 'M\u00EDnimo 6 caracteres' }
