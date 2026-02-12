@@ -4,13 +4,15 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  Card, Col, Row, Statistic, Spin, message, Select, Typography, Alert, Divider, Badge, List, Empty
+  Card, Col, Row, Statistic, Spin, message, Select, Typography, Alert, Divider, Badge, Empty, Space, Tag, Tooltip
 } from 'antd';
 import {
   FolderOpenOutlined, CalendarOutlined, TeamOutlined, BarChartOutlined,
   ClockCircleOutlined, CheckCircleOutlined, BellOutlined,
   FileTextOutlined, UserOutlined, BankOutlined,
-  ScheduleOutlined, ExclamationCircleOutlined, RiseOutlined
+  ScheduleOutlined, ExclamationCircleOutlined, RiseOutlined,
+  RightOutlined, InfoCircleOutlined, CheckCircleOutlined as SuccessOutlined,
+  WarningOutlined, CloseCircleOutlined
 } from '@ant-design/icons';
 import { apiClient } from '../lib/api';
 import { useAuth } from '@/context/AuthContext';
@@ -57,6 +59,42 @@ interface Notification {
   isRead: boolean;
   createdAt: string;
   link?: string;
+  entityType?: string;
+  entityId?: number;
+}
+
+// --- Notification type config (icon + color + label) ---
+const NOTIFICATION_TYPE_CONFIG: Record<string, { icon: React.ReactNode; color: string; label: string }> = {
+  success: { icon: <SuccessOutlined />, color: '#52c41a', label: 'Éxito' },
+  warning: { icon: <WarningOutlined />, color: '#faad14', label: 'Aviso' },
+  error: { icon: <CloseCircleOutlined />, color: '#ff4d4f', label: 'Error' },
+  info: { icon: <InfoCircleOutlined />, color: '#1890ff', label: 'Info' },
+};
+
+const ENTITY_TYPE_LABELS: Record<string, string> = {
+  case: 'Caso',
+  appointment: 'Cita',
+  contact_interest: 'Contacto',
+};
+
+function formatNotificationTime(createdAt: string): { relative: string; full: string } {
+  const date = new Date(createdAt);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+  let relative: string;
+  if (diffMins < 1) relative = 'Ahora';
+  else if (diffMins < 60) relative = `Hace ${diffMins} min`;
+  else if (diffHours < 24) relative = `Hace ${diffHours} h`;
+  else if (diffDays < 7) relative = `Hace ${diffDays} d`;
+  else relative = date.toLocaleDateString('es-MX', { day: '2-digit', month: 'short' });
+  const full = date.toLocaleString('es-MX', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  });
+  return { relative, full };
 }
 
 // --- Stat Card Component ---
@@ -404,50 +442,81 @@ const TrueDashboardPage = () => {
         </>
       )}
 
-      {/* Notifications Panel - All Roles: flex layout to prevent icon/badge overlapping text */}
+      {/* Notifications Panel - All Roles: reserve space for bell+badge so no overlap with text */}
       <Divider orientation="left" style={{ fontSize: 14, color: '#6b7280' }}>
-        <span className="inline-flex items-center gap-2">
-          <Badge count={unreadCount} offset={[8, 0]} size="small">
-            <span className="inline-flex items-center justify-center w-6" aria-hidden>
-              <BellOutlined />
-            </span>
-          </Badge>
-          <span>Notificaciones Recientes</span>
+        <span className="inline-flex items-center gap-3 align-middle">
+          <span className="inline-flex items-center justify-center shrink-0" style={{ width: 28, minWidth: 28 }} aria-hidden>
+            <Badge count={unreadCount} offset={[6, -2]} size="small">
+              <BellOutlined style={{ fontSize: 18 }} />
+            </Badge>
+          </span>
+          <span className="whitespace-nowrap">Notificaciones Recientes</span>
         </span>
       </Divider>
-      <Card size="small">
+      <Card size="small" className="notifications-dashboard-card">
         {notifications.length > 0 ? (
-          <List
-            dataSource={notifications}
-            renderItem={(item: Notification) => (
-              <List.Item
-                style={{
-                  background: item.isRead ? 'transparent' : '#f0f5ff',
-                  padding: '8px 12px',
-                  borderRadius: 6,
-                  marginBottom: 4,
-                  cursor: item.link ? 'pointer' : 'default',
-                }}
-                onClick={() => item.link && router.push(item.link)}
-              >
-                <List.Item.Meta
-                  avatar={
-                    <Badge dot={!item.isRead} offset={[-2, 2]}>
-                      <BellOutlined style={{ fontSize: 16, color: item.isRead ? '#d9d9d9' : '#1890ff' }} />
-                    </Badge>
-                  }
-                  title={<Text style={{ fontSize: 13 }}>{item.message}</Text>}
-                  description={
-                    <Text type="secondary" style={{ fontSize: 11 }}>
-                      {new Date(item.createdAt).toLocaleString('es-MX', {
-                        day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit',
-                      })}
-                    </Text>
-                  }
-                />
-              </List.Item>
-            )}
-          />
+          <div className="flex flex-col gap-2">
+            {notifications.map((item: Notification) => {
+              const typeConfig = NOTIFICATION_TYPE_CONFIG[item.type] || NOTIFICATION_TYPE_CONFIG.info;
+              const { relative, full } = formatNotificationTime(item.createdAt);
+              const entityLabel = item.entityType ? ENTITY_TYPE_LABELS[item.entityType] || item.entityType : null;
+              return (
+                <Tooltip key={item.id} title={item.link ? 'Ver detalles' : undefined}>
+                  <div
+                    role={item.link ? 'button' : undefined}
+                    tabIndex={item.link ? 0 : undefined}
+                    onKeyDown={(e) => item.link && (e.key === 'Enter' || e.key === ' ') && router.push(item.link)}
+                    onClick={() => item.link && router.push(item.link)}
+                    className="flex items-start gap-3 rounded-lg border border-gray-100 p-3 transition-colors hover:border-gray-200"
+                    style={{
+                      backgroundColor: item.isRead ? '#fafafa' : '#f0f8ff',
+                      cursor: item.link ? 'pointer' : 'default',
+                      borderLeft: `3px solid ${item.isRead ? '#e5e7eb' : typeConfig.color}`,
+                    }}
+                  >
+                    <span className="shrink-0 mt-0.5" style={{ color: typeConfig.color }}>
+                      {typeConfig.icon}
+                    </span>
+                    <div className="min-w-0 flex-1 space-y-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        {entityLabel && (
+                          <Tag color="blue" className="!m-0 text-xs">
+                            {entityLabel}
+                            {item.entityId != null && ` #${item.entityId}`}
+                          </Tag>
+                        )}
+                        <Tooltip title={full}>
+                          <Text type="secondary" className="text-xs">
+                            {relative}
+                          </Text>
+                        </Tooltip>
+                        {!item.isRead && (
+                          <span className="inline-block h-2 w-2 rounded-full bg-blue-500 shrink-0" aria-label="No leída" />
+                        )}
+                      </div>
+                      <Text
+                        className="block text-sm text-gray-800 break-words"
+                        style={{
+                          lineHeight: 1.4,
+                          display: '-webkit-box',
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: 'vertical' as const,
+                          overflow: 'hidden',
+                        }}
+                      >
+                        {item.message}
+                      </Text>
+                    </div>
+                    {item.link && (
+                      <span className="shrink-0 text-gray-400 mt-0.5" aria-hidden>
+                        <RightOutlined className="text-xs" />
+                      </span>
+                    )}
+                  </div>
+                </Tooltip>
+              );
+            })}
+          </div>
         ) : (
           <Empty description="No hay notificaciones recientes" image={Empty.PRESENTED_IMAGE_SIMPLE} />
         )}
