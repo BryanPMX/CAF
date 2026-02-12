@@ -14,9 +14,9 @@ export const metadata: Metadata = {
   title: "CAF Admin Portal",
   description: "Management dashboard for Centro de Apoyo para la Familia.",
   icons: {
-    icon: [{ url: '/logo.png', type: 'image/png', sizes: '32x32' }],
-    shortcut: '/logo.png',
-    apple: [{ url: '/logo.png', sizes: '180x180', type: 'image/png' }],
+    icon: [{ url: '/apple-touch-icon.png', type: 'image/png', sizes: '180x180' }],
+    shortcut: '/apple-touch-icon.png',
+    apple: [{ url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }],
   },
 };
 
