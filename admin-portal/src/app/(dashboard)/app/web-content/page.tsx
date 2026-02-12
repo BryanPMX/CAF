@@ -662,7 +662,6 @@ function GalleryTab() {
     hero: 'Portada',
     gallery: 'Galería',
     about: 'Sobre Nosotros',
-    services: 'Servicios',
   };
 
   const sectionOptions = [
@@ -670,7 +669,6 @@ function GalleryTab() {
     { label: 'Portada', value: 'hero' },
     { label: 'Galería', value: 'gallery' },
     { label: 'Sobre Nosotros', value: 'about' },
-    { label: 'Servicios', value: 'services' },
   ];
 
   return (
@@ -794,7 +792,11 @@ function GalleryTab() {
           </Row>
           <Row gutter={16}>
             <Col xs={24} sm={12}>
-              <Form.Item name="section" label="Sección">
+              <Form.Item
+                name="section"
+                label="Sección"
+                tooltip="Inicio: carousel en Inicio. Portada: respaldo del carousel. Galería: cuadrícula en Inicio. Sobre Nosotros: imágenes en bloque About."
+              >
                 <Select options={sectionOptions} />
               </Form.Item>
             </Col>

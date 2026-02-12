@@ -13,6 +13,8 @@
   const gallerySlides = data.galleryImages || [];
   // Use gallery images for community carousel; fall back to hero images
   const slides = gallerySlides.length > 0 ? gallerySlides : heroSlides;
+  const gallerySectionImages = data.gallerySectionImages || [];
+  const aboutSectionImages = data.aboutSectionImages || [];
 
   let currentSlide = 0;
 
@@ -102,6 +104,16 @@
         {about.description || 'Somos una organización sin fines de lucro dedicada a fortalecer el núcleo familiar.'}
       </p>
     </div>
+
+    {#if aboutSectionImages.length > 0}
+      <div class="flex flex-wrap justify-center gap-4 mb-12 max-w-4xl mx-auto">
+        {#each aboutSectionImages as img}
+          <div class="flex-1 min-w-[200px] max-w-[280px] rounded-xl overflow-hidden shadow-md">
+            <img src={img.src} alt={img.alt} class="w-full h-48 object-cover" loading="lazy" />
+          </div>
+        {/each}
+      </div>
+    {/if}
 
     {#if about.mission || about.vision}
       <div class="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
@@ -211,6 +223,25 @@
           {/each}
         </div>
       {/if}
+    </div>
+  </div>
+</section>
+{/if}
+
+<!-- Galería (grid from CMS section "Galería") -->
+{#if gallerySectionImages.length > 0}
+<section class="py-20 bg-white">
+  <div class="container mx-auto px-4 sm:px-6">
+    <div class="text-center mb-10">
+      <h2 class="text-3xl md:text-4xl font-bold text-gray-900">Galería</h2>
+      <p class="text-gray-600 mt-2 max-w-2xl mx-auto">Algunos momentos de nuestro trabajo y comunidad.</p>
+    </div>
+    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 max-w-5xl mx-auto">
+      {#each gallerySectionImages as img}
+        <div class="rounded-xl overflow-hidden shadow-md aspect-square">
+          <img src={img.src} alt={img.alt} class="w-full h-full object-cover" loading="lazy" />
+        </div>
+      {/each}
     </div>
   </div>
 </section>
