@@ -35,11 +35,17 @@ export async function load({ fetch }) {
 
   const baseUrl = (typeof config?.api?.baseUrl === 'string' && config.api.baseUrl) || 'https://api.caf-mexico.com/api/v1';
 
+  // Image sections: hero + inicio (carousel), gallery (grid), about (Sobre Nosotros block)
+  let gallerySectionImages = [];
+  let aboutSectionImages = [];
+
   try {
-    const [contentRes, heroImagesRes, galleryImagesRes, servicesRes] = await Promise.allSettled([
+    const [contentRes, heroImagesRes, inicioImagesRes, gallerySectionRes, aboutSectionRes, servicesRes] = await Promise.allSettled([
       fetch(`${baseUrl}/public/site-content`),
       fetch(`${baseUrl}/public/site-images?section=hero`),
       fetch(`${baseUrl}/public/site-images?section=inicio`),
+      fetch(`${baseUrl}/public/site-images?section=gallery`),
+      fetch(`${baseUrl}/public/site-images?section=about`),
       fetch(`${baseUrl}/public/site-services`),
     ]);
 
@@ -57,34 +63,42 @@ export async function load({ fetch }) {
       }
     }
 
-    // Parse hero images
+    function toSlide(img) {
+      return { src: img.imageUrl || '', alt: img.altText || img.title || '' };
+    }
+
+    // Hero (Portada): optional hero imagery; also fallback for carousel
     if (heroImagesRes.status === 'fulfilled' && heroImagesRes.value?.ok) {
       const data = await safeJson(heroImagesRes.value);
       if (data && Array.isArray(data.images)) {
-        images = data.images.map(img => ({
-          src: img.imageUrl || '',
-          alt: img.altText || img.title || 'Imagen comunitaria',
-        }));
+        images = data.images.map(img => ({ ...toSlide(img), alt: img.altText || img.title || 'Imagen comunitaria' }));
       }
     }
 
-    // Inicio/carousel images: prefer "inicio" section, then gallery
-    if (galleryImagesRes.status === 'fulfilled' && galleryImagesRes.value?.ok) {
-      const data = await safeJson(galleryImagesRes.value);
+    // Inicio: primary source for "Nuestra comunidad" carousel
+    if (inicioImagesRes.status === 'fulfilled' && inicioImagesRes.value?.ok) {
+      const data = await safeJson(inicioImagesRes.value);
       if (data && Array.isArray(data.images)) {
-        galleryImages = data.images.map(img => ({
-          src: img.imageUrl || '',
-          alt: img.altText || img.title || 'Nuestra comunidad',
-        }));
+        galleryImages = data.images.map(img => ({ ...toSlide(img), alt: img.altText || img.title || 'Nuestra comunidad' }));
       }
     }
-    if (galleryImages.length === 0 && heroImagesRes.status === 'fulfilled' && heroImagesRes.value?.ok) {
-      const data = await safeJson(heroImagesRes.value);
+    if (galleryImages.length === 0 && images.length > 0) {
+      galleryImages = images.map(({ src, alt }) => ({ src, alt: alt || 'Nuestra comunidad' }));
+    }
+
+    // Galería section: grid on homepage
+    if (gallerySectionRes.status === 'fulfilled' && gallerySectionRes.value?.ok) {
+      const data = await safeJson(gallerySectionRes.value);
       if (data && Array.isArray(data.images)) {
-        galleryImages = data.images.map(img => ({
-          src: img.imageUrl || '',
-          alt: img.altText || img.title || 'Nuestra comunidad',
-        }));
+        gallerySectionImages = data.images.map(img => ({ src: img.imageUrl || '', alt: img.altText || img.title || 'Galería' }));
+      }
+    }
+
+    // Sobre Nosotros section: images in About block
+    if (aboutSectionRes.status === 'fulfilled' && aboutSectionRes.value?.ok) {
+      const data = await safeJson(aboutSectionRes.value);
+      if (data && Array.isArray(data.images)) {
+        aboutSectionImages = data.images.map(img => ({ src: img.imageUrl || '', alt: img.altText || img.title || 'Sobre nosotros' }));
       }
     }
 
@@ -105,6 +119,8 @@ export async function load({ fetch }) {
     ];
   }
   if (!Array.isArray(galleryImages)) galleryImages = [];
+  if (!Array.isArray(gallerySectionImages)) gallerySectionImages = [];
+  if (!Array.isArray(aboutSectionImages)) aboutSectionImages = [];
 
-  return { content, images, galleryImages, services };
+  return { content, images, galleryImages, gallerySectionImages, aboutSectionImages, services };
 }

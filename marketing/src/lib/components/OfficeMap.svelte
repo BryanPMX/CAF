@@ -1,7 +1,7 @@
 <!-- marketing/src/lib/components/OfficeMap.svelte -->
 <!-- Dynamic Google Maps component that fetches offices from API and displays markers -->
 <script>
-  import { onMount, tick } from 'svelte';
+  import { onMount, onDestroy, tick } from 'svelte';
   import { apiUtils } from '$lib/utils/apiClient.js';
 
   /** @type {string} */
@@ -20,6 +20,8 @@
   let mapLoaded = false;
   /** When true: we have offices but no markers could be placed (no coords and geocoding failed or no address) */
   let noMarkersShown = false;
+  /** Callback name used for Google script; cleared on destroy so late script load doesn't run. */
+  let mapScriptCallbackName = null;
 
   /** @typedef {{ id: number; name: string; address: string; latitude?: number | null; longitude?: number | null }} Office */
 
@@ -52,42 +54,56 @@
     loadGoogleMaps();
   });
 
+  onDestroy(() => {
+    if (mapScriptCallbackName && typeof window !== 'undefined') {
+      window[mapScriptCallbackName] = () => {};
+    }
+  });
+
   function loadGoogleMaps() {
     if (window.google?.maps) {
       initMap();
       return;
     }
+    mapScriptCallbackName = '__cafMapInit_' + Date.now();
+    window[mapScriptCallbackName] = () => {
+      try {
+        if (mapContainer?.isConnected) initMap();
+      } finally {
+        window[mapScriptCallbackName] = () => {}; // no-op so late script call never throws
+      }
+    };
     const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places,marker&loading=async&callback=window.__cafMapInit`;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places,marker&loading=async&callback=${mapScriptCallbackName}`;
     script.async = true;
     script.defer = true;
-    window.__cafMapInit = () => {
-      initMap();
-      delete window.__cafMapInit;
+    script.onerror = () => {
+      window[mapScriptCallbackName] = () => {};
+      if (error === null) error = 'No se pudo cargar el mapa.';
     };
     document.head.appendChild(script);
   }
 
   async function initMap() {
-    if (!mapContainer || !window.google?.maps) return;
+    if (!mapContainer || !mapContainer.isConnected || !window.google?.maps) return;
 
     const center = getMapCenter();
     const mapOptions = {
       center,
       zoom: defaultZoom,
-      mapId, // Required for AdvancedMarkerElement (use VITE_GOOGLE_MAP_ID in production)
       mapTypeControl: true,
       streetViewControl: false,
       fullscreenControl: true,
-      zoomControl: true,
-      styles: [
-        {
-          featureType: 'poi',
-          elementType: 'labels',
-          stylers: [{ visibility: 'off' }]
-        }
-      ]
+      zoomControl: true
     };
+    // When mapId is set, do NOT pass styles (Google: "Map's styles cannot be set when mapId is present")
+    if (mapId && mapId !== 'DEMO_MAP_ID') {
+      mapOptions.mapId = mapId;
+    } else {
+      mapOptions.styles = [
+        { featureType: 'poi', elementType: 'labels', stylers: [{ visibility: 'off' }] }
+      ];
+    }
     map = new google.maps.Map(mapContainer, mapOptions);
 
     const markersAdded = await addMarkers();
