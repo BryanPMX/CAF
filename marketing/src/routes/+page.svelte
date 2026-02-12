@@ -61,7 +61,7 @@
   <div class="spotlight -right-20 top-12 h-52 w-72 bg-accent-400"></div>
 
   <div class="container relative z-10 mx-auto px-4 py-16 sm:px-6 sm:py-20 md:py-28">
-    <div class="mx-auto max-w-4xl text-center">
+    <div class="glass-panel mx-auto max-w-4xl rounded-3xl px-6 py-10 text-center sm:px-10">
       <span class="mb-6 inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-white/85">
         Acompañamiento Integral
       </span>
@@ -88,12 +88,6 @@
         >
           Nuestros Servicios
         </a>
-        <a
-          href="/contacto"
-          class="rounded-xl border border-white/60 bg-white/10 px-8 py-3.5 text-base font-bold text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.2)] backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:bg-white/18 sm:text-lg"
-        >
-          Contáctenos
-        </a>
       </div>
     </div>
   </div>
@@ -107,7 +101,7 @@
 
 <section class="py-12 sm:py-20">
   <div class="container mx-auto px-4 sm:px-6">
-    <div class="mx-auto mb-10 max-w-3xl text-center sm:mb-14">
+    <div class="glass-subtle mx-auto mb-10 max-w-3xl rounded-3xl px-6 py-8 text-center sm:mb-14">
       <p class="mb-3 text-sm font-semibold uppercase tracking-[0.18em] text-primary-600">Compromiso CAF</p>
       <h2 class="mb-5 text-3xl font-bold md:text-4xl">{about.title || 'Sobre Nosotros'}</h2>
       <p class="text-lg leading-relaxed text-slate-600">
@@ -161,9 +155,9 @@
   </div>
 </section>
 
-<section class="bg-white/75 py-12 backdrop-blur-sm sm:py-20">
+<section class="bg-white/55 py-12 backdrop-blur-xl sm:py-20">
   <div class="container mx-auto px-4 sm:px-6">
-    <div class="mb-10 text-center sm:mb-14">
+    <div class="glass-subtle mx-auto mb-10 max-w-3xl rounded-3xl px-6 py-8 text-center sm:mb-14">
       <p class="mb-3 text-sm font-semibold uppercase tracking-[0.18em] text-primary-600">Atención Especializada</p>
       <h2 class="mb-4 text-3xl font-bold text-slate-900 md:text-4xl">Nuestros Servicios</h2>
       <p class="mx-auto max-w-2xl text-lg text-slate-600">Un enfoque integral para el bienestar de su familia.</p>
@@ -219,7 +213,7 @@
         <p class="mt-2 text-slate-600">Momentos de nuestros talleres, eventos y actividades.</p>
       </div>
 
-      <div class="relative mx-auto h-[28rem] w-full max-w-4xl overflow-hidden rounded-3xl border border-slate-200/70 shadow-[0_30px_60px_rgba(13,33,56,0.22)] sm:h-[32rem] md:h-[36rem]" role="region" aria-label="Carrusel de fotos">
+      <div class="relative mx-auto h-[28rem] w-full max-w-4xl overflow-hidden rounded-3xl border border-white/55 bg-white/15 shadow-[0_30px_60px_rgba(13,33,56,0.22)] backdrop-blur-xl sm:h-[32rem] md:h-[36rem]" role="region" aria-label="Carrusel de fotos">
         {#each slides as slide, index}
           {#if index === currentSlide}
             <div class="absolute inset-0" transition:fade={{ duration: 500 }}>
@@ -257,7 +251,7 @@
 {/if}
 
 {#if gallerySectionImages.length > 0}
-  <section class="bg-white/70 py-16 sm:py-20">
+  <section class="bg-white/52 py-16 backdrop-blur-xl sm:py-20">
     <div class="container mx-auto px-4 sm:px-6">
       <div class="mb-10 text-center">
         <h2 class="text-3xl font-bold text-slate-900 md:text-4xl">Galería</h2>
@@ -265,7 +259,7 @@
       </div>
       <div class="mx-auto grid max-w-5xl grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
         {#each gallerySectionImages as img}
-          <div class="group overflow-hidden rounded-2xl border border-slate-200/80 shadow-[0_14px_28px_rgba(16,39,67,0.12)] aspect-square">
+          <div class="group overflow-hidden rounded-2xl border border-white/65 bg-white/25 shadow-[0_14px_28px_rgba(16,39,67,0.12)] backdrop-blur-lg aspect-square">
             <img
               src={img.src}
               alt={img.alt}
@@ -284,7 +278,7 @@
   <div class="spotlight -right-20 bottom-8 h-40 w-72 bg-accent-400"></div>
 
   <div class="container relative mx-auto px-6 py-16 text-center md:py-20">
-    <div class="glass-panel mx-auto max-w-3xl rounded-3xl border-white/20 bg-white/10 p-8 text-white sm:p-10">
+    <div class="glass-panel mx-auto max-w-3xl rounded-3xl border-white/35 bg-white/14 p-8 text-white sm:p-10">
       <h2 class="mb-4 text-3xl font-bold md:text-4xl">¿Listo para dar el primer paso?</h2>
       <p class="mb-8 text-lg leading-relaxed text-primary-100">
         Nuestro equipo está aquí para ayudarle. Contáctenos hoy para programar una consulta confidencial.

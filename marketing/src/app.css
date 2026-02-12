@@ -7,9 +7,11 @@
 @tailwind utilities;
 
 :root {
-  --marketing-shadow-soft: 0 12px 36px rgba(15, 52, 96, 0.11);
-  --marketing-shadow-strong: 0 24px 55px rgba(11, 30, 59, 0.18);
-  --marketing-border: rgba(143, 168, 195, 0.28);
+  --marketing-shadow-soft: 0 14px 40px rgba(15, 52, 96, 0.14);
+  --marketing-shadow-strong: 0 26px 62px rgba(11, 30, 59, 0.22);
+  --marketing-border: rgba(143, 168, 195, 0.36);
+  --marketing-glass-bg: rgba(255, 255, 255, 0.46);
+  --marketing-glass-border: rgba(255, 255, 255, 0.55);
 }
 
 @layer base {
@@ -21,8 +23,9 @@
   body {
     @apply font-sans text-slate-700 antialiased bg-slate-50;
     background-image:
-      radial-gradient(circle at 10% -5%, rgba(59, 130, 246, 0.2), transparent 38%),
-      radial-gradient(circle at 95% 8%, rgba(45, 212, 191, 0.18), transparent 33%),
+      radial-gradient(circle at 10% -5%, rgba(59, 130, 246, 0.24), transparent 40%),
+      radial-gradient(circle at 95% 8%, rgba(45, 212, 191, 0.22), transparent 36%),
+      radial-gradient(circle at 50% 45%, rgba(255, 255, 255, 0.4), transparent 58%),
       linear-gradient(180deg, #f8fbff 0%, #f5f8fc 55%, #eef3f9 100%);
     background-attachment: fixed;
   }
@@ -123,23 +126,71 @@
 }
 
 .glass-panel {
-  background: rgba(255, 255, 255, 0.74);
-  backdrop-filter: blur(14px);
-  border: 1px solid var(--marketing-border);
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.44), rgba(255, 255, 255, 0.2)),
+    rgba(233, 243, 255, 0.18);
+  backdrop-filter: blur(22px) saturate(145%);
+  border: 1px solid var(--marketing-glass-border);
   box-shadow: var(--marketing-shadow-soft);
 }
 
+.glass-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(120deg, rgba(255, 255, 255, 0.6) 0%, rgba(255, 255, 255, 0.08) 42%, transparent 68%);
+  opacity: 0.55;
+}
+
+.glass-panel::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.88), transparent);
+  pointer-events: none;
+}
+
 .card-lift {
-  border: 1px solid rgba(162, 181, 204, 0.22);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(249, 252, 255, 0.95) 100%);
-  box-shadow: 0 8px 24px rgba(16, 36, 66, 0.08);
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  background:
+    linear-gradient(160deg, rgba(255, 255, 255, 0.54) 0%, rgba(247, 251, 255, 0.3) 100%),
+    var(--marketing-glass-bg);
+  backdrop-filter: blur(16px) saturate(132%);
+  box-shadow: 0 12px 30px rgba(16, 36, 66, 0.12);
   transition: transform 0.35s ease, box-shadow 0.35s ease, border-color 0.35s ease;
+}
+
+.card-lift::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(120deg, rgba(255, 255, 255, 0.45) 0%, transparent 48%);
+  opacity: 0.65;
 }
 
 .card-lift:hover {
   transform: translateY(-6px);
-  border-color: rgba(23, 94, 171, 0.35);
+  border-color: rgba(159, 214, 255, 0.7);
   box-shadow: var(--marketing-shadow-strong);
+}
+
+.glass-subtle {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.42), rgba(255, 255, 255, 0.2)),
+    rgba(221, 238, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(14px) saturate(132%);
+  box-shadow: 0 10px 24px rgba(16, 43, 75, 0.12);
 }
 
 .brand-logo-shell {

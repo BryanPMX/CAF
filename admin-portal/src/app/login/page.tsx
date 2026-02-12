@@ -232,7 +232,10 @@ export default function LoginPage() {
             min-height: 100vh;
             align-items: center;
             justify-content: center;
-            background: linear-gradient(140deg, #f3f8ff 0%, #ebf3fb 46%, #e8f5f3 100%);
+            background:
+              radial-gradient(circle at 12% 10%, rgba(101, 164, 231, 0.35), transparent 40%),
+              radial-gradient(circle at 84% 88%, rgba(56, 199, 181, 0.3), transparent 42%),
+              linear-gradient(140deg, #f3f8ff 0%, #ebf3fb 46%, #e8f5f3 100%);
             font-family: 'Avenir Next', 'Segoe UI', sans-serif;
           }
 
@@ -241,15 +244,27 @@ export default function LoginPage() {
             display: flex;
             min-height: 100vh;
             overflow: hidden;
-            background: linear-gradient(140deg, #f4f9ff 0%, #eef4fb 52%, #e8f5f2 100%);
+            background:
+              radial-gradient(circle at 12% 10%, rgba(101, 164, 231, 0.34), transparent 38%),
+              radial-gradient(circle at 88% 86%, rgba(56, 199, 181, 0.26), transparent 40%),
+              linear-gradient(140deg, #f4f9ff 0%, #eef4fb 52%, #e8f5f2 100%);
             font-family: 'Avenir Next', 'Segoe UI', sans-serif;
+          }
+
+          .login-page::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background: linear-gradient(120deg, rgba(255, 255, 255, 0.46) 0%, rgba(255, 255, 255, 0.08) 48%, transparent 68%);
+            opacity: 0.5;
           }
 
           .login-aura {
             position: absolute;
             border-radius: 999px;
-            filter: blur(64px);
-            opacity: 0.32;
+            filter: blur(74px);
+            opacity: 0.4;
             pointer-events: none;
           }
 
@@ -275,18 +290,20 @@ export default function LoginPage() {
             width: 46%;
             min-width: 420px;
             overflow: hidden;
-            background: linear-gradient(145deg, #0f3f74 0%, #12508f 48%, #0f8a7d 100%);
-            border-right: 1px solid rgba(255, 255, 255, 0.22);
-            box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.08);
+            background: linear-gradient(145deg, rgba(15, 63, 116, 0.88) 0%, rgba(18, 80, 143, 0.8) 48%, rgba(15, 138, 125, 0.76) 100%);
+            border-right: 1px solid rgba(255, 255, 255, 0.34);
+            backdrop-filter: blur(20px) saturate(130%);
+            box-shadow:
+              inset -1px 0 0 rgba(255, 255, 255, 0.12),
+              24px 0 40px rgba(9, 32, 58, 0.16);
           }
 
           .login-brand-pattern {
             position: absolute;
             inset: 0;
-            background-image:
-              radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.17) 1px, transparent 1px);
+            background-image: radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.17) 1px, transparent 1px);
             background-size: 26px 26px;
-            opacity: 0.4;
+            opacity: 0.36;
           }
 
           .login-brand-glow {
@@ -328,8 +345,10 @@ export default function LoginPage() {
             width: fit-content;
             padding: 2px;
             border-radius: 22px;
-            background: linear-gradient(145deg, rgba(255, 255, 255, 0.92), rgba(166, 243, 237, 0.86));
-            box-shadow: 0 18px 36px rgba(7, 23, 43, 0.34);
+            background: linear-gradient(145deg, rgba(255, 255, 255, 0.95), rgba(166, 243, 237, 0.82));
+            box-shadow:
+              0 22px 40px rgba(7, 23, 43, 0.38),
+              inset 0 0 0 1px rgba(255, 255, 255, 0.35);
           }
 
           .login-brand-logo-frame {
@@ -403,14 +422,36 @@ export default function LoginPage() {
           .login-form-shell {
             width: 100%;
             max-width: 430px;
+            position: relative;
+            overflow: hidden;
             border-radius: 24px;
-            background: rgba(255, 255, 255, 0.76);
-            border: 1px solid rgba(138, 160, 186, 0.26);
-            backdrop-filter: blur(16px);
+            background: linear-gradient(150deg, rgba(255, 255, 255, 0.58) 0%, rgba(245, 252, 255, 0.34) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.62);
+            backdrop-filter: blur(24px) saturate(140%);
             box-shadow:
-              0 28px 52px rgba(8, 26, 49, 0.18),
-              inset 0 1px 0 rgba(255, 255, 255, 0.85);
+              0 30px 58px rgba(8, 26, 49, 0.2),
+              inset 0 1px 0 rgba(255, 255, 255, 0.9);
             padding: 34px;
+          }
+
+          .login-form-shell::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background: linear-gradient(120deg, rgba(255, 255, 255, 0.62) 0%, rgba(255, 255, 255, 0.12) 45%, transparent 70%);
+            opacity: 0.65;
+          }
+
+          .login-form-shell::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 14px;
+            right: 14px;
+            height: 1px;
+            pointer-events: none;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.92), transparent);
           }
 
           .login-mobile-brand {
@@ -464,6 +505,9 @@ export default function LoginPage() {
           .login-auth-alert {
             margin-bottom: 16px;
             border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.52);
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.6);
           }
 
           .login-label {
@@ -475,8 +519,9 @@ export default function LoginPage() {
           .login-form-shell .login-input,
           .login-form-shell .login-input.ant-input-affix-wrapper {
             border-radius: 12px !important;
-            border-color: #c5d3e2 !important;
-            background: rgba(255, 255, 255, 0.92) !important;
+            border-color: rgba(160, 186, 214, 0.82) !important;
+            background: rgba(255, 255, 255, 0.66) !important;
+            backdrop-filter: blur(10px) saturate(128%);
             min-height: 50px;
             transition: border-color 0.22s ease, box-shadow 0.22s ease, transform 0.22s ease;
           }
@@ -489,7 +534,7 @@ export default function LoginPage() {
           .login-form-shell .login-input.ant-input-affix-wrapper-focused,
           .login-form-shell .login-input:focus {
             border-color: #1f5eb3 !important;
-            box-shadow: 0 0 0 4px rgba(31, 94, 179, 0.14) !important;
+            box-shadow: 0 0 0 4px rgba(31, 94, 179, 0.18) !important;
           }
 
           .login-submit-btn.ant-btn {
