@@ -72,6 +72,7 @@
       <div class="flex justify-center gap-4" in:slide={{ duration: 800, delay: 400, easing: cubicOut }}>
         <a
           href="/servicios"
+          data-sveltekit-reload
           class="bg-white text-primary-700 font-bold py-3.5 px-8 rounded-lg text-base sm:text-lg hover:bg-primary-50 transition-all shadow-lg hover:shadow-xl text-center"
         >
           Nuestros Servicios
@@ -163,7 +164,7 @@
             <p class="text-gray-600 text-sm leading-relaxed">{service.description}</p>
           </div>
           <div class="px-8 pb-6">
-            <a href="/servicios" class="text-primary-600 font-medium text-sm hover:text-primary-700 transition-colors inline-flex items-center gap-1">
+            <a href="/servicios" data-sveltekit-reload class="text-primary-600 font-medium text-sm hover:text-primary-700 transition-colors inline-flex items-center gap-1">
               Más información
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />

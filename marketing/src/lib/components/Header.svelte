@@ -40,6 +40,7 @@
       {#each navLinks as link}
         <a
           href={link.href}
+          data-sveltekit-reload={link.href === '/servicios'}
           class="text-base font-medium transition-colors duration-200 hover:text-primary-600 relative py-1"
           class:text-primary-600={$page.url.pathname === link.href}
           class:text-gray-600={$page.url.pathname !== link.href}
@@ -93,6 +94,7 @@
         {#each navLinks as link}
           <a
             href={link.href}
+            data-sveltekit-reload={link.href === '/servicios'}
             class="block py-3.5 px-4 rounded-lg text-base font-medium transition-colors"
             class:bg-primary-50={$page.url.pathname === link.href}
             class:text-primary-700={$page.url.pathname === link.href}
