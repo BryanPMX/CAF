@@ -41,7 +41,8 @@ marketing/
 │           ├── +page.server.js    # Server-side service data
 │           └── +page.svelte       # Services page
 ├── static/                        # Static assets
-│   ├── logo.png                   # CAF logo
+│   ├── favicon.png               # Tab icon (32×32)
+│   ├── apple-touch-icon.png      # Tab icon for macOS/Safari (180×180 square, shown circular)
 │   └── patterns/                  # Background patterns
 ├── package.json                   # Dependencies and scripts
 ├── svelte.config.js              # SvelteKit configuration
