@@ -404,12 +404,16 @@ const TrueDashboardPage = () => {
         </>
       )}
 
-      {/* Notifications Panel - All Roles */}
+      {/* Notifications Panel - All Roles: flex layout to prevent icon/badge overlapping text */}
       <Divider orientation="left" style={{ fontSize: 14, color: '#6b7280' }}>
-        <Badge count={unreadCount} offset={[8, 0]} size="small">
-          <BellOutlined />
-        </Badge>
-        {' '}Notificaciones Recientes
+        <span className="inline-flex items-center gap-2">
+          <Badge count={unreadCount} offset={[8, 0]} size="small">
+            <span className="inline-flex items-center justify-center w-6" aria-hidden>
+              <BellOutlined />
+            </span>
+          </Badge>
+          <span>Notificaciones Recientes</span>
+        </span>
       </Divider>
       <Card size="small">
         {notifications.length > 0 ? (

@@ -100,14 +100,29 @@ export const newsletterApiClient = new ApiClient('/api/newsletter');
 
 // Utility functions for common API operations
 export const apiUtils = {
-  // Submit contact form
+  // Submit contact form to backend API (POST /api/v1/public/contact)
   async submitContactForm(formData) {
     try {
-      const response = await contactApiClient.post('/submit', formData);
-      if (response.success) {
-        errorHandler.showNotification('¡Mensaje enviado correctamente! Nos pondremos en contacto pronto.', 'success');
-        return true;
+      const base = config?.api?.baseUrl || '';
+      if (!base) {
+        errorHandler.showNotification('API no configurada. Configure VITE_API_URL.', 'error');
+        return false;
       }
+      const client = new ApiClient(base);
+      const response = await client.post('/public/contact', {
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone || '',
+        message: formData.message
+      });
+      if (response && response.success && response.data) {
+        const data = response.data;
+        if (data.success) {
+          errorHandler.showNotification(data.message || '¡Mensaje enviado correctamente! Nos pondremos en contacto pronto.', 'success');
+          return true;
+        }
+      }
+      errorHandler.showNotification('No se pudo enviar el mensaje. Intente de nuevo.', 'error');
       return false;
     } catch (error) {
       errorHandler.handleApiError(error, 'contact_form');

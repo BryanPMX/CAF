@@ -9,15 +9,18 @@ import (
 // Notification represents a user notification in the system
 // Notifications are used to inform users about important events and updates
 type Notification struct {
-	ID        uint      `json:"id" gorm:"primaryKey"`
-	UserID    uint      `json:"userId" gorm:"not null;index:idx_notifications_user_id"` // Indexed for efficient queries
-	Message   string    `json:"message" gorm:"not null;type:text"`                        // The notification message in Spanish
-	IsRead    bool      `json:"isRead" gorm:"default:false;index:idx_notifications_is_read"` // Indexed for unread count queries
-	Link      *string   `json:"link,omitempty" gorm:"type:varchar(500)"`                 // Optional URL for navigation
-	Type      string    `json:"type" gorm:"type:varchar(50);default:'info'"`             // Type: info, warning, error, success
-	CreatedAt time.Time `json:"createdAt" gorm:"autoCreateTime"`
-	UpdatedAt time.Time `json:"updatedAt" gorm:"autoUpdateTime"`
-	DeletedAt *time.Time `json:"deletedAt,omitempty" gorm:"index"`
+	ID         uint      `json:"id" gorm:"primaryKey"`
+	UserID     uint      `json:"userId" gorm:"not null;index:idx_notifications_user_id"`
+	Message    string    `json:"message" gorm:"not null;type:text"`
+	IsRead     bool      `json:"isRead" gorm:"default:false;index:idx_notifications_is_read"`
+	Link       *string   `json:"link,omitempty" gorm:"type:varchar(500)"`
+	Type       string    `json:"type" gorm:"type:varchar(50);default:'info'"`
+	EntityType string    `json:"entityType,omitempty" gorm:"type:varchar(50)"` // case, appointment, contact_interest, etc.
+	EntityID   *uint     `json:"entityId,omitempty" gorm:"type:bigint"`
+	DedupKey   string    `json:"-" gorm:"type:varchar(255);index:idx_notifications_dedup_key"` // For avoiding duplicate notifications (race-safe)
+	CreatedAt  time.Time `json:"createdAt" gorm:"autoCreateTime"`
+	UpdatedAt  time.Time `json:"updatedAt" gorm:"autoUpdateTime"`
+	DeletedAt  *time.Time `json:"deletedAt,omitempty" gorm:"index"`
 
 	// Relationships
 	User User `json:"user,omitempty" gorm:"foreignKey:UserID"`
@@ -49,12 +52,14 @@ func (n *Notification) IsUnread() bool {
 
 // NotificationResponse represents the API response for notifications
 type NotificationResponse struct {
-	ID        uint      `json:"id"`
-	Message   string    `json:"message"`
-	IsRead    bool      `json:"isRead"`
-	Link      *string   `json:"link,omitempty"`
-	Type      string    `json:"type"`
-	CreatedAt time.Time `json:"createdAt"`
+	ID         uint      `json:"id"`
+	Message    string    `json:"message"`
+	IsRead     bool      `json:"isRead"`
+	Link       *string   `json:"link,omitempty"`
+	Type       string    `json:"type"`
+	EntityType string    `json:"entityType,omitempty"`
+	EntityID   *uint     `json:"entityId,omitempty"`
+	CreatedAt  time.Time `json:"createdAt"`
 }
 
 // MarkNotificationsRequest represents the request to mark notifications as read

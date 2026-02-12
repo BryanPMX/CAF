@@ -78,7 +78,16 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
       }
 
       const data = await response.json();
-      setNotifications(data.notifications || []);
+      const raw = data.notifications || [];
+      setNotifications(raw.map((n: { id: number; message: string; title?: string; type: string; isRead: boolean; createdAt: string; link?: string }) => ({
+        id: n.id,
+        title: n.title ?? n.message ?? '',
+        message: n.message,
+        type: (n.type || 'info') as 'info' | 'success' | 'warning' | 'error',
+        isRead: n.isRead,
+        createdAt: n.createdAt,
+        link: n.link,
+      })));
     } catch (err) {
       console.error('Error fetching notifications:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch notifications');

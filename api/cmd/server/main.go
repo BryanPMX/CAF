@@ -197,6 +197,7 @@ func main() {
 		public.GET("/public/site-services", handlers.GetPublicSiteServices(database))
 		public.GET("/public/site-events", handlers.GetPublicSiteEvents(database))
 		public.GET("/public/site-images", handlers.GetPublicSiteImages(database))
+		public.POST("/public/contact", middleware.ContactFormRateLimit(), handlers.SubmitContact(database))
 	}
 
 	// WebSocket endpoint for per-user notifications (token via query param)

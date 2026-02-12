@@ -348,6 +348,10 @@ func CreateAppointmentSmart(db *gorm.DB) gin.HandlerFunc {
 			}()
 		}
 
+		// Notify admins of new appointment with full details
+		appointmentLink := "/app/appointments/" + strconv.FormatUint(uint64(appointment.ID), 10)
+		NotifyAdminsForAppointment(db, "creada", appointment.ID, appointment.Title, string(appointment.Status), appointment.StartTime, &appointmentLink)
+
 		// Return success response with minimal data
 		c.JSON(http.StatusCreated, gin.H{
 			"id":        appointment.ID,
@@ -420,6 +424,10 @@ func UpdateAppointmentAdmin(db *gorm.DB) gin.HandlerFunc {
 				}
 			}
 		}
+
+		// Notify admins of appointment update with full details
+		appointmentLink := "/app/appointments/" + strconv.FormatUint(uint64(appointment.ID), 10)
+		NotifyAdminsForAppointment(db, "actualizada", appointment.ID, appointment.Title, string(appointment.Status), appointment.StartTime, &appointmentLink)
 
 		c.JSON(http.StatusOK, appointment)
 	}
@@ -550,6 +558,10 @@ func DeleteAppointmentAdmin(db *gorm.DB) gin.HandlerFunc {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al cancelar la cita"})
 			return
 		}
+
+		// Notify admins of appointment deletion/cancellation
+		link := "/app/appointments"
+		NotifyAdminsForAppointment(db, "eliminada/cancelada", appointment.ID, appointment.Title, "cancelled", appointment.StartTime, &link)
 
 		c.JSON(http.StatusOK, gin.H{
 			"message":     "Cita cancelada exitosamente por administrador",
