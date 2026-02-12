@@ -197,15 +197,27 @@
   height: 100% !important;
 }
 
+.ant-layout-sider-collapsed .admin-nav-menu.ant-menu-inline-collapsed {
+  padding-inline: 8px;
+}
+
 .ant-layout-sider-collapsed .admin-nav-menu.ant-menu-inline-collapsed > .ant-menu-item,
 .ant-layout-sider-collapsed .admin-nav-menu.ant-menu-inline-collapsed > .ant-menu-submenu > .ant-menu-submenu-title {
-  inset-inline-start: 0 !important;
-  width: 52px !important;
-  margin-inline: auto !important;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  width: 100% !important;
+  margin-inline: 0 !important;
   padding-inline: 0 !important;
+  text-align: center;
+}
+
+.ant-layout-sider-collapsed .admin-nav-menu.ant-menu-inline-collapsed .ant-menu-item .ant-menu-item-icon,
+.ant-layout-sider-collapsed .admin-nav-menu.ant-menu-inline-collapsed .ant-menu-submenu-title .ant-menu-item-icon {
+  margin: 0 !important;
+  font-size: 17px;
+}
+
+.ant-layout-sider-collapsed .admin-nav-menu.ant-menu-inline-collapsed .ant-menu-item .ant-menu-title-content,
+.ant-layout-sider-collapsed .admin-nav-menu.ant-menu-inline-collapsed .ant-menu-submenu-title .ant-menu-title-content {
+  display: none;
 }
 
 /* Custom Dashboard Styles */

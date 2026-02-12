@@ -14,13 +14,12 @@
   <div class="container relative mx-auto px-6 py-10 sm:py-12">
     <div class="grid grid-cols-1 gap-6 md:grid-cols-[1fr_1.6fr_1fr] md:gap-6 lg:gap-8">
       <div class="footer-glass-card rounded-2xl p-6 text-slate-100">
-        <div class="mb-4 flex items-center justify-center gap-3">
+        <div class="mb-5 flex items-center justify-center">
           <span class="brand-logo-shell">
             <span class="block rounded-[0.95rem] bg-white p-1.5">
               <img src="/logo-footer.png" alt="Logo CAF" class="h-12 w-12 object-contain sm:h-14 sm:w-14" />
             </span>
           </span>
-          <span class="text-lg font-bold text-white">{config.site.name}</span>
         </div>
         <p class="mx-auto max-w-md text-center text-sm leading-relaxed text-slate-100/90">
           {config.site.description}
