@@ -16,20 +16,26 @@ The CAF System uses a custom migration system that:
 
 ### Current Migrations
 
-- **0001_initial_schema.sql**: Initial database schema setup
-  - Creates all core tables (users, cases, appointments, etc.)
-  - Sets up indexes for performance
-  - Creates views for common queries
-  - Sets up audit trail functions and triggers
+- **0001_initial_schema.sql**: Initial database schema (source of truth for core tables)
+  - Creates all core tables (users, offices, cases, appointments, notifications, etc.)
+  - Sets up indexes (including idx_notifications_user_id, idx_notifications_is_read, idx_notifications_type)
+  - Creates views (active_cases, deleted_cases), audit functions and triggers
   - Inserts seed data (admin user, default office)
-  - Grants proper permissions
-- **0038_fix_missing_columns.sql**: Emergency fix for missing columns
-- **0039_fix_case_events_missing_columns.sql**: Fix missing case_events columns
-- **0040_reporting_enhancements.sql**: Reporting enhancements (migrated from legacy)
-- **0041_advanced_performance_optimization.sql**: Performance optimization (migrated from legacy)
-- **0042_create_notifications_table.sql**: Notifications table (migrated from legacy)
-- **0043_fix_announcements_schema.sql**: Fix announcements table schema to match GORM model
-- **0044_fix_deleted_at_column_type.sql**: Timestamp column fixes (migrated from legacy)
+- **0038_fix_missing_columns.sql**: Add last_login (users), code (offices) if missing (legacy)
+- **0039_fix_case_events_missing_columns.sql**: Add case_events columns if missing (legacy)
+- **0040_reporting_enhancements.sql**: Reporting (offices.code, cases court/docket_number/fee, users.last_login, therapist_office_capacities)
+- **0041_advanced_performance_optimization.sql**: Additional indexes, materialized views, stats functions
+- **0043_fix_announcements_schema.sql**: Align announcements and admin_notes with GORM models
+- **0044_fix_deleted_at_column_type.sql**: Timestamp type fixes and recreate active_cases/deleted_cases views
+- **0045_add_office_coordinates.sql**: Add latitude, longitude to offices
+- **0046_create_notifications_table.sql**: Notifications schema alignment (link/title/read_at), idx_notifications_created_at only; table and main indexes from 0001
+- **0047_fix_case_stage_default.sql**: Case stage default and backfill legal cases to etapa_inicial
+- **0048_database_performance_indexes.sql**: Composite indexes for access control and performance
+- **0049_offices_remove_soft_delete.sql**: Remove offices.deleted_at (hard delete only)
+- **0050_add_office_phones.sql**: Add phone_office, phone_cell to offices
+- **0051_add_user_phone_and_address.sql**: Add phone, personal_address to users
+- **0052_site_content_cms.sql**: CMS tables (site_content, site_services, site_events, site_images)
+- **0053_notifications_entity_and_contact.sql**: Notifications entity_type, entity_id, dedup_key; contact_submissions table
 
 ## Adding New Migrations
 
@@ -99,6 +105,13 @@ The API server logs migration status during startup. Check the logs for:
 - **Consistency**: Ensures lexicographic sorting works correctly
 - **Future-Proof**: Supports up to 9999 migrations
 - **Readability**: Clear visual alignment in file listings
+
+## Consistency and Redundancy
+
+- **0001** defines the base schema; later migrations are additive or legacy fixes. Do not duplicate in later migrations what 0001 already creates (e.g. notifications table and idx_notifications_user_id / idx_notifications_is_read are in 0001; 0046 only adds idx_notifications_created_at and legacy link/title/read_at handling).
+- **Indexes**: Use `CREATE INDEX IF NOT EXISTS` so re-runs are safe. Avoid creating an index that 0001 or an earlier migration already creates unless the migration is explicitly for legacy DBs that may lack it.
+- **Foreign keys**: 0001 uses `REFERENCES` on columns; do not add a second FK on the same column in a later migration (e.g. notifications.user_id already references users(id) in 0001).
+- **Idempotent column changes**: Use `DO $$ ... IF NOT EXISTS ... ADD COLUMN` or `IF EXISTS ... DROP COLUMN` so migrations are safe when applied multiple times. For indexes added in the same migration as a new column, create the index outside the `DO` block with `CREATE INDEX IF NOT EXISTS` so the index is still created on re-run if the column already existed.
 
 ## Migration Best Practices
 

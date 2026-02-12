@@ -382,6 +382,12 @@ func UpdateAppointmentEnhanced(db *gorm.DB) gin.HandlerFunc {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update appointment"})
 			return
 		}
+		// Reload to get updated fields for notifications
+		_ = db.First(&appointment, appointment.ID).Error
+
+		// Notify admins with full appointment details
+		appointmentLink := "/app/appointments/" + strconv.FormatUint(uint64(appointment.ID), 10)
+		NotifyAdminsForAppointment(db, "actualizada", appointment.ID, appointment.Title, string(appointment.Status), appointment.StartTime, &appointmentLink)
 
 		// Send real-time notification to all connected users about appointment update
 		notification := gin.H{
@@ -496,6 +502,10 @@ func DeleteAppointmentEnhanced(db *gorm.DB) gin.HandlerFunc {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al cancelar la cita"})
 			return
 		}
+
+		// Notify admins of appointment deletion/cancellation
+		link := "/app/appointments"
+		NotifyAdminsForAppointment(db, "eliminada/cancelada", appointment.ID, appointment.Title, "cancelled", appointment.StartTime, &link)
 
 		c.JSON(http.StatusOK, gin.H{
 			"message":     "Cita cancelada exitosamente",

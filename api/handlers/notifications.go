@@ -45,12 +45,14 @@ func GetNotifications(db *gorm.DB) gin.HandlerFunc {
 		response := make([]models.NotificationResponse, 0, len(notifications))
 		for _, notification := range notifications {
 			response = append(response, models.NotificationResponse{
-				ID:        notification.ID,
-				Message:   notification.Message,
-				IsRead:    notification.IsRead,
-				Link:      notification.Link,
-				Type:      notification.Type,
-				CreatedAt: notification.CreatedAt,
+				ID:         notification.ID,
+				Message:    notification.Message,
+				IsRead:     notification.IsRead,
+				Link:       notification.Link,
+				Type:       notification.Type,
+				EntityType: notification.EntityType,
+				EntityID:   notification.EntityID,
+				CreatedAt:  notification.CreatedAt,
 			})
 		}
 

@@ -1,68 +1,38 @@
 -- Migration: 0046_create_notifications_table.sql
--- Description: Create notifications table for the notification system
+-- Description: Notifications table schema alignment and indexes (table created in 0001_initial_schema.sql)
 -- Date: 2025-01-27
 -- Author: CAF System Team
--- Version: 1.0 - Migrated from legacy migrations directory
+-- Version: 1.0 - Legacy compatibility: add missing link, drop obsolete columns; add created_at index only.
+-- Note: idx_notifications_user_id and idx_notifications_is_read already exist in 0001. FK from 0001 REFERENCES users(id).
 
--- Ensure notifications table has correct schema (table created in 0001_initial_schema.sql)
--- This migration ensures any missing columns are added if needed
-
+-- Legacy: ensure link exists and drop obsolete columns (not in 0001; for DBs created before 0001 had link)
 DO $$
 BEGIN
-    -- Add link column if it doesn't exist (from Go model)
     IF NOT EXISTS (
         SELECT 1 FROM information_schema.columns 
         WHERE table_name = 'notifications' AND column_name = 'link'
     ) THEN
         ALTER TABLE notifications ADD COLUMN link VARCHAR(500);
         RAISE NOTICE 'Added link column to notifications table';
-    ELSE
-        RAISE NOTICE 'link column already exists in notifications table';
     END IF;
-
-    -- Remove unused title column if it exists (not in Go model)
     IF EXISTS (
         SELECT 1 FROM information_schema.columns 
         WHERE table_name = 'notifications' AND column_name = 'title'
     ) THEN
         ALTER TABLE notifications DROP COLUMN title;
         RAISE NOTICE 'Removed unused title column from notifications table';
-    ELSE
-        RAISE NOTICE 'title column already removed or never existed in notifications table';
     END IF;
-
-    -- Remove unused read_at column if it exists (not in Go model)
     IF EXISTS (
         SELECT 1 FROM information_schema.columns 
         WHERE table_name = 'notifications' AND column_name = 'read_at'
     ) THEN
         ALTER TABLE notifications DROP COLUMN read_at;
         RAISE NOTICE 'Removed unused read_at column from notifications table';
-    ELSE
-        RAISE NOTICE 'read_at column already removed or never existed in notifications table';
     END IF;
 END $$;
 
--- Create indexes for efficient queries
-CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
-CREATE INDEX IF NOT EXISTS idx_notifications_is_read ON notifications(is_read);
+-- Only index not present in 0001
 CREATE INDEX IF NOT EXISTS idx_notifications_created_at ON notifications(created_at DESC);
-
--- Add foreign key constraint if it doesn't exist
-DO $$
-BEGIN
-    IF NOT EXISTS (
-        SELECT 1 FROM information_schema.table_constraints 
-        WHERE constraint_name = 'fk_notifications_user_id'
-    ) THEN
-        ALTER TABLE notifications 
-        ADD CONSTRAINT fk_notifications_user_id 
-        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
-        RAISE NOTICE 'Added foreign key constraint fk_notifications_user_id';
-    ELSE
-        RAISE NOTICE 'Foreign key constraint fk_notifications_user_id already exists';
-    END IF;
-END $$;
 
 -- Add comments for documentation (matching actual schema from 0001_initial_schema.sql)
 COMMENT ON TABLE notifications IS 'Stores user notifications for the notification system';

@@ -28,6 +28,7 @@ import {
 } from '@ant-design/icons';
 import ClientOnly from '@/components/ClientOnly';
 import ErrorBoundary from '@/components/ErrorBoundary';
+import NotificationBell from './components/NotificationBell';
 
 // Destructure Layout components once
 const { Header, Sider, Content } = Layout;
@@ -207,15 +208,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 </span>
               )}
             </div>
-            
-            <Button 
-              type="text" 
-              icon={<LogoutOutlined />} 
-              onClick={logout}
-              className="text-gray-600 hover:text-red-600 flex-shrink-0"
-            >
-              <span className="hidden sm:inline">Cerrar Sesión</span>
-            </Button>
+
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <NotificationBell />
+              <Button 
+                type="text" 
+                icon={<LogoutOutlined />} 
+                onClick={logout}
+                className="text-gray-600 hover:text-red-600"
+              >
+                <span className="hidden sm:inline">Cerrar Sesión</span>
+              </Button>
+            </div>
           </Header>
           
           <Content style={{ margin: '12px', background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)', borderRadius: '12px', padding: '16px', boxShadow: '0 2px 12px rgba(0, 0, 0, 0.08)' }} className="dashboard-content">
