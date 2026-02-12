@@ -4,6 +4,7 @@ package handlers
 import (
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/BryanPMX/CAF/api/config"
@@ -274,45 +275,63 @@ func (s *CaseService) CreateCase(c *gin.Context) (*models.Case, error) {
 		return nil, fmt.Errorf("invalid request data: %v", err)
 	}
 
-	// Check if we need to create a new client
+	// Resolve client: prefer existing clientId; only create new client when no id and new-client data provided
 	firstName, hasFirstName := requestData["firstName"].(string)
 	lastName, hasLastName := requestData["lastName"].(string)
 	email, hasEmail := requestData["email"].(string)
 
 	var clientID *uint
 
-	if hasFirstName && hasLastName && hasEmail {
-		// Create new client user
-		hashedPassword, err := bcrypt.GenerateFromPassword([]byte("TempPassword123!"), bcrypt.DefaultCost)
-		if err != nil {
-			return nil, fmt.Errorf("failed to hash password: %v", err)
+	// 1) Prefer existing client when clientId is present and non-zero (avoids duplicate when UI sends both id and name/email)
+	if idVal, ok := requestData["clientId"]; ok && idVal != nil {
+		var idUint uint
+		switch v := idVal.(type) {
+		case float64:
+			idUint = uint(v)
+		case int:
+			idUint = uint(v)
+		case int64:
+			idUint = uint(v)
 		}
+		if idUint != 0 {
+			clientID = &idUint
+		}
+	}
 
-		newClient := models.User{
-			FirstName: firstName,
-			LastName:  lastName,
-			Email:     email,
-			Password:  string(hashedPassword),
-			Role:      "client",
-			IsActive:  true,
+	// 2) If no client yet and we have new-client fields, find existing by email or create
+	if clientID == nil && hasFirstName && hasLastName && hasEmail {
+		emailTrim := strings.TrimSpace(email)
+		if emailTrim != "" {
+			var existingUser models.User
+			if err := s.db.Where("email = ? AND role = ?", emailTrim, "client").First(&existingUser).Error; err == nil {
+				// Use existing client with this email
+				clientID = &existingUser.ID
+				requestData["clientId"] = float64(existingUser.ID)
+			} else {
+				// Create new client user
+				hashedPassword, err := bcrypt.GenerateFromPassword([]byte("TempPassword123!"), bcrypt.DefaultCost)
+				if err != nil {
+					return nil, fmt.Errorf("failed to hash password: %v", err)
+				}
+				newClient := models.User{
+					FirstName: strings.TrimSpace(firstName),
+					LastName:  strings.TrimSpace(lastName),
+					Email:     emailTrim,
+					Password:  string(hashedPassword),
+					Role:      "client",
+					IsActive:  true,
+				}
+				if officeID, ok := requestData["officeId"].(float64); ok {
+					officeIDUint := uint(officeID)
+					newClient.OfficeID = &officeIDUint
+				}
+				if err := s.db.Create(&newClient).Error; err != nil {
+					return nil, fmt.Errorf("failed to create client: %v", err)
+				}
+				clientID = &newClient.ID
+				requestData["clientId"] = float64(newClient.ID)
+			}
 		}
-
-		// Get office ID from request for the client
-		if officeID, ok := requestData["officeId"].(float64); ok {
-			officeIDUint := uint(officeID)
-			newClient.OfficeID = &officeIDUint
-		}
-
-		// Create the client
-		if err := s.db.Create(&newClient).Error; err != nil {
-			return nil, fmt.Errorf("failed to create client: %v", err)
-		}
-		clientID = &newClient.ID
-		requestData["clientId"] = float64(newClient.ID)
-	} else if existingClientID, ok := requestData["clientId"].(float64); ok {
-		// Use existing client
-		clientIDUint := uint(existingClientID)
-		clientID = &clientIDUint
 	}
 
 	// Now bind to Case model

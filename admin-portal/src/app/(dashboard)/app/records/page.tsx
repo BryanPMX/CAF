@@ -271,8 +271,12 @@ const RecordsPage: React.FC = () => {
 
   // Restore archived case
   const handleRestoreCase = async (caseId: number) => {
+    if (!user?.role || (user.role !== 'admin' && user.role !== 'office_manager')) {
+      message.error('Sin permisos para restaurar');
+      return;
+    }
     try {
-      await apiClient.post(`/admin/records/cases/${caseId}/restore`);
+      await RecordService.restoreCase(user.role, String(caseId));
       message.success('Caso restaurado exitosamente');
       loadCases();
       loadStats();
@@ -284,8 +288,12 @@ const RecordsPage: React.FC = () => {
 
   // Permanently delete archived case
   const handleDeleteCase = async (caseId: number) => {
+    if (!user?.role || (user.role !== 'admin' && user.role !== 'office_manager')) {
+      message.error('Sin permisos para eliminar');
+      return;
+    }
     try {
-      await apiClient.delete(`/admin/records/cases/${caseId}`);
+      await RecordService.permanentDeleteCase(user.role, String(caseId));
       message.success('Caso eliminado permanentemente');
       loadCases();
       loadStats();
@@ -297,8 +305,12 @@ const RecordsPage: React.FC = () => {
 
   // Restore archived appointment
   const handleRestoreAppointment = async (appointmentId: number) => {
+    if (!user?.role || (user.role !== 'admin' && user.role !== 'office_manager')) {
+      message.error('Sin permisos para restaurar');
+      return;
+    }
     try {
-      await apiClient.post(`/admin/records/appointments/${appointmentId}/restore`);
+      await RecordService.restoreAppointment(user.role, String(appointmentId));
       message.success('Cita restaurada exitosamente');
       loadAppointments();
       loadStats();
@@ -310,8 +322,12 @@ const RecordsPage: React.FC = () => {
 
   // Permanently delete archived appointment
   const handleDeleteAppointment = async (appointmentId: number) => {
+    if (!user?.role || (user.role !== 'admin' && user.role !== 'office_manager')) {
+      message.error('Sin permisos para eliminar');
+      return;
+    }
     try {
-      await apiClient.delete(`/admin/records/appointments/${appointmentId}`);
+      await RecordService.permanentDeleteAppointment(user.role, String(appointmentId));
       message.success('Cita eliminada permanentemente');
       loadAppointments();
       loadStats();

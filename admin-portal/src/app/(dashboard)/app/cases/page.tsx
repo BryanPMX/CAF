@@ -233,18 +233,16 @@ const CaseManagementPage = () => {
       }
 
 
-      // Use centralized service layer with role-based endpoint routing
-      // User role is guaranteed to be available by the parent layout
+      // Use centralized service layer with role-based endpoint routing.
+      // API expects flat query params: search, category, title (not nested under filters).
       const data: EnhancedPaginatedResponse<CaseType> = await CaseService.fetchCases(
         user!.role,
         {
           page,
           pageSize,
-          search: debouncedSearchText,
-          filters: {
-            category: deptFilter,
-            title: caseTypeFilter,
-          }
+          search: debouncedSearchText || undefined,
+          category: deptFilter || undefined,
+          title: caseTypeFilter || undefined,
         }
       );
       

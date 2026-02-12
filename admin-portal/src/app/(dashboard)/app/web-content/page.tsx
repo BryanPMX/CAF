@@ -657,11 +657,12 @@ function GalleryTab() {
   const openCreate = () => {
     setEditing(null);
     form.resetFields();
-    form.setFieldsValue({ isActive: true, section: 'gallery', sortOrder: images.length + 1 });
+    form.setFieldsValue({ isActive: true, section: 'inicio', sortOrder: images.length + 1 });
     setModalOpen(true);
   };
 
   const sectionLabels: Record<string, string> = {
+    inicio: 'Inicio (carousel)',
     hero: 'Portada',
     gallery: 'Galería',
     about: 'Sobre Nosotros',
@@ -669,6 +670,7 @@ function GalleryTab() {
   };
 
   const sectionOptions = [
+    { label: 'Inicio (carousel)', value: 'inicio' },
     { label: 'Portada', value: 'hero' },
     { label: 'Galería', value: 'gallery' },
     { label: 'Sobre Nosotros', value: 'about' },

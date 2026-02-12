@@ -237,12 +237,15 @@ func GetOfficeDetailWithStaff(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		// Get counts for cases and appointments
+		// Get counts for cases, appointments, and distinct clients (by cases in this office)
 		var activeCases int64
 		db.Model(&models.Case{}).Where("office_id = ? AND deleted_at IS NULL AND status != 'closed'", id).Count(&activeCases)
 
 		var totalAppointments int64
 		db.Model(&models.Appointment{}).Where("office_id = ?", id).Count(&totalAppointments)
+
+		var clientCount int64
+		db.Raw("SELECT COUNT(DISTINCT client_id) FROM cases WHERE office_id = ? AND deleted_at IS NULL AND client_id IS NOT NULL", id).Scan(&clientCount)
 
 		// Transform staff for response
 		staffList := make([]gin.H, 0, len(staff))
@@ -264,6 +267,7 @@ func GetOfficeDetailWithStaff(db *gorm.DB) gin.HandlerFunc {
 			"activeCases":       activeCases,
 			"totalAppointments": totalAppointments,
 			"staffCount":        len(staffList),
+			"clientCount":       clientCount,
 		})
 	}
 }
