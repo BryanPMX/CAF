@@ -170,7 +170,7 @@ const RecordsPage: React.FC = () => {
   };
 
   // Load archived cases
-  const loadCases = async (searchText?: string, archiveType?: string) => {
+  const loadCases = async (searchText?: string, archiveType?: string, page?: number) => {
     try {
       // Wait for user to be loaded before fetching
       if (!user?.role) {
@@ -181,7 +181,7 @@ const RecordsPage: React.FC = () => {
 
       setLoadingCases(true);
       const data = await RecordService.fetchArchivedCases(user.role, {
-        page: currentPage,
+        page: page || currentPage,
         limit: 20,
         type: archiveType || 'all',
         search: searchText || '',
@@ -200,7 +200,7 @@ const RecordsPage: React.FC = () => {
   };
 
   // Load archived appointments
-  const loadAppointments = async (searchText?: string, archiveType?: string) => {
+  const loadAppointments = async (searchText?: string, archiveType?: string, page?: number) => {
     try {
       // Wait for user to be loaded before fetching
       if (!user?.role) {
@@ -210,7 +210,7 @@ const RecordsPage: React.FC = () => {
 
       setLoadingAppointments(true);
       const data = await RecordService.fetchArchivedAppointments(user.role, {
-        page: currentPage,
+        page: page || currentPage,
         limit: 20,
         type: archiveType || 'all',
         search: searchText || '',
@@ -238,6 +238,17 @@ const RecordsPage: React.FC = () => {
     }
   };
 
+  // Re-fetch when archive type filter changes
+  useEffect(() => {
+    if (!user?.role || loading) return;
+    setCurrentPage(1);
+    if (activeTab === 'cases') {
+      loadCases(searchText, archiveType);
+    } else {
+      loadAppointments(searchText, archiveType);
+    }
+  }, [archiveType]);
+
   // Handle search
   const handleSearch = () => {
     setCurrentPage(1);
@@ -248,13 +259,13 @@ const RecordsPage: React.FC = () => {
     }
   };
 
-  // Handle pagination
+  // Handle pagination - pass page directly to avoid stale state
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
     if (activeTab === 'cases') {
-      loadCases(searchText, archiveType);
+      loadCases(searchText, archiveType, page);
     } else {
-      loadAppointments(searchText, archiveType);
+      loadAppointments(searchText, archiveType, page);
     }
   };
 

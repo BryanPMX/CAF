@@ -136,6 +136,7 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ visible, onClose, o
   // Handle live searching for clients as the user types
   const handleClientSearch = async (searchText: string) => {
     setClientInputValue(searchText);
+    // Show all recent clients when input is empty or very short
     if (!searchText || searchText.length < 2) { 
       setClientOptions(recentClients); 
       return; 
@@ -145,7 +146,8 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ visible, onClose, o
     try {
       const base = user?.role === 'office_manager' ? '/manager' : '/admin';
       const response = await apiClient.get(`${base}/users/search?q=${searchText}`);
-      const formattedOptions = response.data.map((client: any) => ({
+      const data = Array.isArray(response.data) ? response.data : (response.data?.users || response.data?.data || []);
+      const formattedOptions = data.map((client: any) => ({
         value: `${client.firstName} ${client.lastName} (${client.email})`,
         label: `${client.firstName} ${client.lastName} (${client.email})`,
         key: client.id,
@@ -153,9 +155,17 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ visible, onClose, o
       setClientOptions(formattedOptions);
     } catch (error) { 
       console.error('Client search failed:', error);
-      message.error('Error al buscar clientes');
+      // Fallback to recent clients on error
+      setClientOptions(recentClients);
     } finally {
       setIsSearching(false);
+    }
+  };
+
+  // Show all clients when the input is focused (clicked)
+  const handleClientFocus = () => {
+    if (!clientInputValue && recentClients.length > 0) {
+      setClientOptions(recentClients);
     }
   };
 
@@ -336,14 +346,16 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ visible, onClose, o
                     options={clientOptions}
                     onSelect={handleClientSelect}
                     onSearch={handleClientSearch}
+                    onFocus={handleClientFocus}
                     onBlur={handleClientBlur}
                     value={clientInputValue}
                     onChange={handleClientChange}
-                    placeholder="Escriba el nombre o correo del cliente..."
+                    placeholder="Haga clic o escriba para buscar clientes..."
                     notFoundContent={isSearching ? <Spin size="small" /> : 'No se encontraron clientes'}
                     showSearch
                     filterOption={false}
                     style={{ width: '100%' }}
+                    open={clientOptions.length > 0 || isSearching ? undefined : false}
                   />
                   <div style={{ marginTop: 6 }}>
                     <Text type={!form.getFieldValue('clientId') && clientMode === 'existing' ? 'danger' : 'secondary'}>

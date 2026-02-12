@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Input, Select, DatePicker, Space, Card } from 'antd';
-import { SearchOutlined, FilterOutlined } from '@ant-design/icons';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Input, Select, DatePicker, Space, Card, Button } from 'antd';
+import { SearchOutlined, FilterOutlined, ClearOutlined } from '@ant-design/icons';
 import { SearchFilters, SelectOption } from '@/app/lib/types';
 
 const { RangePicker } = DatePicker;
@@ -30,6 +30,7 @@ const SmartSearchBar: React.FC<SmartSearchBarProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState<SearchFilters>({});
   const [isFiltersVisible, setIsFiltersVisible] = useState(false);
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
   // Filter options - use provided props or defaults
   const statusOptions: SelectOption[] = appointmentStatuses ? appointmentStatuses.map(s => ({ value: s.value, label: s.label })) : [
@@ -59,15 +60,21 @@ const SmartSearchBar: React.FC<SmartSearchBarProps> = ({
     onFiltersChange(newFilters);
   };
 
-  const handleSearch = (value: string) => {
+  // Debounced search to prevent excessive filtering on every keystroke
+  const handleSearch = useCallback((value: string) => {
     setSearchQuery(value);
-    onSearch(value);
-  };
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      onSearch(value);
+    }, 300);
+  }, [onSearch]);
 
   const clearFilters = () => {
     const clearedFilters: SearchFilters = {};
     setFilters(clearedFilters);
+    setSearchQuery('');
     onFiltersChange(clearedFilters);
+    onSearch('');
   };
 
   const toggleFilters = () => {
@@ -189,12 +196,12 @@ const SmartSearchBar: React.FC<SmartSearchBarProps> = ({
 
             {/* Filter Actions */}
             <div className="flex justify-end mt-4 space-x-2">
-              <button
+              <Button
+                icon={<ClearOutlined />}
                 onClick={clearFilters}
-                className="px-4 py-2 text-sm text-gray-600 border border-gray-300 rounded hover:bg-gray-50"
               >
-                Limpiar Filtros
-              </button>
+                Limpiar Todo
+              </Button>
             </div>
           </div>
         )}

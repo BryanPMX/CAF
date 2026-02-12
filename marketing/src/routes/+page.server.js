@@ -25,9 +25,10 @@ export async function load({ fetch }) {
   let services = [];
 
   try {
-    const [contentRes, imagesRes, servicesRes] = await Promise.allSettled([
+    const [contentRes, heroImagesRes, galleryImagesRes, servicesRes] = await Promise.allSettled([
       fetch(`${config.api.baseUrl}/public/site-content`),
       fetch(`${config.api.baseUrl}/public/site-images?section=hero`),
+      fetch(`${config.api.baseUrl}/public/site-images?section=gallery`),
       fetch(`${config.api.baseUrl}/public/site-services`),
     ]);
 
@@ -45,11 +46,21 @@ export async function load({ fetch }) {
     }
 
     // Parse hero images
-    if (imagesRes.status === 'fulfilled' && imagesRes.value.ok) {
-      const data = await imagesRes.value.json();
+    if (heroImagesRes.status === 'fulfilled' && heroImagesRes.value.ok) {
+      const data = await heroImagesRes.value.json();
       images = (data.images || []).map(img => ({
         src: img.imageUrl,
         alt: img.altText || img.title || 'Imagen comunitaria',
+      }));
+    }
+
+    // Parse gallery images and merge with hero images for the carousel
+    let galleryImages = [];
+    if (galleryImagesRes.status === 'fulfilled' && galleryImagesRes.value.ok) {
+      const data = await galleryImagesRes.value.json();
+      galleryImages = (data.images || []).map(img => ({
+        src: img.imageUrl,
+        alt: img.altText || img.title || 'Nuestra comunidad',
       }));
     }
 
@@ -71,5 +82,5 @@ export async function load({ fetch }) {
     ];
   }
 
-  return { content, images, services };
+  return { content, images, galleryImages, services };
 }
