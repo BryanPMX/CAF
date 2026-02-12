@@ -7,11 +7,11 @@
 @tailwind utilities;
 
 :root {
-  --marketing-shadow-soft: 0 14px 40px rgba(15, 52, 96, 0.14);
-  --marketing-shadow-strong: 0 26px 62px rgba(11, 30, 59, 0.22);
-  --marketing-border: rgba(143, 168, 195, 0.36);
-  --marketing-glass-bg: rgba(255, 255, 255, 0.46);
-  --marketing-glass-border: rgba(255, 255, 255, 0.55);
+  --marketing-shadow-soft: 0 14px 36px rgba(15, 52, 96, 0.12);
+  --marketing-shadow-strong: 0 24px 56px rgba(11, 30, 59, 0.18);
+  --marketing-border: rgba(125, 165, 206, 0.38);
+  --marketing-glass-bg: rgba(224, 239, 255, 0.5);
+  --marketing-glass-border: rgba(176, 208, 238, 0.52);
 }
 
 @layer base {
@@ -130,9 +130,9 @@
   overflow: hidden;
   isolation: isolate;
   background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.44), rgba(255, 255, 255, 0.2)),
-    rgba(233, 243, 255, 0.18);
-  backdrop-filter: blur(22px) saturate(145%);
+    linear-gradient(145deg, rgba(226, 239, 255, 0.62), rgba(220, 244, 238, 0.46)),
+    rgba(233, 243, 255, 0.22);
+  backdrop-filter: blur(16px) saturate(128%);
   border: 1px solid var(--marketing-glass-border);
   box-shadow: var(--marketing-shadow-soft);
 }
@@ -142,8 +142,8 @@
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: linear-gradient(120deg, rgba(255, 255, 255, 0.6) 0%, rgba(255, 255, 255, 0.08) 42%, transparent 68%);
-  opacity: 0.55;
+  background: linear-gradient(130deg, rgba(255, 255, 255, 0.34) 0%, rgba(255, 255, 255, 0.1) 48%, transparent 72%);
+  opacity: 0.3;
 }
 
 .glass-panel::after {
@@ -153,19 +153,19 @@
   right: 0;
   top: 0;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.88), transparent);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.72), transparent);
   pointer-events: none;
 }
 
 .card-lift {
   position: relative;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(164, 196, 228, 0.44);
   background:
-    linear-gradient(160deg, rgba(255, 255, 255, 0.54) 0%, rgba(247, 251, 255, 0.3) 100%),
+    linear-gradient(160deg, rgba(231, 242, 255, 0.76) 0%, rgba(225, 245, 240, 0.56) 100%),
     var(--marketing-glass-bg);
-  backdrop-filter: blur(16px) saturate(132%);
-  box-shadow: 0 12px 30px rgba(16, 36, 66, 0.12);
+  backdrop-filter: blur(10px) saturate(120%);
+  box-shadow: 0 12px 26px rgba(16, 36, 66, 0.1);
   transition: transform 0.35s ease, box-shadow 0.35s ease, border-color 0.35s ease;
 }
 
@@ -174,23 +174,23 @@
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: linear-gradient(120deg, rgba(255, 255, 255, 0.45) 0%, transparent 48%);
-  opacity: 0.65;
+  background: linear-gradient(120deg, rgba(255, 255, 255, 0.24) 0%, transparent 54%);
+  opacity: 0.38;
 }
 
 .card-lift:hover {
   transform: translateY(-6px);
-  border-color: rgba(159, 214, 255, 0.7);
+  border-color: rgba(104, 174, 236, 0.55);
   box-shadow: var(--marketing-shadow-strong);
 }
 
 .glass-subtle {
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.42), rgba(255, 255, 255, 0.2)),
-    rgba(221, 238, 255, 0.18);
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  backdrop-filter: blur(14px) saturate(132%);
-  box-shadow: 0 10px 24px rgba(16, 43, 75, 0.12);
+    linear-gradient(180deg, rgba(231, 245, 255, 0.65), rgba(225, 243, 238, 0.42)),
+    rgba(221, 238, 255, 0.22);
+  border: 1px solid rgba(164, 197, 231, 0.44);
+  backdrop-filter: blur(10px) saturate(122%);
+  box-shadow: 0 10px 22px rgba(16, 43, 75, 0.1);
 }
 
 .brand-logo-shell {

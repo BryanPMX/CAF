@@ -99,7 +99,7 @@
   </div>
 </section>
 
-<section class="py-12 sm:py-20">
+<section class="py-12 sm:py-20 bg-[radial-gradient(circle_at_16%_20%,rgba(56,120,214,0.16),transparent_34%),radial-gradient(circle_at_84%_18%,rgba(23,183,165,0.14),transparent_36%),linear-gradient(180deg,#eef6ff_0%,#edf6ff_52%,#edf9f6_100%)]">
   <div class="container mx-auto px-4 sm:px-6">
     <div class="glass-subtle mx-auto mb-10 max-w-3xl rounded-3xl px-6 py-8 text-center sm:mb-14">
       <p class="mb-3 text-sm font-semibold uppercase tracking-[0.18em] text-primary-600">Compromiso CAF</p>
@@ -155,7 +155,7 @@
   </div>
 </section>
 
-<section class="bg-white/55 py-12 backdrop-blur-xl sm:py-20">
+<section class="bg-[radial-gradient(circle_at_14%_16%,rgba(56,120,214,0.13),transparent_34%),radial-gradient(circle_at_86%_14%,rgba(23,183,165,0.15),transparent_36%),linear-gradient(180deg,#edf7ff_0%,#ecf7ff_52%,#eaf8f5_100%)] py-12 backdrop-blur-xl sm:py-20">
   <div class="container mx-auto px-4 sm:px-6">
     <div class="glass-subtle mx-auto mb-10 max-w-3xl rounded-3xl px-6 py-8 text-center sm:mb-14">
       <p class="mb-3 text-sm font-semibold uppercase tracking-[0.18em] text-primary-600">Atención Especializada</p>
@@ -251,7 +251,7 @@
 {/if}
 
 {#if gallerySectionImages.length > 0}
-  <section class="bg-white/52 py-16 backdrop-blur-xl sm:py-20">
+  <section class="bg-[radial-gradient(circle_at_18%_16%,rgba(56,120,214,0.14),transparent_34%),radial-gradient(circle_at_82%_14%,rgba(23,183,165,0.15),transparent_36%),linear-gradient(180deg,#eef7ff_0%,#eef8ff_52%,#ebf9f6_100%)] py-16 backdrop-blur-xl sm:py-20">
     <div class="container mx-auto px-4 sm:px-6">
       <div class="mb-10 text-center">
         <h2 class="text-3xl font-bold text-slate-900 md:text-4xl">Galería</h2>
