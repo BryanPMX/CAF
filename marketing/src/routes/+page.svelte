@@ -55,7 +55,7 @@
   />
 </svelte:head>
 
-<section class="relative overflow-hidden bg-gradient-to-br from-primary-900 via-primary-700 to-[#8d6bf7] text-white">
+<section class="hero-wave-scene relative overflow-hidden bg-gradient-to-br from-primary-900 via-primary-700 to-[#8d6bf7] text-white">
   <div class="absolute inset-0 bg-[radial-gradient(circle_at_18%_15%,rgba(255,255,255,0.24),transparent_45%),radial-gradient(circle_at_82%_18%,rgba(232,206,255,0.28),transparent_38%)]"></div>
   <div class="spotlight -left-28 top-14 h-52 w-72 bg-primary-300"></div>
   <div class="spotlight -right-20 top-12 h-52 w-72 bg-[#d4b7ff]"></div>
@@ -92,9 +92,12 @@
     </div>
   </div>
 
-  <div class="absolute bottom-0 left-0 w-full leading-[0]">
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 120" preserveAspectRatio="none" class="h-16 w-full md:h-24">
-      <path fill="#f4f8fc" d="M0,64L80,69.3C160,75,320,85,480,80C640,75,800,53,960,48C1120,43,1280,53,1360,58.7L1440,64L1440,120L0,120Z"></path>
+  <div class="hero-wave-wrap">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 120" preserveAspectRatio="none" class="hero-wave-svg hero-wave-back h-20 w-full md:h-28">
+      <path class="hero-wave-path-back" d="M0,64L80,69.3C160,75,320,85,480,80C640,75,800,53,960,48C1120,43,1280,53,1360,58.7L1440,64L1440,120L0,120Z"></path>
+    </svg>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 120" preserveAspectRatio="none" class="hero-wave-svg hero-wave-front h-16 w-full md:h-24">
+      <path class="hero-wave-path-front" d="M0,64L80,69.3C160,75,320,85,480,80C640,75,800,53,960,48C1120,43,1280,53,1360,58.7L1440,64L1440,120L0,120Z"></path>
     </svg>
   </div>
 </section>
@@ -279,7 +282,11 @@
 
   <div class="container relative mx-auto px-6 py-16 text-center md:py-20">
     <div class="glass-panel mx-auto max-w-3xl rounded-3xl border-white/35 bg-white/18 p-8 text-white sm:p-10">
-      <h2 class="mb-4 text-3xl font-bold md:text-4xl">¿Listo para dar el primer paso?</h2>
+      <h2 class="mb-4 text-3xl font-bold md:text-4xl">
+        <span class="inline-block rounded-2xl border border-white/35 bg-[linear-gradient(130deg,rgba(27,68,136,0.9),rgba(123,96,217,0.88))] px-5 py-2.5 text-white shadow-[0_12px_28px_rgba(6,19,40,0.34)]">
+          ¿Listo para dar el primer paso?
+        </span>
+      </h2>
       <p class="mb-8 text-lg leading-relaxed text-primary-100">
         Nuestro equipo está aquí para ayudarle. Contáctenos hoy para programar una consulta confidencial.
       </p>

@@ -11,7 +11,7 @@
   <meta name="description" content="Descubra nuestros servicios de asesoría legal, apoyo psicológico y asistencia social." />
 </svelte:head>
 
-<section class="relative overflow-hidden bg-gradient-to-br from-primary-900 via-primary-700 to-[#8d6bf7] py-16 text-white md:py-24">
+<section class="hero-wave-scene relative overflow-hidden bg-gradient-to-br from-primary-900 via-primary-700 to-[#8d6bf7] py-16 text-white md:py-24">
   <div class="absolute inset-0 bg-[radial-gradient(circle_at_18%_20%,rgba(255,255,255,0.22),transparent_42%),radial-gradient(circle_at_82%_18%,rgba(221,191,255,0.32),transparent_38%)]"></div>
   <div class="container relative z-10 mx-auto px-6 text-center">
     <h1 class="mb-4 text-4xl font-extrabold leading-tight md:text-5xl" in:fade={{ duration: 800, easing: cubicOut }}>
@@ -21,9 +21,12 @@
       Un enfoque integral para el bienestar de su familia.
     </p>
   </div>
-  <div class="absolute bottom-0 left-0 w-full leading-[0]">
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 220" preserveAspectRatio="none" class="w-full h-24 md:h-36 lg:h-40">
-      <path fill="#eef6ff" d="M0,128L60,138.7C120,149,240,171,360,170.7C480,171,600,149,720,133.3C840,117,960,107,1080,112C1200,117,1320,139,1380,149.3L1440,160L1440,220L0,220Z"></path>
+  <div class="hero-wave-wrap">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 220" preserveAspectRatio="none" class="hero-wave-svg hero-wave-back h-28 w-full md:h-40 lg:h-44">
+      <path class="hero-wave-path-back" d="M0,128L60,138.7C120,149,240,171,360,170.7C480,171,600,149,720,133.3C840,117,960,107,1080,112C1200,117,1320,139,1380,149.3L1440,160L1440,220L0,220Z"></path>
+    </svg>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 220" preserveAspectRatio="none" class="hero-wave-svg hero-wave-front w-full h-24 md:h-36 lg:h-40">
+      <path class="hero-wave-path-front" d="M0,128L60,138.7C120,149,240,171,360,170.7C480,171,600,149,720,133.3C840,117,960,107,1080,112C1200,117,1320,139,1380,149.3L1440,160L1440,220L0,220Z"></path>
     </svg>
   </div>
 </section>
