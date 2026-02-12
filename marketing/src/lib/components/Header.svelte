@@ -45,7 +45,6 @@
       {#each navLinks as link}
         <a
           href={link.href}
-          data-sveltekit-reload={link.href === '/servicios'}
           class="nav-link rounded-full px-3.5 py-1.5 text-[1.04rem] font-semibold tracking-[0.015em]"
           class:is-active={$page.url.pathname === link.href}
           class:text-primary-700={$page.url.pathname === link.href}
@@ -83,7 +82,6 @@
         {#each navLinks as link}
           <a
             href={link.href}
-            data-sveltekit-reload={link.href === '/servicios'}
             class="block rounded-xl border border-transparent px-4 py-3 text-base font-semibold transition-all duration-200 hover:border-primary-200/65 hover:bg-white/75"
             class:bg-primary-50={$page.url.pathname === link.href}
             class:text-primary-700={$page.url.pathname === link.href}

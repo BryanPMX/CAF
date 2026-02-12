@@ -1,6 +1,6 @@
 <script>
   import { onMount } from 'svelte';
-  import { fade, slide } from 'svelte/transition';
+  import { fade, slide as slideTransition } from 'svelte/transition';
   import { cubicOut } from 'svelte/easing';
 
   export let data;
@@ -75,15 +75,14 @@
 
       <p
         class="mx-auto mb-9 max-w-3xl text-base leading-relaxed text-primary-100 sm:text-lg md:text-xl"
-        in:slide={{ duration: 800, delay: 200, easing: cubicOut }}
+        in:slideTransition={{ duration: 800, delay: 200, easing: cubicOut }}
       >
         {hero.subtitle || 'Centro de Apoyo para la Familia A.C. brinda servicios legales, psicológicos y de asistencia social.'}
       </p>
 
-      <div class="flex flex-col justify-center gap-3 sm:flex-row sm:gap-4" in:slide={{ duration: 800, delay: 400, easing: cubicOut }}>
+      <div class="flex flex-col justify-center gap-3 sm:flex-row sm:gap-4" in:slideTransition={{ duration: 800, delay: 400, easing: cubicOut }}>
         <a
           href="/servicios"
-          data-sveltekit-reload
           class="btn-elevated fade-interact rounded-xl bg-white px-8 py-3.5 text-base font-bold text-primary-800 shadow-[0_16px_34px_rgba(4,19,41,0.35)] transition-all duration-300 hover:-translate-y-1 hover:bg-primary-50 sm:text-lg"
         >
           Nuestros Servicios
@@ -168,7 +167,7 @@
 
     <div class="grid grid-cols-1 gap-7 md:grid-cols-3">
       {#each services as service, i}
-        <div class="card-lift overflow-hidden rounded-2xl" in:slide={{ duration: 600, delay: i * 150, easing: cubicOut }}>
+        <div class="card-lift overflow-hidden rounded-2xl" in:slideTransition={{ duration: 600, delay: i * 150, easing: cubicOut }}>
           <div class="h-1.5 bg-gradient-to-r from-primary-500 via-primary-400 to-accent-500"></div>
           <div class="p-8">
             <div class="{serviceColors[i % 3].bg} {serviceColors[i % 3].text} mb-5 flex h-14 w-14 items-center justify-center rounded-xl">
@@ -180,7 +179,6 @@
           <div class="px-8 pb-7">
             <a
               href="/servicios"
-              data-sveltekit-reload
               class="inline-flex items-center gap-1 text-sm font-semibold text-primary-700 transition-colors hover:text-primary-800"
             >
               Más información
@@ -217,10 +215,10 @@
       </div>
 
       <div class="relative mx-auto h-[28rem] w-full max-w-4xl overflow-hidden rounded-3xl border border-white/55 bg-white/15 shadow-[0_30px_60px_rgba(13,33,56,0.22)] backdrop-blur-xl sm:h-[32rem] md:h-[36rem]" role="region" aria-label="Carrusel de fotos">
-        {#each slides as slide, index}
+        {#each slides as slideItem, index}
           {#if index === currentSlide}
             <div class="absolute inset-0" transition:fade={{ duration: 500 }}>
-              <img src={slide.src} alt={slide.alt} class="h-full w-full object-cover" />
+              <img src={slideItem.src} alt={slideItem.alt} class="h-full w-full object-cover" />
               <div class="absolute inset-0 bg-gradient-to-t from-slate-950/45 via-transparent to-transparent"></div>
             </div>
           {/if}

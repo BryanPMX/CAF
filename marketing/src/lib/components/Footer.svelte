@@ -36,7 +36,7 @@
             </a>
           </li>
           <li>
-            <a href="/servicios" data-sveltekit-reload class="footer-nav-pill group inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-white/20 px-3 py-1.5 text-[0.82rem] font-medium text-slate-100/95 transition-all duration-200 hover:-translate-y-0.5 hover:border-white/35 hover:text-white sm:text-sm">
+            <a href="/servicios" class="footer-nav-pill group inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-white/20 px-3 py-1.5 text-[0.82rem] font-medium text-slate-100/95 transition-all duration-200 hover:-translate-y-0.5 hover:border-white/35 hover:text-white sm:text-sm">
               <span class="h-1.5 w-1.5 rounded-full bg-primary-300 transition-colors duration-200 group-hover:bg-accent-300"></span>
               <span>Servicios</span>
             </a>
