@@ -1,5 +1,5 @@
 // marketing/tailwind.config.cjs
-// Color scheme aligned with the admin portal's indigo/violet theme.
+// Updated palette: professional navy + aqua accents.
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: ['./src/**/*.{html,js,svelte,ts}'],
@@ -7,26 +7,26 @@ module.exports = {
     extend: {
       colors: {
         primary: {
-          50:  '#eef2ff',
-          100: '#e0e7ff',
-          200: '#c7d2fe',
-          300: '#a5b4fc',
-          400: '#818cf8',
-          500: '#6366f1',
-          600: '#4f46e5',
-          700: '#4338ca',
-          800: '#3730a3',
-          900: '#312e81',
+          50: '#eef6ff',
+          100: '#d9e9ff',
+          200: '#b8d4ff',
+          300: '#89b9ff',
+          400: '#5f97f2',
+          500: '#3878d6',
+          600: '#1f5eb3',
+          700: '#17498d',
+          800: '#143b72',
+          900: '#112f5b',
         },
         accent: {
-          400: '#a78bfa',
-          500: '#8b5cf6',
-          600: '#7c3aed',
-          700: '#6d28d9',
+          400: '#7ee8d8',
+          500: '#3dd8c3',
+          600: '#17b7a5',
+          700: '#0f8a7d',
         },
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+        sans: ['Manrope', 'Montserrat', 'sans-serif'],
       },
     },
   },

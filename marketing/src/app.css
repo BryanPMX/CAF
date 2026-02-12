@@ -1,88 +1,207 @@
 /* marketing/src/app.css */
-/* Enhanced styles aligned with admin portal indigo/violet theme */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+/* Elegant visual system with professional navy/aqua accents. */
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --marketing-shadow-soft: 0 12px 36px rgba(15, 52, 96, 0.11);
+  --marketing-shadow-strong: 0 24px 55px rgba(11, 30, 59, 0.18);
+  --marketing-border: rgba(143, 168, 195, 0.28);
+}
+
 @layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+
   body {
-    @apply font-sans text-gray-700 antialiased;
+    @apply font-sans text-slate-700 antialiased bg-slate-50;
+    background-image:
+      radial-gradient(circle at 10% -5%, rgba(59, 130, 246, 0.2), transparent 38%),
+      radial-gradient(circle at 95% 8%, rgba(45, 212, 191, 0.18), transparent 33%),
+      linear-gradient(180deg, #f8fbff 0%, #f5f8fc 55%, #eef3f9 100%);
+    background-attachment: fixed;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply tracking-tight text-slate-900;
+  }
+
+  input,
+  textarea,
+  select {
+    @apply w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 transition-all duration-200;
+    -webkit-appearance: none;
+    font-size: 16px;
+  }
+
+  input:focus,
+  textarea:focus,
+  select:focus {
+    @apply outline-none ring-2 ring-primary-500/40 border-primary-500;
+    box-shadow: 0 0 0 4px rgba(31, 94, 179, 0.12);
+  }
+
+  a,
+  button {
+    -webkit-tap-highlight-color: transparent;
   }
 }
 
-/* Animations */
 @keyframes fade-in-down {
-  0% { opacity: 0; transform: translateY(-20px); }
-  100% { opacity: 1; transform: translateY(0); }
+  0% {
+    opacity: 0;
+    transform: translateY(-18px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
+
 @keyframes fade-in-up {
-  0% { opacity: 0; transform: translateY(20px); }
-  100% { opacity: 1; transform: translateY(0); }
-}
-@keyframes wave {
-  0% { transform: translateY(0); }
-  50% { transform: translateY(-8px); }
-  100% { transform: translateY(0); }
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-.animate-fade-in-down { animation: fade-in-down 0.8s ease-out forwards; }
-.animate-fade-in-up   { animation: fade-in-up 0.8s ease-out forwards; }
-.animate-wave         { animation: wave 4s ease-in-out infinite; }
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
 
-/* Gradient text utility */
+@keyframes shimmer {
+  0% {
+    transform: translateX(-130%);
+  }
+  100% {
+    transform: translateX(130%);
+  }
+}
+
+.animate-fade-in-down {
+  animation: fade-in-down 0.85s ease-out forwards;
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.85s ease-out forwards;
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
 .text-gradient {
-  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  background: linear-gradient(125deg, #154f8d 0%, #0f8a7d 85%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
-/* Card hover lift */
+.spotlight {
+  position: absolute;
+  pointer-events: none;
+  filter: blur(72px);
+  opacity: 0.55;
+}
+
+.glass-panel {
+  background: rgba(255, 255, 255, 0.74);
+  backdrop-filter: blur(14px);
+  border: 1px solid var(--marketing-border);
+  box-shadow: var(--marketing-shadow-soft);
+}
+
 .card-lift {
+  border: 1px solid rgba(162, 181, 204, 0.22);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(249, 252, 255, 0.95) 100%);
+  box-shadow: 0 8px 24px rgba(16, 36, 66, 0.08);
+  transition: transform 0.35s ease, box-shadow 0.35s ease, border-color 0.35s ease;
+}
+
+.card-lift:hover {
+  transform: translateY(-6px);
+  border-color: rgba(23, 94, 171, 0.35);
+  box-shadow: var(--marketing-shadow-strong);
+}
+
+.brand-logo-shell {
+  position: relative;
+  display: inline-flex;
+  padding: 2px;
+  border-radius: 1.05rem;
+  background: linear-gradient(140deg, rgba(31, 94, 179, 0.95), rgba(23, 183, 165, 0.88));
+  box-shadow:
+    0 12px 26px rgba(15, 64, 121, 0.25),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.35);
   transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
-.card-lift:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 24px rgba(79, 70, 229, 0.12);
+
+.brand-logo-shell::after {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  border-radius: 0.92rem;
+  pointer-events: none;
+  border: 1px solid rgba(255, 255, 255, 0.42);
 }
 
-/* Form inputs */
-input, textarea, select {
-  @apply border border-gray-300 rounded-lg px-4 py-2.5 w-full transition-colors duration-200;
-  -webkit-appearance: none;
-  font-size: 16px; /* Prevents iOS zoom on focus */
-}
-input:focus, textarea:focus, select:focus {
-  @apply outline-none ring-2 ring-primary-500 border-primary-500;
+.brand-logo-shell:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 16px 30px rgba(15, 64, 121, 0.3),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.45);
 }
 
-/* Smooth scrolling */
-html {
-  scroll-behavior: smooth;
-  -webkit-text-size-adjust: 100%;
+.btn-elevated {
+  position: relative;
+  overflow: hidden;
 }
 
-/* Mobile touch improvements */
-a, button {
-  -webkit-tap-highlight-color: transparent;
+.btn-elevated::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, transparent 35%, rgba(255, 255, 255, 0.26) 50%, transparent 65%);
+  transform: translateX(-130%);
+  transition: transform 0.7s ease;
 }
 
-/* Better mobile spacing */
+.btn-elevated:hover::after {
+  transform: translateX(130%);
+}
+
 @media (max-width: 640px) {
   .container {
-    padding-left: 16px;
-    padding-right: 16px;
+    padding-left: 1rem;
+    padding-right: 1rem;
   }
 }
 
-/* Reduce motion for accessibility */
 @media (prefers-reduced-motion: reduce) {
   .animate-fade-in-down,
   .animate-fade-in-up,
-  .animate-wave,
-  .card-lift {
+  .animate-float,
+  .card-lift,
+  .brand-logo-shell,
+  .btn-elevated::after {
     animation: none !important;
     transition: none !important;
   }

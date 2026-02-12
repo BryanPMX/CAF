@@ -11,7 +11,6 @@
   const services = data.services || [];
   const heroSlides = data.images || [];
   const gallerySlides = data.galleryImages || [];
-  // Use gallery images for community carousel; fall back to hero images
   const slides = gallerySlides.length > 0 ? gallerySlides : heroSlides;
   const gallerySectionImages = data.gallerySectionImages || [];
   const aboutSectionImages = data.aboutSectionImages || [];
@@ -27,118 +26,134 @@
     }
   });
 
-  function prevSlide() { currentSlide = (currentSlide - 1 + slides.length) % slides.length; }
-  function nextSlide() { currentSlide = (currentSlide + 1) % slides.length; }
+  function prevSlide() {
+    currentSlide = (currentSlide - 1 + slides.length) % slides.length;
+  }
+
+  function nextSlide() {
+    currentSlide = (currentSlide + 1) % slides.length;
+  }
 
   const serviceIcons = [
-    // Scale of justice
     '<svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 3v18m-7-7l7-8 7 8M5 14h14"/></svg>',
-    // Heart
     '<svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>',
-    // People
     '<svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>',
   ];
+
   const serviceColors = [
-    { bg: 'bg-primary-100', text: 'text-primary-600' },
-    { bg: 'bg-emerald-100', text: 'text-emerald-600' },
-    { bg: 'bg-amber-100', text: 'text-amber-600' },
+    { bg: 'bg-primary-100', text: 'text-primary-700' },
+    { bg: 'bg-sky-100', text: 'text-sky-700' },
+    { bg: 'bg-emerald-100', text: 'text-emerald-700' },
   ];
 </script>
 
 <svelte:head>
   <title>Inicio - Centro de Apoyo para la Familia A.C.</title>
-  <meta name="description" content="Brindamos apoyo legal, psicológico y social a familias vulnerables. Conozca nuestros servicios." />
+  <meta
+    name="description"
+    content="Brindamos apoyo legal, psicológico y social a familias vulnerables. Conozca nuestros servicios."
+  />
 </svelte:head>
 
-<!-- Hero Section -->
-<section class="relative bg-gradient-to-br from-primary-700 via-primary-800 to-accent-700 text-white overflow-hidden">
-  <div class="absolute inset-0 opacity-10">
-    <div class="absolute inset-0" style="background-image: radial-gradient(circle at 25% 25%, rgba(255,255,255,0.15) 0%, transparent 50%);"></div>
-  </div>
-  <div class="container mx-auto px-4 sm:px-6 py-14 sm:py-20 md:py-28 relative z-10">
-    <div class="max-w-4xl mx-auto text-center">
+<section class="relative overflow-hidden bg-gradient-to-br from-primary-900 via-primary-800 to-accent-700 text-white">
+  <div class="absolute inset-0 bg-[radial-gradient(circle_at_18%_15%,rgba(255,255,255,0.2),transparent_45%),radial-gradient(circle_at_82%_18%,rgba(125,255,231,0.22),transparent_36%)]"></div>
+  <div class="spotlight -left-28 top-14 h-52 w-72 bg-primary-300"></div>
+  <div class="spotlight -right-20 top-12 h-52 w-72 bg-accent-400"></div>
+
+  <div class="container relative z-10 mx-auto px-4 py-16 sm:px-6 sm:py-20 md:py-28">
+    <div class="mx-auto max-w-4xl text-center">
+      <span class="mb-6 inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-white/85">
+        Acompañamiento Integral
+      </span>
+
       <h1
-        class="text-3xl sm:text-4xl md:text-6xl font-extrabold leading-tight mb-4 sm:mb-6 tracking-tight"
+        class="mb-5 text-3xl font-extrabold leading-tight tracking-tight drop-shadow-[0_6px_22px_rgba(2,15,33,0.45)] sm:text-4xl md:text-6xl"
         in:fade={{ duration: 800, easing: cubicOut }}
       >
         {hero.title || 'Fortaleciendo Familias, Construyendo Comunidad'}
       </h1>
+
       <p
-        class="text-base sm:text-lg md:text-xl text-primary-100 mb-8 sm:mb-10 max-w-3xl mx-auto leading-relaxed"
+        class="mx-auto mb-9 max-w-3xl text-base leading-relaxed text-primary-100 sm:text-lg md:text-xl"
         in:slide={{ duration: 800, delay: 200, easing: cubicOut }}
       >
         {hero.subtitle || 'Centro de Apoyo para la Familia A.C. brinda servicios legales, psicológicos y de asistencia social.'}
       </p>
-      <div class="flex justify-center gap-4" in:slide={{ duration: 800, delay: 400, easing: cubicOut }}>
+
+      <div class="flex flex-col justify-center gap-3 sm:flex-row sm:gap-4" in:slide={{ duration: 800, delay: 400, easing: cubicOut }}>
         <a
           href="/servicios"
           data-sveltekit-reload
-          class="bg-white text-primary-700 font-bold py-3.5 px-8 rounded-lg text-base sm:text-lg hover:bg-primary-50 transition-all shadow-lg hover:shadow-xl text-center"
+          class="btn-elevated rounded-xl bg-white px-8 py-3.5 text-base font-bold text-primary-800 shadow-[0_16px_34px_rgba(4,19,41,0.35)] transition-all duration-300 hover:-translate-y-1 hover:bg-primary-50 sm:text-lg"
         >
           Nuestros Servicios
         </a>
         <a
           href="/contacto"
-          class="border-2 border-white/80 text-white font-bold py-3.5 px-8 rounded-lg text-base sm:text-lg hover:bg-white/10 transition-all text-center"
+          class="rounded-xl border border-white/60 bg-white/10 px-8 py-3.5 text-base font-bold text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.2)] backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:bg-white/18 sm:text-lg"
         >
           Contáctenos
         </a>
       </div>
     </div>
   </div>
-  <!-- Wave divider -->
+
   <div class="absolute bottom-0 left-0 w-full leading-[0]">
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 120" preserveAspectRatio="none" class="w-full h-16 md:h-24">
-      <path fill="#f9fafb" d="M0,64L80,69.3C160,75,320,85,480,80C640,75,800,53,960,48C1120,43,1280,53,1360,58.7L1440,64L1440,120L0,120Z"></path>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 120" preserveAspectRatio="none" class="h-16 w-full md:h-24">
+      <path fill="#f4f8fc" d="M0,64L80,69.3C160,75,320,85,480,80C640,75,800,53,960,48C1120,43,1280,53,1360,58.7L1440,64L1440,120L0,120Z"></path>
     </svg>
   </div>
 </section>
 
-<!-- About / Mission Section -->
-<section class="py-12 sm:py-20 bg-gray-50">
+<section class="py-12 sm:py-20">
   <div class="container mx-auto px-4 sm:px-6">
-    <div class="max-w-3xl mx-auto text-center mb-10 sm:mb-16">
-      <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-6">
-        {about.title || 'Sobre Nosotros'}
-      </h2>
-      <p class="text-lg text-gray-600 leading-relaxed">
+    <div class="mx-auto mb-10 max-w-3xl text-center sm:mb-14">
+      <p class="mb-3 text-sm font-semibold uppercase tracking-[0.18em] text-primary-600">Compromiso CAF</p>
+      <h2 class="mb-5 text-3xl font-bold md:text-4xl">{about.title || 'Sobre Nosotros'}</h2>
+      <p class="text-lg leading-relaxed text-slate-600">
         {about.description || 'Somos una organización sin fines de lucro dedicada a fortalecer el núcleo familiar.'}
       </p>
     </div>
 
     {#if aboutSectionImages.length > 0}
-      <div class="flex flex-wrap justify-center gap-4 mb-12 max-w-4xl mx-auto">
+      <div class="mx-auto mb-12 grid max-w-5xl grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {#each aboutSectionImages as img}
-          <div class="flex-1 min-w-[200px] max-w-[280px] rounded-xl overflow-hidden shadow-md">
-            <img src={img.src} alt={img.alt} class="w-full h-48 object-cover" loading="lazy" />
+          <div class="card-lift group overflow-hidden rounded-2xl">
+            <img
+              src={img.src}
+              alt={img.alt}
+              class="h-52 w-full object-cover transition-transform duration-500 group-hover:scale-105"
+              loading="lazy"
+            />
           </div>
         {/each}
       </div>
     {/if}
 
     {#if about.mission || about.vision}
-      <div class="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+      <div class="mx-auto grid max-w-5xl gap-6 md:grid-cols-2 md:gap-8">
         {#if about.mission}
-          <div class="bg-white rounded-xl p-8 shadow-sm border border-gray-100 card-lift">
-            <div class="w-12 h-12 bg-primary-100 text-primary-600 rounded-lg flex items-center justify-center mb-4">
-              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div class="card-lift rounded-2xl p-8">
+            <div class="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 text-white shadow-[0_10px_20px_rgba(19,80,145,0.24)]">
+              <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
             </div>
-            <h3 class="text-xl font-bold text-gray-900 mb-3">Nuestra Misión</h3>
-            <p class="text-gray-600 leading-relaxed">{about.mission}</p>
+            <h3 class="mb-3 text-xl font-bold text-slate-900">Nuestra Misión</h3>
+            <p class="leading-relaxed text-slate-600">{about.mission}</p>
           </div>
         {/if}
+
         {#if about.vision}
-          <div class="bg-white rounded-xl p-8 shadow-sm border border-gray-100 card-lift">
-            <div class="w-12 h-12 bg-accent-100 text-accent-600 rounded-lg flex items-center justify-center mb-4" style="background-color: #ede9fe;">
-              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div class="card-lift rounded-2xl p-8">
+            <div class="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-accent-600 to-accent-700 text-white shadow-[0_10px_20px_rgba(12,124,113,0.25)]">
+              <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
               </svg>
             </div>
-            <h3 class="text-xl font-bold text-gray-900 mb-3">Nuestra Visión</h3>
-            <p class="text-gray-600 leading-relaxed">{about.vision}</p>
+            <h3 class="mb-3 text-xl font-bold text-slate-900">Nuestra Visión</h3>
+            <p class="leading-relaxed text-slate-600">{about.vision}</p>
           </div>
         {/if}
       </div>
@@ -146,42 +161,48 @@
   </div>
 </section>
 
-<!-- Services Overview -->
-<section class="py-12 sm:py-20 bg-white">
+<section class="bg-white/75 py-12 backdrop-blur-sm sm:py-20">
   <div class="container mx-auto px-4 sm:px-6">
-    <div class="text-center mb-10 sm:mb-14">
-      <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Nuestros Servicios</h2>
-      <p class="text-lg text-gray-600 max-w-2xl mx-auto">Un enfoque integral para el bienestar de su familia.</p>
+    <div class="mb-10 text-center sm:mb-14">
+      <p class="mb-3 text-sm font-semibold uppercase tracking-[0.18em] text-primary-600">Atención Especializada</p>
+      <h2 class="mb-4 text-3xl font-bold text-slate-900 md:text-4xl">Nuestros Servicios</h2>
+      <p class="mx-auto max-w-2xl text-lg text-slate-600">Un enfoque integral para el bienestar de su familia.</p>
     </div>
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+
+    <div class="grid grid-cols-1 gap-7 md:grid-cols-3">
       {#each services as service, i}
-        <div class="card-lift bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden" in:slide={{ duration: 600, delay: i * 150, easing: cubicOut }}>
+        <div class="card-lift overflow-hidden rounded-2xl" in:slide={{ duration: 600, delay: i * 150, easing: cubicOut }}>
+          <div class="h-1.5 bg-gradient-to-r from-primary-500 via-primary-400 to-accent-500"></div>
           <div class="p-8">
-            <div class="{serviceColors[i % 3].bg} {serviceColors[i % 3].text} rounded-xl h-14 w-14 flex items-center justify-center mb-5">
+            <div class="{serviceColors[i % 3].bg} {serviceColors[i % 3].text} mb-5 flex h-14 w-14 items-center justify-center rounded-xl">
               {@html serviceIcons[i % 3]}
             </div>
-            <h3 class="text-xl font-bold text-gray-900 mb-3">{service.title}</h3>
-            <p class="text-gray-600 text-sm leading-relaxed">{service.description}</p>
+            <h3 class="mb-3 text-xl font-bold text-slate-900">{service.title}</h3>
+            <p class="text-sm leading-relaxed text-slate-600">{service.description}</p>
           </div>
-          <div class="px-8 pb-6">
-            <a href="/servicios" data-sveltekit-reload class="text-primary-600 font-medium text-sm hover:text-primary-700 transition-colors inline-flex items-center gap-1">
+          <div class="px-8 pb-7">
+            <a
+              href="/servicios"
+              data-sveltekit-reload
+              class="inline-flex items-center gap-1 text-sm font-semibold text-primary-700 transition-colors hover:text-primary-800"
+            >
               Más información
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
               </svg>
             </a>
           </div>
         </div>
       {/each}
+
       {#if services.length === 0}
-        <!-- Fallback static cards -->
         {#each ['Asesoría Legal', 'Apoyo Psicológico', 'Asistencia Social'] as title, i}
-          <div class="card-lift bg-white rounded-xl border border-gray-100 shadow-sm p-8">
-            <div class="{serviceColors[i].bg} {serviceColors[i].text} rounded-xl h-14 w-14 flex items-center justify-center mb-5">
+          <div class="card-lift rounded-2xl p-8">
+            <div class="{serviceColors[i].bg} {serviceColors[i].text} mb-5 flex h-14 w-14 items-center justify-center rounded-xl">
               {@html serviceIcons[i]}
             </div>
-            <h3 class="text-xl font-bold text-gray-900 mb-3">{title}</h3>
-            <p class="text-gray-600 text-sm">Orientación y apoyo profesional para su familia.</p>
+            <h3 class="mb-3 text-xl font-bold text-slate-900">{title}</h3>
+            <p class="text-sm text-slate-600">Orientación y apoyo profesional para su familia.</p>
           </div>
         {/each}
       {/if}
@@ -189,76 +210,88 @@
   </div>
 </section>
 
-<!-- Photo Carousel -->
 {#if slides.length > 0}
-<section class="py-20 bg-gray-50">
-  <div class="container mx-auto px-6">
-    <div class="text-center mb-10">
-      <h2 class="text-3xl md:text-4xl font-bold text-gray-900">Nuestra Comunidad</h2>
-      <p class="text-gray-600 mt-2">Momentos de nuestros talleres, eventos y actividades.</p>
-    </div>
-    <div class="relative w-full max-w-4xl mx-auto h-[28rem] sm:h-[32rem] md:h-[36rem] rounded-2xl overflow-hidden shadow-xl" role="region" aria-label="Carrusel de fotos">
-      {#each slides as slide, index}
-        {#if index === currentSlide}
-          <div class="absolute inset-0" transition:fade={{ duration: 500 }}>
-            <img src={slide.src} alt={slide.alt} class="w-full h-full object-cover" />
-            <div class="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent"></div>
+  <section class="py-16 sm:py-20">
+    <div class="container mx-auto px-6">
+      <div class="mb-10 text-center">
+        <p class="mb-3 text-sm font-semibold uppercase tracking-[0.18em] text-primary-600">Vida Comunitaria</p>
+        <h2 class="text-3xl font-bold text-slate-900 md:text-4xl">Nuestra Comunidad</h2>
+        <p class="mt-2 text-slate-600">Momentos de nuestros talleres, eventos y actividades.</p>
+      </div>
+
+      <div class="relative mx-auto h-[28rem] w-full max-w-4xl overflow-hidden rounded-3xl border border-slate-200/70 shadow-[0_30px_60px_rgba(13,33,56,0.22)] sm:h-[32rem] md:h-[36rem]" role="region" aria-label="Carrusel de fotos">
+        {#each slides as slide, index}
+          {#if index === currentSlide}
+            <div class="absolute inset-0" transition:fade={{ duration: 500 }}>
+              <img src={slide.src} alt={slide.alt} class="h-full w-full object-cover" />
+              <div class="absolute inset-0 bg-gradient-to-t from-slate-950/45 via-transparent to-transparent"></div>
+            </div>
+          {/if}
+        {/each}
+
+        {#if slides.length > 1}
+          <button on:click={prevSlide} class="absolute left-4 top-1/2 -translate-y-1/2 rounded-full border border-white/35 bg-white/80 p-2.5 text-slate-800 shadow-md backdrop-blur-sm transition-all hover:scale-105 hover:bg-white" aria-label="Anterior">
+            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+          <button on:click={nextSlide} class="absolute right-4 top-1/2 -translate-y-1/2 rounded-full border border-white/35 bg-white/80 p-2.5 text-slate-800 shadow-md backdrop-blur-sm transition-all hover:scale-105 hover:bg-white" aria-label="Siguiente">
+            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+
+          <div class="absolute bottom-4 left-1/2 flex -translate-x-1/2 gap-2">
+            {#each slides as _, i}
+              <button
+                class="h-2.5 w-2.5 rounded-full transition-all {i === currentSlide ? 'bg-white scale-110' : 'bg-white/50'}"
+                on:click={() => currentSlide = i}
+                aria-label="Ir a imagen {i + 1}"
+              ></button>
+            {/each}
           </div>
         {/if}
-      {/each}
-      {#if slides.length > 1}
-        <button on:click={prevSlide} class="absolute left-4 top-1/2 -translate-y-1/2 bg-white/80 backdrop-blur-sm p-2.5 rounded-full shadow-md hover:bg-white transition-colors" aria-label="Anterior">
-          <svg class="w-5 h-5 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
-        </button>
-        <button on:click={nextSlide} class="absolute right-4 top-1/2 -translate-y-1/2 bg-white/80 backdrop-blur-sm p-2.5 rounded-full shadow-md hover:bg-white transition-colors" aria-label="Siguiente">
-          <svg class="w-5 h-5 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-        </button>
-        <!-- Dots -->
-        <div class="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
-          {#each slides as _, i}
-            <button
-              class="w-2.5 h-2.5 rounded-full transition-all {i === currentSlide ? 'bg-white scale-110' : 'bg-white/50'}"
-              on:click={() => currentSlide = i}
-              aria-label="Ir a imagen {i + 1}"
-            ></button>
-          {/each}
-        </div>
-      {/if}
+      </div>
     </div>
-  </div>
-</section>
+  </section>
 {/if}
 
-<!-- Galería (grid from CMS section "Galería") -->
 {#if gallerySectionImages.length > 0}
-<section class="py-20 bg-white">
-  <div class="container mx-auto px-4 sm:px-6">
-    <div class="text-center mb-10">
-      <h2 class="text-3xl md:text-4xl font-bold text-gray-900">Galería</h2>
-      <p class="text-gray-600 mt-2 max-w-2xl mx-auto">Algunos momentos de nuestro trabajo y comunidad.</p>
+  <section class="bg-white/70 py-16 sm:py-20">
+    <div class="container mx-auto px-4 sm:px-6">
+      <div class="mb-10 text-center">
+        <h2 class="text-3xl font-bold text-slate-900 md:text-4xl">Galería</h2>
+        <p class="mx-auto mt-2 max-w-2xl text-slate-600">Algunos momentos de nuestro trabajo y comunidad.</p>
+      </div>
+      <div class="mx-auto grid max-w-5xl grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
+        {#each gallerySectionImages as img}
+          <div class="group overflow-hidden rounded-2xl border border-slate-200/80 shadow-[0_14px_28px_rgba(16,39,67,0.12)] aspect-square">
+            <img
+              src={img.src}
+              alt={img.alt}
+              class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+              loading="lazy"
+            />
+          </div>
+        {/each}
+      </div>
     </div>
-    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 max-w-5xl mx-auto">
-      {#each gallerySectionImages as img}
-        <div class="rounded-xl overflow-hidden shadow-md aspect-square">
-          <img src={img.src} alt={img.alt} class="w-full h-full object-cover" loading="lazy" />
-        </div>
-      {/each}
-    </div>
-  </div>
-</section>
+  </section>
 {/if}
 
-<!-- CTA Section -->
-<section class="bg-gradient-to-br from-primary-700 via-primary-800 to-accent-700 text-white">
-  <div class="container mx-auto px-6 py-16 md:py-20 text-center relative">
-    <div class="max-w-2xl mx-auto">
-      <h2 class="text-3xl md:text-4xl font-bold mb-4">¿Listo para dar el primer paso?</h2>
-      <p class="text-primary-100 mb-8 text-lg leading-relaxed">
+<section class="relative overflow-hidden bg-gradient-to-br from-primary-900 via-primary-800 to-accent-700 text-white">
+  <div class="spotlight -left-24 top-10 h-40 w-72 bg-primary-300"></div>
+  <div class="spotlight -right-20 bottom-8 h-40 w-72 bg-accent-400"></div>
+
+  <div class="container relative mx-auto px-6 py-16 text-center md:py-20">
+    <div class="glass-panel mx-auto max-w-3xl rounded-3xl border-white/20 bg-white/10 p-8 text-white sm:p-10">
+      <h2 class="mb-4 text-3xl font-bold md:text-4xl">¿Listo para dar el primer paso?</h2>
+      <p class="mb-8 text-lg leading-relaxed text-primary-100">
         Nuestro equipo está aquí para ayudarle. Contáctenos hoy para programar una consulta confidencial.
       </p>
       <a
         href="/contacto"
-        class="inline-block bg-white text-primary-700 font-bold py-3.5 px-8 rounded-lg text-lg hover:bg-primary-50 transition-all shadow-lg hover:shadow-xl"
+        class="btn-elevated inline-block rounded-xl bg-white px-8 py-3.5 text-lg font-bold text-primary-800 shadow-[0_18px_34px_rgba(3,20,41,0.34)] transition-all duration-300 hover:-translate-y-1 hover:bg-primary-50"
       >
         Habla con Nosotros
       </a>

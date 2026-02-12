@@ -21,6 +21,16 @@
 
 .ant-layout-sider-collapsed .sidebar-brand-logo {
   margin: 0;
+  max-width: 48px;
+  aspect-ratio: 1;
+}
+
+.ant-layout-sider-collapsed .sidebar-brand-logo .sidebar-brand-img,
+.ant-layout-sider-collapsed .sidebar-brand-logo .sidebar-brand-img img {
+  width: 48px !important;
+  height: 48px !important;
+  min-width: 48px;
+  min-height: 48px;
 }
 
 /* Custom Dashboard Styles */

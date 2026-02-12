@@ -1,5 +1,5 @@
 // admin-portal/src/app/login/page.tsx
-// Login page with CAF indigo/violet branding, mobile-responsive, and secure auth.
+// Refined login page with polished lighting, depth, and improved branding.
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
@@ -82,7 +82,7 @@ export default function LoginPage() {
 
   if (!mounted || isAuthenticated) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
+      <div className="login-loading">
         <Spin size="large" />
       </div>
     );
@@ -91,48 +91,65 @@ export default function LoginPage() {
   return (
     <ClientOnly>
       <div className="login-page">
-        {/* Left decorative panel (hidden on mobile) */}
-        <div className="login-brand-panel">
+        <div className="login-aura login-aura-left" />
+        <div className="login-aura login-aura-right" />
+
+        <aside className="login-brand-panel">
+          <div className="login-brand-pattern" />
+          <div className="login-brand-glow login-brand-glow-one" />
+          <div className="login-brand-glow login-brand-glow-two" />
+
           <div className="login-brand-inner">
-            <div className="login-brand-logo-wrap">
-              <Image
-                src="/logo.png"
-                alt="CAF Logo"
-                width={80}
-                height={80}
-                className="login-brand-logo"
-                onError={(e: any) => { e.currentTarget.style.display = 'none'; }}
-                priority
-              />
+            <div className="login-brand-logo-shell">
+              <div className="login-brand-logo-frame">
+                <Image
+                  src="/logo.png"
+                  alt="CAF Logo"
+                  width={90}
+                  height={90}
+                  className="login-brand-logo"
+                  onError={(e: any) => { e.currentTarget.style.display = 'none'; }}
+                  priority
+                />
+              </div>
             </div>
-            <h1 className="login-brand-title">Centro de Apoyo<br/>para la Familia A.C.</h1>
+
+            <span className="login-brand-eyebrow">Portal Institucional CAF</span>
+            <h1 className="login-brand-title">Centro de Apoyo para la Familia A.C.</h1>
             <p className="login-brand-subtitle">
               Brindamos apoyo legal, psicológico y social a familias que lo necesitan.
             </p>
-          </div>
-          <div className="login-brand-dots" />
-        </div>
 
-        {/* Right login form */}
-        <div className="login-form-panel">
-          <div className="login-form-container">
-            {/* Mobile-only logo */}
-            <div className="login-mobile-logo">
-              <Image
-                src="/logo.png"
-                alt="CAF Logo"
-                width={56}
-                height={56}
-                onError={(e: any) => { e.currentTarget.style.display = 'none'; }}
-                priority
-              />
+            <ul className="login-brand-highlights">
+              <li>Asesoría legal y social confiable</li>
+              <li>Seguimiento profesional y seguro</li>
+              <li>Atención con enfoque humano</li>
+            </ul>
+          </div>
+        </aside>
+
+        <section className="login-form-panel">
+          <div className="login-form-shell">
+            <div className="login-mobile-brand">
+              <span className="login-mobile-logo-shell">
+                <Image
+                  src="/logo.png"
+                  alt="CAF Logo"
+                  width={58}
+                  height={58}
+                  className="login-mobile-logo"
+                  onError={(e: any) => { e.currentTarget.style.display = 'none'; }}
+                  priority
+                />
+              </span>
+              <span className="login-mobile-text">Centro de Apoyo para la Familia</span>
             </div>
 
-            <div style={{ textAlign: 'center', marginBottom: 32 }}>
-              <Title level={3} style={{ margin: 0, color: '#1e293b', fontWeight: 700 }}>
+            <div className="login-form-header">
+              <Title level={3} className="login-form-title">
                 Iniciar Sesión
               </Title>
-              <Text style={{ color: '#64748b', fontSize: 14 }}>
+              <Text className="login-form-subtitle">
                 Acceda a su cuenta para continuar
               </Text>
             </div>
@@ -143,7 +160,7 @@ export default function LoginPage() {
                 description={authError}
                 type="error"
                 showIcon
-                style={{ marginBottom: 16, borderRadius: 8 }}
+                className="login-auth-alert"
                 closable
                 onClose={clearError}
               />
@@ -159,32 +176,32 @@ export default function LoginPage() {
             >
               <Form.Item
                 name="email"
-                label={<span style={{ fontWeight: 500, color: '#374151' }}>Correo Electrónico</span>}
+                label={<span className="login-label">Correo Electrónico</span>}
                 rules={[
-                  { required: true, message: 'Ingrese su correo electr\u00F3nico' },
-                  { type: 'email', message: 'Ingrese un correo v\u00E1lido' }
+                  { required: true, message: 'Ingrese su correo electrónico' },
+                  { type: 'email', message: 'Ingrese un correo válido' }
                 ]}
               >
                 <Input
-                  prefix={<UserOutlined style={{ color: '#9ca3af' }} />}
+                  prefix={<UserOutlined style={{ color: '#90a1b8' }} />}
                   placeholder="correo@ejemplo.com"
                   autoComplete="email"
-                  style={{ borderRadius: 10, height: 48 }}
+                  className="login-input"
                 />
               </Form.Item>
 
               <Form.Item
                 name="password"
-                label={<span style={{ fontWeight: 500, color: '#374151' }}>Contraseña</span>}
+                label={<span className="login-label">Contraseña</span>}
                 rules={[
-                  { required: true, message: 'Ingrese su contrase\u00F1a' },
-                  { min: 6, message: 'M\u00EDnimo 6 caracteres' }
+                  { required: true, message: 'Ingrese su contraseña' },
+                  { min: 6, message: 'Mínimo 6 caracteres' }
                 ]}
               >
                 <Input.Password
-                  prefix={<LockOutlined style={{ color: '#9ca3af' }} />}
+                  prefix={<LockOutlined style={{ color: '#90a1b8' }} />}
                   autoComplete="current-password"
-                  style={{ borderRadius: 10, height: 48 }}
+                  className="login-input"
                 />
               </Form.Item>
 
@@ -194,124 +211,350 @@ export default function LoginPage() {
                   htmlType="submit"
                   loading={loading}
                   block
-                  style={{
-                    height: 50,
-                    fontSize: 16,
-                    fontWeight: 600,
-                    borderRadius: 10,
-                    background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
-                    border: 'none',
-                    boxShadow: '0 4px 14px rgba(79, 70, 229, 0.35)',
-                  }}
+                  className="login-submit-btn"
                 >
-                  {loading ? 'Iniciando Sesi\u00F3n...' : 'Iniciar Sesi\u00F3n'}
+                  {loading ? 'Iniciando Sesión...' : 'Iniciar Sesión'}
                 </Button>
               </Form.Item>
             </Form>
 
-            <div style={{ textAlign: 'center', marginTop: 32, paddingTop: 20, borderTop: '1px solid #f1f5f9' }}>
-              <Text style={{ fontSize: 12, color: '#94a3b8' }}>
+            <div className="login-form-footer">
+              <Text className="login-form-footer-text">
                 Centro de Apoyo para la Familia A.C.
               </Text>
             </div>
           </div>
-        </div>
+        </section>
 
         <style jsx global>{`
-          .login-page {
+          .login-loading {
             display: flex;
             min-height: 100vh;
-            background: #f8fafc;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(140deg, #f3f8ff 0%, #ebf3fb 46%, #e8f5f3 100%);
+            font-family: 'Avenir Next', 'Segoe UI', sans-serif;
+          }
+
+          .login-page {
+            position: relative;
+            display: flex;
+            min-height: 100vh;
+            overflow: hidden;
+            background: linear-gradient(140deg, #f4f9ff 0%, #eef4fb 52%, #e8f5f2 100%);
+            font-family: 'Avenir Next', 'Segoe UI', sans-serif;
+          }
+
+          .login-aura {
+            position: absolute;
+            border-radius: 999px;
+            filter: blur(64px);
+            opacity: 0.32;
+            pointer-events: none;
+          }
+
+          .login-aura-left {
+            width: 340px;
+            height: 340px;
+            background: #6aa4e7;
+            top: -110px;
+            left: -120px;
+          }
+
+          .login-aura-right {
+            width: 320px;
+            height: 320px;
+            background: #38c7b5;
+            right: -120px;
+            bottom: -120px;
           }
 
           .login-brand-panel {
             display: none;
             position: relative;
-            width: 45%;
-            background: linear-gradient(135deg, #4f46e5 0%, #6d28d9 50%, #7c3aed 100%);
+            width: 46%;
+            min-width: 420px;
             overflow: hidden;
+            background: linear-gradient(145deg, #0f3f74 0%, #12508f 48%, #0f8a7d 100%);
+            border-right: 1px solid rgba(255, 255, 255, 0.22);
+            box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.08);
+          }
+
+          .login-brand-pattern {
+            position: absolute;
+            inset: 0;
+            background-image:
+              radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.17) 1px, transparent 1px);
+            background-size: 26px 26px;
+            opacity: 0.4;
+          }
+
+          .login-brand-glow {
+            position: absolute;
+            border-radius: 999px;
+            filter: blur(48px);
+            opacity: 0.45;
+          }
+
+          .login-brand-glow-one {
+            width: 220px;
+            height: 220px;
+            top: -60px;
+            right: -50px;
+            background: rgba(166, 239, 230, 0.75);
+          }
+
+          .login-brand-glow-two {
+            width: 260px;
+            height: 260px;
+            bottom: -100px;
+            left: -60px;
+            background: rgba(89, 150, 222, 0.72);
           }
 
           .login-brand-inner {
             position: relative;
             z-index: 2;
             display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
             height: 100%;
-            padding: 48px;
-            text-align: center;
+            flex-direction: column;
+            justify-content: center;
+            padding: 56px 58px;
+            color: #ffffff;
           }
 
-          .login-brand-logo-wrap {
-            width: 88px;
-            height: 88px;
-            border-radius: 20px;
-            background: rgba(255,255,255,0.15);
-            backdrop-filter: blur(8px);
+          .login-brand-logo-shell {
+            margin-bottom: 26px;
+            width: fit-content;
+            padding: 2px;
+            border-radius: 22px;
+            background: linear-gradient(145deg, rgba(255, 255, 255, 0.92), rgba(166, 243, 237, 0.86));
+            box-shadow: 0 18px 36px rgba(7, 23, 43, 0.34);
+          }
+
+          .login-brand-logo-frame {
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-bottom: 24px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+            width: 96px;
+            height: 96px;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.95);
           }
 
           .login-brand-logo {
-            border-radius: 12px;
+            border-radius: 14px;
+            object-fit: contain;
+            filter: saturate(1.1) contrast(1.04);
+          }
+
+          .login-brand-eyebrow {
+            display: inline-flex;
+            margin-bottom: 12px;
+            width: fit-content;
+            border: 1px solid rgba(255, 255, 255, 0.36);
+            border-radius: 999px;
+            padding: 6px 14px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.9);
+            background: rgba(255, 255, 255, 0.11);
+            backdrop-filter: blur(8px);
           }
 
           .login-brand-title {
-            font-size: 28px;
+            margin: 0;
+            max-width: 470px;
+            font-size: 40px;
+            line-height: 1.18;
             font-weight: 800;
-            color: white;
-            line-height: 1.3;
-            margin-bottom: 12px;
+            text-wrap: balance;
           }
 
           .login-brand-subtitle {
-            font-size: 15px;
-            color: rgba(255,255,255,0.75);
-            max-width: 320px;
-            line-height: 1.6;
+            margin: 14px 0 20px;
+            max-width: 440px;
+            font-size: 16px;
+            line-height: 1.7;
+            color: rgba(245, 250, 255, 0.88);
           }
 
-          .login-brand-dots {
-            position: absolute;
-            inset: 0;
-            z-index: 1;
-            background-image: radial-gradient(circle, rgba(255,255,255,0.08) 1px, transparent 1px);
-            background-size: 24px 24px;
+          .login-brand-highlights {
+            margin: 0;
+            padding-left: 18px;
+            display: grid;
+            gap: 8px;
+            font-size: 14px;
+            color: rgba(243, 249, 255, 0.85);
           }
 
           .login-form-panel {
+            position: relative;
+            z-index: 1;
             flex: 1;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 24px;
+            padding: 26px;
           }
 
-          .login-form-container {
+          .login-form-shell {
             width: 100%;
-            max-width: 400px;
+            max-width: 430px;
+            border-radius: 24px;
+            background: rgba(255, 255, 255, 0.76);
+            border: 1px solid rgba(138, 160, 186, 0.26);
+            backdrop-filter: blur(16px);
+            box-shadow:
+              0 28px 52px rgba(8, 26, 49, 0.18),
+              inset 0 1px 0 rgba(255, 255, 255, 0.85);
+            padding: 34px;
+          }
+
+          .login-mobile-brand {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 20px;
+          }
+
+          .login-mobile-logo-shell {
+            display: inline-flex;
+            border-radius: 18px;
+            padding: 2px;
+            background: linear-gradient(145deg, #1f5eb3 0%, #17b7a5 100%);
+            box-shadow: 0 12px 26px rgba(15, 70, 126, 0.24);
           }
 
           .login-mobile-logo {
-            display: flex;
-            justify-content: center;
-            margin-bottom: 24px;
+            border-radius: 16px;
+            background: #ffffff;
+            padding: 6px;
+            object-fit: contain;
           }
 
-          @media (min-width: 768px) {
+          .login-mobile-text {
+            font-size: 13px;
+            font-weight: 600;
+            color: #49617d;
+            letter-spacing: 0.01em;
+          }
+
+          .login-form-header {
+            text-align: center;
+            margin-bottom: 26px;
+          }
+
+          .login-form-title.ant-typography {
+            margin: 0;
+            color: #0f2747;
+            font-weight: 800;
+            letter-spacing: -0.01em;
+          }
+
+          .login-form-subtitle.ant-typography {
+            color: #59718d;
+            font-size: 14px;
+          }
+
+          .login-auth-alert {
+            margin-bottom: 16px;
+            border-radius: 10px;
+          }
+
+          .login-label {
+            font-weight: 600;
+            color: #334b67;
+            letter-spacing: 0.01em;
+          }
+
+          .login-form-shell .login-input,
+          .login-form-shell .login-input.ant-input-affix-wrapper {
+            border-radius: 12px !important;
+            border-color: #c5d3e2 !important;
+            background: rgba(255, 255, 255, 0.92) !important;
+            min-height: 50px;
+            transition: border-color 0.22s ease, box-shadow 0.22s ease, transform 0.22s ease;
+          }
+
+          .login-form-shell .login-input.ant-input-affix-wrapper:hover,
+          .login-form-shell .login-input:hover {
+            border-color: #92add0 !important;
+          }
+
+          .login-form-shell .login-input.ant-input-affix-wrapper-focused,
+          .login-form-shell .login-input:focus {
+            border-color: #1f5eb3 !important;
+            box-shadow: 0 0 0 4px rgba(31, 94, 179, 0.14) !important;
+          }
+
+          .login-submit-btn.ant-btn {
+            min-height: 52px;
+            border-radius: 12px;
+            border: none !important;
+            font-size: 16px;
+            font-weight: 700;
+            letter-spacing: 0.01em;
+            background: linear-gradient(135deg, #1f5eb3 0%, #17b7a5 100%) !important;
+            box-shadow: 0 12px 24px rgba(16, 76, 136, 0.3);
+            transition: transform 0.25s ease, box-shadow 0.25s ease, filter 0.25s ease;
+          }
+
+          .login-submit-btn.ant-btn:hover,
+          .login-submit-btn.ant-btn:focus {
+            transform: translateY(-1px);
+            box-shadow: 0 16px 28px rgba(13, 67, 121, 0.34);
+            filter: brightness(1.03);
+          }
+
+          .login-form-footer {
+            margin-top: 28px;
+            padding-top: 18px;
+            border-top: 1px solid rgba(184, 200, 218, 0.52);
+            text-align: center;
+          }
+
+          .login-form-footer-text.ant-typography {
+            font-size: 12px;
+            color: #7a8da3;
+            letter-spacing: 0.02em;
+          }
+
+          @media (max-width: 899px) {
+            .login-form-panel {
+              padding: 18px;
+            }
+
+            .login-form-shell {
+              max-width: 440px;
+              padding: 26px 22px;
+              border-radius: 20px;
+            }
+          }
+
+          @media (min-width: 900px) {
             .login-brand-panel {
               display: block;
             }
-            .login-mobile-logo {
+
+            .login-mobile-brand {
               display: none;
             }
+
             .login-form-panel {
-              padding: 48px;
+              padding: 46px;
+            }
+          }
+
+          @media (prefers-reduced-motion: reduce) {
+            .login-submit-btn.ant-btn,
+            .login-form-shell .login-input,
+            .login-form-shell .login-input.ant-input-affix-wrapper {
+              transition: none !important;
             }
           }
         `}</style>
