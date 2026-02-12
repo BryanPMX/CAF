@@ -13,6 +13,7 @@ export default function SidebarBrand() {
   const [avatarLoadError, setAvatarLoadError] = React.useState(false);
   const { user } = useAuth();
   const hasAvatar = Boolean(user?.avatarUrl) && !avatarLoadError;
+  const profileLabel = user?.firstName ? `Hola, ${user.firstName}` : 'Centro de Apoyo para la Familia';
 
   useEffect(() => {
     setAvatarLoadError(false);
@@ -21,15 +22,15 @@ export default function SidebarBrand() {
   return (
     <Link
       href="/app/profile"
-      className="sidebar-brand flex items-center justify-center px-3 py-4 min-h-[64px] w-full transition-colors hover:bg-white/[0.06]"
+      className="sidebar-brand group flex items-center gap-3 px-4 py-5 w-full transition-colors"
       aria-label="Ir a mi perfil"
     >
-      <div className="sidebar-brand-logo relative flex-shrink-0 flex items-center justify-center overflow-hidden rounded-full w-full max-w-[168px] aspect-square">
+      <div className="sidebar-brand-logo relative flex-shrink-0 flex items-center justify-center overflow-hidden rounded-2xl w-16 h-16">
         {hasAvatar ? (
           <AuthAvatar
             avatarUrl={user!.avatarUrl}
             alt="Mi perfil"
-            size={168}
+            size={64}
             className="sidebar-brand-img object-cover w-full h-full"
             onError={() => setAvatarLoadError(true)}
           />
@@ -37,21 +38,22 @@ export default function SidebarBrand() {
           <Image
             src="/logo.png"
             alt="CAF - Centro de Apoyo para la Familia"
-            width={168}
-            height={168}
+            width={64}
+            height={64}
             className="object-contain sidebar-brand-img w-full h-full"
             onError={() => setLogoError(true)}
             priority
             style={{ maxWidth: '100%', maxHeight: '100%', width: 'auto', height: 'auto' }}
           />
         ) : (
-          <div className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-lg bg-white/20 flex items-center justify-center">
-              <span className="text-base font-bold text-white">C</span>
-            </div>
-            <span className="sidebar-brand-label text-sm font-bold text-white tracking-wide">CAF</span>
+          <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
+            <span className="text-base font-bold text-white">C</span>
           </div>
         )}
+      </div>
+      <div className="sidebar-brand-copy min-w-0">
+        <p className="sidebar-brand-title">CAF Admin</p>
+        <p className="sidebar-brand-subtitle truncate">{profileLabel}</p>
       </div>
     </Link>
   );

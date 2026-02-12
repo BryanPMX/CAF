@@ -3,34 +3,266 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Sidebar brand: modern block with accent; collapsed = logo only centered */
+/* Dashboard shell + sidebar visual system */
+:root {
+  --sidebar-bg-strong: #0f172a;
+  --sidebar-bg-soft: #111c36;
+  --sidebar-border: rgba(148, 163, 184, 0.22);
+  --sidebar-text: #e2e8f0;
+  --sidebar-muted: #94a3b8;
+  --sidebar-surface: rgba(148, 163, 184, 0.16);
+  --sidebar-surface-strong: rgba(148, 163, 184, 0.28);
+  --sidebar-active-a: #2563eb;
+  --sidebar-active-b: #0891b2;
+}
+
+.dashboard-shell {
+  background: #eef2f7;
+}
+
+.admin-sider.ant-layout-sider {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(185deg, var(--sidebar-bg-soft) 0%, var(--sidebar-bg-strong) 65%) !important;
+  border-right: 1px solid rgba(15, 23, 42, 0.25);
+  box-shadow: 12px 0 28px rgba(2, 6, 23, 0.2);
+}
+
+.admin-sider.ant-layout-sider::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 18% -6%, rgba(56, 189, 248, 0.2), transparent 42%),
+    radial-gradient(circle at 120% 12%, rgba(37, 99, 235, 0.24), transparent 38%);
+}
+
+.admin-sider.ant-layout-sider .ant-layout-sider-children {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  min-height: 100%;
+  flex-direction: column;
+}
+
+.admin-sider-inner {
+  display: flex;
+  min-height: 100%;
+  flex-direction: column;
+}
+
 .sidebar-brand {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  margin: 12px 12px 8px;
+  border: 1px solid var(--sidebar-border);
+  border-radius: 16px;
+  background: rgba(15, 23, 42, 0.3);
+}
+
+.sidebar-brand:hover {
+  background: rgba(148, 163, 184, 0.1);
+}
+
+.sidebar-brand-logo {
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  box-shadow: 0 10px 20px rgba(2, 6, 23, 0.35);
+  background: rgba(15, 23, 42, 0.45);
+}
+
+.sidebar-brand-copy {
+  flex: 1;
+}
+
+.sidebar-brand-title {
+  margin: 0;
+  color: #ffffff;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.sidebar-brand-subtitle {
+  margin: 2px 0 0;
+  color: var(--sidebar-muted);
+  font-size: 0.74rem;
+  line-height: 1.2;
+}
+
+.admin-sider-role-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 8px 12px 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(56, 189, 248, 0.26);
+  background: linear-gradient(140deg, rgba(37, 99, 235, 0.22) 0%, rgba(8, 145, 178, 0.2) 100%);
+}
+
+.admin-sider-role-caption {
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(226, 232, 240, 0.72);
+}
+
+.admin-sider-role-value {
+  color: #ffffff;
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+
+.admin-sider-section-label {
+  margin: 0 18px 8px;
+  color: var(--sidebar-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 0.66rem;
+  font-weight: 600;
+}
+
+.admin-nav-menu.ant-menu {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 10px 14px;
+  border-inline-end: none !important;
+  background: transparent !important;
+}
+
+.admin-nav-menu.ant-menu-dark .ant-menu-item {
+  height: 44px;
+  line-height: 44px;
+  margin: 4px 0 !important;
+  border-radius: 12px;
+  color: var(--sidebar-text);
+  transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+.admin-nav-menu.ant-menu-dark .ant-menu-item .ant-menu-item-icon {
+  color: #cbd5e1;
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.admin-nav-menu .ant-menu-title-content a {
+  color: inherit !important;
+}
+
+.admin-nav-menu.ant-menu-dark .ant-menu-item:hover {
+  background: var(--sidebar-surface);
+  transform: translateX(2px);
+}
+
+.admin-nav-menu.ant-menu-dark .ant-menu-item:hover .ant-menu-item-icon {
+  color: #ffffff;
+}
+
+.admin-nav-menu.ant-menu-dark .ant-menu-item-selected {
+  background: linear-gradient(130deg, var(--sidebar-active-a) 0%, var(--sidebar-active-b) 100%) !important;
+  color: #ffffff !important;
+  box-shadow: 0 8px 20px rgba(8, 145, 178, 0.32);
+}
+
+.admin-nav-menu.ant-menu-dark .ant-menu-item-selected .ant-menu-item-icon {
+  color: #ffffff !important;
+}
+
+.admin-nav-menu.ant-menu .ant-menu-item-selected::after {
+  border-inline-end: none !important;
+}
+
+.admin-nav-menu::-webkit-scrollbar {
+  width: 6px;
+}
+
+.admin-nav-menu::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.admin-nav-menu::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.45);
+}
+
+.admin-nav-menu::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.65);
+}
+
+.admin-sider-footer {
+  padding: 10px 12px 14px;
+  border-top: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+.admin-sider-profile-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 42px;
+  padding: 9px 11px;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.26);
+  background: rgba(15, 23, 42, 0.34);
+  color: var(--sidebar-text);
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.admin-sider-profile-link:hover {
+  border-color: rgba(148, 163, 184, 0.45);
+  background: var(--sidebar-surface-strong);
+  color: #ffffff;
+}
+
+.admin-sider .ant-layout-sider-trigger {
+  border-top: 1px solid rgba(148, 163, 184, 0.18);
+  background: rgba(15, 23, 42, 0.6) !important;
+  color: #cbd5e1;
+  backdrop-filter: blur(8px);
+}
+
+.admin-sider .ant-layout-sider-trigger:hover {
+  background: rgba(15, 23, 42, 0.85) !important;
+  color: #ffffff;
 }
 
 .ant-layout-sider-collapsed .sidebar-brand {
+  margin: 12px 10px 8px;
   justify-content: center;
-  padding-left: 12px;
-  padding-right: 12px;
-  min-height: 64px;
+  padding-inline: 8px !important;
 }
 
-.ant-layout-sider-collapsed .sidebar-brand-label {
+.ant-layout-sider-collapsed .sidebar-brand-copy {
   display: none;
 }
 
 .ant-layout-sider-collapsed .sidebar-brand-logo {
-  margin: 0;
-  max-width: 48px;
-  aspect-ratio: 1;
+  width: 44px !important;
+  height: 44px !important;
+  border-radius: 14px;
 }
 
 .ant-layout-sider-collapsed .sidebar-brand-logo .sidebar-brand-img,
 .ant-layout-sider-collapsed .sidebar-brand-logo .sidebar-brand-img img {
-  width: 48px !important;
-  height: 48px !important;
-  min-width: 48px;
-  min-height: 48px;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.ant-layout-sider-collapsed .admin-nav-menu.ant-menu-dark .ant-menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-inline: calc(50% - 22px) !important;
+}
+
+.ant-layout-sider-collapsed .admin-sider-footer {
+  padding-inline: 8px;
+}
+
+.ant-layout-sider-collapsed .admin-sider-profile-link {
+  justify-content: center;
+  padding-inline: 0;
 }
 
 /* Custom Dashboard Styles */

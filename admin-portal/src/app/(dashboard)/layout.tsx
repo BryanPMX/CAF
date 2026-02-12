@@ -1,18 +1,15 @@
 // admin-portal/src/app/(dashboard)/layout.tsx
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Layout, Menu, Spin, Button, Space, Alert } from 'antd';
+import { Layout, Menu, Spin, Button, Alert } from 'antd';
 import { LogoutOutlined } from '@ant-design/icons';
 import SidebarBrand from './components/SidebarBrand';
 import { useAuth } from '@/context/AuthContext';
-import { UserRole } from '@/app/lib/types';
 import {
   getNavigationItemsForRole,
-  getRoleDefinition,
-  STAFF_ROLES,
   type StaffRoleKey
 } from '@/config/roles';
 import {
@@ -63,6 +60,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   // Prevent hydration issues by ensuring we're on the client side
   const [isHydrated, setIsHydrated] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
 
   useEffect(() => {
     setIsHydrated(true);
@@ -73,24 +71,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     isLoading,
     isAuthenticated,
     logout,
-    isAdmin,
-    isStaff
   } = useAuth();
   const [profileError, setProfileError] = useState<string | null>(null);
 
-  // Helper function to check if user should be redirected based on role
-  const checkRoleBasedRedirect = useCallback((role: UserRole, currentPath: string): string | null => {
-    // Admin and office managers can access all routes - no forced redirect
-    // Regular staff should not be on admin routes (though admin section is now removed)
-    if ((role === 'lawyer' || role === 'psychologist' || role === 'receptionist' || role === 'event_coordinator') && currentPath.startsWith('/admin')) {
-      return '/';
-    }
-
-    return null; // No redirect needed
-  }, []);
-
   // Get selected menu key based on current path
-  const selectedKey = useMemo(() => {
+  const selectedKey = useMemo<string | null>(() => {
     if (pathname === '/') return 'dashboard';
     if (pathname.startsWith('/app/appointments')) return 'appointments';
     if (pathname.startsWith('/app/cases')) return 'cases';
@@ -99,7 +84,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (pathname.startsWith('/app/web-content')) return 'web-content';
     if (pathname.startsWith('/app/reports')) return 'reports';
     if (pathname.startsWith('/app/records')) return 'records';
-    return 'dashboard';
+    return null;
   }, [pathname]);
 
   // Filter menu items based on user role using centralized role configuration
@@ -136,6 +121,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     // Fallback for unknown roles
     return ROLE_DISPLAY_CONFIG.client;
   }, [user?.role]);
+
+  const sidebarUserLabel = useMemo(() => {
+    if (user?.firstName && user?.lastName) return `${user.firstName} ${user.lastName}`;
+    if (user?.firstName) return user.firstName;
+    if (user?.email) return user.email;
+    return 'Mi perfil';
+  }, [user?.firstName, user?.lastName, user?.email]);
 
   // Robust authentication guard - prevents infinite loading loops
   // Only perform redirect if hydrated to avoid server-side rendering issues
@@ -181,16 +173,39 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   return (
     <ErrorBoundary>
       <ClientOnly fallback={<div className="flex items-center justify-center min-h-screen"><Spin size="large" /></div>}>
-        <Layout style={{ minHeight: '100vh' }}>
-        <Sider collapsible>
-          <SidebarBrand />
-          <Menu
-            theme="dark"
-            selectedKeys={[selectedKey]}
-            mode="inline"
-            items={filteredMenuItems}
-          />
-        </Sider>
+        <Layout style={{ minHeight: '100vh' }} className="dashboard-shell">
+          <Sider
+            collapsible
+            width={272}
+            collapsedWidth={88}
+            collapsed={collapsed}
+            onCollapse={(nextCollapsed) => setCollapsed(nextCollapsed)}
+            className="admin-sider"
+          >
+            <div className="admin-sider-inner">
+              <SidebarBrand />
+              {!collapsed && roleDisplay && (
+                <div className="admin-sider-role-card" aria-label={`Rol activo: ${roleDisplay.label}`}>
+                  <span className="admin-sider-role-caption">Rol activo</span>
+                  <span className="admin-sider-role-value">{roleDisplay.label}</span>
+                </div>
+              )}
+              {!collapsed && <p className="admin-sider-section-label">Navegación</p>}
+              <Menu
+                theme="dark"
+                className="admin-nav-menu"
+                selectedKeys={selectedKey ? [selectedKey] : []}
+                mode="inline"
+                items={filteredMenuItems}
+              />
+              <div className="admin-sider-footer">
+                <Link href="/app/profile" className="admin-sider-profile-link" aria-label="Ir al perfil">
+                  <UserOutlined />
+                  {!collapsed && <span className="truncate">{sidebarUserLabel}</span>}
+                </Link>
+              </div>
+            </div>
+          </Sider>
         
         <Layout>
           <Header className="dashboard-header" style={{ background: '#fff', padding: '0 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9' }}>
