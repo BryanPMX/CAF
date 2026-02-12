@@ -2,6 +2,16 @@
 // Fetches services from the public CMS API. Falls back to defaults if unreachable.
 import { config } from '$lib/config.js';
 
+const baseUrl = (typeof config?.api?.baseUrl === 'string' && config.api.baseUrl) || 'https://api.caf-mexico.com/api/v1';
+
+async function safeJson(res) {
+  try {
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
 const FALLBACK_SERVICES = [
   {
     title: 'Asesoría Legal',
@@ -26,10 +36,10 @@ const FALLBACK_SERVICES = [
 /** @type {import('./$types').PageServerLoad} */
 export async function load({ fetch }) {
   try {
-    const res = await fetch(`${config.api.baseUrl}/public/site-services`);
+    const res = await fetch(`${baseUrl}/public/site-services`);
     if (res.ok) {
-      const data = await res.json();
-      const services = data.services || [];
+      const data = await safeJson(res);
+      const services = (data?.services && Array.isArray(data.services)) ? data.services : [];
       return { services: services.length > 0 ? services : FALLBACK_SERVICES };
     }
   } catch (err) {

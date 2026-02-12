@@ -403,6 +403,7 @@ func main() {
 		admin.POST("/offices", handlers.CreateOffice(cont.GetOfficeRepository()))
 		admin.GET("/offices", handlers.GetOffices(cont.GetOfficeRepository()))
 		admin.GET("/offices/:id", handlers.GetOfficeByID(cont.GetOfficeRepository()))
+		admin.GET("/offices/:id/detail", handlers.GetOfficeDetailWithStaff(database))
 		admin.PATCH("/offices/:id", handlers.UpdateOffice(cont.GetOfficeRepository()))
 		admin.DELETE("/offices/:id", handlers.DeleteOffice(cont.GetOfficeRepository()))
 
@@ -584,8 +585,10 @@ func main() {
 		officeManager.GET("/users", handlers.GetUsers(database))
 		officeManager.GET("/users/search", handlers.SearchClients(database))
 
-		// Offices list (managers can see all offices for reference)
+		// Offices list and detail (managers can see all offices for reference)
 		officeManager.GET("/offices", handlers.GetOffices(cont.GetOfficeRepository()))
+		officeManager.GET("/offices/:id", handlers.GetOfficeByID(cont.GetOfficeRepository()))
+		officeManager.GET("/offices/:id/detail", handlers.GetOfficeDetailWithStaff(database))
 
 		// Case Management for Office Managers
 		officeManager.GET("/cases", middleware.CaseAccessControl(database), handlers.GetCasesEnhanced(database))

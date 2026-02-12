@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Button, Table, message, Spin, Popconfirm, Drawer, Descriptions, Tag, List, Avatar, Card, Statistic, Row, Col, Typography, Space, Empty } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, TeamOutlined, BankOutlined, PhoneOutlined, EnvironmentOutlined, MailOutlined, FolderOpenOutlined, CalendarOutlined } from '@ant-design/icons';
+import { PlusOutlined, EditOutlined, DeleteOutlined, TeamOutlined, UserOutlined, BankOutlined, PhoneOutlined, EnvironmentOutlined, MailOutlined, FolderOpenOutlined, CalendarOutlined } from '@ant-design/icons';
 import { apiClient } from '@/app/lib/api';
 import OfficeModal from './components/OfficeModal';
 import { useHydrationSafe } from '@/hooks/useHydrationSafe';
@@ -38,6 +38,7 @@ interface OfficeDetail {
   activeCases: number;
   totalAppointments: number;
   staffCount: number;
+  clientCount?: number;
 }
 
 // Role color mapping for consistent badges
@@ -133,6 +134,7 @@ const OfficeManagementPage = () => {
         activeCases: 0,
         totalAppointments: 0,
         staffCount: 0,
+        clientCount: 0,
       });
       console.error('Failed to load office detail:', error);
     } finally {
@@ -237,32 +239,42 @@ const OfficeManagementPage = () => {
         ) : selectedOffice ? (
           <div className="space-y-6">
             {/* Office Stats */}
-            <Row gutter={16}>
-              <Col span={8}>
+            <Row gutter={[16, 16]}>
+              <Col span={12}>
                 <Card size="small">
                   <Statistic
                     title="Personal"
-                    value={selectedOffice.staffCount}
+                    value={selectedOffice.staffCount ?? 0}
                     prefix={<TeamOutlined />}
                     valueStyle={{ color: '#1890ff' }}
                   />
                 </Card>
               </Col>
-              <Col span={8}>
+              <Col span={12}>
+                <Card size="small">
+                  <Statistic
+                    title="Clientes"
+                    value={selectedOffice.clientCount ?? 0}
+                    prefix={<UserOutlined />}
+                    valueStyle={{ color: '#fa8c16' }}
+                  />
+                </Card>
+              </Col>
+              <Col span={12}>
                 <Card size="small">
                   <Statistic
                     title="Casos Activos"
-                    value={selectedOffice.activeCases}
+                    value={selectedOffice.activeCases ?? 0}
                     prefix={<FolderOpenOutlined />}
                     valueStyle={{ color: '#52c41a' }}
                   />
                 </Card>
               </Col>
-              <Col span={8}>
+              <Col span={12}>
                 <Card size="small">
                   <Statistic
                     title="Citas"
-                    value={selectedOffice.totalAppointments}
+                    value={selectedOffice.totalAppointments ?? 0}
                     prefix={<CalendarOutlined />}
                     valueStyle={{ color: '#722ed1' }}
                   />
@@ -287,11 +299,6 @@ const OfficeManagementPage = () => {
                 {selectedOffice.office.phoneCell && (
                   <Descriptions.Item label={<><PhoneOutlined /> Celular</>}>
                     {selectedOffice.office.phoneCell}
-                  </Descriptions.Item>
-                )}
-                {selectedOffice.office.code && (
-                  <Descriptions.Item label="Código">
-                    <Tag>{selectedOffice.office.code}</Tag>
                   </Descriptions.Item>
                 )}
               </Descriptions>

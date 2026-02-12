@@ -18,62 +18,85 @@ const DEFAULTS = {
   },
 };
 
+async function safeJson(res) {
+  try {
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
 /** @type {import('./$types').PageServerLoad} */
 export async function load({ fetch }) {
-  let content = DEFAULTS;
+  let content = { ...DEFAULTS };
   let images = [];
+  let galleryImages = [];
   let services = [];
+
+  const baseUrl = (typeof config?.api?.baseUrl === 'string' && config.api.baseUrl) || 'https://api.caf-mexico.com/api/v1';
 
   try {
     const [contentRes, heroImagesRes, galleryImagesRes, servicesRes] = await Promise.allSettled([
-      fetch(`${config.api.baseUrl}/public/site-content`),
-      fetch(`${config.api.baseUrl}/public/site-images?section=hero`),
-      fetch(`${config.api.baseUrl}/public/site-images?section=gallery`),
-      fetch(`${config.api.baseUrl}/public/site-services`),
+      fetch(`${baseUrl}/public/site-content`),
+      fetch(`${baseUrl}/public/site-images?section=hero`),
+      fetch(`${baseUrl}/public/site-images?section=inicio`),
+      fetch(`${baseUrl}/public/site-services`),
     ]);
 
-    // Parse content
-    if (contentRes.status === 'fulfilled' && contentRes.value.ok) {
-      const data = await contentRes.value.json();
-      const grouped = data.content || {};
-      // Flatten key-value pairs into section objects
-      for (const [section, items] of Object.entries(grouped)) {
-        if (!content[section]) content[section] = {};
-        for (const item of items) {
-          content[section][item.contentKey] = item.contentValue;
+    // Parse content (safe JSON)
+    if (contentRes.status === 'fulfilled' && contentRes.value?.ok) {
+      const data = await safeJson(contentRes.value) || {};
+      if (data && typeof data.content === 'object' && data.content !== null) {
+        for (const [section, items] of Object.entries(data.content)) {
+          if (!Array.isArray(items)) continue;
+          if (!content[section] || typeof content[section] !== 'object') content[section] = {};
+          for (const item of items) {
+            if (item && item.contentKey != null) content[section][item.contentKey] = item.contentValue ?? '';
+          }
         }
       }
     }
 
     // Parse hero images
-    if (heroImagesRes.status === 'fulfilled' && heroImagesRes.value.ok) {
-      const data = await heroImagesRes.value.json();
-      images = (data.images || []).map(img => ({
-        src: img.imageUrl,
-        alt: img.altText || img.title || 'Imagen comunitaria',
-      }));
+    if (heroImagesRes.status === 'fulfilled' && heroImagesRes.value?.ok) {
+      const data = await safeJson(heroImagesRes.value);
+      if (data && Array.isArray(data.images)) {
+        images = data.images.map(img => ({
+          src: img.imageUrl || '',
+          alt: img.altText || img.title || 'Imagen comunitaria',
+        }));
+      }
     }
 
-    // Parse gallery images and merge with hero images for the carousel
-    let galleryImages = [];
-    if (galleryImagesRes.status === 'fulfilled' && galleryImagesRes.value.ok) {
-      const data = await galleryImagesRes.value.json();
-      galleryImages = (data.images || []).map(img => ({
-        src: img.imageUrl,
-        alt: img.altText || img.title || 'Nuestra comunidad',
-      }));
+    // Inicio/carousel images: prefer "inicio" section, then gallery
+    if (galleryImagesRes.status === 'fulfilled' && galleryImagesRes.value?.ok) {
+      const data = await safeJson(galleryImagesRes.value);
+      if (data && Array.isArray(data.images)) {
+        galleryImages = data.images.map(img => ({
+          src: img.imageUrl || '',
+          alt: img.altText || img.title || 'Nuestra comunidad',
+        }));
+      }
+    }
+    if (galleryImages.length === 0 && heroImagesRes.status === 'fulfilled' && heroImagesRes.value?.ok) {
+      const data = await safeJson(heroImagesRes.value);
+      if (data && Array.isArray(data.images)) {
+        galleryImages = data.images.map(img => ({
+          src: img.imageUrl || '',
+          alt: img.altText || img.title || 'Nuestra comunidad',
+        }));
+      }
     }
 
-    // Parse services for homepage preview
-    if (servicesRes.status === 'fulfilled' && servicesRes.value.ok) {
-      const data = await servicesRes.value.json();
-      services = (data.services || []).slice(0, 3);
+    // Parse services
+    if (servicesRes.status === 'fulfilled' && servicesRes.value?.ok) {
+      const data = await safeJson(servicesRes.value);
+      if (data && Array.isArray(data.services)) services = data.services.slice(0, 3);
     }
   } catch (err) {
     console.warn('[Homepage SSR] API fetch failed, using defaults:', err?.message);
   }
 
-  // Fallback carousel images if none from CMS
   if (images.length === 0) {
     images = [
       { src: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=1200&h=600&fit=crop', alt: 'Familias unidas' },
@@ -81,6 +104,7 @@ export async function load({ fetch }) {
       { src: 'https://images.unsplash.com/photo-1577896851231-70ef18881754?w=1200&h=600&fit=crop', alt: 'Apoyo profesional' },
     ];
   }
+  if (!Array.isArray(galleryImages)) galleryImages = [];
 
   return { content, images, galleryImages, services };
 }

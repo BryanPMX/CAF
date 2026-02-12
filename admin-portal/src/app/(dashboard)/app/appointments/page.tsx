@@ -53,6 +53,7 @@ const AppointmentsPage = () => {
   const [staffList, setStaffList] = useState<Array<{ id: number; firstName: string; lastName: string; role: string }>>([]);
   const [clientList, setClientList] = useState<Array<{ id: number; firstName: string; lastName: string; email: string }>>([]);
   const [searchFilters, setSearchFilters] = useState<any>({});
+  const [searchQuery, setSearchQuery] = useState('');
 
   // --- Data Fetching & Role Management ---
   useEffect(() => {
@@ -87,47 +88,11 @@ const AppointmentsPage = () => {
 
       // Appointments loaded successfully
       setAppointments(data.data);
-
-      // For auto-refresh, reapply current filters to maintain user's view
+      // Filtered list will be updated by useEffect when appointments/searchQuery/searchFilters change
       if (!showLoading) {
-        let filtered = data.data;
-
-        // Reapply search filter if active
-        if (searchFilters.search) {
-          const searchLower = searchFilters.search.toLowerCase();
-          filtered = filtered.filter((appointment: Appointment) => {
-            const titleMatch = appointment.title?.toLowerCase().includes(searchLower);
-            const caseMatch = appointment.case?.title?.toLowerCase().includes(searchLower);
-            const staffMatch = `${appointment.staff?.firstName} ${appointment.staff?.lastName}`.toLowerCase().includes(searchLower);
-            return titleMatch || caseMatch || staffMatch;
-          });
-        }
-
-        // Reapply department filter if active (from SmartSearchBar)
-        if (searchFilters.department) {
-          filtered = filtered.filter((appointment: Appointment) =>
-            appointment.department === searchFilters.department
-          );
-        }
-
-        // Reapply category filter if active (from SmartSearchBar)
-        // Use appointment.category which should match case.category
-        if (searchFilters.category) {
-          filtered = filtered.filter((appointment: Appointment) =>
-            appointment.category === searchFilters.category
-          );
-        }
-
-        // Reapply status filter if active
-        if (searchFilters.status) {
-          filtered = filtered.filter((appointment: Appointment) =>
-            appointment.status === searchFilters.status
-          );
-        }
-
-        setFilteredAppointments(filtered);
+        // Keep filtered in sync; applyAllFilters is used in useEffect
+        setFilteredAppointments(data.data);
       } else {
-        // For manual refresh, show all appointments (filters will be reapplied by search/filter handlers)
         setFilteredAppointments(data.data);
       }
     } catch (error: any) {
@@ -167,6 +132,49 @@ const AppointmentsPage = () => {
       console.error('Failed to fetch supporting data:', error);
     }
   };
+
+  // Apply search text + SmartSearchBar filters to appointments (null-safe).
+  const applyAllFilters = React.useCallback(
+    (
+      list: Appointment[],
+      query: string,
+      filters: { status?: string; category?: string; department?: string; dateRange?: [string, string] }
+    ): Appointment[] => {
+      let result = list;
+      const q = (query || '').trim().toLowerCase();
+      if (q) {
+        result = result.filter((a: Appointment) => {
+          const title = (a.title || '').toLowerCase();
+          const caseTitle = (a.case?.title || '').toLowerCase();
+          const staffName = `${a.staff?.firstName || ''} ${a.staff?.lastName || ''}`.toLowerCase();
+          return title.includes(q) || caseTitle.includes(q) || staffName.includes(q);
+        });
+      }
+      if (filters.status) {
+        result = result.filter((a: Appointment) => a.status === filters.status);
+      }
+      if (filters.category) {
+        result = result.filter((a: Appointment) => a.category === filters.category);
+      }
+      if (filters.department) {
+        result = result.filter((a: Appointment) => a.department === filters.department);
+      }
+      if (filters.dateRange && filters.dateRange.length === 2) {
+        const [startDate, endDate] = filters.dateRange;
+        result = result.filter((a: Appointment) => {
+          const d = dayjs(a.startTime);
+          return d.isBetween(startDate, endDate, 'day', '[]');
+        });
+      }
+      return result;
+    },
+    []
+  );
+
+  // Keep filtered list in sync when appointments, search query, or filters change.
+  useEffect(() => {
+    setFilteredAppointments(applyAllFilters(appointments, searchQuery, searchFilters));
+  }, [appointments, searchQuery, searchFilters, applyAllFilters]);
 
   // Fetch the data when the component first loads or when user changes.
   useEffect(() => {
@@ -230,58 +238,11 @@ const AppointmentsPage = () => {
 
   // --- Search & Filter Functions ---
   const handleSearch = (query: string) => {
-    setSearchLoading(true);
-    
-    const filtered = appointments.filter(appointment => {
-      const searchLower = query.toLowerCase();
-      const titleMatch = appointment.title.toLowerCase().includes(searchLower);
-      const caseMatch = appointment.case?.title.toLowerCase().includes(searchLower);
-      const staffMatch = `${appointment.staff?.firstName} ${appointment.staff?.lastName}`.toLowerCase().includes(searchLower);
-      
-      return titleMatch || caseMatch || staffMatch;
-    });
-    
-    setFilteredAppointments(filtered);
-    setSearchLoading(false);
+    setSearchQuery(query || '');
   };
 
   const handleFiltersChange = (filters: any) => {
-    setSearchFilters(filters);
-    setSearchLoading(true);
-
-    let filtered = appointments;
-
-    // Apply SmartSearchBar status filter (appointment statuses)
-    if (filters.status) {
-      filtered = filtered.filter(appointment => appointment.status === filters.status);
-    }
-
-    // Apply SmartSearchBar category filter (case category)
-    if (filters.category) {
-      filtered = filtered.filter(appointment => appointment.category === filters.category);
-    }
-
-    // Apply SmartSearchBar department filter (appointment department)
-    if (filters.department) {
-      filtered = filtered.filter(appointment => appointment.department === filters.department);
-    }
-
-    // Apply SmartSearchBar date range filter
-    if (filters.dateRange && filters.dateRange.length === 2) {
-      const [startDate, endDate] = filters.dateRange;
-      filtered = filtered.filter(appointment => {
-        const appointmentDate = dayjs(appointment.startTime);
-        return appointmentDate.isBetween(startDate, endDate, 'day', '[]');
-      });
-    }
-
-    setFilteredAppointments(filtered);
-    setSearchLoading(false);
-  };
-
-  const handleClearSearch = () => {
-    setSearchFilters({});
-    setFilteredAppointments(appointments);
+    setSearchFilters(filters || {});
   };
 
   const handleDelete = async (appointmentId: number) => {
@@ -297,51 +258,10 @@ const AppointmentsPage = () => {
       await AppointmentService.deleteAppointment(user!.role, appointmentId.toString());
       message.success({ content: 'Cita eliminada exitosamente.', key: 'deleteAppt' });
 
-      // Remove the deleted appointment from local state immediately for better UX
+      // Remove the deleted appointment from local state; useEffect will reapply filters
       const updatedAppointments = appointments.filter(apt => apt.id !== appointmentId);
       setAppointments(updatedAppointments);
-
-      // Reapply current filters to the updated appointments list
-      let filtered = updatedAppointments;
-      if (searchFilters.search) {
-        const searchLower = searchFilters.search.toLowerCase();
-        filtered = filtered.filter((appointment: Appointment) => {
-          const titleMatch = appointment.title?.toLowerCase().includes(searchLower);
-          const caseMatch = appointment.case?.title?.toLowerCase().includes(searchLower);
-          const staffMatch = `${appointment.staff?.firstName} ${appointment.staff?.lastName}`.toLowerCase().includes(searchLower);
-          return titleMatch || caseMatch || staffMatch;
-        });
-      }
-
-      if (searchFilters.department) {
-        filtered = filtered.filter((appointment: Appointment) =>
-          appointment.department === searchFilters.department
-        );
-      }
-
-      if (searchFilters.category) {
-        filtered = filtered.filter((appointment: Appointment) =>
-          appointment.category === searchFilters.category
-        );
-      }
-
-      if (searchFilters.status) {
-        filtered = filtered.filter((appointment: Appointment) =>
-          appointment.status === searchFilters.status
-        );
-      }
-
-      if (searchFilters.dateRange && searchFilters.dateRange.length === 2) {
-        const [startDate, endDate] = searchFilters.dateRange;
-        filtered = filtered.filter(appointment => {
-          const appointmentDate = dayjs(appointment.startTime);
-          return appointmentDate.isBetween(startDate, endDate, 'day', '[]');
-        });
-      }
-
-      setFilteredAppointments(filtered);
-
-      // Also refresh from server in background to ensure consistency
+      // Refresh from server in background to ensure consistency
       fetchAppointments(true, false);
     } catch (error) {
       message.error({ content: 'No se pudo eliminar la cita.', key: 'deleteAppt' });
