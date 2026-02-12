@@ -79,7 +79,7 @@
       </div>
     </div>
 
-    <div class="mt-8 rounded-xl border border-white/12 bg-slate-900/45 px-4 py-4 text-center text-xs text-slate-200/75 backdrop-blur-sm">
+    <div class="mt-8 rounded-xl bg-slate-900/45 px-4 py-4 text-center text-xs text-slate-200/75 backdrop-blur-sm">
       <p>&copy; {new Date().getFullYear()} {config.site.name}. Todos los derechos reservados.</p>
     </div>
   </div>
