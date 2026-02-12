@@ -206,9 +206,10 @@ const TrueDashboardPage = () => {
     }
   };
 
-  const handleOfficeChange = (officeId: string) => {
-    setSelectedOfficeId(officeId);
-    fetchDashboardData(officeId);
+  const handleOfficeChange = (officeId: string | undefined) => {
+    const value = officeId ?? '';
+    setSelectedOfficeId(value);
+    fetchDashboardData(value || undefined);
   };
 
   // Auto-refresh
@@ -228,11 +229,17 @@ const TrueDashboardPage = () => {
     setUserRole(role);
     fetchOffices();
     fetchNotifications();
-    if (role === 'office_manager') {
-      setSelectedOfficeId('2');
-    }
-    fetchDashboardData(role === 'office_manager' ? '2' : undefined, role);
-  }, [isHydrated, user?.role]);
+    const managerOfficeId =
+      role === 'office_manager' &&
+      (user?.officeId != null
+        ? String(user.officeId)
+        : typeof window !== 'undefined'
+          ? localStorage.getItem('userOfficeId') ?? ''
+          : '');
+    const initialOfficeId = role === 'office_manager' ? managerOfficeId : '';
+    if (initialOfficeId) setSelectedOfficeId(initialOfficeId);
+    fetchDashboardData(initialOfficeId || undefined, role);
+  }, [isHydrated, user?.role, user?.officeId]);
 
   // Handle logout
   const prevUserRef = useRef(user);
@@ -275,29 +282,6 @@ const TrueDashboardPage = () => {
         </div>
       </div>
 
-      {/* Office Filter - Admin/Manager only */}
-      {(isAdmin || isManager) && offices.length > 0 && (
-        <Card size="small">
-          <div className="flex items-center gap-4">
-            <BankOutlined />
-            <Text strong>Filtrar por Oficina:</Text>
-            <Select
-              placeholder="Todas las oficinas"
-              value={selectedOfficeId || undefined}
-              onChange={handleOfficeChange}
-              style={{ minWidth: 200 }}
-              allowClear
-            >
-              {offices.map(office => (
-                <Select.Option key={office.id} value={office.id.toString()}>
-                  {office.name}
-                </Select.Option>
-              ))}
-            </Select>
-          </div>
-        </Card>
-      )}
-
       {/* ========== ADMIN/MANAGER SECTIONS ========== */}
       {(isAdmin || isManager) && (
         <>
@@ -322,6 +306,29 @@ const TrueDashboardPage = () => {
                 </Col>
               </Row>
             </>
+          )}
+
+          {/* Office Filter - Admin/Manager */}
+          {(isAdmin || isManager) && offices.length > 0 && (
+            <Card size="small">
+              <div className="flex items-center gap-4">
+                <BankOutlined />
+                <Text strong>Filtrar por Oficina:</Text>
+                <Select
+                  placeholder="Todas las oficinas"
+                  value={selectedOfficeId || undefined}
+                  onChange={handleOfficeChange}
+                  style={{ minWidth: 200 }}
+                  allowClear
+                >
+                  {offices.map(office => (
+                    <Select.Option key={office.id} value={office.id.toString()}>
+                      {office.name}
+                    </Select.Option>
+                  ))}
+                </Select>
+              </div>
+            </Card>
           )}
 
           {/* Case Statistics */}
