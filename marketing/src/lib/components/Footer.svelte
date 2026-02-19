@@ -27,28 +27,28 @@
       </div>
 
       <div class="footer-glass-card rounded-2xl p-6">
-        <h4 class="mb-4 text-center text-sm font-semibold uppercase tracking-[0.18em] text-slate-100">Navegación</h4>
-        <ul class="flex flex-nowrap items-center justify-center gap-1.5 sm:gap-2">
+        <h2 class="mb-4 text-center text-sm font-semibold uppercase tracking-[0.18em] text-slate-100">Navegación</h2>
+        <ul class="flex flex-wrap items-center justify-center gap-2 sm:gap-2.5">
           <li>
-            <a href="/" class="footer-nav-pill group inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-white/20 px-3 py-1.5 text-[0.82rem] font-medium text-slate-100/95 transition-all duration-200 hover:-translate-y-0.5 hover:border-white/35 hover:text-white sm:text-sm">
+            <a href="/" class="touch-target footer-nav-pill group inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-white/20 px-3.5 py-2 text-[0.82rem] font-medium text-slate-100/95 transition-all duration-200 hover:-translate-y-0.5 hover:border-white/35 hover:text-white sm:text-sm">
               <span class="h-1.5 w-1.5 rounded-full bg-primary-300 transition-colors duration-200 group-hover:bg-accent-300"></span>
               <span>Inicio</span>
             </a>
           </li>
           <li>
-            <a href="/servicios" class="footer-nav-pill group inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-white/20 px-3 py-1.5 text-[0.82rem] font-medium text-slate-100/95 transition-all duration-200 hover:-translate-y-0.5 hover:border-white/35 hover:text-white sm:text-sm">
+            <a href="/servicios" class="touch-target footer-nav-pill group inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-white/20 px-3.5 py-2 text-[0.82rem] font-medium text-slate-100/95 transition-all duration-200 hover:-translate-y-0.5 hover:border-white/35 hover:text-white sm:text-sm">
               <span class="h-1.5 w-1.5 rounded-full bg-primary-300 transition-colors duration-200 group-hover:bg-accent-300"></span>
               <span>Servicios</span>
             </a>
           </li>
           <li>
-            <a href="/eventos" class="footer-nav-pill group inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-white/20 px-3 py-1.5 text-[0.82rem] font-medium text-slate-100/95 transition-all duration-200 hover:-translate-y-0.5 hover:border-white/35 hover:text-white sm:text-sm">
+            <a href="/eventos" class="touch-target footer-nav-pill group inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-white/20 px-3.5 py-2 text-[0.82rem] font-medium text-slate-100/95 transition-all duration-200 hover:-translate-y-0.5 hover:border-white/35 hover:text-white sm:text-sm">
               <span class="h-1.5 w-1.5 rounded-full bg-primary-300 transition-colors duration-200 group-hover:bg-accent-300"></span>
               <span>Eventos</span>
             </a>
           </li>
           <li>
-            <a href="/contacto" class="footer-nav-pill group inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-white/20 px-3 py-1.5 text-[0.82rem] font-medium text-slate-100/95 transition-all duration-200 hover:-translate-y-0.5 hover:border-white/35 hover:text-white sm:text-sm">
+            <a href="/contacto" class="touch-target footer-nav-pill group inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-white/20 px-3.5 py-2 text-[0.82rem] font-medium text-slate-100/95 transition-all duration-200 hover:-translate-y-0.5 hover:border-white/35 hover:text-white sm:text-sm">
               <span class="h-1.5 w-1.5 rounded-full bg-primary-300 transition-colors duration-200 group-hover:bg-accent-300"></span>
               <span>Contacto</span>
             </a>
@@ -57,7 +57,7 @@
       </div>
 
       <div class="footer-glass-card rounded-2xl p-6 text-center">
-        <h4 class="mb-4 text-sm font-semibold uppercase tracking-[0.18em] text-slate-100">Contacto</h4>
+        <h2 class="mb-4 text-sm font-semibold uppercase tracking-[0.18em] text-slate-100">Contacto</h2>
         <ul class="space-y-3 text-sm text-slate-100/90">
           <li class="flex items-start justify-center gap-2.5 text-left">
             <svg class="mt-0.5 h-4 w-4 flex-shrink-0 text-accent-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -67,7 +67,7 @@
             <span>{config.contact.address}</span>
           </li>
           <li>
-            <a href="mailto:{config.contact.email}" class="inline-flex items-center justify-center gap-2.5 text-sm text-slate-100/90 transition-colors duration-200 hover:text-white">
+            <a href="mailto:{config.contact.email}" class="touch-target inline-flex items-center justify-center gap-2.5 rounded-lg px-2 text-sm text-slate-100/90 transition-colors duration-200 hover:text-white">
               <svg class="h-4 w-4 flex-shrink-0 text-accent-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
               </svg>

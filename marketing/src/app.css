@@ -462,6 +462,11 @@
   transform: translateY(-1px);
 }
 
+.touch-target {
+  min-width: 44px;
+  min-height: 44px;
+}
+
 @media (max-width: 640px) {
   .container {
     padding-left: 1rem;

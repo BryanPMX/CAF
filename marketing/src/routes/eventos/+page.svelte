@@ -42,6 +42,7 @@
 
 <section class="py-20 bg-[radial-gradient(circle_at_16%_16%,rgba(141,107,247,0.18),transparent_35%),radial-gradient(circle_at_86%_14%,rgba(56,120,214,0.16),transparent_38%),linear-gradient(180deg,#ffffff_0%,#f8f1ff_52%,#edf6ff_100%)]">
   <div class="max-w-5xl mx-auto px-6">
+    <h2 class="sr-only">Listado de eventos comunitarios</h2>
     {#if data.events.length > 0}
       <div class="space-y-6">
         {#each data.events as event, i}

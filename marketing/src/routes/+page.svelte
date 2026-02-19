@@ -179,9 +179,10 @@
           <div class="px-8 pb-7">
             <a
               href="/servicios"
-              class="inline-flex items-center gap-1 text-sm font-semibold text-primary-700 transition-colors hover:text-primary-800"
+              class="touch-target inline-flex items-center gap-1 rounded-lg px-2 text-sm font-semibold text-primary-700 transition-colors hover:bg-primary-50 hover:text-primary-800"
+              aria-label={`Más información sobre ${service.title || 'este servicio'}`}
             >
-              Más información
+              Más información sobre {service.title || 'este servicio'}
               <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
               </svg>
@@ -225,24 +226,26 @@
         {/each}
 
         {#if slides.length > 1}
-          <button on:click={prevSlide} class="absolute left-4 top-1/2 -translate-y-1/2 rounded-full border border-white/35 bg-white/80 p-2.5 text-slate-800 shadow-md backdrop-blur-sm transition-all hover:scale-105 hover:bg-white" aria-label="Anterior">
+          <button on:click={prevSlide} class="touch-target absolute left-4 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/35 bg-white/80 text-slate-800 shadow-md backdrop-blur-sm transition-all hover:scale-105 hover:bg-white" aria-label="Ver imagen anterior">
             <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
             </svg>
           </button>
-          <button on:click={nextSlide} class="absolute right-4 top-1/2 -translate-y-1/2 rounded-full border border-white/35 bg-white/80 p-2.5 text-slate-800 shadow-md backdrop-blur-sm transition-all hover:scale-105 hover:bg-white" aria-label="Siguiente">
+          <button on:click={nextSlide} class="touch-target absolute right-4 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/35 bg-white/80 text-slate-800 shadow-md backdrop-blur-sm transition-all hover:scale-105 hover:bg-white" aria-label="Ver siguiente imagen">
             <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
             </svg>
           </button>
 
-          <div class="absolute bottom-4 left-1/2 flex -translate-x-1/2 gap-2">
+          <div class="absolute bottom-4 left-1/2 flex -translate-x-1/2 gap-2.5">
             {#each slides as _, i}
               <button
-                class="h-2.5 w-2.5 rounded-full transition-all {i === currentSlide ? 'bg-white scale-110' : 'bg-white/50'}"
+                class="touch-target inline-flex h-11 w-11 items-center justify-center rounded-full transition-all"
                 on:click={() => currentSlide = i}
-                aria-label="Ir a imagen {i + 1}"
-              ></button>
+                aria-label="Ir a imagen {i + 1} del carrusel"
+              >
+                <span class="h-2.5 w-2.5 rounded-full transition-all {i === currentSlide ? 'bg-white scale-110' : 'bg-white/50'}"></span>
+              </button>
             {/each}
           </div>
         {/if}
