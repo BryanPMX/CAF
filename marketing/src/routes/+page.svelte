@@ -118,6 +118,8 @@
             <img
               src={img.src}
               alt={img.alt}
+              width="1200"
+              height="780"
               class="h-52 w-full object-cover transition-transform duration-500 group-hover:scale-105"
               loading="lazy"
             />
@@ -219,7 +221,7 @@
         {#each slides as slideItem, index}
           {#if index === currentSlide}
             <div class="absolute inset-0" transition:fade={{ duration: 500 }}>
-              <img src={slideItem.src} alt={slideItem.alt} class="h-full w-full object-cover" />
+              <img src={slideItem.src} alt={slideItem.alt} width="1600" height="900" class="h-full w-full object-cover" />
               <div class="absolute inset-0 bg-gradient-to-t from-slate-950/45 via-transparent to-transparent"></div>
             </div>
           {/if}
@@ -267,6 +269,8 @@
             <img
               src={img.src}
               alt={img.alt}
+              width="800"
+              height="800"
               class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
               loading="lazy"
             />

@@ -57,6 +57,8 @@
                   <img
                     src={event.imageUrl}
                     alt={event.title || 'Evento'}
+                    width="640"
+                    height="480"
                     class="w-full h-full min-h-[160px] md:min-h-[180px] object-cover"
                     onerror={onImageError}
                   />

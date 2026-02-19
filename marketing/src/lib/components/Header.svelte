@@ -33,6 +33,8 @@
       <img
         src="/logo-header.jpg"
         alt="Logo del Centro de Apoyo para la Familia"
+        width="522"
+        height="512"
         class="header-logo h-12 w-16 rounded-xl object-contain sm:h-14 sm:w-20"
       />
       <span class="hidden lg:block">

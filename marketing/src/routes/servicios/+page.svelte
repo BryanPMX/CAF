@@ -44,6 +44,8 @@
               <img
                 src={service.imageUrl}
                 alt={service.title}
+                width="1200"
+                height="900"
                 class="h-64 w-full rounded-2xl object-cover shadow-lg md:h-80"
                 loading="lazy"
               />

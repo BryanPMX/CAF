@@ -17,7 +17,7 @@
         <div class="mb-5 flex items-center justify-center">
           <span class="brand-logo-shell">
             <span class="block rounded-[0.95rem] bg-white p-1.5">
-              <img src="/logo-footer.png" alt="Logo CAF" class="h-12 w-12 object-contain sm:h-14 sm:w-14" />
+              <img src="/logo-footer.png" alt="Logo CAF" width="313" height="393" class="h-12 w-12 object-contain sm:h-14 sm:w-14" />
             </span>
           </span>
         </div>
