@@ -45,7 +45,7 @@
       {#each navLinks as link}
         <a
           href={link.href}
-          class="nav-link rounded-full px-3.5 py-1.5 text-[1.04rem] font-semibold tracking-[0.015em]"
+          class="touch-target nav-link rounded-full px-3.5 py-1.5 text-[1.04rem] font-semibold tracking-[0.015em]"
           class:is-active={$page.url.pathname === link.href}
           class:text-primary-700={$page.url.pathname === link.href}
           class:text-slate-700={$page.url.pathname !== link.href}
@@ -56,7 +56,7 @@
     </div>
 
     <button
-      class="ml-auto rounded-xl border border-white/70 bg-white/85 p-2.5 text-slate-700 shadow-[0_8px_20px_rgba(15,30,58,0.16)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-white md:hidden"
+      class="touch-target ml-auto rounded-xl border border-white/70 bg-white/85 p-2.5 text-slate-700 shadow-[0_8px_20px_rgba(15,30,58,0.16)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-white md:hidden"
       on:click={toggleMenu}
       aria-label={mobileMenuOpen ? 'Cerrar menú' : 'Abrir menú'}
       aria-expanded={mobileMenuOpen}
@@ -82,7 +82,7 @@
         {#each navLinks as link}
           <a
             href={link.href}
-            class="block rounded-xl border border-transparent px-4 py-3 text-base font-semibold transition-all duration-200 hover:border-primary-200/65 hover:bg-white/75"
+            class="touch-target block rounded-xl border border-transparent px-4 py-3 text-base font-semibold transition-all duration-200 hover:border-primary-200/65 hover:bg-white/75"
             class:bg-primary-50={$page.url.pathname === link.href}
             class:text-primary-700={$page.url.pathname === link.href}
             class:text-slate-700={$page.url.pathname !== link.href}

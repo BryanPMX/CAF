@@ -222,7 +222,7 @@
                     <svg class="w-4 h-4 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                     </svg>
-                    <a href="tel:{office.phoneOffice}" class="text-primary-600 hover:text-primary-700">{office.phoneOffice}</a>
+                    <a href="tel:{office.phoneOffice}" class="touch-target inline-flex items-center rounded-lg px-1 text-primary-600 hover:text-primary-700">{office.phoneOffice}</a>
                   </div>
                 {/if}
                 {#if office.phoneCell}
@@ -230,7 +230,7 @@
                     <svg class="w-4 h-4 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
                     </svg>
-                    <a href="tel:{office.phoneCell}" class="text-primary-600 hover:text-primary-700">{office.phoneCell}</a>
+                    <a href="tel:{office.phoneCell}" class="touch-target inline-flex items-center rounded-lg px-1 text-primary-600 hover:text-primary-700">{office.phoneCell}</a>
                   </div>
                 {/if}
               </div>
@@ -240,7 +240,7 @@
                     href="https://www.google.com/maps?q={office.latitude},{office.longitude}"
                     target="_blank"
                     rel="noopener noreferrer"
-                    class="text-xs text-primary-600 hover:text-primary-700 font-medium inline-flex items-center gap-1"
+                    class="touch-target inline-flex items-center gap-1 rounded-lg px-1 text-xs font-medium text-primary-600 hover:text-primary-700"
                   >
                     Ver en Google Maps
                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -279,7 +279,7 @@
                 </svg>
               </div>
               <div class="mb-1 text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-slate-400">Correo</div>
-              <a href="mailto:{config.contact.email}" class="text-sm font-semibold text-primary-700 transition-colors hover:text-primary-800">{config.contact.email}</a>
+              <a href="mailto:{config.contact.email}" class="touch-target inline-flex items-center rounded-lg px-1 text-sm font-semibold text-primary-700 transition-colors hover:text-primary-800">{config.contact.email}</a>
             </div>
 
             <div class="rounded-2xl border border-white/70 bg-white/78 px-4 py-4 text-left shadow-[0_8px_16px_rgba(49,79,131,0.08)]">
@@ -289,7 +289,7 @@
                 </svg>
               </div>
               <div class="mb-1 text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-slate-400">Teléfono</div>
-              <a href="tel:{config.contact.phone}" class="text-sm font-semibold text-primary-700 transition-colors hover:text-primary-800">{config.contact.phone}</a>
+              <a href="tel:{config.contact.phone}" class="touch-target inline-flex items-center rounded-lg px-1 text-sm font-semibold text-primary-700 transition-colors hover:text-primary-800">{config.contact.phone}</a>
             </div>
 
             <div class="rounded-2xl border border-white/70 bg-white/78 px-4 py-4 text-left shadow-[0_8px_16px_rgba(49,79,131,0.08)]">
