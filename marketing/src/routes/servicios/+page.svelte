@@ -1,6 +1,7 @@
 <script>
   import { fade, slide } from 'svelte/transition';
   import { cubicOut } from 'svelte/easing';
+  import { buildResponsiveSrcSet, getOptimizedImageUrl } from '$lib/utils/imageOptimizer.js';
   export let data;
 
   const serviceColors = ['from-primary-600 to-primary-700', 'from-emerald-600 to-emerald-700', 'from-amber-500 to-amber-600'];
@@ -42,12 +43,15 @@
           <div class:md:order-2={i % 2 !== 0}>
             {#if service.imageUrl}
               <img
-                src={service.imageUrl}
+                src={getOptimizedImageUrl(service.imageUrl, 960)}
                 alt={service.title}
                 width="1200"
                 height="900"
+                srcset={buildResponsiveSrcSet(service.imageUrl, [480, 640, 768, 960, 1200]) || undefined}
+                sizes="(max-width: 768px) 100vw, 50vw"
                 class="h-64 w-full rounded-2xl object-cover shadow-lg md:h-80"
                 loading="lazy"
+                decoding="async"
               />
             {:else}
               <div class="flex h-64 w-full items-center justify-center rounded-2xl bg-gradient-to-br {serviceColors[i % 3]} shadow-lg md:h-80">
