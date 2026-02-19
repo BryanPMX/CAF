@@ -1,5 +1,5 @@
 <script>
-  import { onMount } from 'svelte';
+  import { onDestroy, onMount } from 'svelte';
   import { fade, slide as slideTransition } from 'svelte/transition';
   import { cubicOut } from 'svelte/easing';
   import { buildResponsiveSrcSet, getOptimizedImageUrl } from '$lib/utils/imageOptimizer.js';
@@ -17,14 +17,55 @@
   const aboutSectionImages = data.aboutSectionImages || [];
 
   let currentSlide = 0;
+  let carouselContainer;
+  let autoSlideInterval = null;
+  let carouselObserver = null;
+
+  function startAutoSlide() {
+    if (autoSlideInterval || slides.length <= 1) return;
+    autoSlideInterval = setInterval(() => {
+      currentSlide = (currentSlide + 1) % slides.length;
+    }, 5000);
+  }
+
+  function stopAutoSlide() {
+    if (!autoSlideInterval) return;
+    clearInterval(autoSlideInterval);
+    autoSlideInterval = null;
+  }
 
   onMount(() => {
-    if (slides.length > 1) {
-      const interval = setInterval(() => {
-        currentSlide = (currentSlide + 1) % slides.length;
-      }, 5000);
-      return () => clearInterval(interval);
+    if (slides.length <= 1) return undefined;
+
+    if (typeof IntersectionObserver === 'undefined') {
+      startAutoSlide();
+      return () => stopAutoSlide();
     }
+
+    carouselObserver = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          startAutoSlide();
+        } else {
+          stopAutoSlide();
+        }
+      },
+      { rootMargin: '200px 0px' }
+    );
+
+    if (carouselContainer) carouselObserver.observe(carouselContainer);
+
+    return () => {
+      carouselObserver?.disconnect();
+      carouselObserver = null;
+      stopAutoSlide();
+    };
+  });
+
+  onDestroy(() => {
+    carouselObserver?.disconnect();
+    carouselObserver = null;
+    stopAutoSlide();
   });
 
   function prevSlide() {
@@ -221,7 +262,7 @@
         <p class="mt-2 text-slate-600">Momentos de nuestros talleres, eventos y actividades.</p>
       </div>
 
-      <div class="relative mx-auto h-[28rem] w-full max-w-4xl overflow-hidden rounded-3xl border border-white/55 bg-white/15 shadow-[0_30px_60px_rgba(13,33,56,0.22)] backdrop-blur-xl sm:h-[32rem] md:h-[36rem]" role="region" aria-label="Carrusel de fotos">
+      <div bind:this={carouselContainer} class="relative mx-auto h-[28rem] w-full max-w-4xl overflow-hidden rounded-3xl border border-white/55 bg-white/15 shadow-[0_30px_60px_rgba(13,33,56,0.22)] backdrop-blur-xl sm:h-[32rem] md:h-[36rem]" role="region" aria-label="Carrusel de fotos">
         {#each slides as slideItem, index}
           {#if index === currentSlide}
             <div class="absolute inset-0" transition:fade={{ duration: 500 }}>
@@ -233,9 +274,9 @@
                 srcset={buildResponsiveSrcSet(slideItem.src, [480, 768, 960, 1280, 1600], { quality: 68 }) || undefined}
                 sizes="(max-width: 640px) 100vw, (max-width: 1024px) 92vw, 960px"
                 class="h-full w-full object-cover"
-                loading={index === 0 ? 'eager' : 'lazy'}
+                loading="lazy"
                 decoding="async"
-                fetchpriority={index === 0 ? 'high' : 'auto'}
+                fetchpriority="low"
               />
               <div class="absolute inset-0 bg-gradient-to-t from-slate-950/45 via-transparent to-transparent"></div>
             </div>
