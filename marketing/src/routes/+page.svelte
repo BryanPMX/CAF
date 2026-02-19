@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { fade, slide as slideTransition } from 'svelte/transition';
   import { cubicOut } from 'svelte/easing';
+  import { buildResponsiveSrcSet, getOptimizedImageUrl } from '$lib/utils/imageOptimizer.js';
 
   export let data;
 
@@ -116,12 +117,15 @@
         {#each aboutSectionImages as img}
           <div class="card-lift group overflow-hidden rounded-2xl">
             <img
-              src={img.src}
+              src={getOptimizedImageUrl(img.src, 960)}
               alt={img.alt}
               width="1200"
               height="780"
+              srcset={buildResponsiveSrcSet(img.src, [360, 540, 720, 960, 1200]) || undefined}
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
               class="h-52 w-full object-cover transition-transform duration-500 group-hover:scale-105"
               loading="lazy"
+              decoding="async"
             />
           </div>
         {/each}
@@ -221,7 +225,18 @@
         {#each slides as slideItem, index}
           {#if index === currentSlide}
             <div class="absolute inset-0" transition:fade={{ duration: 500 }}>
-              <img src={slideItem.src} alt={slideItem.alt} width="1600" height="900" class="h-full w-full object-cover" />
+              <img
+                src={getOptimizedImageUrl(slideItem.src, 1280, { quality: 68 })}
+                alt={slideItem.alt}
+                width="1600"
+                height="900"
+                srcset={buildResponsiveSrcSet(slideItem.src, [480, 768, 960, 1280, 1600], { quality: 68 }) || undefined}
+                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 92vw, 960px"
+                class="h-full w-full object-cover"
+                loading={index === 0 ? 'eager' : 'lazy'}
+                decoding="async"
+                fetchpriority={index === 0 ? 'high' : 'auto'}
+              />
               <div class="absolute inset-0 bg-gradient-to-t from-slate-950/45 via-transparent to-transparent"></div>
             </div>
           {/if}
@@ -267,12 +282,15 @@
         {#each gallerySectionImages as img}
           <div class="group overflow-hidden rounded-2xl border border-white/75 bg-white/75 shadow-[0_14px_28px_rgba(16,39,67,0.12)] aspect-square">
             <img
-              src={img.src}
+              src={getOptimizedImageUrl(img.src, 640)}
               alt={img.alt}
               width="800"
               height="800"
+              srcset={buildResponsiveSrcSet(img.src, [240, 360, 480, 640, 800]) || undefined}
+              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
               class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
               loading="lazy"
+              decoding="async"
             />
           </div>
         {/each}

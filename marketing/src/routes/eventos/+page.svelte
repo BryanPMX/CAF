@@ -1,6 +1,7 @@
 <script>
   import { fade, slide } from 'svelte/transition';
   import { cubicOut } from 'svelte/easing';
+  import { buildResponsiveSrcSet, getOptimizedImageUrl } from '$lib/utils/imageOptimizer.js';
   export let data;
 
   function onImageError(e) {
@@ -55,12 +56,16 @@
               {#if event.imageUrl && event.imageUrl.trim()}
                 <div class="md:w-48 lg:w-56 flex-shrink-0 bg-gray-100 min-h-[160px] md:min-h-[180px]">
                   <img
-                    src={event.imageUrl}
+                    src={getOptimizedImageUrl(event.imageUrl, 640)}
                     alt={event.title || 'Evento'}
                     width="640"
                     height="480"
+                    srcset={buildResponsiveSrcSet(event.imageUrl, [320, 480, 640, 768]) || undefined}
+                    sizes="(max-width: 768px) 100vw, 224px"
                     class="w-full h-full min-h-[160px] md:min-h-[180px] object-cover"
                     onerror={onImageError}
+                    loading="lazy"
+                    decoding="async"
                   />
                 </div>
               {/if}

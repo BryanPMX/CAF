@@ -26,7 +26,7 @@ module.exports = {
         },
       },
       fontFamily: {
-        sans: ['Manrope', 'Montserrat', 'sans-serif'],
+        sans: ['Avenir Next', 'Montserrat', 'Segoe UI', 'Helvetica Neue', 'Arial', 'sans-serif'],
       },
     },
   },
