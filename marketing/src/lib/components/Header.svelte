@@ -31,10 +31,11 @@
   <nav class="relative flex w-full items-center py-3 pl-1 pr-3 sm:pl-2 sm:pr-4 lg:pl-4 lg:pr-6">
     <a href="/" class="group flex min-w-fit items-center gap-3 pr-2 md:pr-6" on:click={closeMenu}>
       <img
-        src="/logo-header.jpg"
+        src="/logo-header.webp"
         alt="Logo del Centro de Apoyo para la Familia"
-        width="522"
-        height="512"
+        width="160"
+        height="157"
+        decoding="async"
         class="header-logo h-12 w-16 rounded-xl object-contain sm:h-14 sm:w-20"
       />
       <span class="hidden lg:block">
