@@ -272,17 +272,17 @@
           </div>
 
           <div class="mt-6 grid gap-3 sm:grid-cols-2">
-            <div class="rounded-2xl border border-white/70 bg-white/78 px-4 py-4 text-left shadow-[0_8px_16px_rgba(49,79,131,0.08)]">
+            <div class="rounded-2xl border border-white/70 bg-white/78 px-4 py-4 text-center shadow-[0_8px_16px_rgba(49,79,131,0.08)]">
               <div class="mb-3 inline-flex h-9 w-9 items-center justify-center rounded-xl bg-primary-100 text-primary-600">
                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
               </div>
               <div class="mb-1 text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-slate-400">Correo</div>
-              <a href="mailto:{config.contact.email}" class="touch-target inline-flex items-center rounded-lg px-1 text-sm font-semibold text-primary-700 transition-colors hover:text-primary-800">{config.contact.email}</a>
+              <a href="mailto:{config.contact.email}" class="touch-target inline-flex items-center justify-center rounded-lg px-1 text-sm font-semibold text-primary-700 transition-colors hover:text-primary-800">{config.contact.email}</a>
             </div>
 
-            <div class="rounded-2xl border border-white/70 bg-white/78 px-4 py-4 text-left shadow-[0_8px_16px_rgba(49,79,131,0.08)]">
+            <div class="rounded-2xl border border-white/70 bg-white/78 px-4 py-4 text-center shadow-[0_8px_16px_rgba(49,79,131,0.08)]">
               <div class="mb-3 inline-flex h-9 w-9 items-center justify-center rounded-xl bg-violet-100 text-violet-700">
                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
