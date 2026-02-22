@@ -271,7 +271,7 @@
             <p class="mt-1 text-sm text-slate-500">Respuestas rápidas para contacto y atención.</p>
           </div>
 
-          <div class="mt-6 grid gap-3 sm:grid-cols-3">
+          <div class="mt-6 grid gap-3 sm:grid-cols-2">
             <div class="rounded-2xl border border-white/70 bg-white/78 px-4 py-4 text-left shadow-[0_8px_16px_rgba(49,79,131,0.08)]">
               <div class="mb-3 inline-flex h-9 w-9 items-center justify-center rounded-xl bg-primary-100 text-primary-600">
                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -283,16 +283,6 @@
             </div>
 
             <div class="rounded-2xl border border-white/70 bg-white/78 px-4 py-4 text-left shadow-[0_8px_16px_rgba(49,79,131,0.08)]">
-              <div class="mb-3 inline-flex h-9 w-9 items-center justify-center rounded-xl bg-accent-100 text-accent-700">
-                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                </svg>
-              </div>
-              <div class="mb-1 text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-slate-400">Teléfono</div>
-              <a href="tel:{config.contact.phone}" class="touch-target inline-flex items-center rounded-lg px-1 text-sm font-semibold text-primary-700 transition-colors hover:text-primary-800">{config.contact.phone}</a>
-            </div>
-
-            <div class="rounded-2xl border border-white/70 bg-white/78 px-4 py-4 text-left shadow-[0_8px_16px_rgba(49,79,131,0.08)]">
               <div class="mb-3 inline-flex h-9 w-9 items-center justify-center rounded-xl bg-violet-100 text-violet-700">
                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -301,17 +291,6 @@
               <div class="mb-1 text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-slate-400">Horario</div>
               <span class="text-sm font-semibold text-slate-700">Lun-Vie: 8AM-6PM</span>
             </div>
-          </div>
-
-          <div class="mt-4 rounded-2xl border border-white/70 bg-white/78 px-4 py-4 text-left shadow-[0_8px_16px_rgba(49,79,131,0.08)]">
-            <div class="mb-2 inline-flex h-9 w-9 items-center justify-center rounded-xl bg-sky-100 text-sky-700">
-              <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-            </div>
-            <div class="mb-1 text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-slate-400">Dirección General</div>
-            <p class="text-sm font-medium text-slate-700">{config.contact.address}</p>
           </div>
         </div>
       </div>
