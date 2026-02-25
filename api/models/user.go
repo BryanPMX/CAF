@@ -19,11 +19,14 @@ type User struct {
 	Office   *Office `gorm:"foreignKey:OfficeID" json:"office,omitempty"`
 
 	// Contact and address
-	Phone          string  `gorm:"size:50" json:"phone"`
+	Phone           string  `gorm:"size:50" json:"phone"`
 	PersonalAddress *string `gorm:"type:text" json:"personalAddress,omitempty"`
 
 	// Profile image: URL (external or local storage reference)
 	AvatarURL *string `gorm:"size:512;column:avatar_url" json:"avatarUrl,omitempty"`
+
+	// Payment integration: Stripe customer identifier (server-managed)
+	StripeCustomerID *string `gorm:"size:255;column:stripe_customer_id;index" json:"stripeCustomerId,omitempty"`
 
 	// NEW: Department/Specialty for staff members
 	Department *string `gorm:"size:100" json:"department,omitempty"` // e.g., "Legal", "Psychology", "Administration"
@@ -33,10 +36,10 @@ type User struct {
 	AssignedCases []Case `gorm:"many2many:user_case_assignments;" json:"assignedCases,omitempty"`
 
 	// Account status
-	IsActive  bool       `gorm:"default:true" json:"isActive"` // Whether the user account is active
-	LastLogin *time.Time `json:"lastLogin" gorm:"index;type:timestamp"`
-	CreatedAt time.Time  `json:"createdAt"`
-	UpdatedAt time.Time  `json:"updatedAt"`
+	IsActive  bool           `gorm:"default:true" json:"isActive"` // Whether the user account is active
+	LastLogin *time.Time     `json:"lastLogin" gorm:"index;type:timestamp"`
+	CreatedAt time.Time      `json:"createdAt"`
+	UpdatedAt time.Time      `json:"updatedAt"`
 	DeletedAt gorm.DeletedAt `gorm:"index;type:timestamp" json:"-"`
 }
 

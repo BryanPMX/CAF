@@ -76,13 +76,22 @@ func CreateComment(db *gorm.DB) gin.HandlerFunc {
 		invalidateCache(caseIDStr)
 
 		// Generate notification for client if comment is client_visible
-		if input.Visibility == "client_visible" {
+		if input.Visibility == "client_visible" && caseRecord.ClientID != nil {
 			var client models.User
 			if err := db.Where("id = ?", caseRecord.ClientID).First(&client).Error; err == nil {
 				notificationMessage := "Un miembro de nuestro equipo ha añadido un comentario en su caso."
 				caseLink := "/app/cases/" + strconv.FormatUint(uint64(caseID), 10)
 				if err := CreateNotification(db, client.ID, notificationMessage, "info", &caseLink); err != nil {
 					_ = err // Log but don't fail
+				} else {
+					eventCaseID := uint(caseID)
+					SendUserNotification(strconv.FormatUint(uint64(client.ID), 10), map[string]interface{}{
+						"message":    notificationMessage,
+						"type":       "info",
+						"link":       &caseLink,
+						"entityType": "case",
+						"entityId":   &eventCaseID,
+					})
 				}
 			}
 		}
@@ -416,7 +425,7 @@ func GetDocument(db *gorm.DB) gin.HandlerFunc {
 
 		// Get the case event
 		var event models.CaseEvent
-		if err := db.Select("id, event_type, visibility, file_url, file_name, file_type, updated_at").First(&event, eventID).Error; err != nil {
+		if err := db.Select("id, case_id, event_type, visibility, file_url, file_name, file_type, updated_at").First(&event, eventID).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				c.JSON(http.StatusNotFound, gin.H{"error": "Documento no encontrado"})
 			} else {
@@ -435,6 +444,20 @@ func GetDocument(db *gorm.DB) gin.HandlerFunc {
 		if event.Visibility == "internal" && userRole == "client" {
 			c.JSON(http.StatusForbidden, gin.H{"error": "Acceso denegado: documento interno"})
 			return
+		}
+		if userRole == "client" {
+			userID, _ := c.Get("userID")
+			var count int64
+			if err := db.Model(&models.Case{}).
+				Where("id = ? AND client_id = ?", event.CaseID, userID).
+				Count(&count).Error; err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al validar acceso al documento"})
+				return
+			}
+			if count == 0 {
+				c.JSON(http.StatusForbidden, gin.H{"error": "Acceso denegado: documento no pertenece a su caso"})
+				return
+			}
 		}
 
 		// Use the active storage provider to retrieve the file

@@ -116,6 +116,8 @@ marketing/
 - `/contacto` - Contact page (contacto/+page.svelte)
 - `/servicios` - Services page (servicios/+page.server.js + servicios/+page.svelte)
 - `/eventos` - Events page (eventos/+page.server.js + eventos/+page.svelte)
+- `/pagos/exito` - Stripe Checkout success return bridge to mobile app
+- `/pagos/cancelado` - Stripe Checkout cancel return bridge to mobile app
 
 ### Server-Side Data Loading
 
@@ -180,6 +182,20 @@ export async function load({ fetch }) {
 - Event calendar data
 - Contact form submission
 - Newsletter subscription
+
+### Stripe Checkout Return Bridge (Mobile-First Flow)
+
+This site now includes two lightweight pages used as Stripe Checkout return URLs for the client mobile app:
+
+- `/pagos/exito`
+- `/pagos/cancelado`
+
+Behavior:
+- Attempts to open the CAF mobile app via deep link (`cafclient://payments/...`)
+- Preserves Stripe/API query params (e.g. `status`, `case_id`, `session_id`)
+- Shows a fallback button if the app does not open automatically
+
+This keeps the client experience mobile-first while still using secure hosted Stripe Checkout.
 
 **Data Fetching Patterns:**
 ```javascript

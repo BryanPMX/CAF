@@ -64,7 +64,7 @@ We implemented a centralized notification system using React's Context API with 
 
 **Key Features**:
 - **Centralized State**: All notification-related state managed in one place
-- **Automatic Refresh**: 30-second polling for new notifications
+- **Realtime Sync**: WebSocket-triggered refresh using backend `/ws` notifications
 - **Error Handling**: Comprehensive error management with user feedback
 - **Optimistic Updates**: Immediate UI updates for better UX
 - **Type Safety**: Full TypeScript support with proper interfaces
@@ -191,7 +191,7 @@ Body: { notificationIds: number[] }
 ### Data Flow
 
 1. **Initial Load**: Context fetches notifications on mount
-2. **Periodic Updates**: 30-second polling for new notifications
+2. **Realtime Updates**: WebSocket events trigger an API refresh for canonical notification data
 3. **User Actions**: Immediate optimistic updates with API calls
 4. **Error Recovery**: Automatic retry and user feedback
 
@@ -204,10 +204,10 @@ Body: { notificationIds: number[] }
 
 ## Future Enhancements
 
-### 1. WebSocket Integration
-- Real-time notifications without polling
-- Reduced server load and improved performance
-- Instant notification delivery
+### 1. Realtime Enhancements
+- Payload-level optimistic merges (currently we refetch for canonical data)
+- Fine-grained throttling / batching for high-volume bursts
+- Connection health telemetry in the admin UI
 
 ### 2. Advanced Filtering
 - Filter by notification type

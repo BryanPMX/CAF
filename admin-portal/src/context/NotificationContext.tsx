@@ -1,7 +1,8 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
 import { useHydrationSafe } from '@/hooks/useHydrationSafe';
+import { useWebSocket } from '@/hooks/useWebSocket';
 
 // Types for notification data
 export interface Notification {
@@ -50,6 +51,8 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
   const [error, setError] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const isHydrated = useHydrationSafe();
+  const { isConnected: wsConnected, lastMessage } = useWebSocket();
+  const lastRealtimeRefreshRef = useRef(0);
 
   // Calculate unread count from notifications
   useEffect(() => {
@@ -204,8 +207,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
       
       if (token && !isAuthenticated) {
         setIsAuthenticated(true);
-        // Temporarily disable automatic fetching to prevent loops
-        console.log('Authentication detected, but auto-fetch disabled');
+        fetchNotifications();
       } else if (!token && isAuthenticated) {
         setIsAuthenticated(false);
         setNotifications([]);
@@ -217,8 +219,29 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     checkAuthStatus();
   }, [isHydrated]); // Run only once on mount
 
-  // Periodic refresh completely disabled to prevent infinite loops
-  // TODO: Re-enable once the loop issue is resolved
+  // Fetch notifications when auth state becomes available (e.g. after login or auth restore).
+  useEffect(() => {
+    if (!isHydrated || !isAuthenticated) return;
+    fetchNotifications();
+  }, [isHydrated, isAuthenticated]);
+
+  // Refresh notification cache on realtime websocket events.
+  useEffect(() => {
+    if (!isHydrated || !isAuthenticated) return;
+    if (!lastMessage || lastMessage.type !== 'notification') return;
+
+    const now = Date.now();
+    if (now - lastRealtimeRefreshRef.current < 500) return; // coalesce bursts
+    lastRealtimeRefreshRef.current = now;
+
+    fetchNotifications();
+  }, [isHydrated, isAuthenticated, lastMessage]);
+
+  // When realtime reconnects, fetch once to catch missed events.
+  useEffect(() => {
+    if (!isHydrated || !isAuthenticated || !wsConnected) return;
+    fetchNotifications();
+  }, [isHydrated, isAuthenticated, wsConnected]);
 
   // Context value
   const contextValue: NotificationContextType = {

@@ -14,7 +14,6 @@ import EditAppointmentModal from '../../components/EditAppointmentModal';
 import SmartSearchBar from '../../components/SmartSearchBar';
 import { APPOINTMENT_STATUS_OPTIONS } from '@/config/statuses';
 import { useHydrationSafe } from '@/hooks/useHydrationSafe';
-import { useWebSocket } from '@/hooks/useWebSocket';
 import dayjs from 'dayjs';
 import isBetween from 'dayjs/plugin/isBetween';
 
@@ -41,7 +40,6 @@ const AppointmentsPage = () => {
   // --- State Management ---
   const isHydrated = useHydrationSafe();
   const { user } = useAuth();
-  const { isConnected: wsConnected, lastMessage } = useWebSocket();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [filteredAppointments, setFilteredAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);

@@ -35,6 +35,21 @@ env.production
 !**/.env.example
 !env.example
 !**/env.example
+.envrc
+.direnv/
+
+# === Portainer / Ops local secrets ===
+# Keep tracked production templates in repo, but ignore local stack env overrides and secret compose variants.
+stack.env
+stack.*.env
+compose.env
+.portainer/
+docker-compose.*.local.yml
+docker-compose.*.private.yml
+docker-compose.*.secrets.yml
+portainer-stack.local.yml
+portainer-stack.private.yml
+portainer-stack.secrets.yml
 
 # === Database files ===
 *.db
@@ -113,10 +128,16 @@ docker-compose.override.yaml
 *.p8
 *.crt
 *.cer
+*.jks
+*.keystore
+*.mobileprovision
+*.pfx
 secrets/
 volume/cache/*.pem
 volume/cache/*.key
 volume/cache/*.crt
+google-services.json
+GoogleService-Info.plist
 
 # === AWS and Cloud credentials ===
 *credentials*
@@ -125,6 +146,13 @@ volume/cache/*.crt
 aws-config.json
 gcloud-config.json
 .env.aws
+terraform.tfstate
+terraform.tfstate.*
+*.tfvars
+*.auto.tfvars
+kubeconfig
+kubeconfig.*
+.kube/
 
 # === Script files with embedded secrets ===
 # Note: Review any *.sh files before committing
@@ -145,6 +173,9 @@ backups/
 *api_key*
 *secret-key*
 *secret_key*
+*.secret
+*.secrets
+*.secrets.*
 *access-token*
 *access_token*
 

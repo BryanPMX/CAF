@@ -1,158 +1,173 @@
-# CAF API - Backend Service
+# CAF API (Go Backend)
 
-This directory contains the Go-based backend API for the Centro de Apoyo para la Familia (CAF) system.
+Go backend for the CAF platform. It serves the admin portal, marketing site integrations, and the Flutter **client mobile app**.
 
-## Architecture Overview
+## What It Provides
 
-The API follows Clean Architecture principles with SOLID design patterns implemented through:
+- JWT authentication (`/api/v1/login`, `/api/v1/register`)
+- Role-aware route groups (`/api/v1`, `/api/v1/admin`, `/api/v1/staff`, `/api/v1/manager`)
+- Client-safe mobile route group (`/api/v1/client`)
+- Case management, appointments, tasks, documents, notifications
+- Realtime notification websocket endpoint (`/ws`)
+- Profile avatar upload/storage (S3 or local fallback)
+- Hosted Stripe Checkout session creation + Stripe receipts listing for clients
 
-- **Dependency Injection**: Service container pattern in `container/container.go`
-- **Repository Pattern**: Data access abstraction in `repositories/`
-- **Service Layer**: Business logic encapsulation in `services/`
-- **HTTP Handlers**: Request/response handling in `handlers/`
+## Architecture (High Level)
 
-## Directory Structure
-
-```
+```text
 api/
-├── cmd/server/           # Application entry point
-│   └── main.go          # Server initialization and routing
-├── config/              # Configuration management
-│   └── config.go        # Environment-based configuration
-├── container/           # Dependency injection
-│   └── container.go     # Service container setup
-├── db/                  # Database layer
-│   ├── migrations/      # Database schema migrations
-│   └── postgres.go      # Database connection and setup
-├── handlers/            # HTTP request handlers
-│   ├── auth.go         # Authentication endpoints
-│   ├── cases.go        # Case management endpoints
-│   ├── appointments.go # Appointment scheduling endpoints
-│   └── users.go        # User management endpoints
-├── middleware/          # Cross-cutting concerns
-│   ├── auth.go         # JWT authentication middleware
-│   ├── cors.go         # CORS handling
-│   └── logging.go      # Request logging
-├── models/             # Data models (GORM structs)
-│   ├── user.go         # User entity
-│   ├── case.go         # Case entity
-│   ├── appointment.go  # Appointment entity
-│   └── office.go       # Office entity
-├── repositories/       # Data access layer
-│   ├── user_repository.go      # User data operations
-│   ├── case_repository.go      # Case data operations
-│   ├── appointment_repository.go # Appointment data operations
-│   └── office_repository.go     # Office data operations
-├── services/           # Business logic layer
-│   ├── user_service.go      # User business operations
-│   ├── case_service.go      # Case business operations
-│   ├── appointment_service.go # Appointment business operations
-│   └── dashboard_service.go # Dashboard metrics
-└── utils/              # Utility functions
-    ├── validation.go   # Input validation helpers
-    └── security.go     # Security utilities
+├── cmd/server/main.go        # Server bootstrap, middleware, route registration
+├── handlers/                 # HTTP handlers (auth, cases, appointments, client portal, payments, etc.)
+├── middleware/               # JWT auth, RBAC, data access control, validation, rate limiting
+├── models/                   # GORM models
+├── repositories/             # Data access abstractions
+├── services/                 # Business/domain services
+├── storage/                  # S3/local storage strategy
+├── db/migrations/            # SQL migrations
+└── config/                   # Environment configuration
 ```
 
-## Key Components
+## Route Groups
 
-### 1. Server Initialization (`cmd/server/main.go`)
-- Sets up Gin HTTP server
-- Configures middleware stack
-- Defines API routes
-- Handles graceful shutdown
+### Public (`/api/v1`)
 
-### 2. Configuration (`config/config.go`)
-- Environment variable management
-- Database connection settings
-- JWT secret configuration
-- CORS policy setup
+- `POST /register`
+- `POST /login`
+- `POST /webhooks/stripe` (Stripe signed webhook endpoint)
+- Public marketing endpoints (`/public/*`)
 
-### 3. Database Layer (`db/`)
-- PostgreSQL connection management
-- Schema migrations with version control
-- Connection pooling configuration
+### Realtime
 
-### 4. Authentication (`handlers/auth.go`, `middleware/auth.go`)
-- JWT token generation and validation
-- Password hashing with bcrypt
-- Role-based access control
-- Session management
+- `GET /ws?token=<jwt>`
+  - Per-user websocket notifications
+  - Payload shape (server -> client): `{ type: "notification", notification: {...} }`
 
-### 5. Business Logic (`services/`)
-- Case assignment and workflow management
-- Appointment scheduling with conflict detection
-- User role and permission management
-- Dashboard metrics calculation
+### Protected Staff/Admin (`/api/v1`)
 
-### 6. Data Access (`repositories/`)
-- GORM-based database operations
-- Query optimization and indexing
-- Transaction management
-- Audit logging integration
+- Protected group for authenticated non-client users (`DenyClients` middleware)
+- Dashboard, cases, appointments, tasks, documents, notifications, profile, etc.
 
-## API Endpoints
+### Client Mobile Portal (`/api/v1/client`)  [NEW]
 
-### Authentication
-- `POST /api/v1/login` - User authentication
-- `GET /api/v1/profile` - Get current user profile
+Client-safe endpoints for the Flutter app:
 
-### Cases Management
-- `GET /api/v1/cases` - List cases with filtering
-- `POST /api/v1/cases` - Create new case
-- `GET /api/v1/cases/:id` - Get case details
-- `PUT /api/v1/cases/:id` - Update case
-- `DELETE /api/v1/cases/:id` - Delete case
+- `GET /profile`
+- `PATCH /profile`
+- `POST /profile/avatar`
+- `GET /avatar`
+- `GET /cases`
+- `GET /cases/my`
+- `GET /cases/:id` (ownership enforced, only client-visible case events)
+- `POST /cases/:id/comments` (client reply in case timeline)
+- `GET /appointments` (ownership enforced via case join)
+- `GET /notifications`
+- `POST /notifications/mark-read`
+- `GET /payments/receipts` (Stripe charges/receipts for authenticated client)
+- `POST /payments/checkout-session` (Stripe hosted Checkout URL for case fee)
+- `GET /documents/:eventId` (visibility + ownership enforced)
+- `GET /offices`
 
-### Appointments
-- `GET /api/v1/appointments` - List appointments
-- `POST /api/v1/appointments` - Schedule appointment
-- `PUT /api/v1/appointments/:id` - Update appointment
-- `DELETE /api/v1/appointments/:id` - Cancel appointment
+### Admin / Staff / Manager
 
-### Users (Admin Only)
-- `GET /api/v1/users` - List users
-- `POST /api/v1/users` - Create user
-- `PUT /api/v1/users/:id` - Update user
-- `DELETE /api/v1/users/:id` - Delete user
+- Existing role-specific route groups remain in place:
+  - `/api/v1/admin`
+  - `/api/v1/staff`
+  - `/api/v1/manager`
 
-## Development Setup
+## Realtime Messaging Consistency (Cases)
+
+- Staff/admin `client_visible` comments now:
+  - create DB notifications for the client
+  - push websocket notifications to the client in realtime
+- Client case replies (`POST /api/v1/client/cases/:id/comments`) now:
+  - create timeline events (`client_visible`)
+  - notify portal users (admins, office managers, primary/assigned staff)
+  - push websocket notifications to those users
+
+## Stripe Integration (Server-Side, Secure)
+
+The API creates hosted Stripe Checkout Sessions and lists receipts (charges) for the authenticated client. No secret Stripe keys are exposed to mobile/web clients.
+
+Recommended for the current CAF architecture (no separate client web portal):
+- `STRIPE_CHECKOUT_SUCCESS_URL=https://caf-mexico.org/pagos/exito`
+- `STRIPE_CHECKOUT_CANCEL_URL=https://caf-mexico.org/pagos/cancelado`
+
+### Required Environment Variables
+
+- `STRIPE_SECRET_KEY`
+- `STRIPE_CHECKOUT_SUCCESS_URL`
+- `STRIPE_CHECKOUT_CANCEL_URL`
+- `STRIPE_WEBHOOK_SECRET`
+
+### Optional
+
+- `STRIPE_CURRENCY` (default `mxn`)
+- `STRIPE_PUBLISHABLE_KEY` (not required for hosted Checkout flow, but may be useful for future clients)
+- `STRIPE_WEBHOOK_TOLERANCE_SECONDS` (optional; default `300`)
+
+### Data Model Support
+
+- `users.stripe_customer_id` (migration `0057_users_stripe_customer_id.sql`)
+- `payment_records` (migration `0058_create_payment_records.sql`) for webhook-backed payment tracking
+
+### Webhook Behavior (Implemented)
+
+- Verifies Stripe signature using `Stripe-Signature` + `STRIPE_WEBHOOK_SECRET`
+- Persists Checkout payment state (`payment_records`) from `checkout.session.*` events
+- Creates client-visible case timeline payment confirmation events (deduplicated by Checkout Session ID)
+- Notifies client + portal users (admins/office managers/assigned staff) via DB notifications + `/ws`
+- Admin financial dashboard metrics now read revenue from `payment_records` (webhook-backed)
+
+## Storage
+
+Document/avatar storage uses a strategy pattern:
+
+- S3 (`AWS_*`, `S3_BUCKET`) when configured
+- Local filesystem fallback when S3 is unavailable
+
+## Environment Configuration
+
+Use one of the included examples and copy to `api/.env`:
+
+- `api/.env.example`
+- `api/env.example`
+
+Core variables include:
+
+- DB: `DB_*`
+- Auth: `JWT_SECRET`
+- CORS: `CORS_ALLOWED_ORIGINS`
+- Rate limits: `RATE_LIMIT_*`
+- Storage: `AWS_*`, `S3_BUCKET`, `UPLOADS_DIR`
+- Stripe: `STRIPE_*`
+
+## Run Locally
 
 ```bash
-# Install dependencies
+cd api
 go mod download
-
-# Run with environment variables
-export DB_HOST=localhost
-export DB_USER=caf_user
-export DB_PASSWORD=caf_password
-export JWT_SECRET=your_secret_key
-
-# Start server
-go run cmd/server/main.go
+cp .env.example .env   # or customize env.example
+go run ./cmd/server/main.go
 ```
 
-## Key Design Patterns
+Health checks:
 
-### SOLID Principles Implementation
-- **Single Responsibility**: Each service handles one business domain
-- **Open/Closed**: New features added without modifying existing code
-- **Liskov Substitution**: Compatible interfaces across implementations
-- **Interface Segregation**: Client-specific interfaces in repositories
-- **Dependency Inversion**: Dependencies injected through container
+- `GET /health`
+- `GET /health/live`
+- `GET /health/ready`
+- `GET /health/storage`
+- `GET /health/migrations`
 
-### Clean Architecture Layers
-1. **Entities** (models): Core business objects
-2. **Use Cases** (services): Application business rules
-3. **Interface Adapters** (handlers): Convert data between layers
-4. **Frameworks & Drivers** (repositories): External concerns
+## Tests
 
-### Security Features
-- JWT authentication with configurable expiration
-- Password hashing with bcrypt
-- Role-based access control (RBAC)
-- Input validation and sanitization
-- SQL injection prevention through GORM
-- CORS protection
-- Rate limiting middleware
+```bash
+cd api
+go test ./...
+```
 
-This backend provides a scalable, secure, and maintainable foundation for the CAF case management system.
+If your environment restricts the default Go cache path, you can use a workspace-local cache:
+
+```bash
+mkdir -p .gocache
+GOCACHE=$(pwd)/.gocache go test ./...
+```

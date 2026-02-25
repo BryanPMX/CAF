@@ -96,24 +96,28 @@ admin-portal/src/
 - **Notifications**: Centro de Notificaciones with card-style list (type icon, entity tag, relative time, unread indicator); cards are clickable and link to cases, appointments, or profile; dashboard shows recent notifications with the same card design  
 - **CMS Image Upload**: Local file upload to server for "Sitio Web" gallery management
 
-### Mobile Application (Flutter) - Provider Pattern
+### Mobile Application (Flutter) - Client Portal
 
-**Flutter Clean Architecture:**
+**Current Flutter Mobile Architecture (Client-Facing):**
 
 ```
 client-app/lib/
-├── main.dart                    # Application entry point
-├── screens/                     # UI screens (login, dashboard, appointments)
-├── services/                    # Business logic layer
-│   └── auth_service.dart       # Authentication with JWT
-└── [platform]/                 # Android/iOS platform code
+├── main.dart                    # Bootstrap + provider + auth gate
+└── src/
+    ├── app_state.dart           # API client, secure storage, websocket, app state
+    ├── auth_pages.dart          # Login / register UX (client role)
+    └── app_shell.dart           # Dashboard, Notificaciones, Mi Caso, Citas, Pagos, Contacto
 ```
 
 **Key Features:**
-- **Provider Pattern**: State management and dependency injection
-- **Repository Pattern**: Data access abstraction
-- **Secure Storage**: JWT token persistence
-- **RESTful API**: HTTP client integration with Go backend
+- **Provider + ChangeNotifier**: Centralized state management
+- **Secure Storage**: JWT persistence via `flutter_secure_storage`
+- **Client Portal API**: Uses `/api/v1/client` backend routes with ownership checks
+- **Realtime Notifications**: WebSocket-driven refresh (`/ws`)
+- **Case Messaging**: Client replies in `Mi Caso` notify portal users in realtime
+- **Stripe (Hosted Checkout)**: Server-created Checkout sessions + receipts list (no secret key in app)
+- **Payment Tracking**: Stripe webhooks persist `payment_records` for dashboard/report financial metrics
+- **Checkout Return UX**: Deep-link/app-resume handling routes clients back to `Pagos/Recibos`
 
 ### Marketing Website (SvelteKit) - Component Architecture
 
@@ -134,6 +138,7 @@ marketing/src/
 - **Server-Side Rendering**: SEO optimization and performance
 - **Static Site Generation**: Fast loading and hosting flexibility
 - **API Integration**: Backend connectivity for dynamic content
+- **Stripe Return Bridge**: `/pagos/exito` and `/pagos/cancelado` pages redirect clients back to the mobile app
 - **Component-Based**: Reusable UI components with Svelte
 
 ## Quick Start - Local Development

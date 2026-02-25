@@ -216,12 +216,31 @@ func GetDashboardStats(db *gorm.DB) gin.HandlerFunc {
 			stats.OfficesByRegion[stat.Region] = stat.Count
 		}
 
-		// Financial Metrics (simplified - would need actual financial data)
-		stats.Revenue = 0
-		stats.RevenueThisMonth = 0
-		stats.RevenueThisYear = 0
-		stats.GrowthRate = 0
-		stats.AverageCaseValue = 0
+		// Financial Metrics (derived from Stripe webhook payment_records)
+		now := time.Now()
+		startOfYear := time.Date(now.Year(), 1, 1, 0, 0, 0, 0, now.Location())
+		prevMonthStart := startOfMonth.AddDate(0, -1, 0)
+		prevMonthEnd := startOfMonth
+
+		totalRevenueCents := sumNetPaidCents(db, nil, nil)
+		monthRevenueCents := sumNetPaidCents(db, &startOfMonth, nil)
+		yearRevenueCents := sumNetPaidCents(db, &startOfYear, nil)
+		prevMonthRevenueCents := sumNetPaidCents(db, &prevMonthStart, &prevMonthEnd)
+
+		stats.Revenue = float64(totalRevenueCents) / 100.0
+		stats.RevenueThisMonth = float64(monthRevenueCents) / 100.0
+		stats.RevenueThisYear = float64(yearRevenueCents) / 100.0
+		if prevMonthRevenueCents > 0 {
+			stats.GrowthRate = (float64(monthRevenueCents-prevMonthRevenueCents) / float64(prevMonthRevenueCents)) * 100
+		} else {
+			stats.GrowthRate = 0
+		}
+
+		if avgCasePaymentCents, count := averageCasePaymentCents(db); count > 0 {
+			stats.AverageCaseValue = float64(avgCasePaymentCents) / 100.0
+		}
+
+		// Outstanding invoices still depends on a dedicated invoicing/balance model.
 		stats.OutstandingInvoices = 0
 
 		// Performance Metrics (simplified)
@@ -243,6 +262,53 @@ func GetDashboardStats(db *gorm.DB) gin.HandlerFunc {
 
 		c.JSON(http.StatusOK, stats)
 	}
+}
+
+func sumNetPaidCents(db *gorm.DB, from *time.Time, to *time.Time) int64 {
+	type sumRow struct {
+		Total int64 `json:"total"`
+	}
+
+	query := db.Model(&models.PaymentRecord{}).
+		Select("COALESCE(SUM(amount_cents - refunded_cents), 0) AS total").
+		Where("paid_at IS NOT NULL").
+		Where("status IN ?", []string{"succeeded", "partially_refunded", "refunded"})
+
+	if from != nil {
+		query = query.Where("paid_at >= ?", *from)
+	}
+	if to != nil {
+		query = query.Where("paid_at < ?", *to)
+	}
+
+	var row sumRow
+	if err := query.Scan(&row).Error; err != nil {
+		return 0
+	}
+	if row.Total < 0 {
+		return 0
+	}
+	return row.Total
+}
+
+func averageCasePaymentCents(db *gorm.DB) (int64, int64) {
+	type avgRow struct {
+		Avg   float64 `json:"avg"`
+		Count int64   `json:"count"`
+	}
+	var row avgRow
+	err := db.Model(&models.PaymentRecord{}).
+		Select("COALESCE(AVG(amount_cents - refunded_cents), 0) AS avg, COUNT(*) AS count").
+		Where("paid_at IS NOT NULL").
+		Where("status IN ?", []string{"succeeded", "partially_refunded", "refunded"}).
+		Scan(&row).Error
+	if err != nil || row.Count <= 0 {
+		return 0, 0
+	}
+	if row.Avg < 0 {
+		return 0, row.Count
+	}
+	return int64(row.Avg), row.Count
 }
 
 // GetRecentActivity returns recent system activity for admin dashboard

@@ -191,6 +191,7 @@ func main() {
 	{
 		public.POST("/register", middleware.ValidateUserRegistration(), handlers.Register(database))
 		public.POST("/login", middleware.AuthRateLimit(), handlers.EnhancedLogin(database, cfg.JWTSecret))
+		public.POST("/webhooks/stripe", handlers.StripeWebhook(database))
 		// Public endpoints for marketing site (no auth required)
 		public.GET("/public/offices", handlers.GetPublicOffices(cont.GetOfficeRepository()))
 		public.GET("/public/site-content", handlers.GetPublicSiteContent(database))
@@ -293,6 +294,8 @@ func main() {
 		c.JSON(http.StatusOK, gin.H{"status": "healthy", "service": "Cache", "stats": stats})
 	})
 
+	apiBaseURL := strings.TrimSuffix(os.Getenv("API_BASE_URL"), "/")
+
 	// Group 2: Protected Routes (Requires any valid login token)
 	// Enhanced with comprehensive data access control
 	protected := r.Group("/api/v1")
@@ -315,7 +318,6 @@ func main() {
 		protected.DELETE("/notes/:id", handlers.DeleteUserNote(database))
 
 		// Profile and user info (include office for managers to prefill office selection)
-		apiBaseURL := strings.TrimSuffix(os.Getenv("API_BASE_URL"), "/")
 		protected.GET("/profile", func(c *gin.Context) {
 			userID, _ := c.Get("userID")
 			var user models.User
@@ -392,7 +394,52 @@ func main() {
 		// Legacy endpoints removed - using enhanced handlers only
 	}
 
-	// Group 3: Admin-Only Routes (Requires a login token from a user with the 'admin' role)
+	// Group 3: Client Portal Routes (Requires a login token from a user with the 'client' role)
+	clientPortal := r.Group("/api/v1/client")
+	clientPortal.Use(middleware.EnhancedJWTAuth(cfg.JWTSecret))
+	clientPortal.Use(middleware.RoleAuth(database, "client"))
+	clientPortal.Use(middleware.DataAccessControl(database))
+	{
+		// Client profile
+		clientPortal.GET("/profile", func(c *gin.Context) {
+			userID, _ := c.Get("userID")
+			var user models.User
+			if err := database.Preload("Office").First(&user, "id = ?", userID).Error; err != nil {
+				c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+				return
+			}
+			avatarUrl := handlers.BuildProfileAvatarURL(user.AvatarURL, apiBaseURL)
+			c.JSON(http.StatusOK, gin.H{
+				"userID":    userID,
+				"role":      user.Role,
+				"firstName": user.FirstName,
+				"lastName":  user.LastName,
+				"office":    user.Office,
+				"officeId":  user.OfficeID,
+				"avatarUrl": avatarUrl,
+				"email":     user.Email,
+				"phone":     user.Phone,
+			})
+		})
+		clientPortal.PATCH("/profile", handlers.UpdateProfile(database))
+		clientPortal.POST("/profile/avatar", handlers.UploadProfileAvatar(database, apiBaseURL))
+		clientPortal.GET("/avatar", handlers.GetProfileAvatar(database))
+
+		// Client dashboard data primitives
+		clientPortal.GET("/cases", handlers.GetCasesEnhanced(database))
+		clientPortal.GET("/cases/my", handlers.GetMyCases(database))
+		clientPortal.GET("/cases/:id", handlers.GetClientCaseByID(database))
+		clientPortal.POST("/cases/:id/comments", handlers.CreateClientComment(database))
+		clientPortal.GET("/appointments", handlers.GetClientAppointments(database))
+		clientPortal.GET("/notifications", handlers.GetNotifications(database))
+		clientPortal.POST("/notifications/mark-read", handlers.MarkNotificationsAsRead(database))
+		clientPortal.GET("/payments/receipts", handlers.GetClientPaymentReceipts(database))
+		clientPortal.POST("/payments/checkout-session", handlers.CreateClientCheckoutSession(database))
+		clientPortal.GET("/documents/:eventId", handlers.GetDocument(database))
+		clientPortal.GET("/offices", handlers.GetPublicOffices(cont.GetOfficeRepository()))
+	}
+
+	// Group 4: Admin-Only Routes (Requires a login token from a user with the 'admin' role)
 	admin := r.Group("/api/v1/admin")
 	admin.Use(middleware.EnhancedJWTAuth(cfg.JWTSecret))
 	admin.Use(middleware.RoleAuth(database, "admin"))
@@ -521,7 +568,7 @@ func main() {
 		admin.POST("/site-images/upload", handlers.UploadSiteImage(database))
 	}
 
-	// Group 4: Staff-Specific Routes (Enhanced access control for staff members)
+	// Group 5: Staff-Specific Routes (Enhanced access control for staff members)
 	staff := r.Group("/api/v1/staff")
 	staff.Use(middleware.EnhancedJWTAuth(cfg.JWTSecret))
 	staff.Use(middleware.RoleAuth(database, "staff"))
@@ -582,7 +629,7 @@ func main() {
 		staff.DELETE("/tasks/:id/comments/:commentId", middleware.TaskAccessControl(database), handlers.DeleteTaskComment(database))
 	}
 
-	// Group 5: Office Manager Routes (role: office_manager)
+	// Group 6: Office Manager Routes (role: office_manager)
 	officeManager := r.Group("/api/v1/manager")
 	officeManager.Use(middleware.EnhancedJWTAuth(cfg.JWTSecret))
 	officeManager.Use(middleware.RoleAuth(database, "office_manager"))
