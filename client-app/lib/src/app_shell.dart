@@ -9,6 +9,7 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'app_state.dart';
+import 'brand.dart';
 
 enum ClientSection {
   dashboard,
@@ -237,7 +238,16 @@ class _ClientAppShellState extends State<ClientAppShell>
                     unreadCount: state.unreadNotifications),
               Expanded(
                 child: Container(
-                  color: theme.colorScheme.surface,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        theme.colorScheme.surface,
+                        CafBrand.pageBg.withValues(alpha: 0.72),
+                      ],
+                    ),
+                  ),
                   child: Column(
                     children: [
                       if (state.errorMessage != null &&
@@ -330,59 +340,102 @@ class _AppDrawer extends StatelessWidget {
         : (state.authUser?.email ?? '');
 
     return Drawer(
+      backgroundColor: Colors.transparent,
+      surfaceTintColor: Colors.transparent,
+      elevation: 0,
       child: SafeArea(
-        child: Column(
-          children: [
-            UserAccountsDrawerHeader(
-              currentAccountPicture: CircleAvatar(
-                child: Text(
-                    name.isEmpty ? 'C' : name.characters.first.toUpperCase()),
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: CafBrand.sidebarGradient,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.18),
+                blurRadius: 28,
+                offset: const Offset(10, 0),
               ),
-              accountName: Text(name),
-              accountEmail: Text(email),
-            ),
-            Expanded(
-              child: ListView(
-                children: [
-                  for (final section in ClientSection.values)
-                    ListTile(
-                      leading: Stack(
-                        clipBehavior: Clip.none,
+            ],
+          ),
+          child: Column(
+            children: [
+              Container(
+                margin: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0x39C7D4E9)),
+                  color: Colors.white.withValues(alpha: 0.05),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 48,
+                      height: 48,
+                      padding: const EdgeInsets.all(5),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(14),
+                        color: Colors.white.withValues(alpha: 0.95),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.5),
+                        ),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: Image.asset('mobile-app-icon.png'),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Icon(section.icon),
-                          if (section == ClientSection.notifications &&
-                              state.unreadNotifications > 0)
-                            Positioned(
-                              right: -6,
-                              top: -4,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 5, vertical: 1),
-                                decoration: BoxDecoration(
-                                  color: Colors.red,
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                constraints: const BoxConstraints(minWidth: 16),
-                                child: Text(
-                                  '${state.unreadNotifications}',
-                                  textAlign: TextAlign.center,
-                                  style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold),
-                                ),
+                          const Text(
+                            'CAF Cliente',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          Text(
+                            name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Color(0xFFE2E8F0),
+                              fontSize: 12,
+                            ),
+                          ),
+                          if (email.isNotEmpty)
+                            Text(
+                              email,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Color(0xFF94A3B8),
+                                fontSize: 11,
                               ),
                             ),
                         ],
                       ),
-                      title: Text(section.label),
-                      selected: current == section,
-                      onTap: () => onSelect(section),
                     ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ],
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(10, 4, 10, 12),
+                  children: [
+                    for (final section in ClientSection.values)
+                      _DrawerNavItem(
+                        section: section,
+                        selected: current == section,
+                        unreadNotifications: state.unreadNotifications,
+                        onTap: () => onSelect(section),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -402,43 +455,217 @@ class _AppRail extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return NavigationRail(
-      selectedIndex: ClientSection.values.indexOf(current),
-      onDestinationSelected: (index) => onSelect(ClientSection.values[index]),
-      labelType: NavigationRailLabelType.all,
-      minWidth: 88,
-      destinations: [
-        for (final section in ClientSection.values)
-          NavigationRailDestination(
-            icon: section == ClientSection.notifications && unreadCount > 0
-                ? Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      Icon(section.icon),
-                      Positioned(
-                        right: -8,
-                        top: -6,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 4, vertical: 1),
-                          decoration: BoxDecoration(
-                            color: Colors.red,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Text(
-                            '$unreadCount',
-                            style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold),
-                          ),
-                        ),
+    return Container(
+      width: 96,
+      decoration: BoxDecoration(
+        gradient: CafBrand.sidebarGradient,
+        border: Border(
+          right: BorderSide(color: Colors.black.withValues(alpha: 0.16)),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.12),
+            blurRadius: 18,
+            offset: const Offset(8, 0),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        child: Column(
+          children: [
+            Container(
+              margin: const EdgeInsets.fromLTRB(10, 10, 10, 8),
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0x39C7D4E9)),
+                color: Colors.white.withValues(alpha: 0.05),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.asset(
+                  'mobile-app-icon.png',
+                  width: 42,
+                  height: 42,
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
+            Expanded(
+              child: NavigationRail(
+                selectedIndex: ClientSection.values.indexOf(current),
+                onDestinationSelected: (index) =>
+                    onSelect(ClientSection.values[index]),
+                labelType: NavigationRailLabelType.all,
+                minWidth: 88,
+                groupAlignment: -0.85,
+                backgroundColor: Colors.transparent,
+                indicatorColor: Colors.transparent,
+                leading: const SizedBox.shrink(),
+                destinations: [
+                  for (final section in ClientSection.values)
+                    NavigationRailDestination(
+                      icon: _RailIcon(
+                        section: section,
+                        unreadCount: unreadCount,
+                        selected: false,
                       ),
-                    ],
-                  )
-                : Icon(section.icon),
-            selectedIcon: Icon(section.icon),
-            label: Text(section.label),
+                      selectedIcon: _RailIcon(
+                        section: section,
+                        unreadCount: unreadCount,
+                        selected: true,
+                      ),
+                      label: Text(section.label),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DrawerNavItem extends StatelessWidget {
+  const _DrawerNavItem({
+    required this.section,
+    required this.selected,
+    required this.unreadNotifications,
+    required this.onTap,
+  });
+
+  final ClientSection section;
+  final bool selected;
+  final int unreadNotifications;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          gradient: selected ? CafBrand.actionGradient : null,
+          color: selected ? null : Colors.white.withValues(alpha: 0.03),
+          border: Border.all(
+            color: selected
+                ? Colors.white.withValues(alpha: 0.14)
+                : Colors.transparent,
+          ),
+          boxShadow: selected
+              ? [
+                  BoxShadow(
+                    color: CafBrand.cyan.withValues(alpha: 0.18),
+                    blurRadius: 16,
+                    offset: const Offset(0, 8),
+                  ),
+                ]
+              : null,
+        ),
+        child: ListTile(
+          dense: true,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          leading: _NavIconWithBadge(
+            section: section,
+            unreadCount: unreadNotifications,
+            iconColor: selected ? Colors.white : const Color(0xFFCBD5E1),
+          ),
+          title: Text(
+            section.label,
+            style: TextStyle(
+              color: selected ? Colors.white : const Color(0xFFE2E8F0),
+              fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+            ),
+          ),
+          onTap: onTap,
+        ),
+      ),
+    );
+  }
+}
+
+class _RailIcon extends StatelessWidget {
+  const _RailIcon({
+    required this.section,
+    required this.unreadCount,
+    required this.selected,
+  });
+
+  final ClientSection section;
+  final int unreadCount;
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context) {
+    final icon = _NavIconWithBadge(
+      section: section,
+      unreadCount: unreadCount,
+      iconColor: selected ? Colors.white : const Color(0xFFCBD5E1),
+    );
+    if (!selected) return icon;
+
+    return Container(
+      width: 42,
+      height: 36,
+      decoration: BoxDecoration(
+        gradient: CafBrand.actionGradient,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: CafBrand.cyan.withValues(alpha: 0.16),
+            blurRadius: 14,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Center(child: icon),
+    );
+  }
+}
+
+class _NavIconWithBadge extends StatelessWidget {
+  const _NavIconWithBadge({
+    required this.section,
+    required this.unreadCount,
+    required this.iconColor,
+  });
+
+  final ClientSection section;
+  final int unreadCount;
+  final Color iconColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final showBadge = section == ClientSection.notifications && unreadCount > 0;
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Icon(section.icon, color: iconColor),
+        if (showBadge)
+          Positioned(
+            right: -8,
+            top: -6,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+              decoration: BoxDecoration(
+                color: const Color(0xFFD6455D),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.6)),
+              ),
+              constraints: const BoxConstraints(minWidth: 16),
+              child: Text(
+                '$unreadCount',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
           ),
       ],
     );

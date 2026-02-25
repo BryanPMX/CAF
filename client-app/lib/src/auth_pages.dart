@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'app_state.dart';
+import 'brand.dart';
 
 class AuthEntryPage extends StatelessWidget {
   const AuthEntryPage({super.key});
@@ -13,128 +14,204 @@ class AuthEntryPage extends StatelessWidget {
 
     return Scaffold(
       body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              colorScheme.primary.withValues(alpha: 0.08),
-              colorScheme.surface,
-              colorScheme.secondary.withValues(alpha: 0.06),
-            ],
-          ),
-        ),
-        child: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 520),
-                child: Card(
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                    side: BorderSide(
-                        color: colorScheme.outline.withValues(alpha: 0.15)),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Row(
+        decoration: BoxDecoration(gradient: CafBrand.authBackgroundGradient),
+        child: Stack(
+          children: [
+            Positioned(
+              top: -100,
+              left: -70,
+              child: _AuthGlowOrb(
+                size: 320,
+                color: CafBrand.blue.withValues(alpha: 0.20),
+              ),
+            ),
+            Positioned(
+              top: -100,
+              right: -80,
+              child: _AuthGlowOrb(
+                size: 340,
+                color: CafBrand.purple.withValues(alpha: 0.18),
+              ),
+            ),
+            Positioned(
+              bottom: -120,
+              right: -20,
+              child: _AuthGlowOrb(
+                size: 280,
+                color: CafBrand.teal.withValues(alpha: 0.14),
+              ),
+            ),
+            SafeArea(
+              child: Center(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(20),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 560),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(
+                          color: const Color(0xAAB4C5E5),
+                        ),
+                        gradient: CafBrand.authGlassGradient,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.14),
+                            blurRadius: 42,
+                            offset: const Offset(0, 20),
+                          ),
+                        ],
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             Container(
-                              width: 48,
-                              height: 48,
+                              padding: const EdgeInsets.all(14),
                               decoration: BoxDecoration(
-                                color: colorScheme.primaryContainer,
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              child: Icon(Icons.shield_outlined,
-                                  color: colorScheme.onPrimaryContainer),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'CAF Cliente',
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .titleLarge
-                                        ?.copyWith(fontWeight: FontWeight.w700),
+                                borderRadius: BorderRadius.circular(18),
+                                gradient: CafBrand.showcaseGradient,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: CafBrand.navyStrong
+                                        .withValues(alpha: 0.24),
+                                    blurRadius: 20,
+                                    offset: const Offset(0, 10),
                                   ),
-                                  Text(
-                                    'Portal móvil para seguimiento de casos',
-                                    style:
-                                        Theme.of(context).textTheme.bodySmall,
+                                ],
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 58,
+                                    height: 58,
+                                    padding: const EdgeInsets.all(6),
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(16),
+                                      color:
+                                          Colors.white.withValues(alpha: 0.92),
+                                      border: Border.all(
+                                        color: Colors.white
+                                            .withValues(alpha: 0.65),
+                                      ),
+                                    ),
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(10),
+                                      child: Image.asset('mobile-app-icon.png'),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'CAF Cliente',
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .titleLarge
+                                              ?.copyWith(
+                                                fontWeight: FontWeight.w800,
+                                                color: Colors.white,
+                                              ),
+                                        ),
+                                        Text(
+                                          'Portal móvil para seguimiento de casos',
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .bodySmall
+                                              ?.copyWith(
+                                                color: Colors.white
+                                                    .withValues(alpha: 0.86),
+                                              ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ],
                               ),
                             ),
-                          ],
-                        ),
-                        const SizedBox(height: 20),
-                        if (state.errorMessage != null &&
-                            state.errorMessage!.isNotEmpty)
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 12),
-                            child: Material(
-                              color: colorScheme.errorContainer,
-                              borderRadius: BorderRadius.circular(12),
-                              child: Padding(
-                                padding: const EdgeInsets.all(12),
-                                child: Row(
-                                  children: [
-                                    Icon(Icons.error_outline,
-                                        color: colorScheme.onErrorContainer),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      child: Text(
-                                        state.errorMessage!,
-                                        style: TextStyle(
+                            const SizedBox(height: 16),
+                            if (state.errorMessage != null &&
+                                state.errorMessage!.isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 12),
+                                child: Material(
+                                  color: colorScheme.errorContainer,
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(12),
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.error_outline,
                                             color:
                                                 colorScheme.onErrorContainer),
-                                      ),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: Text(
+                                            state.errorMessage!,
+                                            style: TextStyle(
+                                              color:
+                                                  colorScheme.onErrorContainer,
+                                            ),
+                                          ),
+                                        ),
+                                        IconButton(
+                                          visualDensity: VisualDensity.compact,
+                                          onPressed: state.clearError,
+                                          icon: Icon(
+                                            Icons.close,
+                                            color: colorScheme.onErrorContainer,
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                    IconButton(
-                                      visualDensity: VisualDensity.compact,
-                                      onPressed: state.clearError,
-                                      icon: Icon(Icons.close,
-                                          color: colorScheme.onErrorContainer),
-                                    ),
-                                  ],
+                                  ),
                                 ),
                               ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 10),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(
+                                  color: const Color(0x66CEAAD3),
+                                ),
+                                color: const Color(0xC4FFF5F8),
+                              ),
+                              child: const Text(
+                                'El acceso a la app requiere una cuenta creada previamente por el equipo CAF.',
+                                textAlign: TextAlign.center,
+                              ),
                             ),
-                          ),
-                        const Text(
-                          'El acceso a la app requiere una cuenta creada previamente por el equipo CAF.',
-                          textAlign: TextAlign.center,
+                            const SizedBox(height: 16),
+                            AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 220),
+                              child: LoginForm(
+                                key: const ValueKey('login-form'),
+                                isLoading: state.isBusy,
+                              ),
+                            ),
+                            const SizedBox(height: 14),
+                            Text(
+                              'Configura el endpoint con --dart-define=CAF_API_BASE_URL=<https://.../api/v1>',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodySmall
+                                  ?.copyWith(color: CafBrand.inkSoft),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 16),
-                        AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 220),
-                          child: LoginForm(
-                            key: const ValueKey('login-form'),
-                            isLoading: state.isBusy,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          'Configura el endpoint con --dart-define=CAF_API_BASE_URL=<https://.../api/v1>',
-                          style: Theme.of(context).textTheme.bodySmall,
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
+                      ),
                     ),
                   ),
                 ),
               ),
             ),
-          ),
+          ],
         ),
       ),
     );
@@ -231,18 +308,63 @@ class _LoginFormState extends State<LoginForm> {
             },
           ),
           const SizedBox(height: 20),
-          FilledButton.icon(
-            onPressed: widget.isLoading ? null : _submit,
-            icon: widget.isLoading
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.login),
-            label: const Text('Entrar'),
+          DecoratedBox(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(14),
+              gradient: CafBrand.actionGradient,
+              boxShadow: [
+                BoxShadow(
+                  color: CafBrand.blueDeep.withValues(alpha: 0.22),
+                  blurRadius: 22,
+                  offset: const Offset(0, 12),
+                ),
+              ],
+            ),
+            child: FilledButton.icon(
+              style: FilledButton.styleFrom(
+                backgroundColor: Colors.transparent,
+                disabledBackgroundColor: Colors.transparent,
+                shadowColor: Colors.transparent,
+                foregroundColor: Colors.white,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              ),
+              onPressed: widget.isLoading ? null : _submit,
+              icon: widget.isLoading
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    )
+                  : const Icon(Icons.login),
+              label: const Text('Entrar'),
+            ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _AuthGlowOrb extends StatelessWidget {
+  const _AuthGlowOrb({required this.size, required this.color});
+
+  final double size;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: color,
+        ),
       ),
     );
   }
