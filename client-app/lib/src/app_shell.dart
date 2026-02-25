@@ -1424,17 +1424,57 @@ class _AppointmentsSection extends StatelessWidget {
               ].join('\n'),
             ),
             isThreeLine: true,
-            trailing: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Chip(label: Text(_appointmentStatusLabel(appt.status))),
-                if (appt.category.isNotEmpty)
-                  Text(
-                    _categoryLabel(appt.category),
-                    style: Theme.of(context).textTheme.bodySmall,
+            trailing: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 118),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .primaryContainer
+                          .withValues(alpha: 0.95),
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .primary
+                            .withValues(alpha: 0.14),
+                      ),
+                    ),
+                    child: Text(
+                      _appointmentStatusLabel(appt.status),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onPrimaryContainer,
+                            fontWeight: FontWeight.w700,
+                          ),
+                    ),
                   ),
-              ],
+                  if (appt.category.isNotEmpty) ...[
+                    const SizedBox(height: 3),
+                    Text(
+                      _categoryLabel(appt.category),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.right,
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurfaceVariant
+                                .withValues(alpha: 0.9),
+                          ),
+                    ),
+                  ],
+                ],
+              ),
             ),
           ),
         );

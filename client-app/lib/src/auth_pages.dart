@@ -173,17 +173,38 @@ class AuthEntryPage extends StatelessWidget {
                               ),
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 10),
+                                horizontal: 12,
+                                vertical: 10,
+                              ),
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(14),
                                 border: Border.all(
-                                  color: const Color(0x66CEAAD3),
+                                  color: const Color(0x669EB7DB),
                                 ),
-                                color: const Color(0xC4FFF5F8),
+                                color: Colors.white.withValues(alpha: 0.62),
                               ),
-                              child: const Text(
-                                'El acceso a la app requiere una cuenta creada previamente por el equipo CAF.',
-                                textAlign: TextAlign.center,
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Padding(
+                                    padding: EdgeInsets.only(top: 1),
+                                    child: Icon(
+                                      Icons.info_outline,
+                                      size: 16,
+                                      color: CafBrand.inkSoft,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      'El acceso a la app requiere una cuenta creada previamente por el equipo CAF.',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodySmall
+                                          ?.copyWith(color: CafBrand.inkSoft),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                             const SizedBox(height: 16),
@@ -193,15 +214,6 @@ class AuthEntryPage extends StatelessWidget {
                                 key: const ValueKey('login-form'),
                                 isLoading: state.isBusy,
                               ),
-                            ),
-                            const SizedBox(height: 14),
-                            Text(
-                              'Configura el endpoint con --dart-define=CAF_API_BASE_URL=<https://.../api/v1>',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodySmall
-                                  ?.copyWith(color: CafBrand.inkSoft),
-                              textAlign: TextAlign.center,
                             ),
                           ],
                         ),
