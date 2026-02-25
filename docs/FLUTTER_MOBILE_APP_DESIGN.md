@@ -38,7 +38,7 @@ client-app/lib/
 ├── main.dart
 └── src/
     ├── app_state.dart   # AppConfig, ApiClient, secure token storage, realtime, domain models, app state
-    ├── auth_pages.dart  # Login/register screens
+    ├── auth_pages.dart  # Login-only screen (CAF-provisioned accounts)
     └── app_shell.dart   # Navigation shell + all client sections
 ```
 
@@ -57,7 +57,7 @@ client-app/lib/
 ### Auth (Public)
 
 - `POST /api/v1/login`
-- `POST /api/v1/register` (app sends `role=client`)
+- `POST /api/v1/register` exists on the API, but the mobile app does not expose self-service registration
 
 ### Client Portal (`/api/v1/client`)
 

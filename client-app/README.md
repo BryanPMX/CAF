@@ -4,7 +4,7 @@ Flutter mobile app for **CAF clients** (not staff/admin). It consumes the CAF Go
 
 ## Current Scope (Implemented)
 
-- Authentication (login/register as `client`)
+- Authentication (login only; client account is provisioned by CAF)
 - Minimalist dashboard
 - Notificaciones (list + mark read)
 - Mi Caso (client-safe case detail)
@@ -24,7 +24,7 @@ lib/
 ├── main.dart              # App bootstrap + provider + auth gate
 └── src/
     ├── app_state.dart     # Config, API client, secure token storage, realtime, app state
-    ├── auth_pages.dart    # Login/register UX
+    ├── auth_pages.dart    # Login-only UX (CAF-provisioned accounts)
     └── app_shell.dart     # Section shell (Dashboard, Notificaciones, Mi Caso, Citas, Pagos, Contacto)
 ```
 
@@ -41,7 +41,6 @@ lib/
 Primary client endpoints:
 
 - `POST /api/v1/login`
-- `POST /api/v1/register`
 - `GET /api/v1/client/profile`
 - `GET /api/v1/client/cases`
 - `GET /api/v1/client/cases/:id`
@@ -129,6 +128,7 @@ The app listens for Stripe return URLs and routes the user back to `Pagos/Recibo
 This repo currently does **not** include `android/` or `ios/` folders, so native deep-link manifests are not versioned here yet.
 
 - Android (when generated): add an `intent-filter` for your scheme/host (e.g. `cafclient://payments/*`) and/or App Links for `caf-mexico.org`.
+- Android: generated and versioned in this repo; configure `intent-filter` for `cafclient://payments/*` (and App Links if desired).
 - iOS (when generated): register URL Types (`cafclient`) and optionally Universal Links (`caf-mexico.org` / `www.caf-mexico.org`).
 - Your marketing success/cancel pages can redirect to the app scheme for a direct mobile return UX.
 
@@ -144,5 +144,6 @@ flutter run --dart-define=CAF_API_BASE_URL=http://localhost:8080/api/v1 --dart-d
 ## Notes
 
 - Legacy prototype files (`lib/screens/*`, `lib/services/auth_service.dart`) were removed in favor of the centralized `lib/src/*` implementation.
+- Self-service account creation is intentionally not exposed in the mobile app; client accounts are created by CAF staff/admins.
 - If Stripe is not configured on the API, `Pagos` stays visible but shows a clear configuration message instead of failing silently.
 - If a user returns from Checkout before the webhook completes, the app may briefly show stale receipts until the webhook updates the server (then websocket/app refresh catches up).

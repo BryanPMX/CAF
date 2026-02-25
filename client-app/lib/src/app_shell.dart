@@ -1,7 +1,10 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:app_links/app_links.dart';
 import 'package:flutter/material.dart';
+import 'package:open_filex/open_filex.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -20,7 +23,7 @@ extension ClientSectionX on ClientSection {
   String get label {
     switch (this) {
       case ClientSection.dashboard:
-        return 'Dashboard';
+        return 'Inicio';
       case ClientSection.notifications:
         return 'Notificaciones';
       case ClientSection.myCase:
@@ -211,9 +214,10 @@ class _ClientAppShellState extends State<ClientAppShell>
               IconButton(
                 tooltip: 'Cerrar sesión',
                 onPressed: () async {
+                  final messenger = ScaffoldMessenger.of(context);
                   await state.logout();
                   if (!mounted) return;
-                  ScaffoldMessenger.of(context).clearSnackBars();
+                  messenger.clearSnackBars();
                 },
                 icon: const Icon(Icons.logout),
               ),
@@ -511,7 +515,7 @@ class _DashboardSection extends StatelessWidget {
                           ?.copyWith(fontWeight: FontWeight.w600)),
                   const SizedBox(height: 4),
                   Text(
-                      '${_dateTimeLabel(nextAppt.startTime)} • ${nextAppt.status.toUpperCase()}'),
+                      '${_dateTimeLabel(nextAppt.startTime)} • ${_appointmentStatusLabel(nextAppt.status).toUpperCase()}'),
                   if (nextAppt.caseTitle.isNotEmpty) const SizedBox(height: 4),
                   if (nextAppt.caseTitle.isNotEmpty)
                     Text('Caso: ${nextAppt.caseTitle}'),
@@ -690,10 +694,16 @@ class _MyCaseSection extends StatelessWidget {
                           selected ? Icons.folder_open : Icons.folder_outlined),
                       title: Text(
                           item.title.isEmpty ? 'Caso #${item.id}' : item.title),
-                      subtitle: Text('${item.status} • ${item.category}'),
+                      subtitle: Text(
+                        [
+                          _caseStatusLabel(item.status),
+                          if (item.category.isNotEmpty)
+                            _categoryLabel(item.category),
+                        ].join(' • '),
+                      ),
                       trailing: item.currentStage.isNotEmpty
                           ? Chip(
-                              label: Text(item.currentStage),
+                              label: Text(_caseStageLabel(item.currentStage)),
                               visualDensity: VisualDensity.compact)
                           : null,
                       onTap: () {
@@ -757,6 +767,65 @@ class _CaseDetailPanel extends StatelessWidget {
 
   final AppState state;
 
+  Future<void> _openCaseDocument(
+    BuildContext context,
+    CaseTimelineEvent event, {
+    required bool download,
+  }) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final fileData = await state.fetchCaseDocument(
+      eventId: event.id,
+      fallbackFileName: event.fileName,
+      download: download,
+    );
+    if (!context.mounted) return;
+    if (fileData == null) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            state.errorMessage ??
+                (download
+                    ? 'No se pudo descargar el documento'
+                    : 'No se pudo abrir el documento'),
+          ),
+        ),
+      );
+      return;
+    }
+
+    final baseDir = download
+        ? await getApplicationDocumentsDirectory()
+        : await getTemporaryDirectory();
+    if (!context.mounted) return;
+
+    final folder = Directory(
+      '${baseDir.path}/${download ? 'documentos_caf' : 'documentos_caf_tmp'}',
+    );
+    await folder.create(recursive: true);
+
+    final safeName = _safeFileName(fileData.fileName, fallbackId: event.id);
+    final filePath = '${folder.path}/${download ? '' : 'preview_'}$safeName';
+    final localFile = File(filePath);
+    await localFile.writeAsBytes(fileData.bytes, flush: true);
+
+    if (download) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('Documento guardado: $safeName'),
+          action: SnackBarAction(
+            label: 'Abrir',
+            onPressed: () {
+              unawaited(OpenFilex.open(localFile.path));
+            },
+          ),
+        ),
+      );
+      return;
+    }
+
+    await OpenFilex.open(localFile.path);
+  }
+
   @override
   Widget build(BuildContext context) {
     final selectedId = state.selectedCaseId;
@@ -798,13 +867,23 @@ class _CaseDetailPanel extends StatelessWidget {
               spacing: 8,
               runSpacing: 8,
               children: [
-                Chip(label: Text('Estado: ${summary.status}')),
+                Chip(
+                    label: Text('Estado: ${_caseStatusLabel(summary.status)}')),
                 if (summary.category.isNotEmpty)
-                  Chip(label: Text('Categoría: ${summary.category}')),
+                  Chip(
+                    label:
+                        Text('Categoría: ${_categoryLabel(summary.category)}'),
+                  ),
                 if (summary.currentStage.isNotEmpty)
-                  Chip(label: Text('Etapa: ${summary.currentStage}')),
+                  Chip(
+                    label:
+                        Text('Etapa: ${_caseStageLabel(summary.currentStage)}'),
+                  ),
                 if (summary.priority.isNotEmpty)
-                  Chip(label: Text('Prioridad: ${summary.priority}')),
+                  Chip(
+                    label:
+                        Text('Prioridad: ${_priorityLabel(summary.priority)}'),
+                  ),
               ],
             ),
             const SizedBox(height: 12),
@@ -837,6 +916,15 @@ class _CaseDetailPanel extends StatelessWidget {
                     leading: Icon(event.isDocument
                         ? Icons.attach_file
                         : Icons.chat_bubble_outline),
+                    onTap: event.isDocument
+                        ? () => unawaited(
+                              _openCaseDocument(
+                                context,
+                                event,
+                                download: false,
+                              ),
+                            )
+                        : null,
                     title: Text(
                       event.isDocument
                           ? (event.fileName.isEmpty
@@ -855,6 +943,42 @@ class _CaseDetailPanel extends StatelessWidget {
                           event.fileType,
                       ].join(' • '),
                     ),
+                    trailing: event.isDocument
+                        ? PopupMenuButton<String>(
+                            tooltip: 'Acciones del documento',
+                            onSelected: (value) {
+                              if (value == 'ver') {
+                                unawaited(
+                                  _openCaseDocument(
+                                    context,
+                                    event,
+                                    download: false,
+                                  ),
+                                );
+                                return;
+                              }
+                              if (value == 'descargar') {
+                                unawaited(
+                                  _openCaseDocument(
+                                    context,
+                                    event,
+                                    download: true,
+                                  ),
+                                );
+                              }
+                            },
+                            itemBuilder: (context) => const [
+                              PopupMenuItem<String>(
+                                value: 'ver',
+                                child: Text('Ver'),
+                              ),
+                              PopupMenuItem<String>(
+                                value: 'descargar',
+                                child: Text('Descargar'),
+                              ),
+                            ],
+                          )
+                        : null,
                   ),
                 ),
               ),
@@ -875,9 +999,9 @@ class _CaseDetailPanel extends StatelessWidget {
                   title: Text(
                       appt.title.isEmpty ? 'Cita #${appt.id}' : appt.title),
                   subtitle: Text(
-                      '${_dateTimeLabel(appt.startTime)} • ${appt.status}'),
+                      '${_dateTimeLabel(appt.startTime)} • ${_appointmentStatusLabel(appt.status)}'),
                   trailing: appt.category.isNotEmpty
-                      ? Chip(label: Text(appt.category))
+                      ? Chip(label: Text(_categoryLabel(appt.category)))
                       : null,
                 ),
               ),
@@ -1077,12 +1201,10 @@ class _AppointmentsSection extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Chip(
-                    label:
-                        Text(appt.status.isEmpty ? 'sin estado' : appt.status)),
+                Chip(label: Text(_appointmentStatusLabel(appt.status))),
                 if (appt.category.isNotEmpty)
                   Text(
-                    appt.category,
+                    _categoryLabel(appt.category),
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
               ],
@@ -1124,7 +1246,7 @@ class _PaymentsSection extends StatelessWidget {
                         ?.copyWith(fontWeight: FontWeight.w700)),
                 const SizedBox(height: 8),
                 const Text(
-                  'Los pagos se generan desde el API usando Stripe Checkout (hosted). La app nunca maneja llaves secretas.',
+                  'Los pagos se generan desde el API usando Stripe Checkout (hospedado). La app nunca maneja llaves secretas.',
                 ),
                 if (!state.paymentsConfigured &&
                     (state.paymentsMessage?.isNotEmpty ?? false)) ...[
@@ -1175,8 +1297,10 @@ class _PaymentsSection extends StatelessWidget {
                 leading: const Icon(Icons.payments_outlined),
                 title: Text(c.title.isEmpty ? 'Caso #${c.id}' : c.title),
                 subtitle: Text([
-                  if (c.status.isNotEmpty) 'Estado: ${c.status}',
-                  if (c.currentStage.isNotEmpty) 'Etapa: ${c.currentStage}',
+                  if (c.status.isNotEmpty)
+                    'Estado: ${_caseStatusLabel(c.status)}',
+                  if (c.currentStage.isNotEmpty)
+                    'Etapa: ${_caseStageLabel(c.currentStage)}',
                 ].join('\n')),
                 isThreeLine: c.currentStage.isNotEmpty,
                 trailing: ConstrainedBox(
@@ -1274,9 +1398,7 @@ class _PaymentsSection extends StatelessWidget {
                         onPressed: () => _openReceipt(context, r.receiptUrl),
                         child: const Text('Abrir'),
                       )
-                    : Chip(
-                        label:
-                            Text(r.status.isEmpty ? 'sin estado' : r.status)),
+                    : Chip(label: Text(_paymentStatusLabel(r.status))),
               ),
             ),
           ),
@@ -1358,7 +1480,7 @@ class _ContactSection extends StatelessWidget {
                   ? 'Profesional asignado'
                   : primaryStaff.name),
               subtitle: Text([
-                if (primaryStaff.role.isNotEmpty) primaryStaff.role,
+                if (primaryStaff.role.isNotEmpty) _roleLabel(primaryStaff.role),
                 if (primaryStaff.email.isNotEmpty) primaryStaff.email,
                 if (primaryStaff.phone.isNotEmpty) primaryStaff.phone,
               ].join('\n')),
@@ -1477,4 +1599,123 @@ String _dateTimeLabel(DateTime? value) {
 
 String _currency(double amount) {
   return '\$${amount.toStringAsFixed(2)}';
+}
+
+String _safeFileName(String value, {required int fallbackId}) {
+  final trimmed = value.trim();
+  final cleaned = trimmed
+      .replaceAll(RegExp(r'[\\/:*?"<>|]'), '_')
+      .replaceAll(RegExp(r'\s+'), ' ')
+      .trim();
+  if (cleaned.isNotEmpty) return cleaned;
+  return 'documento_$fallbackId';
+}
+
+String _caseStatusLabel(String value) => _translateValue(value, const {
+      'open': 'Abierto',
+      'opened': 'Abierto',
+      'active': 'Activo',
+      'in_progress': 'En proceso',
+      'pending': 'Pendiente',
+      'completed': 'Completado',
+      'closed': 'Cerrado',
+      'cancelled': 'Cancelado',
+      'canceled': 'Cancelado',
+      'archived': 'Archivado',
+    });
+
+String _appointmentStatusLabel(String value) => _translateValue(value, const {
+      'scheduled': 'Programada',
+      'confirmed': 'Confirmada',
+      'pending': 'Pendiente',
+      'completed': 'Completada',
+      'cancelled': 'Cancelada',
+      'canceled': 'Cancelada',
+      'rescheduled': 'Reprogramada',
+      'no_show': 'No asistió',
+      'in_progress': 'En curso',
+    });
+
+String _paymentStatusLabel(String value) => _translateValue(value, const {
+      'paid': 'Pagado',
+      'pending': 'Pendiente',
+      'unpaid': 'No pagado',
+      'open': 'Abierto',
+      'processing': 'Procesando',
+      'failed': 'Fallido',
+      'expired': 'Expirado',
+      'canceled': 'Cancelado',
+      'cancelled': 'Cancelado',
+      'refunded': 'Reembolsado',
+      'succeeded': 'Exitoso',
+    });
+
+String _caseStageLabel(String value) => _translateValue(value, const {
+      'intake': 'Ingreso',
+      'assessment': 'Valoración',
+      'evaluation': 'Evaluación',
+      'planning': 'Planificación',
+      'treatment_plan': 'Plan de atención',
+      'active': 'Activo',
+      'follow_up': 'Seguimiento',
+      'review': 'Revisión',
+      'closure': 'Cierre',
+      'closed': 'Cerrado',
+      'documentation': 'Documentación',
+    });
+
+String _priorityLabel(String value) => _translateValue(value, const {
+      'low': 'Baja',
+      'medium': 'Media',
+      'high': 'Alta',
+      'urgent': 'Urgente',
+      'critical': 'Crítica',
+    });
+
+String _categoryLabel(String value) {
+  if (value.trim().isEmpty) return 'Sin categoría';
+  return _translateValue(value, const {
+    'legal': 'Legal',
+    'psychology': 'Psicología',
+    'psychological': 'Psicológica',
+    'social_work': 'Trabajo social',
+    'therapy': 'Terapia',
+    'family_therapy': 'Terapia familiar',
+    'counseling': 'Orientación',
+    'administrative': 'Administrativo',
+    'general': 'General',
+  });
+}
+
+String _roleLabel(String value) => _translateValue(value, const {
+      'admin': 'Administrador',
+      'office_manager': 'Gerente de oficina',
+      'manager': 'Gerente',
+      'staff': 'Personal',
+      'client': 'Cliente',
+      'psychologist': 'Psicólogo/a',
+      'lawyer': 'Abogado/a',
+      'social_worker': 'Trabajador/a social',
+      'therapist': 'Terapeuta',
+    });
+
+String _translateValue(String value, Map<String, String> overrides) {
+  final raw = value.trim();
+  if (raw.isEmpty) return 'Sin estado';
+
+  final key = raw
+      .replaceAllMapped(RegExp(r'([a-z])([A-Z])'), (m) => '${m[1]}_${m[2]}')
+      .replaceAll('-', '_')
+      .replaceAll(' ', '_')
+      .toLowerCase();
+
+  final translated = overrides[key];
+  if (translated != null && translated.isNotEmpty) return translated;
+
+  final humanized = key
+      .split('_')
+      .where((part) => part.isNotEmpty)
+      .map((part) => part[0].toUpperCase() + part.substring(1))
+      .join(' ');
+  return humanized.isNotEmpty ? humanized : raw;
 }

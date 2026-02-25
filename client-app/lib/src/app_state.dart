@@ -101,8 +101,9 @@ class AppConfig {
           .where((e) => e.isNotEmpty)
           .toSet();
       if (allowedHosts.contains(host)) {
-        if (path.endsWith('/pagos/exito'))
+        if (path.endsWith('/pagos/exito')) {
           return StripeCheckoutReturnStatus.success;
+        }
         if (path.endsWith('/pagos/cancelado')) {
           return StripeCheckoutReturnStatus.cancel;
         }
@@ -123,6 +124,19 @@ class ApiException implements Exception {
   @override
   String toString() =>
       'ApiException(statusCode: $statusCode, message: $message)';
+}
+
+class ApiBinaryResponse {
+  ApiBinaryResponse({
+    required this.bytes,
+    required this.headers,
+  });
+
+  final Uint8List bytes;
+  final Map<String, String> headers;
+
+  String get contentType => _asString(headers['content-type']);
+  String get contentDisposition => _asString(headers['content-disposition']);
 }
 
 class TokenStorage {
@@ -183,6 +197,66 @@ class ApiClient {
       authenticated: authenticated,
       body: body,
       headers: headers,
+    );
+  }
+
+  Future<ApiBinaryResponse> getBytes(
+    String path, {
+    bool authenticated = true,
+    Map<String, String>? headers,
+  }) async {
+    final uri = AppConfig.apiUri(path);
+    final requestHeaders = <String, String>{
+      'Accept': '*/*',
+      'Accept-Version': 'v1',
+      'X-Platform': defaultTargetPlatform.name,
+      'User-Agent': 'CAFClienteMobile/${defaultTargetPlatform.name}',
+      ...?headers,
+    };
+
+    if (authenticated) {
+      final token = await _tokenStorage.readToken();
+      if (token == null || token.isEmpty) {
+        throw ApiException('Sesión no disponible', statusCode: 401);
+      }
+      requestHeaders['Authorization'] = 'Bearer $token';
+    }
+
+    http.Response response;
+    try {
+      response = await _httpClient
+          .get(uri, headers: requestHeaders)
+          .timeout(const Duration(seconds: 30));
+    } on TimeoutException {
+      throw ApiException('Tiempo de espera agotado al descargar el documento');
+    } on http.ClientException {
+      throw ApiException('No fue posible conectar con el servidor');
+    } on Exception {
+      throw ApiException('No fue posible descargar el documento');
+    }
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      dynamic data;
+      final bodyText = utf8.decode(response.bodyBytes, allowMalformed: true);
+      if (bodyText.isNotEmpty) {
+        try {
+          data = jsonDecode(bodyText);
+        } catch (_) {
+          data = bodyText;
+        }
+      }
+
+      throw ApiException(
+        _extractErrorMessage(data) ??
+            'Descarga fallida (${response.statusCode})',
+        statusCode: response.statusCode,
+        data: data,
+      );
+    }
+
+    return ApiBinaryResponse(
+      bytes: response.bodyBytes,
+      headers: response.headers,
     );
   }
 
@@ -419,6 +493,40 @@ String _fullName(Map<String, dynamic> userMap) {
   final first = _asString(userMap['firstName']).trim();
   final last = _asString(userMap['lastName']).trim();
   return [first, last].where((e) => e.isNotEmpty).join(' ').trim();
+}
+
+String _filenameFromContentDisposition(String headerValue) {
+  final value = headerValue.trim();
+  if (value.isEmpty) return '';
+
+  final utf8Match = RegExp(
+    r'''filename\*\s*=\s*UTF-8''([^;]+)''',
+    caseSensitive: false,
+  ).firstMatch(value);
+  if (utf8Match != null) {
+    return Uri.decodeFull(utf8Match.group(1) ?? '').trim();
+  }
+
+  final quotedMatch = RegExp(
+    r'''filename\s*=\s*"([^"]+)"''',
+    caseSensitive: false,
+  ).firstMatch(value);
+  if (quotedMatch != null) {
+    return (quotedMatch.group(1) ?? '').trim();
+  }
+
+  final plainMatch = RegExp(
+    r'''filename\s*=\s*([^;]+)''',
+    caseSensitive: false,
+  ).firstMatch(value);
+  if (plainMatch != null) {
+    return (plainMatch.group(1) ?? '')
+        .replaceAll('"', '')
+        .replaceAll("'", '')
+        .trim();
+  }
+
+  return '';
 }
 
 class AuthUser {
@@ -722,7 +830,7 @@ class CaseTimelineEvent {
   final String authorName;
 
   bool get isComment => eventType == 'comment';
-  bool get isDocument => eventType == 'file_upload';
+  bool get isDocument => eventType == 'file_upload' || eventType == 'document';
 
   factory CaseTimelineEvent.fromJson(Map<String, dynamic> json) {
     return CaseTimelineEvent(
@@ -737,6 +845,18 @@ class CaseTimelineEvent {
       authorName: _fullName(_asMap(json['user'])),
     );
   }
+}
+
+class ClientDocumentFile {
+  ClientDocumentFile({
+    required this.fileName,
+    required this.contentType,
+    required this.bytes,
+  });
+
+  final String fileName;
+  final String contentType;
+  final Uint8List bytes;
 }
 
 class StaffContact {
@@ -940,41 +1060,6 @@ class AppState extends ChangeNotifier {
       return e.message;
     } catch (_) {
       _errorMessage = 'Error inesperado al iniciar sesión';
-      return _errorMessage;
-    } finally {
-      _isBusy = false;
-      notifyListeners();
-    }
-  }
-
-  Future<String?> register({
-    required String firstName,
-    required String lastName,
-    required String email,
-    required String password,
-  }) async {
-    _isBusy = true;
-    _errorMessage = null;
-    notifyListeners();
-
-    try {
-      await _api.post(
-        '/register',
-        authenticated: false,
-        body: {
-          'firstName': firstName.trim(),
-          'lastName': lastName.trim(),
-          'email': email.trim(),
-          'password': password,
-          'role': 'client',
-        },
-      );
-      return null;
-    } on ApiException catch (e) {
-      _errorMessage = e.message;
-      return e.message;
-    } catch (_) {
-      _errorMessage = 'No fue posible registrar la cuenta';
       return _errorMessage;
     } finally {
       _isBusy = false;
@@ -1275,6 +1360,36 @@ class AppState extends ChangeNotifier {
       _errorMessage = e.message;
       notifyListeners();
       return e.message;
+    }
+  }
+
+  Future<ClientDocumentFile?> fetchCaseDocument({
+    required int eventId,
+    required String fallbackFileName,
+    bool download = false,
+  }) async {
+    try {
+      final response = await _api.getBytes(
+        '/client/documents/$eventId?mode=${download ? 'download' : 'preview'}',
+      );
+      final headerFileName =
+          _filenameFromContentDisposition(response.contentDisposition);
+      final resolvedName = headerFileName.isNotEmpty
+          ? headerFileName
+          : (fallbackFileName.trim().isNotEmpty
+              ? fallbackFileName.trim()
+              : 'documento_$eventId');
+      _errorMessage = null;
+      notifyListeners();
+      return ClientDocumentFile(
+        fileName: resolvedName,
+        contentType: response.contentType,
+        bytes: response.bytes,
+      );
+    } on ApiException catch (e) {
+      _errorMessage = e.message;
+      notifyListeners();
+      return null;
     }
   }
 

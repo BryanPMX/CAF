@@ -105,7 +105,7 @@ client-app/lib/
 ├── main.dart                    # Bootstrap + provider + auth gate
 └── src/
     ├── app_state.dart           # API client, secure storage, websocket, app state
-    ├── auth_pages.dart          # Login / register UX (client role)
+    ├── auth_pages.dart          # Login-only UX (client role; accounts provisioned by CAF)
     └── app_shell.dart           # Dashboard, Notificaciones, Mi Caso, Citas, Pagos, Contacto
 ```
 

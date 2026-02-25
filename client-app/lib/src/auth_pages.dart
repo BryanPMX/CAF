@@ -3,15 +3,8 @@ import 'package:provider/provider.dart';
 
 import 'app_state.dart';
 
-class AuthEntryPage extends StatefulWidget {
+class AuthEntryPage extends StatelessWidget {
   const AuthEntryPage({super.key});
-
-  @override
-  State<AuthEntryPage> createState() => _AuthEntryPageState();
-}
-
-class _AuthEntryPageState extends State<AuthEntryPage> {
-  bool _showRegister = false;
 
   @override
   Widget build(BuildContext context) {
@@ -84,19 +77,6 @@ class _AuthEntryPageState extends State<AuthEntryPage> {
                           ],
                         ),
                         const SizedBox(height: 20),
-                        SegmentedButton<bool>(
-                          segments: const [
-                            ButtonSegment<bool>(
-                                value: false, label: Text('Entrar')),
-                            ButtonSegment<bool>(
-                                value: true, label: Text('Registro')),
-                          ],
-                          selected: {_showRegister},
-                          onSelectionChanged: (selection) {
-                            setState(() => _showRegister = selection.first);
-                          },
-                        ),
-                        const SizedBox(height: 20),
                         if (state.errorMessage != null &&
                             state.errorMessage!.isNotEmpty)
                           Padding(
@@ -130,21 +110,17 @@ class _AuthEntryPageState extends State<AuthEntryPage> {
                               ),
                             ),
                           ),
+                        const Text(
+                          'El acceso a la app requiere una cuenta creada previamente por el equipo CAF.',
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 16),
                         AnimatedSwitcher(
                           duration: const Duration(milliseconds: 220),
-                          child: _showRegister
-                              ? RegisterForm(
-                                  key: const ValueKey('register-form'),
-                                  isLoading: state.isBusy,
-                                  onBackToLogin: () =>
-                                      setState(() => _showRegister = false),
-                                )
-                              : LoginForm(
-                                  key: const ValueKey('login-form'),
-                                  isLoading: state.isBusy,
-                                  onSwitchToRegister: () =>
-                                      setState(() => _showRegister = true),
-                                ),
+                          child: LoginForm(
+                            key: const ValueKey('login-form'),
+                            isLoading: state.isBusy,
+                          ),
                         ),
                         const SizedBox(height: 12),
                         Text(
@@ -169,11 +145,9 @@ class LoginForm extends StatefulWidget {
   const LoginForm({
     super.key,
     required this.isLoading,
-    required this.onSwitchToRegister,
   });
 
   final bool isLoading;
-  final VoidCallback onSwitchToRegister;
 
   @override
   State<LoginForm> createState() => _LoginFormState();
@@ -237,8 +211,9 @@ class _LoginFormState extends State<LoginForm> {
             autofillHints: const [AutofillHints.email],
             validator: (value) {
               final v = (value ?? '').trim();
-              if (v.isEmpty || !v.contains('@'))
+              if (v.isEmpty || !v.contains('@')) {
                 return 'Ingresa un correo válido';
+              }
               return null;
             },
           ),
@@ -249,7 +224,9 @@ class _LoginFormState extends State<LoginForm> {
             decoration: const InputDecoration(labelText: 'Contraseña'),
             autofillHints: const [AutofillHints.password],
             validator: (value) {
-              if ((value ?? '').isEmpty) return 'Ingresa tu contraseña';
+              if ((value ?? '').isEmpty) {
+                return 'Ingresa tu contraseña';
+              }
               return null;
             },
           ),
@@ -264,152 +241,6 @@ class _LoginFormState extends State<LoginForm> {
                   )
                 : const Icon(Icons.login),
             label: const Text('Entrar'),
-          ),
-          const SizedBox(height: 8),
-          TextButton(
-            onPressed: widget.isLoading ? null : widget.onSwitchToRegister,
-            child: const Text('Crear cuenta de cliente'),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class RegisterForm extends StatefulWidget {
-  const RegisterForm({
-    super.key,
-    required this.isLoading,
-    required this.onBackToLogin,
-  });
-
-  final bool isLoading;
-  final VoidCallback onBackToLogin;
-
-  @override
-  State<RegisterForm> createState() => _RegisterFormState();
-}
-
-class _RegisterFormState extends State<RegisterForm> {
-  final _formKey = GlobalKey<FormState>();
-  final _firstNameController = TextEditingController();
-  final _lastNameController = TextEditingController();
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
-
-  @override
-  void dispose() {
-    _firstNameController.dispose();
-    _lastNameController.dispose();
-    _emailController.dispose();
-    _passwordController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    final appState = context.read<AppState>();
-    final message = await appState.register(
-      firstName: _firstNameController.text,
-      lastName: _lastNameController.text,
-      email: _emailController.text,
-      password: _passwordController.text,
-    );
-
-    if (!mounted) return;
-    if (message == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Cuenta creada. Ahora puedes iniciar sesión.')),
-      );
-      widget.onBackToLogin();
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content: Text(message),
-            backgroundColor: Theme.of(context).colorScheme.error),
-      );
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Form(
-      key: _formKey,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            'Registro de cliente',
-            style: Theme.of(context)
-                .textTheme
-                .headlineSmall
-                ?.copyWith(fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'La app registra cuentas con rol cliente para cumplir con la API actual.',
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
-          const SizedBox(height: 20),
-          TextFormField(
-            controller: _firstNameController,
-            decoration: const InputDecoration(labelText: 'Nombre(s)'),
-            validator: (value) =>
-                (value ?? '').trim().length < 2 ? 'Mínimo 2 caracteres' : null,
-          ),
-          const SizedBox(height: 14),
-          TextFormField(
-            controller: _lastNameController,
-            decoration: const InputDecoration(labelText: 'Apellidos'),
-            validator: (value) =>
-                (value ?? '').trim().length < 2 ? 'Mínimo 2 caracteres' : null,
-          ),
-          const SizedBox(height: 14),
-          TextFormField(
-            controller: _emailController,
-            keyboardType: TextInputType.emailAddress,
-            decoration: const InputDecoration(labelText: 'Correo electrónico'),
-            validator: (value) {
-              final v = (value ?? '').trim();
-              if (v.isEmpty || !v.contains('@'))
-                return 'Ingresa un correo válido';
-              return null;
-            },
-          ),
-          const SizedBox(height: 14),
-          TextFormField(
-            controller: _passwordController,
-            obscureText: true,
-            decoration: const InputDecoration(labelText: 'Contraseña'),
-            validator: (value) {
-              final v = value ?? '';
-              if (v.length < 8) return 'Mínimo 8 caracteres';
-              if (!RegExp(r'[A-Z]').hasMatch(v) ||
-                  !RegExp(r'[a-z]').hasMatch(v) ||
-                  !RegExp(r'\d').hasMatch(v)) {
-                return 'Incluye mayúscula, minúscula y número';
-              }
-              return null;
-            },
-          ),
-          const SizedBox(height: 20),
-          FilledButton.icon(
-            onPressed: widget.isLoading ? null : _submit,
-            icon: widget.isLoading
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.person_add_alt_1),
-            label: const Text('Crear cuenta'),
-          ),
-          const SizedBox(height: 8),
-          TextButton(
-            onPressed: widget.isLoading ? null : widget.onBackToLogin,
-            child: const Text('Volver a iniciar sesión'),
           ),
         ],
       ),
