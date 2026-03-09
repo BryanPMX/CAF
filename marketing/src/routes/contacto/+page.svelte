@@ -5,6 +5,7 @@
   import OfficeMap from '$lib/components/OfficeMap.svelte';
   import { formValidator, commonRules } from '$lib/utils/formValidator.js';
   import { apiUtils } from '$lib/utils/apiClient.js';
+  import { loadTurnstileScript, resetTurnstileWidget } from '$lib/utils/turnstileClient.js';
   import { errorHandler } from '$lib/utils/errorHandler.js';
   import { config } from '$lib/config.js';
 
@@ -13,6 +14,11 @@
   let formErrors = {};
   let offices = [];
   let loadingOffices = true;
+  let turnstileContainer;
+  let turnstileWidgetId = null;
+  let turnstileToken = '';
+  let turnstileError = '';
+  const turnstileSiteKey = config?.security?.turnstileSiteKey || '';
 
   onMount(async () => {
     try {
@@ -23,6 +29,48 @@
     } finally {
       loadingOffices = false;
     }
+  });
+
+  onMount(() => {
+    let disposed = false;
+
+    async function initializeTurnstile() {
+      if (!turnstileSiteKey) {
+        console.warn('VITE_TURNSTILE_SITE_KEY is not configured');
+        return;
+      }
+
+      try {
+        const turnstile = await loadTurnstileScript();
+        if (!turnstile || !turnstileContainer || disposed) return;
+
+        turnstileWidgetId = turnstile.render(turnstileContainer, {
+          sitekey: turnstileSiteKey,
+          theme: 'light',
+          callback: (token) => {
+            turnstileToken = token;
+            turnstileError = '';
+          },
+          'expired-callback': () => {
+            turnstileToken = '';
+            turnstileError = 'La verificación expiró. Vuelve a intentarlo.';
+          },
+          'error-callback': () => {
+            turnstileToken = '';
+            turnstileError = 'No se pudo completar la verificación. Intenta nuevamente.';
+          }
+        });
+      } catch (error) {
+        console.error('Turnstile init failed:', error);
+        turnstileError = 'No se pudo cargar la verificación de seguridad.';
+      }
+    }
+
+    initializeTurnstile();
+
+    return () => {
+      disposed = true;
+    };
   });
 
   async function handleSubmit(event) {
@@ -37,9 +85,19 @@
       return;
     }
 
+    if (!turnstileSiteKey) {
+      errorHandler.showNotification('Captcha no configurado. Contacte al administrador del sitio.', 'error');
+      return;
+    }
+
+    if (!turnstileToken) {
+      turnstileError = 'Completa la verificación de seguridad antes de enviar.';
+      return;
+    }
+
     isSubmitting = true;
     try {
-      const success = await apiUtils.submitContactForm(formData);
+      const success = await apiUtils.submitContactForm(formData, turnstileToken);
       if (success) {
         formData = { name: '', email: '', phone: '', message: '', officeId: '' };
         formErrors = {};
@@ -48,6 +106,8 @@
       errorHandler.handleError(error, 'contact_form_submission');
     } finally {
       isSubmitting = false;
+      turnstileToken = '';
+      resetTurnstileWidget(turnstileWidgetId);
     }
   }
 
@@ -177,10 +237,25 @@
               class="focus:ring-primary-500 focus:border-primary-500"
             ></textarea>
           </div>
+          <div>
+            <p class="mb-1 block text-sm font-medium text-slate-700">Verificación de seguridad</p>
+            {#if turnstileSiteKey}
+              <div class="rounded-lg border border-slate-200 bg-white/70 p-3">
+                <div bind:this={turnstileContainer}></div>
+              </div>
+              {#if turnstileError}
+                <p class="mt-1 text-xs text-red-600">{turnstileError}</p>
+              {/if}
+            {:else}
+              <p class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+                CAPTCHA no configurado. Defina <code>VITE_TURNSTILE_SITE_KEY</code> en Vercel (Preview y Production).
+              </p>
+            {/if}
+          </div>
           <button
             type="submit"
             class="w-full bg-gradient-to-r from-primary-600 to-accent-600 text-white font-bold py-3 px-4 rounded-lg hover:opacity-90 transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
-            disabled={isSubmitting}
+            disabled={isSubmitting || !turnstileSiteKey}
           >
             {isSubmitting ? 'Enviando...' : 'Enviar Mensaje'}
           </button>

@@ -28,10 +28,14 @@ marketing/
 │   │   └── utils/                 # Utility functions
 │   │       ├── apiClient.js       # HTTP client for backend integration
 │   │       ├── errorHandler.js    # Centralized error handling
-│   │       └── formValidator.js   # Form validation utilities
+│   │       ├── formValidator.js   # Form validation utilities
+│   │       ├── publicApiProxy.js  # Server-side API base + safe JSON helpers
+│   │       └── turnstileClient.js # Cloudflare Turnstile loader/reset helpers
 │   └── routes/                    # SvelteKit routes (file-based routing)
 │       ├── +layout.svelte         # Root layout component
 │       ├── +page.svelte           # Homepage
+│       ├── api/contact/+server.js # Turnstile verify + backend contact proxy
+│       ├── api/offices/+server.js # Backend offices proxy to avoid browser CORS
 │       ├── contacto/
 │       │   └── +page.svelte       # Contact page
 │       ├── eventos/
@@ -60,6 +64,7 @@ marketing/
 - `config.api.baseUrl` – API base URL (e.g. `https://api.caf-mexico.com/api/v1`); set `VITE_API_URL` in production.
 - `config.site`, `config.contact`, `config.social` – site name, contact info, social links.
 - Google Maps: `VITE_GOOGLE_MAPS_API_KEY` (required for contact page map).
+- Contact anti-bot: `VITE_TURNSTILE_SITE_KEY` (public key) and `TURNSTILE_SECRET_KEY` (server-only secret).
 
 ### 2. Utility Functions
 
@@ -182,6 +187,17 @@ export async function load({ fetch }) {
 - Event calendar data
 - Contact form submission
 - Newsletter subscription
+
+**Contact Form Security Flow (Cloudflare Turnstile):**
+- Browser renders Turnstile with `VITE_TURNSTILE_SITE_KEY`.
+- Form submits to local `POST /api/contact` route in SvelteKit.
+- Server route verifies token with Cloudflare using `TURNSTILE_SECRET_KEY`.
+- On success, server forwards sanitized payload to backend `POST /public/contact`.
+
+**Public Offices Fetch Flow (CORS-safe):**
+- Browser calls same-origin `GET /api/offices`.
+- SvelteKit server route forwards to backend `GET /public/offices`.
+- Browser never calls external API origin directly, avoiding CORS mismatch on previews.
 
 ### Stripe Checkout Return Bridge (Mobile-First Flow)
 

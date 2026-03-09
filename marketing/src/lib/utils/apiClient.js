@@ -13,12 +13,18 @@ class ApiClient {
   // Generic request method
   async request(endpoint, options = {}) {
     const url = `${this.baseURL}${endpoint}`;
+    const headers = { ...options.headers };
+
+    // Avoid forcing Content-Type on GET/HEAD to prevent unnecessary CORS preflights.
+    const hasBody = options.body !== undefined && options.body !== null;
+    const hasContentType = Object.keys(headers).some((key) => key.toLowerCase() === 'content-type');
+    if (hasBody && !hasContentType && !(typeof FormData !== 'undefined' && options.body instanceof FormData)) {
+      headers['Content-Type'] = 'application/json';
+    }
+
     const config = {
       timeout: this.timeout,
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-      },
+      headers,
       ...options
     };
 
@@ -96,24 +102,25 @@ class ApiClient {
 // Create API client instances
 export const apiClient = new ApiClient();
 export const contactApiClient = new ApiClient('/api/contact');
+export const officesApiClient = new ApiClient('/api/offices');
 export const newsletterApiClient = new ApiClient('/api/newsletter');
 
 // Utility functions for common API operations
 export const apiUtils = {
   // Submit contact form to backend API (POST /api/v1/public/contact)
-  async submitContactForm(formData) {
+  async submitContactForm(formData, turnstileToken) {
     try {
-      const base = config?.api?.baseUrl || '';
-      if (!base) {
-        errorHandler.showNotification('API no configurada. Configure VITE_API_URL.', 'error');
+      if (!turnstileToken) {
+        errorHandler.showNotification('Completa la verificación de captcha antes de enviar.', 'error');
         return false;
       }
-      const client = new ApiClient(base);
+
       const payload = {
         name: formData.name,
         email: formData.email,
         phone: formData.phone || '',
-        message: formData.message
+        message: formData.message,
+        turnstileToken
       };
       const officeId = formData.officeId != null && String(formData.officeId).trim() !== ''
         ? parseInt(String(formData.officeId), 10)
@@ -121,12 +128,15 @@ export const apiUtils = {
       if (officeId != null && !Number.isNaN(officeId)) {
         payload.officeId = officeId;
       }
-      const response = await client.post('/public/contact', payload);
+      const response = await contactApiClient.post('', payload);
       if (response && response.success && response.data) {
         const data = response.data;
         if (data.success) {
           errorHandler.showNotification(data.message || '¡Mensaje enviado correctamente! Nos pondremos en contacto pronto.', 'success');
           return true;
+        }
+        if (data.error) {
+          errorHandler.showNotification(data.error, 'error');
         }
       }
       errorHandler.showNotification('No se pudo enviar el mensaje. Intente de nuevo.', 'error');
@@ -171,13 +181,7 @@ export const apiUtils = {
 
   // Fetch public offices for the contact page map (from GET /api/v1/public/offices)
   async fetchOffices() {
-    const base = config?.api?.baseUrl || '';
-    if (!base) {
-      console.warn('VITE_API_URL not configured');
-      return [];
-    }
-    const client = new ApiClient(base);
-    const result = await client.get('/public/offices');
+    const result = await officesApiClient.get('');
     if (!result || !result.success) return [];
 
     // API may return raw array or { data: array }

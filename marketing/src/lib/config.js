@@ -11,6 +11,12 @@ export const config = {
     baseUrl: import.meta.env.VITE_API_URL || 'https://api.caf-mexico.com/api/v1',
     adminPortalUrl: import.meta.env.VITE_ADMIN_PORTAL_URL || 'https://admin.caf-mexico.org'
   },
+  security: {
+    turnstileSiteKey:
+      import.meta.env.VITE_TURNSTILE_SITE_KEY ||
+      import.meta.env.VITE_CLOUDFLARE_TURNSTILE_SITE_KEY ||
+      ''
+  },
   contact: {
     email: import.meta.env.VITE_CONTACT_EMAIL || 'mujer_familia@hotmail.com',
     phone: import.meta.env.VITE_CONTACT_PHONE || '+1-915-555-0123',
@@ -31,6 +37,11 @@ export const getAdminPortalUrl = () => {
 // Helper function to get API URL
 export const getApiUrl = () => {
   return config.api.baseUrl;
+};
+
+// Helper function to get Turnstile site key
+export const getTurnstileSiteKey = () => {
+  return config.security.turnstileSiteKey;
 };
 
 // Helper function to get contact information
