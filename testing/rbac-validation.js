@@ -13,7 +13,7 @@ require('dotenv').config();
 
 // Configuration
 const CONFIG = {
-    API_BASE: process.env.API_BASE_URL || 'https://api.caf-mexico.org/api/v1',
+    API_BASE: process.env.API_BASE_URL || 'https://api.caf-mexico.com/api/v1',
     TEST_USERS: {
         admin: {
             email: 'test-admin@caf-test.local',
@@ -187,7 +187,7 @@ class RBACTester {
 
         try {
             // Test that role configuration is accessible
-            const frontendResponse = await httpClient.get('https://admin.caf-mexico.org', {
+            const frontendResponse = await httpClient.get('https://admin.caf-mexico.com', {
                 timeout: 5000
             });
 

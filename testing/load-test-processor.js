@@ -7,7 +7,7 @@ const axios = require('axios');
 
 // Global variables
 let authTokenCache = {};
-const API_BASE = process.env.API_BASE_URL || 'https://api.caf-mexico.org/api/v1';
+const API_BASE = process.env.API_BASE_URL || 'https://api.caf-mexico.com/api/v1';
 
 /**
  * Authenticate user and cache token

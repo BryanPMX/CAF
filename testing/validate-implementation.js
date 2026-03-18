@@ -60,7 +60,7 @@ async function validateImplementation() {
     
     // Test 2: WebSocket Endpoint Investigation
     log.test('Test 2: WebSocket Endpoint Functionality');
-    const wsTest = runCommand('curl -s -H "Upgrade: websocket" https://api.caf-mexico.org/ws', 'WebSocket endpoint check');
+    const wsTest = runCommand('curl -s -H "Upgrade: websocket" https://api.caf-mexico.com/ws', 'WebSocket endpoint check');
     const wsWorking = wsTest.success && wsTest.output.includes('missing token');
     addResult('WebSocket Endpoint', wsWorking, 
         wsWorking ? '(Returns proper auth error)' : 'Unexpected response');

@@ -11,7 +11,7 @@ enum StripeCheckoutReturnStatus { success, cancel }
 class AppConfig {
   static const String apiBaseUrl = String.fromEnvironment(
     'CAF_API_BASE_URL',
-    defaultValue: 'https://api.caf-mexico.org/api/v1',
+    defaultValue: 'https://api.caf-mexico.com/api/v1',
   );
 
   static const String wsBaseUrlOverride = String.fromEnvironment(
@@ -27,7 +27,7 @@ class AppConfig {
   static const String paymentReturnHostsCsv = String.fromEnvironment(
     'CAF_PAYMENT_RETURN_HOSTS',
     defaultValue:
-        'caf-mexico.org,www.caf-mexico.org,caf-mexico.com,www.caf-mexico.com,portal.caf-mexico.org,portal.caf-mexico.com',
+        'www.caf-mexico.com,caf-mexico.com,www.caf-mexico.org,caf-mexico.org',
   );
 
   static Uri apiUri(String path) {

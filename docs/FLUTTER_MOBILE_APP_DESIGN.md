@@ -151,4 +151,4 @@ If `CAF_WS_BASE_URL` is omitted, the app derives `/ws` from `CAF_API_BASE_URL` a
 For Checkout return deep-links, you can also provide:
 
 - `CAF_PAYMENT_RETURN_SCHEME` (default `cafclient`)
-- `CAF_PAYMENT_RETURN_HOSTS` (default includes `caf-mexico.org` / `www.caf-mexico.org` / `caf-mexico.com` / `www.caf-mexico.com`, plus optional portal domains)
+- `CAF_PAYMENT_RETURN_HOSTS` (default includes `www.caf-mexico.com` / `caf-mexico.com`, plus legacy `.org` redirect hosts for backward compatibility)

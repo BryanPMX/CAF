@@ -20,9 +20,9 @@ const DEFAULTS = {
   ADMIN_TEST_PASSWORD: 'admin123',
 
   // Production overrides (if environment variables are set)
-  PRODUCTION_API_URL: 'https://api.caf-mexico.org/api/v1',
-  PRODUCTION_FRONTEND_URL: 'https://admin.caf-mexico.org',
-  PRODUCTION_WS_URL: 'wss://api.caf-mexico.org/ws',
+  PRODUCTION_API_URL: 'https://api.caf-mexico.com/api/v1',
+  PRODUCTION_FRONTEND_URL: 'https://admin.caf-mexico.com',
+  PRODUCTION_WS_URL: 'wss://api.caf-mexico.com/ws',
 
   // Test settings
   TIMEOUT: 10000,

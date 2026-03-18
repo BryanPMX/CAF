@@ -4,12 +4,12 @@
 export const config = {
   site: {
     name: 'Centro de Apoyo para la Familia A.C.',
-    url: import.meta.env.VITE_SITE_URL || 'https://caf-mexico.org',
+    url: import.meta.env.VITE_SITE_URL || 'https://www.caf-mexico.com',
     description: 'Brindamos apoyo legal, psicológico y social a familias vulnerables'
   },
   api: {
     baseUrl: import.meta.env.VITE_API_URL || 'https://api.caf-mexico.com/api/v1',
-    adminPortalUrl: import.meta.env.VITE_ADMIN_PORTAL_URL || 'https://admin.caf-mexico.org'
+    adminPortalUrl: import.meta.env.VITE_ADMIN_PORTAL_URL || 'https://admin.caf-mexico.com'
   },
   security: {
     turnstileSiteKey:

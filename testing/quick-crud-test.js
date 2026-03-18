@@ -7,7 +7,7 @@
 
 const axios = require('axios');
 
-const API_BASE_URL = 'https://api.caf-mexico.org/api/v1';
+const API_BASE_URL = 'https://api.caf-mexico.com/api/v1';
 
 // Quick test credentials
 const QUICK_TEST_USERS = {

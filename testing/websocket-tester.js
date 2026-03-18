@@ -13,8 +13,8 @@ require('dotenv').config();
 
 // Configuration
 const CONFIG = {
-    API_BASE: process.env.API_BASE_URL || 'https://api.caf-mexico.org/api/v1',
-    WS_BASE: process.env.WS_BASE_URL || 'wss://api.caf-mexico.org/ws',
+    API_BASE: process.env.API_BASE_URL || 'https://api.caf-mexico.com/api/v1',
+    WS_BASE: process.env.WS_BASE_URL || 'wss://api.caf-mexico.com/ws',
     TEST_USER_EMAIL: process.env.TEST_USER_EMAIL || 'test-user@caf-test.local',
     TEST_USER_PASSWORD: process.env.TEST_USER_PASSWORD || '',
     TIMEOUT: 10000

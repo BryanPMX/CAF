@@ -157,13 +157,9 @@ func main() {
 	} else if os.Getenv("NODE_ENV") == "production" {
 		// Fallback production defaults
 		allowedOrigins = []string{
-			"https://admin.caf-mexico.org",
 			"https://admin.caf-mexico.com",
-			"https://portal.caf-mexico.org",
-			"https://portal.caf-mexico.com",
-			"https://caf-mexico.org",
+			"https://admin.caf-mexico.org",
 			"https://caf-mexico.com",
-			"https://www.caf-mexico.org",
 			"https://www.caf-mexico.com",
 		}
 		log.Printf("INFO: Using default production CORS origins: %v", allowedOrigins)

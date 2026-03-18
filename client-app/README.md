@@ -59,7 +59,7 @@ This app uses `--dart-define` instead of a `.env` file.
 
 Required (or use default):
 
-- `CAF_API_BASE_URL` (default: `https://api.caf-mexico.org/api/v1`)
+- `CAF_API_BASE_URL` (default: `https://api.caf-mexico.com/api/v1`)
 
 Optional:
 
@@ -80,7 +80,7 @@ flutter run \
 
 ```bash
 flutter run \
-  --dart-define=CAF_API_BASE_URL=https://api.caf-mexico.org/api/v1
+  --dart-define=CAF_API_BASE_URL=https://api.caf-mexico.com/api/v1
 ```
 
 ## Stripe (Hosted Checkout)
@@ -113,23 +113,25 @@ Server-side env vars required in the API:
 The app listens for Stripe return URLs and routes the user back to `Pagos/Recibos`.
 
 - Supported by default:
-  - `https://caf-mexico.org/pagos/exito`
-  - `https://caf-mexico.org/pagos/cancelado`
-  - `https://www.caf-mexico.org/pagos/exito`
-  - `https://www.caf-mexico.org/pagos/cancelado`
+  - `https://www.caf-mexico.com/pagos/exito`
+  - `https://www.caf-mexico.com/pagos/cancelado`
+  - `https://caf-mexico.com/pagos/exito`
+  - `https://caf-mexico.com/pagos/cancelado`
+  - `https://www.caf-mexico.org/pagos/exito` (legacy redirect-compatible)
+  - `https://www.caf-mexico.org/pagos/cancelado` (legacy redirect-compatible)
+  - `https://caf-mexico.org/pagos/exito` (legacy redirect-compatible)
+  - `https://caf-mexico.org/pagos/cancelado` (legacy redirect-compatible)
   - `cafclient://payments/success`
   - `cafclient://payments/cancel`
-  - `https://portal.caf-mexico.org/pagos/exito` (legacy/optional)
-  - `https://portal.caf-mexico.org/pagos/cancelado` (legacy/optional)
 - The API also appends helpful query params (`checkout`, `status`, `case_id`, `session_id`) to Checkout return URLs.
 
 ### Platform Configuration
 
 This repo currently does **not** include `android/` or `ios/` folders, so native deep-link manifests are not versioned here yet.
 
-- Android (when generated): add an `intent-filter` for your scheme/host (e.g. `cafclient://payments/*`) and/or App Links for `caf-mexico.org`.
+- Android (when generated): add an `intent-filter` for your scheme/host (e.g. `cafclient://payments/*`) and/or App Links for `caf-mexico.com` / `www.caf-mexico.com`.
 - Android: generated and versioned in this repo; configure `intent-filter` for `cafclient://payments/*` (and App Links if desired).
-- iOS (when generated): register URL Types (`cafclient`) and optionally Universal Links (`caf-mexico.org` / `www.caf-mexico.org`).
+- iOS (when generated): register URL Types (`cafclient`) and optionally Universal Links (`caf-mexico.com` / `www.caf-mexico.com`).
 - Your marketing success/cancel pages can redirect to the app scheme for a direct mobile return UX.
 
 ## Development Commands

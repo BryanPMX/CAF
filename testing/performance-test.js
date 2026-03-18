@@ -8,7 +8,7 @@
 const axios = require('axios');
 const { performance } = require('perf_hooks');
 
-const API_BASE_URL = 'https://api.caf-mexico.org/api/v1';
+const API_BASE_URL = 'https://api.caf-mexico.com/api/v1';
 
 const TEST_USERS = {
   admin: { email: 'admin@caf.org', password: 'admin123' },

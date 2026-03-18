@@ -2,7 +2,7 @@
 # Use with Artillery.js for performance testing
 
 config:
-  target: 'https://api.caf-mexico.org'
+  target: 'https://api.caf-mexico.com'
   phases:
     # Warm-up phase
     - duration: 30

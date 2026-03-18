@@ -14,7 +14,7 @@ require('dotenv').config();
 
 // Configuration
 const CONFIG = {
-    API_BASE: process.env.API_BASE_URL || 'https://api.caf-mexico.org/api/v1',
+    API_BASE: process.env.API_BASE_URL || 'https://api.caf-mexico.com/api/v1',
     ADMIN_EMAIL: process.env.ADMIN_EMAIL || '',
     ADMIN_PASSWORD: process.env.ADMIN_PASSWORD || '',
     TEST_USER_PREFIX: 'TEST_',
@@ -606,7 +606,7 @@ Commands:
 Environment Variables:
   ADMIN_EMAIL         Admin account email for user creation
   ADMIN_PASSWORD      Admin account password
-  API_BASE_URL        API base URL (default: https://api.caf-mexico.org/api/v1)
+  API_BASE_URL        API base URL (default: https://api.caf-mexico.com/api/v1)
   DRY_RUN            Set to 'true' for dry run mode
 
 Examples:

@@ -10,7 +10,7 @@ const fs = require('fs');
 const path = require('path');
 
 // Configuration
-const API_BASE_URL = 'https://api.caf-mexico.org/api/v1';
+const API_BASE_URL = 'https://api.caf-mexico.com/api/v1';
 const TEST_RESULTS_FILE = path.join(__dirname, 'crud-test-results.json');
 
 // Test credentials for different roles

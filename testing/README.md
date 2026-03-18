@@ -132,8 +132,8 @@ Override defaults using environment variables:
 
 ```bash
 # API Configuration
-export API_BASE_URL="https://api.caf-mexico.org/api/v1"
-export FRONTEND_URL="https://admin.caf-mexico.org"
+export API_BASE_URL="https://api.caf-mexico.com/api/v1"
+export FRONTEND_URL="https://admin.caf-mexico.com"
 
 # Test Credentials
 export ADMIN_EMAIL="admin@production.com"

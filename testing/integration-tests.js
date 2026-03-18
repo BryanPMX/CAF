@@ -16,7 +16,7 @@ require('dotenv').config();
 
 // Configuration
 const CONFIG = {
-    API_BASE: process.env.API_BASE_URL || 'https://api.caf-mexico.org/api/v1',
+    API_BASE: process.env.API_BASE_URL || 'https://api.caf-mexico.com/api/v1',
     TEST_CREDENTIALS: {
         email: process.env.TEST_USER_EMAIL || 'test@caf-mexico.org',
         password: process.env.TEST_USER_PASSWORD || 'TestPassword123'

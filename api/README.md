@@ -33,7 +33,7 @@ api/
 
 - `POST /register`
 - `POST /login`
-- `POST /webhooks/stripe` (Stripe signed webhook endpoint)
+- `POST /api/v1/webhooks/stripe` (Stripe signed webhook endpoint)
 - Public marketing endpoints (`/public/*`)
 
 ### Realtime
@@ -89,8 +89,8 @@ Client-safe endpoints for the Flutter app:
 The API creates hosted Stripe Checkout Sessions and lists receipts (charges) for the authenticated client. No secret Stripe keys are exposed to mobile/web clients.
 
 Recommended for the current CAF architecture (no separate client web portal):
-- `STRIPE_CHECKOUT_SUCCESS_URL=https://caf-mexico.org/pagos/exito`
-- `STRIPE_CHECKOUT_CANCEL_URL=https://caf-mexico.org/pagos/cancelado`
+- `STRIPE_CHECKOUT_SUCCESS_URL=https://www.caf-mexico.com/pagos/exito`
+- `STRIPE_CHECKOUT_CANCEL_URL=https://www.caf-mexico.com/pagos/cancelado`
 
 ### Required Environment Variables
 

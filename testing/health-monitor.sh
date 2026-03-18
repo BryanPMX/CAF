@@ -6,7 +6,7 @@
 set -e
 
 # Configuration
-API_BASE="https://api.caf-mexico.org"
+API_BASE="https://api.caf-mexico.com"
 SLACK_WEBHOOK_URL="${SLACK_WEBHOOK_URL:-}"  # Set this environment variable for alerts
 EMAIL_ALERT="${EMAIL_ALERT:-}"  # Set this for email alerts
 
@@ -92,7 +92,7 @@ check_endpoint() {
 check_frontend() {
     echo -n "Checking Frontend... "
     
-    local frontend_url="https://admin.caf-mexico.org"
+    local frontend_url="https://admin.caf-mexico.com"
     local start_time=$(date +%s.%N)
     
     if curl -f -s -m 10 "$frontend_url" > /dev/null 2>&1; then
