@@ -77,6 +77,8 @@ interface DashboardStats {
   pendingAppointments: number;
   completedCases: number;
   revenue: number;
+  revenueCurrency?: string;
+  revenueMixedCurrencies?: boolean;
   growthRate: number;
 }
 
@@ -97,6 +99,33 @@ interface SystemHealth {
   uptime: number;
   lastBackup: string;
   activeConnections: number;
+}
+
+const DEFAULT_REVENUE_CURRENCY = 'MXN';
+
+function formatRevenueAmount(amount: number, currency?: string, mixedCurrencies?: boolean): string {
+  const safeAmount = Number.isFinite(amount) ? amount : 0;
+
+  if (mixedCurrencies) {
+    return new Intl.NumberFormat('es-MX', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(safeAmount);
+  }
+
+  const resolvedCurrency = (currency || DEFAULT_REVENUE_CURRENCY).trim().toUpperCase() || DEFAULT_REVENUE_CURRENCY;
+
+  try {
+    return new Intl.NumberFormat('es-MX', {
+      style: 'currency',
+      currency: resolvedCurrency,
+      currencyDisplay: 'code',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(safeAmount);
+  } catch {
+    return `${resolvedCurrency} ${safeAmount.toFixed(2)}`;
+  }
 }
 
 const AdminDashboard: React.FC = () => {
@@ -331,15 +360,21 @@ const AdminDashboard: React.FC = () => {
           <Card>
             <Statistic
               title="Revenue"
-              value={stats?.revenue || 0}
+              value={formatRevenueAmount(
+                stats?.revenue || 0,
+                stats?.revenueCurrency,
+                stats?.revenueMixedCurrencies
+              )}
               prefix={<DollarOutlined />}
               valueStyle={{ color: '#52c41a' }}
-              suffix="USD"
             />
             <div className="flex items-center mt-2">
               <RiseOutlined className="text-green-500 mr-1" />
               <span className="text-green-500">{stats?.growthRate || 0}%</span>
             </div>
+            {stats?.revenueMixedCurrencies ? (
+              <div className="mt-1 text-xs text-gray-500">Mixed currencies</div>
+            ) : null}
           </Card>
         </Col>
       </Row>

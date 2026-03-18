@@ -5,7 +5,9 @@ import (
 	"encoding/csv"
 	"fmt"
 	"net/http"
+	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/BryanPMX/CAF/api/models"
@@ -48,12 +50,14 @@ type DashboardStats struct {
 	OfficesByRegion map[string]int `json:"officesByRegion"`
 
 	// Financial Metrics
-	Revenue             float64 `json:"revenue"`
-	RevenueThisMonth    float64 `json:"revenueThisMonth"`
-	RevenueThisYear     float64 `json:"revenueThisYear"`
-	GrowthRate          float64 `json:"growthRate"`
-	AverageCaseValue    float64 `json:"averageCaseValue"`
-	OutstandingInvoices float64 `json:"outstandingInvoices"`
+	Revenue                float64 `json:"revenue"`
+	RevenueCurrency        string  `json:"revenueCurrency"`
+	RevenueMixedCurrencies bool    `json:"revenueMixedCurrencies"`
+	RevenueThisMonth       float64 `json:"revenueThisMonth"`
+	RevenueThisYear        float64 `json:"revenueThisYear"`
+	GrowthRate             float64 `json:"growthRate"`
+	AverageCaseValue       float64 `json:"averageCaseValue"`
+	OutstandingInvoices    float64 `json:"outstandingInvoices"`
 
 	// Performance Metrics
 	SystemUptime        float64 `json:"systemUptime"`
@@ -222,16 +226,18 @@ func GetDashboardStats(db *gorm.DB) gin.HandlerFunc {
 		prevMonthStart := startOfMonth.AddDate(0, -1, 0)
 		prevMonthEnd := startOfMonth
 
-		totalRevenueCents := sumNetPaidCents(db, nil, nil)
-		monthRevenueCents := sumNetPaidCents(db, &startOfMonth, nil)
-		yearRevenueCents := sumNetPaidCents(db, &startOfYear, nil)
-		prevMonthRevenueCents := sumNetPaidCents(db, &prevMonthStart, &prevMonthEnd)
+		totalRevenue := sumNetPaidSummary(db, nil, nil)
+		monthRevenue := sumNetPaidSummary(db, &startOfMonth, nil)
+		yearRevenue := sumNetPaidSummary(db, &startOfYear, nil)
+		prevMonthRevenue := sumNetPaidSummary(db, &prevMonthStart, &prevMonthEnd)
 
-		stats.Revenue = float64(totalRevenueCents) / 100.0
-		stats.RevenueThisMonth = float64(monthRevenueCents) / 100.0
-		stats.RevenueThisYear = float64(yearRevenueCents) / 100.0
-		if prevMonthRevenueCents > 0 {
-			stats.GrowthRate = (float64(monthRevenueCents-prevMonthRevenueCents) / float64(prevMonthRevenueCents)) * 100
+		stats.Revenue = float64(totalRevenue.Total) / 100.0
+		stats.RevenueCurrency = totalRevenue.Currency
+		stats.RevenueMixedCurrencies = totalRevenue.MixedCurrencies
+		stats.RevenueThisMonth = float64(monthRevenue.Total) / 100.0
+		stats.RevenueThisYear = float64(yearRevenue.Total) / 100.0
+		if prevMonthRevenue.Total > 0 {
+			stats.GrowthRate = (float64(monthRevenue.Total-prevMonthRevenue.Total) / float64(prevMonthRevenue.Total)) * 100
 		} else {
 			stats.GrowthRate = 0
 		}
@@ -264,13 +270,25 @@ func GetDashboardStats(db *gorm.DB) gin.HandlerFunc {
 	}
 }
 
-func sumNetPaidCents(db *gorm.DB, from *time.Time, to *time.Time) int64 {
+type paidRevenueSummary struct {
+	Total           int64
+	Currency        string
+	MixedCurrencies bool
+}
+
+func sumNetPaidSummary(db *gorm.DB, from *time.Time, to *time.Time) paidRevenueSummary {
 	type sumRow struct {
-		Total int64 `json:"total"`
+		Total         int64  `json:"total"`
+		CurrencyCount int64  `json:"currencyCount"`
+		Currency      string `json:"currency"`
 	}
 
 	query := db.Model(&models.PaymentRecord{}).
-		Select("COALESCE(SUM(amount_cents - refunded_cents), 0) AS total").
+		Select(`
+			COALESCE(SUM(amount_cents - refunded_cents), 0) AS total,
+			COUNT(DISTINCT NULLIF(UPPER(TRIM(currency)), '')) AS currency_count,
+			COALESCE(MIN(NULLIF(UPPER(TRIM(currency)), '')), '') AS currency
+		`).
 		Where("paid_at IS NOT NULL").
 		Where("status IN ?", []string{"succeeded", "partially_refunded", "refunded"})
 
@@ -283,12 +301,36 @@ func sumNetPaidCents(db *gorm.DB, from *time.Time, to *time.Time) int64 {
 
 	var row sumRow
 	if err := query.Scan(&row).Error; err != nil {
-		return 0
+		return paidRevenueSummary{
+			Currency: defaultDashboardCurrency(),
+		}
 	}
 	if row.Total < 0 {
-		return 0
+		row.Total = 0
 	}
-	return row.Total
+
+	currency := strings.ToUpper(strings.TrimSpace(row.Currency))
+	switch {
+	case row.CurrencyCount == 1 && currency != "":
+	case row.CurrencyCount > 1:
+		currency = ""
+	default:
+		currency = defaultDashboardCurrency()
+	}
+
+	return paidRevenueSummary{
+		Total:           row.Total,
+		Currency:        currency,
+		MixedCurrencies: row.CurrencyCount > 1,
+	}
+}
+
+func defaultDashboardCurrency() string {
+	currency := strings.ToUpper(strings.TrimSpace(os.Getenv("STRIPE_CURRENCY")))
+	if currency == "" {
+		return "MXN"
+	}
+	return currency
 }
 
 func averageCasePaymentCents(db *gorm.DB) (int64, int64) {
