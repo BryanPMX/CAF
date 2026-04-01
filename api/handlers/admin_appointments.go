@@ -349,7 +349,7 @@ func CreateAppointmentSmart(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		// Notify admins of new appointment with full details
-		appointmentLink := "/app/appointments/" + strconv.FormatUint(uint64(appointment.ID), 10)
+		appointmentLink := "/app/appointments"
 		NotifyAdminsForAppointment(db, "creada", appointment.ID, appointment.Title, string(appointment.Status), appointment.StartTime, &appointmentLink)
 
 		// Return success response with minimal data
@@ -415,7 +415,7 @@ func UpdateAppointmentAdmin(db *gorm.DB) gin.HandlerFunc {
 				notificationMessage := "Su cita ha sido confirmada para el " + formattedDateTime + "."
 
 				// Create link to the appointment
-				appointmentLink := "/app/appointments/" + strconv.FormatUint(uint64(appointment.ID), 10)
+				appointmentLink := "/app/appointments"
 
 				// Create notification for the client
 				if err := CreateNotification(db, *caseRecord.ClientID, notificationMessage, "success", &appointmentLink); err != nil {
@@ -426,7 +426,7 @@ func UpdateAppointmentAdmin(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		// Notify admins of appointment update with full details
-		appointmentLink := "/app/appointments/" + strconv.FormatUint(uint64(appointment.ID), 10)
+		appointmentLink := "/app/appointments"
 		NotifyAdminsForAppointment(db, "actualizada", appointment.ID, appointment.Title, string(appointment.Status), appointment.StartTime, &appointmentLink)
 
 		c.JSON(http.StatusOK, appointment)

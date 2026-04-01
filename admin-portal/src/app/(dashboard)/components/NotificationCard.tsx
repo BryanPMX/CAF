@@ -1,128 +1,159 @@
 'use client';
 
 import React from 'react';
-import { Typography, Tag, Tooltip } from 'antd';
-import {
-  InfoCircleOutlined,
-  CheckCircleOutlined,
-  WarningOutlined,
-  CloseCircleOutlined,
-  RightOutlined,
-} from '@ant-design/icons';
+import { Button, Tooltip } from 'antd';
+import { ArrowRightOutlined, CheckOutlined } from '@ant-design/icons';
 import type { Notification } from '@/context/NotificationContext';
+import {
+  formatNotificationTime,
+  getNotificationAccentLabel,
+  getNotificationLinkLabel,
+  getNotificationTitle,
+  getNotificationToneMeta,
+  resolveNotificationHref,
+} from './notificationPresentation';
 
-const { Text } = Typography;
-
-const TYPE_CONFIG: Record<string, { icon: React.ReactNode; color: string; label: string }> = {
-  success: { icon: <CheckCircleOutlined />, color: '#52c41a', label: 'Éxito' },
-  warning: { icon: <WarningOutlined />, color: '#faad14', label: 'Aviso' },
-  error: { icon: <CloseCircleOutlined />, color: '#ff4d4f', label: 'Error' },
-  info: { icon: <InfoCircleOutlined />, color: '#1890ff', label: 'Info' },
-};
-
-const ENTITY_LABELS: Record<string, string> = {
-  case: 'Caso',
-  appointment: 'Cita',
-  contact_interest: 'Contacto',
-};
-
-export function formatNotificationTime(createdAt: string): { relative: string; full: string } {
-  const date = new Date(createdAt);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
-  let relative: string;
-  if (diffMins < 1) relative = 'Ahora';
-  else if (diffMins < 60) relative = `Hace ${diffMins} min`;
-  else if (diffHours < 24) relative = `Hace ${diffHours} h`;
-  else if (diffDays < 7) relative = `Hace ${diffDays} d`;
-  else relative = date.toLocaleDateString('es-MX', { day: '2-digit', month: 'short' });
-  const full = date.toLocaleString('es-MX', { dateStyle: 'medium', timeStyle: 'short' });
-  return { relative, full };
+function clampLines(lines: number): React.CSSProperties {
+  return {
+    display: '-webkit-box',
+    WebkitBoxOrient: 'vertical',
+    WebkitLineClamp: lines,
+    overflow: 'hidden',
+  };
 }
 
 export interface NotificationCardProps {
   notification: Notification;
   onClick?: () => void;
+  onMarkAsRead?: () => void;
   compact?: boolean;
 }
 
-/**
- * Single-responsibility presentational card for one notification.
- * Used by dashboard (compact) and notifications page (full) for consistent UI.
- */
-export default function NotificationCard({ notification, onClick, compact = false }: NotificationCardProps) {
-  const typeConfig = TYPE_CONFIG[notification.type] || TYPE_CONFIG.info;
+export default function NotificationCard({
+  notification,
+  onClick,
+  onMarkAsRead,
+  compact = false,
+}: NotificationCardProps) {
+  const tone = getNotificationToneMeta(notification.type);
   const { relative, full } = formatNotificationTime(notification.createdAt);
-  const entityLabel = notification.entityType ? ENTITY_LABELS[notification.entityType] || notification.entityType : null;
+  const accentLabel = getNotificationAccentLabel(notification);
+  const title = getNotificationTitle(notification);
+  const hasDestination = Boolean(resolveNotificationHref(notification));
+  const canOpen = Boolean(onClick && hasDestination);
+  const showMarkAction = Boolean(onMarkAsRead && !notification.isRead);
+  const openLabel = getNotificationLinkLabel(notification);
 
-  const content = (
+  const handleCardClick = () => {
+    if (!canOpen || !onClick) return;
+    onClick();
+  };
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (!canOpen || !onClick) return;
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    event.preventDefault();
+    onClick();
+  };
+
+  return (
     <div
-      role={onClick ? 'button' : undefined}
-      tabIndex={onClick ? 0 : undefined}
-      onKeyDown={(e) => onClick && (e.key === 'Enter' || e.key === ' ') && e.preventDefault() && onClick()}
-      onClick={onClick}
-      className={`flex items-start gap-3 rounded-lg border border-gray-100 transition-colors hover:border-gray-200 ${
-        compact ? 'p-3' : 'p-4'
-      }`}
-      style={{
-        backgroundColor: notification.isRead ? '#fafafa' : '#f0f8ff',
-        cursor: onClick ? 'pointer' : 'default',
-        borderLeft: `3px solid ${notification.isRead ? '#e5e7eb' : typeConfig.color}`,
-      }}
+      role={canOpen ? 'button' : undefined}
+      tabIndex={canOpen ? 0 : undefined}
+      onClick={handleCardClick}
+      onKeyDown={handleKeyDown}
+      className={`group relative overflow-hidden rounded-3xl border transition-all duration-200 ${
+        notification.isRead
+          ? 'border-slate-200 bg-white/75'
+          : 'border-sky-200 bg-white shadow-[0_16px_40px_rgba(14,165,233,0.08)]'
+      } ${canOpen ? 'cursor-pointer hover:-translate-y-0.5 hover:border-sky-300 hover:shadow-[0_20px_48px_rgba(15,23,42,0.12)]' : ''}`}
     >
-      <span className="shrink-0 mt-0.5" style={{ color: typeConfig.color, fontSize: compact ? 16 : 18 }}>
-        {typeConfig.icon}
-      </span>
-      <div className="min-w-0 flex-1 space-y-1">
-        <div className="flex flex-wrap items-center gap-2">
-          {entityLabel && (
-            <Tag color="blue" className="!m-0 text-xs">
-              {entityLabel}
-              {notification.entityId != null && ` #${notification.entityId}`}
-            </Tag>
-          )}
-          <Tooltip title={full}>
-            <Text type="secondary" className="text-xs">
-              {relative}
-            </Text>
-          </Tooltip>
-          {!notification.isRead && (
-            <span className="inline-block h-2 w-2 rounded-full bg-blue-500 shrink-0" aria-label="No leída" />
-          )}
-        </div>
-        <Text
-          className={`block text-gray-800 break-words ${compact ? 'text-sm' : 'text-base'}`}
-          style={{
-            lineHeight: 1.4,
-            ...(compact
-              ? {
-                  display: '-webkit-box',
-                  WebkitLineClamp: 2,
-                  WebkitBoxOrient: 'vertical' as const,
-                  overflow: 'hidden',
-                }
-              : {}),
-          }}
-        >
-          {notification.message}
-        </Text>
-      </div>
-      {onClick && notification.link && (
-        <span className="shrink-0 text-gray-400 mt-0.5" aria-hidden>
-          <RightOutlined className="text-xs" />
-        </span>
-      )}
-    </div>
-  );
+      <span
+        aria-hidden
+        className="absolute inset-y-0 left-0 w-1.5"
+        style={{ backgroundColor: notification.isRead ? '#cbd5e1' : tone.color }}
+      />
+      <div className={compact ? 'p-4' : 'p-5'}>
+        <div className="flex items-start gap-4">
+          <div
+            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-lg ${
+              compact ? 'mt-0.5' : ''
+            }`}
+            style={{
+              backgroundColor: tone.softBackground,
+              color: tone.color,
+              border: `1px solid ${tone.borderColor}`,
+            }}
+          >
+            {tone.icon}
+          </div>
 
-  return onClick ? (
-    <Tooltip title={notification.link ? 'Ver detalles' : undefined}>
-      {content}
-    </Tooltip>
-  ) : (
-    content
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-600">
+                {accentLabel}
+              </span>
+              {!notification.isRead && (
+                <span className="inline-flex items-center rounded-full bg-sky-100 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-sky-700">
+                  Nuevo
+                </span>
+              )}
+              <Tooltip title={full}>
+                <span className="text-xs font-medium text-slate-500">{relative}</span>
+              </Tooltip>
+            </div>
+
+            <div className={compact ? 'mt-2 space-y-1.5' : 'mt-3 space-y-2'}>
+              <h3
+                className={`font-semibold text-slate-900 ${compact ? 'text-sm' : 'text-base'}`}
+                style={compact ? clampLines(1) : undefined}
+              >
+                {title}
+              </h3>
+              <p
+                className={`text-slate-600 ${compact ? 'text-sm leading-6' : 'text-sm leading-6'}`}
+                style={compact ? clampLines(2) : undefined}
+              >
+                {notification.message}
+              </p>
+            </div>
+
+            {(canOpen || showMarkAction) && (
+              <div className={`flex flex-wrap items-center gap-2 ${compact ? 'mt-3' : 'mt-4'}`}>
+                {canOpen && (
+                  <Button
+                    size="small"
+                    type={compact ? 'text' : 'default'}
+                    className={compact ? '!px-0 !text-sky-700 hover:!text-sky-800' : ''}
+                    icon={<ArrowRightOutlined />}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onClick?.();
+                    }}
+                  >
+                    {openLabel}
+                  </Button>
+                )}
+
+                {showMarkAction && (
+                  <Button
+                    size="small"
+                    type="text"
+                    icon={<CheckOutlined />}
+                    className="!text-slate-500 hover:!text-slate-700"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onMarkAsRead?.();
+                    }}
+                  >
+                    Marcar como leida
+                  </Button>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

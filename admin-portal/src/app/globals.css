@@ -14,10 +14,39 @@
   --sidebar-surface-strong: rgba(148, 163, 184, 0.28);
   --sidebar-active-a: #2563eb;
   --sidebar-active-b: #0891b2;
+  --notification-accent: #0f766e;
+  --notification-accent-strong: #0369a1;
+  --notification-surface: rgba(240, 249, 255, 0.9);
 }
 
 .dashboard-shell {
   background: #eef2f7;
+}
+
+.notification-bell-button.ant-btn {
+  height: 44px;
+  width: 44px;
+  border-radius: 14px;
+  color: #475569;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, color 0.2s ease;
+}
+
+.notification-bell-button.ant-btn:hover {
+  background: rgba(226, 232, 240, 0.7) !important;
+  color: #0f172a !important;
+  transform: translateY(-1px);
+}
+
+.notification-bell-button-active.ant-btn {
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.16), rgba(13, 148, 136, 0.14)) !important;
+  box-shadow: 0 10px 24px rgba(14, 165, 233, 0.14);
+  color: var(--notification-accent-strong) !important;
+}
+
+.notification-bell-popover .ant-popover-inner {
+  border-radius: 28px;
+  padding: 18px;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.18);
 }
 
 .admin-sider.ant-layout-sider {
@@ -259,16 +288,16 @@
 
 /* Enhanced Button Styles */
 .ant-btn-primary {
-  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  background: linear-gradient(135deg, #0f766e 0%, #0369a1 100%);
   border: none;
   border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.3);
+  box-shadow: 0 8px 20px rgba(15, 118, 110, 0.24);
 }
 
 .ant-btn-primary:hover {
-  background: linear-gradient(135deg, #4338ca 0%, #6d28d9 100%);
+  background: linear-gradient(135deg, #0f766e 0%, #075985 100%);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4);
+  box-shadow: 0 12px 24px rgba(14, 116, 144, 0.28);
 }
 
 /* Statistics Card Enhancements */
@@ -318,12 +347,12 @@
 
 /* Progress Bar Enhancements */
 .ant-progress-bg {
-  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  background: linear-gradient(135deg, #0f766e 0%, #0369a1 100%);
 }
 
 /* Loading States */
 .ant-spin-dot-item {
-  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  background: linear-gradient(135deg, #0f766e 0%, #0369a1 100%);
 }
 
 /* Responsive Enhancements */
@@ -388,10 +417,10 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #0f766e 0%, #0369a1 100%);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+  background: linear-gradient(135deg, #115e59 0%, #075985 100%);
 }

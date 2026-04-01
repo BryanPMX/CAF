@@ -287,8 +287,8 @@ func CreateTaskEnhanced(db *gorm.DB) gin.HandlerFunc {
 			// Create notification message in Spanish
 			notificationMessage := "Se le ha asignado una nueva tarea en el caso: " + caseTitle
 
-			// Create link to the task
-			taskLink := "/app/tasks/" + strconv.FormatUint(uint64(task.ID), 10)
+			// Route assignees to the case workspace because the admin portal has no task detail route.
+			taskLink := "/app/cases/" + strconv.FormatUint(uint64(input.CaseID), 10)
 
 			// Create notification for the assigned user
 			if err := CreateNotification(db, *input.AssignedToID, notificationMessage, "info", &taskLink); err != nil {

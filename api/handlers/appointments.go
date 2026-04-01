@@ -386,7 +386,7 @@ func UpdateAppointmentEnhanced(db *gorm.DB) gin.HandlerFunc {
 		_ = db.First(&appointment, appointment.ID).Error
 
 		// Notify admins with full appointment details
-		appointmentLink := "/app/appointments/" + strconv.FormatUint(uint64(appointment.ID), 10)
+		appointmentLink := "/app/appointments"
 		NotifyAdminsForAppointment(db, "actualizada", appointment.ID, appointment.Title, string(appointment.Status), appointment.StartTime, &appointmentLink)
 
 		// Send real-time notification to all connected users about appointment update

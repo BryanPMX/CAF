@@ -4,19 +4,20 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  Card, Col, Row, Statistic, Spin, message, Select, Typography, Divider, Badge, Empty,
+  Button, Card, Col, Row, Statistic, Spin, message, Select, Typography, Divider, Empty,
 } from 'antd';
 import {
   FolderOpenOutlined, CalendarOutlined, TeamOutlined, BarChartOutlined,
-  ClockCircleOutlined, CheckCircleOutlined, BellOutlined,
+  ClockCircleOutlined, CheckCircleOutlined, BellOutlined, ReloadOutlined, RightOutlined,
   UserOutlined, BankOutlined,
   ScheduleOutlined, ExclamationCircleOutlined, RiseOutlined,
 } from '@ant-design/icons';
 import { apiClient } from '../lib/api';
 import { useAuth } from '@/context/AuthContext';
-import { useNotifications, type Notification } from '@/context/NotificationContext';
+import { useNotifications } from '@/context/NotificationContext';
 import { useHydrationSafe } from '@/hooks/useHydrationSafe';
 import NotificationCard from './components/NotificationCard';
+import { formatSyncTime, resolveNotificationHref } from './components/notificationPresentation';
 
 const { Text, Title } = Typography;
 
@@ -85,7 +86,15 @@ const TrueDashboardPage = () => {
   const [offices, setOffices] = useState<Array<{ id: number; name: string }>>([]);
   const initializedRef = useRef(false);
 
-  const { notifications: contextNotifications, unreadCount: contextUnreadCount, markAsRead, refreshNotifications } = useNotifications();
+  const {
+    notifications: contextNotifications,
+    unreadCount: contextUnreadCount,
+    isRefreshing: notificationsRefreshing,
+    wsConnected,
+    lastUpdatedAt,
+    markAsRead,
+    refreshNotifications,
+  } = useNotifications();
   const recentNotifications = contextNotifications.slice(0, 5);
 
   const isStaffRole = useMemo(() =>
@@ -211,7 +220,6 @@ const TrueDashboardPage = () => {
     const role = user.role;
     setUserRole(role);
     fetchOffices();
-    refreshNotifications();
     const managerOfficeId =
       role === 'office_manager' &&
       (user?.officeId != null
@@ -387,16 +395,70 @@ const TrueDashboardPage = () => {
         </>
       )}
 
-      {/* Notifications Panel - bell at far left, then title */}
-      <div className="flex w-full items-center gap-3 border-b border-gray-200 pb-2 mb-0" style={{ fontSize: 14, color: '#6b7280' }}>
-        <span className="flex shrink-0 items-center justify-center" style={{ width: 28, minWidth: 28 }} aria-hidden>
-          <Badge count={unreadCount} offset={[6, -2]} size="small">
-            <BellOutlined style={{ fontSize: 18 }} />
-          </Badge>
-        </span>
-        <span className="whitespace-nowrap font-medium">Notificaciones Recientes</span>
-      </div>
-      <Card size="small" className="notifications-dashboard-card">
+      <Card className="notification-summary-card" bodyStyle={{ padding: 20 }}>
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="flex items-start gap-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-3xl bg-sky-100 text-xl text-sky-700">
+              <BellOutlined />
+            </div>
+            <div>
+              <div className="flex flex-wrap items-center gap-3">
+                <Title level={5} className="!mb-0">
+                  Bandeja de notificaciones
+                </Title>
+                <span
+                  className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ${
+                    wsConnected ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
+                  }`}
+                >
+                  <span className={`h-2 w-2 rounded-full ${wsConnected ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                  {wsConnected ? 'En vivo' : 'Reconectando'}
+                </span>
+                {unreadCount > 0 && (
+                  <span className="inline-flex rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-sky-700">
+                    {unreadCount} nuevas
+                  </span>
+                )}
+              </div>
+              <Text type="secondary" className="mt-2 block">
+                Resumen rapido de la actividad mas reciente del portal.
+              </Text>
+              <Text type="secondary" className="mt-1 block text-xs">
+                Ultima sincronizacion: {formatSyncTime(lastUpdatedAt)}
+              </Text>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              icon={<ReloadOutlined />}
+              onClick={() => void refreshNotifications()}
+              loading={notificationsRefreshing}
+            >
+              Actualizar
+            </Button>
+            <Button
+              type="primary"
+              icon={<RightOutlined />}
+              onClick={() => router.push('/app/notifications')}
+            >
+              Abrir centro
+            </Button>
+          </div>
+        </div>
+
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <div className="rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">Sin leer</div>
+            <div className="mt-2 text-2xl font-semibold text-slate-900">{unreadCount}</div>
+          </div>
+          <div className="rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">Total reciente</div>
+            <div className="mt-2 text-2xl font-semibold text-slate-900">{contextNotifications.length}</div>
+          </div>
+        </div>
+
+        <div className="mt-4">
         {recentNotifications.length > 0 ? (
           <div className="flex flex-col gap-2">
             {recentNotifications.map((item) => (
@@ -404,9 +466,21 @@ const TrueDashboardPage = () => {
                 key={item.id}
                 notification={item}
                 onClick={() => {
-                  if (!item.isRead) markAsRead(item.id);
-                  if (item.link) router.push(item.link);
+                  if (!item.isRead) {
+                    void markAsRead(item.id);
+                  }
+                  const href = resolveNotificationHref(item);
+                  if (href) {
+                    router.push(href);
+                  }
                 }}
+                onMarkAsRead={
+                  item.isRead
+                    ? undefined
+                    : () => {
+                        void markAsRead(item.id);
+                      }
+                }
                 compact
               />
             ))}
@@ -414,6 +488,7 @@ const TrueDashboardPage = () => {
         ) : (
           <Empty description="No hay notificaciones recientes" image={Empty.PRESENTED_IMAGE_SIMPLE} />
         )}
+        </div>
       </Card>
     </div>
   );

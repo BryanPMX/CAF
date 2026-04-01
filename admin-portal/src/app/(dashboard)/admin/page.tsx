@@ -6,6 +6,7 @@ import {
   UserOutlined, 
   FileTextOutlined, 
   CalendarOutlined, 
+  BellOutlined,
   BankOutlined,
   PlusOutlined,
   EyeOutlined,
@@ -22,6 +23,7 @@ import { apiClient } from '../../lib/api';
 import { DashboardSummary, User, Case, Appointment, Office } from '../../lib/types';
 import { handleApiError, logApiSuccess } from '../../lib/logger';
 import { useHydrationSafe } from '@/hooks/useHydrationSafe';
+import { useNotifications } from '@/context/NotificationContext';
 
 const { Title, Text } = Typography;
 const { TabPane } = Tabs;
@@ -34,8 +36,8 @@ const AdminDashboard: React.FC = () => {
   const [recentUsers, setRecentUsers] = useState<User[]>([]);
   const [recentCases, setRecentCases] = useState<Case[]>([]);
   const [recentAppointments, setRecentAppointments] = useState<Appointment[]>([]);
-  const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const { unreadCount } = useNotifications();
 
   useEffect(() => {
     if (!isHydrated) return; // Wait for hydration to complete
@@ -81,15 +83,6 @@ const AdminDashboard: React.FC = () => {
       } catch (error) {
         console.warn('Could not fetch appointments:', error);
         setRecentAppointments([]);
-      }
-
-      // Fetch unread notifications count
-      try {
-        const notificationsRes = await apiClient.get('/notifications');
-        setUnreadNotifications(notificationsRes.data.unread_count || 0);
-      } catch (error) {
-        console.warn('Could not fetch notifications:', error);
-        setUnreadNotifications(0);
       }
 
       logApiSuccess('Admin dashboard data loaded successfully', 'AdminDashboard');
@@ -347,9 +340,9 @@ const AdminDashboard: React.FC = () => {
         <Col xs={24} sm={12} lg={6}>
           <Card hoverable>
             <Statistic 
-              title="Notificaciones" 
-              value={unreadNotifications} 
-              prefix={<CheckCircleOutlined />} 
+              title="Notificaciones sin leer" 
+              value={unreadCount} 
+              prefix={<BellOutlined />} 
             />
           </Card>
         </Col>
