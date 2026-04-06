@@ -17,3 +17,34 @@ export async function parseJsonResponse(response) {
     return null;
   }
 }
+
+/**
+ * Performs a server-side fetch to the public API without inheriting browser-facing
+ * origin metadata. This avoids upstream 403s when the marketing proxy is called
+ * from a host/origin that the API rejects even though the API itself is public.
+ */
+export async function fetchPublicApi(pathname, init = {}) {
+  const apiBaseUrl = resolveApiBaseUrl();
+  if (!apiBaseUrl) {
+    throw new Error('API no configurada en el servidor.');
+  }
+
+  const headers = new Headers(init.headers || {});
+  if (!headers.has('accept')) {
+    headers.set('accept', 'application/json');
+  }
+  if (!headers.has('user-agent')) {
+    headers.set('user-agent', 'CAF Marketing Proxy/1.0');
+  }
+
+  // Strip browser-oriented headers so this request behaves like a neutral
+  // server-to-server call instead of a cross-origin browser request.
+  headers.delete('origin');
+  headers.delete('referer');
+
+  return globalThis.fetch(`${apiBaseUrl}${pathname}`, {
+    ...init,
+    headers,
+    signal: init.signal ?? AbortSignal.timeout(UPSTREAM_TIMEOUT_MS)
+  });
+}

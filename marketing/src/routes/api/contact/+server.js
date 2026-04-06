@@ -1,7 +1,7 @@
 import { json } from '@sveltejs/kit';
 import { env as privateEnv } from '$env/dynamic/private';
 import { env as publicEnv } from '$env/dynamic/public';
-import { parseJsonResponse, resolveApiBaseUrl, UPSTREAM_TIMEOUT_MS } from '$lib/utils/publicApiProxy.js';
+import { fetchPublicApi, parseJsonResponse } from '$lib/utils/publicApiProxy.js';
 
 const TURNSTILE_VERIFY_URL = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
 const TURNSTILE_TIMEOUT_MS = 8000;
@@ -78,7 +78,7 @@ async function verifyTurnstileToken({ token, remoteIp }) {
 }
 
 /** @type {import('./$types').RequestHandler} */
-export async function POST({ request, fetch }) {
+export async function POST({ request }) {
   let rawBody;
   try {
     rawBody = await request.json();
@@ -110,11 +110,6 @@ export async function POST({ request, fetch }) {
     return json({ success: false, error: 'No pudimos validar el captcha. Intenta nuevamente.' }, { status: 400 });
   }
 
-  const apiBaseUrl = resolveApiBaseUrl();
-  if (!apiBaseUrl) {
-    return json({ success: false, error: 'API no configurada en el servidor.' }, { status: 500 });
-  }
-
   const upstreamPayload = {
     name: payload.name,
     email: payload.email,
@@ -128,11 +123,10 @@ export async function POST({ request, fetch }) {
 
   let upstreamResponse;
   try {
-    upstreamResponse = await fetch(`${apiBaseUrl}/public/contact`, {
+    upstreamResponse = await fetchPublicApi('/public/contact', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(upstreamPayload),
-      signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS)
+      body: JSON.stringify(upstreamPayload)
     });
   } catch {
     return json({ success: false, error: 'No se pudo contactar al servicio de contacto.' }, { status: 502 });
@@ -140,6 +134,7 @@ export async function POST({ request, fetch }) {
 
   const upstreamData = await parseJsonResponse(upstreamResponse);
   if (!upstreamResponse.ok) {
+    console.warn('[Contact API] Upstream request failed', { status: upstreamResponse.status });
     return json(
       {
         success: false,

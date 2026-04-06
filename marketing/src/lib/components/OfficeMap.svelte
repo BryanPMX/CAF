@@ -11,13 +11,18 @@
   export let mapId = import.meta.env.VITE_GOOGLE_MAP_ID || 'DEMO_MAP_ID';
   /** @type {number} */
   export let defaultZoom = 12;
+  /** Optional offices supplied by the page so Contacto does not fetch the same catalog twice. */
+  export let offices = undefined;
+  /** Mirrors the page-level loading state when offices are provided externally. */
+  export let loadingOffices = false;
 
   let mapContainer;
   let map = null;
-  let offices = [];
+  let officeList = [];
   let loading = true;
   let error = null;
   let mapLoaded = false;
+  let mapLoadRequested = false;
   /** When true: we have offices but no markers could be placed (no coords and geocoding failed or no address) */
   let noMarkersShown = false;
   /** Callback name used for Google script; cleared on destroy so late script load doesn't run. */
@@ -25,11 +30,23 @@
 
   /** @typedef {{ id: number; name: string; address: string; latitude?: number | null; longitude?: number | null }} Office */
 
+  function usesExternalOffices() {
+    return offices !== undefined;
+  }
+
   /** Only treat as valid when both coordinates are finite numbers (handles undefined, null, strings from API) */
   function hasValidCoords(o) {
     const lat = Number(o.latitude);
     const lng = Number(o.longitude);
     return Number.isFinite(lat) && Number.isFinite(lng);
+  }
+
+  $: if (usesExternalOffices()) {
+    officeList = Array.isArray(offices) ? offices : [];
+    loading = loadingOffices;
+    if (!loading && !error) {
+      void ensureMapInitialized();
+    }
   }
 
   onMount(async () => {
@@ -39,8 +56,17 @@
       return;
     }
 
+    if (usesExternalOffices()) {
+      officeList = Array.isArray(offices) ? offices : [];
+      loading = loadingOffices;
+      if (!loading) {
+        await ensureMapInitialized();
+      }
+      return;
+    }
+
     try {
-      offices = await apiUtils.fetchOffices();
+      officeList = await apiUtils.fetchOffices();
     } catch (e) {
       console.error('Error fetching offices:', e);
       error = 'No se pudieron cargar las oficinas.';
@@ -50,8 +76,7 @@
       loading = false;
     }
 
-    await tick();
-    loadGoogleMaps();
+    await ensureMapInitialized();
   });
 
   onDestroy(() => {
@@ -107,14 +132,21 @@
     map = new google.maps.Map(mapContainer, mapOptions);
 
     const markersAdded = await addMarkers();
-    if (offices.length > 0 && markersAdded === 0) {
+    if (officeList.length > 0 && markersAdded === 0) {
       noMarkersShown = true;
     }
     mapLoaded = true;
   }
 
+  async function ensureMapInitialized() {
+    if (typeof window === 'undefined' || mapLoaded || mapLoadRequested || error) return;
+    mapLoadRequested = true;
+    await tick();
+    loadGoogleMaps();
+  }
+
   function getMapCenter() {
-    const withCoords = offices.filter((o) => hasValidCoords(o));
+    const withCoords = officeList.filter((o) => hasValidCoords(o));
     if (withCoords.length > 0) {
       const avgLat = withCoords.reduce((s, o) => s + Number(o.latitude), 0) / withCoords.length;
       const avgLng = withCoords.reduce((s, o) => s + Number(o.longitude), 0) / withCoords.length;
@@ -157,7 +189,7 @@
       });
     };
 
-    for (const office of offices) {
+    for (const office of officeList) {
       if (hasValidCoords(office)) {
         addMarkerAt(office, { lat: Number(office.latitude), lng: Number(office.longitude) });
       } else if (office.address) {
@@ -189,9 +221,9 @@
   {:else if error}
     <div class="map-placeholder map-error" style="flex-direction: column; gap: 0.5rem;">
       <p>{error}</p>
-      {#if offices.length > 0}
+      {#if officeList.length > 0}
         <a
-          href="https://www.google.com/maps/search/?api=1&query={encodeURIComponent(offices[0].address || 'Ciudad Juárez, Chihuahua')}"
+          href="https://www.google.com/maps/search/?api=1&query={encodeURIComponent(officeList[0].address || 'Ciudad Juárez, Chihuahua')}"
           target="_blank"
           rel="noopener noreferrer"
           class="text-blue-600 hover:underline text-sm"
@@ -204,9 +236,9 @@
     {#if noMarkersShown}
       <div class="map-placeholder map-warning" role="status">
         <p>No se pudieron ubicar las oficinas en el mapa (faltan coordenadas o la dirección no pudo geocodificarse).</p>
-        {#if offices.length > 0}
+        {#if officeList.length > 0}
           <a
-            href="https://www.google.com/maps/search/?api=1&query={encodeURIComponent(offices[0].address || 'Ciudad Juárez, Chihuahua')}"
+            href="https://www.google.com/maps/search/?api=1&query={encodeURIComponent(officeList[0].address || 'Ciudad Juárez, Chihuahua')}"
             target="_blank"
             rel="noopener noreferrer"
             class="text-blue-600 hover:underline text-sm mt-2 inline-block"

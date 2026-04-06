@@ -167,7 +167,7 @@
       <div>
         <h2 class="text-2xl font-bold text-slate-900 mb-4">Nuestras Oficinas</h2>
         <div class="card-lift rounded-xl overflow-hidden">
-          <OfficeMap defaultZoom={12} />
+          <OfficeMap offices={offices} loadingOffices={loadingOffices} defaultZoom={12} />
         </div>
       </div>
 
