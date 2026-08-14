@@ -1,8 +1,7 @@
 /* marketing/src/app.css */
 /* Elegant visual system with professional navy/aqua accents. */
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@config "../tailwind.config.cjs";
 
 :root {
   --marketing-shadow-soft: 0 14px 36px rgba(15, 52, 96, 0.12);
