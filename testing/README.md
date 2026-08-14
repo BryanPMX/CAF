@@ -112,7 +112,7 @@ const CONFIG = {
   // Test credentials
   ADMIN_USER: {
     email: process.env.ADMIN_EMAIL || 'admin@caf.org',
-    password: process.env.ADMIN_PASSWORD || 'admin123'
+	password: process.env.ADMIN_PASSWORD
   },
 
   // Test settings

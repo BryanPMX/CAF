@@ -14,7 +14,7 @@ require('dotenv').config();
 
 // Configuration
 const CONFIG = {
-    API_BASE: process.env.API_BASE_URL || 'https://api.caf-mexico.com/api/v1',
+	API_BASE: process.env.API_BASE_URL || 'http://localhost:8080/api/v1',
     ADMIN_EMAIL: process.env.ADMIN_EMAIL || '',
     ADMIN_PASSWORD: process.env.ADMIN_PASSWORD || '',
     TEST_USER_PREFIX: 'TEST_',
@@ -128,24 +128,8 @@ class TestUserManager {
         this.createdUsers = [];
     }
     
-    generateSecurePassword() {
-        // Generate a secure password with mixed case, numbers, and symbols
-        const charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
-        let password = '';
-        
-        // Ensure at least one of each type
-        password += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'[Math.floor(Math.random() * 26)]; // Uppercase
-        password += 'abcdefghijklmnopqrstuvwxyz'[Math.floor(Math.random() * 26)]; // Lowercase
-        password += '0123456789'[Math.floor(Math.random() * 10)]; // Number
-        password += '!@#$%^&*'[Math.floor(Math.random() * 8)]; // Symbol
-        
-        // Fill the rest randomly
-        for (let i = 4; i < 16; i++) {
-            password += charset[Math.floor(Math.random() * charset.length)];
-        }
-        
-        // Shuffle the password
-        return password.split('').sort(() => Math.random() - 0.5).join('');
+	generateSecurePassword() {
+		return `T9!a${crypto.randomBytes(18).toString('base64url')}`;
     }
     
     async checkUserExists(email) {
@@ -606,7 +590,7 @@ Commands:
 Environment Variables:
   ADMIN_EMAIL         Admin account email for user creation
   ADMIN_PASSWORD      Admin account password
-  API_BASE_URL        API base URL (default: https://api.caf-mexico.com/api/v1)
+  API_BASE_URL        API base URL (default: http://localhost:8080/api/v1)
   DRY_RUN            Set to 'true' for dry run mode
 
 Examples:

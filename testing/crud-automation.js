@@ -6,33 +6,41 @@
  */
 
 const axios = require('axios');
+const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
+require('dotenv').config();
 
 // Configuration
-const API_BASE_URL = 'https://api.caf-mexico.com/api/v1';
+const API_BASE_URL = process.env.API_BASE_URL || 'http://localhost:8080/api/v1';
 const TEST_RESULTS_FILE = path.join(__dirname, 'crud-test-results.json');
+
+function requiredEnv(name) {
+  const value = process.env[name];
+  if (!value) throw new Error(`${name} is required; credentials are never stored in the repository`);
+  return value;
+}
 
 // Test credentials for different roles
 const TEST_USERS = {
   admin: {
-    email: 'admin@caf.org',
-    password: 'admin123',
+    email: requiredEnv('ADMIN_TEST_EMAIL'),
+    password: requiredEnv('ADMIN_TEST_PASSWORD'),
     role: 'admin'
   },
   psychologist: {
-    email: 'barmen@caf.org',
-    password: '12345678',
+    email: requiredEnv('PSYCHOLOGIST_TEST_EMAIL'),
+    password: requiredEnv('PSYCHOLOGIST_TEST_PASSWORD'),
     role: 'psychologist'
   },
   lawyer: {
-    email: 'jperezsosa@caf.org',
-    password: '12345678',
+    email: requiredEnv('LAWYER_TEST_EMAIL'),
+    password: requiredEnv('LAWYER_TEST_PASSWORD'),
     role: 'lawyer'
   },
   client: {
-    email: 'bpere151@my.epcc.edu',
-    password: 'password123',
+    email: requiredEnv('CLIENT_TEST_EMAIL'),
+    password: requiredEnv('CLIENT_TEST_PASSWORD'),
     role: 'client'
   }
 };
@@ -362,7 +370,7 @@ async function testUsersCRUD(role) {
     email: `testuser-${Date.now()}@example.com`,
     role: 'lawyer',
     officeId: 2,
-    password: 'password123'
+    password: `Test-${crypto.randomBytes(18).toString('base64url')}9!aA`
   };
   
   const updateData = {

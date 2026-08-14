@@ -16,14 +16,14 @@ require('dotenv').config();
 
 // Configuration
 const CONFIG = {
-    API_BASE: process.env.API_BASE_URL || 'https://api.caf-mexico.com/api/v1',
+	API_BASE: process.env.API_BASE_URL || 'http://localhost:8080/api/v1',
     TEST_CREDENTIALS: {
-        email: process.env.TEST_USER_EMAIL || 'test@caf-mexico.org',
-        password: process.env.TEST_USER_PASSWORD || 'TestPassword123'
+        email: process.env.TEST_USER_EMAIL || '',
+        password: process.env.TEST_USER_PASSWORD || ''
     },
     ADMIN_CREDENTIALS: {
-        email: process.env.ADMIN_TEST_EMAIL || 'admin@caf-mexico.org',
-        password: process.env.ADMIN_TEST_PASSWORD || 'AdminPassword123'
+        email: process.env.ADMIN_TEST_EMAIL || '',
+        password: process.env.ADMIN_TEST_PASSWORD || ''
     },
     TIMEOUT: 15000, // 15 seconds for integration tests
     TEST_DATA_PREFIX: 'INTEGRATION_TEST_',

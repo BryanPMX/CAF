@@ -13,8 +13,8 @@ require('dotenv').config();
 
 // Configuration
 const CONFIG = {
-    API_BASE: process.env.API_BASE_URL || 'https://api.caf-mexico.com/api/v1',
-    WS_BASE: process.env.WS_BASE_URL || 'wss://api.caf-mexico.com/ws',
+	API_BASE: process.env.API_BASE_URL || 'http://localhost:8080/api/v1',
+    WS_BASE: process.env.WS_BASE_URL || 'ws://localhost:8080/ws',
     TEST_USER_EMAIL: process.env.TEST_USER_EMAIL || 'test-user@caf-test.local',
     TEST_USER_PASSWORD: process.env.TEST_USER_PASSWORD || '',
     TIMEOUT: 10000
@@ -69,10 +69,10 @@ class WebSocketTester {
         return new Promise((resolve, reject) => {
             log.info('Connecting to WebSocket...');
             
-            const wsUrl = `${CONFIG.WS_BASE}?token=${this.token}`;
-            log.info(`WebSocket URL: ${wsUrl.replace(this.token, 'TOKEN_HIDDEN')}`);
-            
-            this.ws = new WebSocket(wsUrl, {
+			const wsUrl = CONFIG.WS_BASE;
+			log.info(`WebSocket URL: ${wsUrl}`);
+
+			this.ws = new WebSocket(wsUrl, [`caf.jwt.${this.token}`], {
                 headers: {
                     'User-Agent': 'CAF-WebSocket-Tester/1.0'
                 }

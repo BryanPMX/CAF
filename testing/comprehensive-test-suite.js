@@ -9,6 +9,13 @@ const axios = require('axios');
 const { performance } = require('perf_hooks');
 const fs = require('fs');
 const path = require('path');
+require('dotenv').config();
+
+function requiredEnv(name) {
+  const value = process.env[name];
+  if (!value) throw new Error(`${name} is required; credentials are never stored in the repository`);
+  return value;
+}
 
 class ComprehensiveTestSuite {
   constructor(baseURL = 'http://localhost:8080') {
@@ -41,8 +48,8 @@ class ComprehensiveTestSuite {
 
     // Test data - Note: client password is unknown, skipping client tests
     this.testUsers = {
-      admin: { email: 'admin@caf.org', password: 'admin123' },
-      staff: { email: 'barmen@caf.org', password: '12345678' },
+      admin: { email: requiredEnv('ADMIN_TEST_EMAIL'), password: requiredEnv('ADMIN_TEST_PASSWORD') },
+      staff: { email: requiredEnv('STAFF_TEST_EMAIL'), password: requiredEnv('STAFF_TEST_PASSWORD') },
       // client: { email: 'bperez@gmail.com', password: 'unknown' } // Skip client tests
     };
 

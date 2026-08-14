@@ -6,13 +6,20 @@
  */
 
 const axios = require('axios');
+require('dotenv').config();
 
-const API_BASE_URL = 'https://api.caf-mexico.com/api/v1';
+const API_BASE_URL = process.env.API_BASE_URL || 'http://localhost:8080/api/v1';
+
+function requiredEnv(name) {
+  const value = process.env[name];
+  if (!value) throw new Error(`${name} is required; credentials are never stored in the repository`);
+  return value;
+}
 
 // Quick test credentials
 const QUICK_TEST_USERS = {
-  admin: { email: 'admin@caf.org', password: 'admin123' },
-  staff: { email: 'barmen@caf.org', password: '12345678' }
+  admin: { email: requiredEnv('ADMIN_TEST_EMAIL'), password: requiredEnv('ADMIN_TEST_PASSWORD') },
+  staff: { email: requiredEnv('STAFF_TEST_EMAIL'), password: requiredEnv('STAFF_TEST_PASSWORD') }
 };
 
 const apiClient = axios.create({

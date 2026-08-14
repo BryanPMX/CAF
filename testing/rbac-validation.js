@@ -9,19 +9,28 @@
 
 const axios = require('axios');
 const chalk = require('chalk');
+const crypto = require('crypto');
 require('dotenv').config();
+
+function requiredEnv(name) {
+	const value = process.env[name];
+	if (!value) throw new Error(`${name} is required; credentials are never stored in the repository`);
+	return value;
+}
+
+const generatedTestPassword = `Test-${crypto.randomBytes(18).toString('base64url')}9!aA`;
 
 // Configuration
 const CONFIG = {
-    API_BASE: process.env.API_BASE_URL || 'https://api.caf-mexico.com/api/v1',
+	API_BASE: process.env.API_BASE_URL || 'http://localhost:8080/api/v1',
     TEST_USERS: {
         admin: {
-            email: 'test-admin@caf-test.local',
-            password: '$8r2b@CX*AOf6hqH'
+			email: requiredEnv('ADMIN_TEST_EMAIL'),
+			password: requiredEnv('ADMIN_TEST_PASSWORD')
         },
         client: {
-            email: 'test-user@caf-test.local',
-            password: 'ZpWV%moy@D272&ya'
+			email: requiredEnv('CLIENT_TEST_EMAIL'),
+			password: requiredEnv('CLIENT_TEST_PASSWORD')
         }
     }
 };
@@ -86,7 +95,7 @@ class RBACTester {
                 firstName: 'Test',
                 lastName: 'User',
                 email: 'test-role-validation@caf-test.local',
-                password: 'TestPassword123',
+				password: generatedTestPassword,
                 role: 'lawyer'
             }, {
                 headers: { Authorization: `Bearer ${this.tokens.admin}` }
@@ -103,7 +112,7 @@ class RBACTester {
                 firstName: 'Test',
                 lastName: 'User',
                 email: 'test-invalid-role@caf-test.local',
-                password: 'TestPassword123',
+				password: generatedTestPassword,
                 role: 'invalid_role'
             }, {
                 headers: { Authorization: `Bearer ${this.tokens.admin}` }

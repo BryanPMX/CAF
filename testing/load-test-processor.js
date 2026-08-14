@@ -7,7 +7,7 @@ const axios = require('axios');
 
 // Global variables
 let authTokenCache = {};
-const API_BASE = process.env.API_BASE_URL || 'https://api.caf-mexico.com/api/v1';
+const API_BASE = process.env.API_BASE_URL || 'http://localhost:8080/api/v1';
 
 /**
  * Authenticate user and cache token
@@ -24,7 +24,7 @@ async function authenticate(context, events, done) {
     try {
         const response = await axios.post(`${API_BASE}/login`, {
             email: userId,
-            password: context.vars.testPassword || 'TestPassword123'
+            password: context.vars.testPassword || process.env.TEST_USER_PASSWORD || ''
         }, {
             timeout: 5000
         });

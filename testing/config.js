@@ -13,11 +13,11 @@ const DEFAULTS = {
   FRONTEND_BASE_URL: 'http://localhost:3000',
   WS_BASE_URL: 'ws://localhost:8080/ws',
 
-  // Test user credentials (development defaults)
-  TEST_USER_EMAIL: 'admin@caf.org',
-  TEST_USER_PASSWORD: 'admin123',
-  ADMIN_TEST_EMAIL: 'admin@caf.org',
-  ADMIN_TEST_PASSWORD: 'admin123',
+  // Credentials never have repository defaults.
+  TEST_USER_EMAIL: '',
+  TEST_USER_PASSWORD: '',
+  ADMIN_TEST_EMAIL: '',
+  ADMIN_TEST_PASSWORD: '',
 
   // Production overrides (if environment variables are set)
   PRODUCTION_API_URL: 'https://api.caf-mexico.com/api/v1',

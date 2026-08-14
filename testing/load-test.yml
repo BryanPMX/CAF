@@ -2,7 +2,7 @@
 # Use with Artillery.js for performance testing
 
 config:
-  target: 'https://api.caf-mexico.com'
+  target: 'http://localhost:8080'
   phases:
     # Warm-up phase
     - duration: 30
@@ -33,7 +33,7 @@ config:
   # Variables for test data
   variables:
     testEmail: "test@caf-mexico.org"
-    testPassword: "TestPassword123"
+    testPassword: "{{ $processEnvironment.TEST_USER_PASSWORD }}"
   
   # Plugins for enhanced reporting
   plugins:
