@@ -1,0 +1,49 @@
+version: 2
+updates:
+  - package-ecosystem: gomod
+    directory: /api
+    schedule:
+      interval: weekly
+    groups:
+      go-dependencies:
+        patterns: ["*"]
+
+  - package-ecosystem: npm
+    directory: /admin-portal
+    schedule:
+      interval: weekly
+    groups:
+      admin-portal-dependencies:
+        patterns: ["*"]
+
+  - package-ecosystem: npm
+    directory: /marketing
+    schedule:
+      interval: weekly
+    groups:
+      marketing-dependencies:
+        patterns: ["*"]
+
+  - package-ecosystem: npm
+    directory: /testing
+    schedule:
+      interval: weekly
+    groups:
+      test-dependencies:
+        patterns: ["*"]
+
+  - package-ecosystem: pub
+    directory: /client-app
+    schedule:
+      interval: weekly
+    groups:
+      flutter-dependencies:
+        patterns: ["*"]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      github-actions:
+        patterns: ["*"]

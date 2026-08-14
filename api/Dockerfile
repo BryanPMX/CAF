@@ -1,18 +1,5 @@
-# Multi-stage build for production optimization
-FROM ubuntu:22.04 AS builder
-
-# Install Go 1.23 and necessary packages
-RUN apt-get update && \
-    apt-get install -y wget git ca-certificates && \
-    wget https://go.dev/dl/go1.23.0.linux-amd64.tar.gz && \
-    tar -C /usr/local -xzf go1.23.0.linux-amd64.tar.gz && \
-    rm go1.23.0.linux-amd64.tar.gz && \
-    rm -rf /var/lib/apt/lists/*
-
-# Set Go environment variables
-ENV PATH="/usr/local/go/bin:${PATH}"
-ENV GOPATH="/go"
-ENV GOCACHE="/go/cache"
+# Multi-stage build using a supported, patch-pinned Go toolchain.
+FROM golang:1.26.6-bookworm AS builder
 
 # Set the working directory
 WORKDIR /app

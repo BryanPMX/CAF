@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"math"
@@ -59,7 +60,7 @@ func (s *stripeRESTClient) doForm(path string, form neturl.Values) (map[string]i
 		_ = json.Unmarshal(body, &payload)
 	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return payload, resp.StatusCode, fmt.Errorf(stripeErrorMessage(payload, resp.StatusCode))
+		return payload, resp.StatusCode, errors.New(stripeErrorMessage(payload, resp.StatusCode))
 	}
 	return payload, resp.StatusCode, nil
 }
@@ -87,7 +88,7 @@ func (s *stripeRESTClient) doGet(path string, query neturl.Values) (map[string]i
 		_ = json.Unmarshal(body, &payload)
 	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return payload, resp.StatusCode, fmt.Errorf(stripeErrorMessage(payload, resp.StatusCode))
+		return payload, resp.StatusCode, errors.New(stripeErrorMessage(payload, resp.StatusCode))
 	}
 	return payload, resp.StatusCode, nil
 }
