@@ -51,7 +51,7 @@ Primary client endpoints:
 - `GET /api/v1/client/payments/receipts`
 - `POST /api/v1/client/payments/checkout-session`
 - `GET /api/v1/client/offices`
-- `GET /ws?token=<jwt>` (realtime notifications)
+- `GET /ws` with WebSocket subprotocol `caf.jwt.<jwt>` (realtime notifications)
 
 ## Configuration
 

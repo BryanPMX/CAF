@@ -2,6 +2,12 @@
 
 This is the official monorepo for the CAF digital platform. **100% local development** - no cloud costs or dependencies.
 
+## Security and data boundaries
+
+This public repository contains application source code and deployment templates. It does **not** automatically contain PostgreSQL records, uploaded documents, Portainer secrets, or Docker named-volume contents. Those remain on the Docker host unless someone explicitly exports and commits them.
+
+Public source code must still be treated as fully visible, including deleted files retained in Git history. See [SECURITY.md](SECURITY.md) for private vulnerability reporting and [the August 2026 audit](docs/SECURITY_AUDIT_2026-08-14.md) for the current hardening status and required deployment actions.
+
 ## System Architecture
 
 ### Backend (Go) - SOLID Principles Implemented
@@ -52,7 +58,7 @@ api/
 
 ```
 admin-portal/src/
-├── app/                    # Next.js 14 App Router (file-based routing)
+├── app/                    # Next.js 16 App Router (file-based routing)
 │   ├── (dashboard)/       # Protected route groups
 │   ├── login/             # Authentication routes
 │   ├── layout.tsx         # Root layout with providers
@@ -146,8 +152,8 @@ marketing/src/
 ### Prerequisites
 
 - **Docker & Docker Compose** (for backend services)
-- **Node.js 18+** (for admin portal and testing)
-- **Go 1.21+** (for backend API)
+- **Node.js 20.9+** (Node.js 22 recommended for all web projects)
+- **Go 1.25+** (production container builds with the patched Go version pinned in `api/Dockerfile`)
 - **Git** (for version control)
 
 ### Automated Setup Script
@@ -222,9 +228,9 @@ docker-compose ps
 - [WEB] **Admin Portal**: http://localhost:3000 (start manually: `cd admin-portal && npm run dev`)
 - [WEB] **Marketing Site**: http://localhost:5173 (start manually: `cd marketing && npm run dev`)
 
-**Default Credentials:**
-- Username: `admin@caf.org`
-- Password: `admin123`
+**Secure first administrator:**
+
+Set `BOOTSTRAP_ADMIN_EMAIL` and `BOOTSTRAP_ADMIN_PASSWORD` only for the first API start. The password must be 12–72 characters and include uppercase, lowercase, a number, and a symbol. After the account is created, remove both variables from Portainer and redeploy. There are no default credentials.
 
 ### 2. Start Admin Portal (Frontend)
 
@@ -242,9 +248,7 @@ npm run dev
 
 ### 3. Test Login
 
-**Default Admin Credentials:**
-- **Email:** `admin@caf.org`
-- **Password:** `admin123` 
+**Administrator login:** Use the account created through the one-time secure bootstrap. Never store its password in this repository.
 
 ### 4. Verify System Components
 
@@ -272,8 +276,8 @@ export DB_HOST=localhost
 export DB_PORT=5432
 export DB_NAME=caf_db
 export DB_USER=caf_user
-export DB_PASSWORD=caf_password
-export JWT_SECRET=your_jwt_secret_here
+export DB_PASSWORD='<local secret; do not commit>'
+export JWT_SECRET='<at least 32 random characters; do not commit>'
 
 # Start the API
 go run cmd/server/main.go
@@ -391,7 +395,7 @@ curl http://localhost:3000/api/health
 
 #### 2. Authentication Flow Test
 1. **Navigate**: http://localhost:3000 → redirects to `/login`
-2. **Login**: Use admin credentials (admin@caf.org / admin123)
+2. **Login**: Use an explicitly provisioned administrator account
 3. **Dashboard**: Should display role-appropriate statistics
 4. **Navigation**: Menu items based on user role
 

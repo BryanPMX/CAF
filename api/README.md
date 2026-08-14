@@ -4,7 +4,7 @@ Go backend for the CAF platform. It serves the admin portal, marketing site inte
 
 ## What It Provides
 
-- JWT authentication (`/api/v1/login`, `/api/v1/register`)
+- JWT authentication (`/api/v1/login`); accounts are provisioned by authorized administrators
 - Role-aware route groups (`/api/v1`, `/api/v1/admin`, `/api/v1/staff`, `/api/v1/manager`)
 - Client-safe mobile route group (`/api/v1/client`)
 - Case management, appointments, tasks, documents, notifications
@@ -31,14 +31,13 @@ api/
 
 ### Public (`/api/v1`)
 
-- `POST /register`
 - `POST /login`
 - `POST /api/v1/webhooks/stripe` (Stripe signed webhook endpoint)
 - Public marketing endpoints (`/public/*`)
 
 ### Realtime
 
-- `GET /ws?token=<jwt>`
+- `GET /ws` with WebSocket subprotocol `caf.jwt.<jwt>`
   - Per-user websocket notifications
   - Payload shape (server -> client): `{ type: "notification", notification: {...} }`
 
