@@ -17,7 +17,7 @@ interface UseWebSocketReturn {
 
 const MAX_RECONNECT_ATTEMPTS = 5;
 
-function buildWebSocketUrl(apiBaseUrl: string, token: string): string | null {
+function buildWebSocketUrl(apiBaseUrl: string): string | null {
   try {
     const apiUrl = new URL(apiBaseUrl);
     const protocol = apiUrl.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -27,8 +27,7 @@ function buildWebSocketUrl(apiBaseUrl: string, token: string): string | null {
     path = path ? `${path}/ws` : '/ws';
 
     const wsUrl = new URL(`${protocol}//${apiUrl.host}${path}`);
-    wsUrl.searchParams.set('token', token);
-    return wsUrl.toString();
+	return wsUrl.toString();
   } catch (error) {
     console.error('Invalid NEXT_PUBLIC_API_URL for WebSocket:', error);
     return null;
@@ -79,7 +78,7 @@ export const useWebSocket = (): UseWebSocketReturn => {
     const token = localStorage.getItem('authToken') || localStorage.getItem('token');
     if (!token) return;
 
-    const wsUrl = buildWebSocketUrl(apiBase, token);
+	const wsUrl = buildWebSocketUrl(apiBase);
     if (!wsUrl) return;
 
     clearReconnectTimer();
@@ -96,7 +95,7 @@ export const useWebSocket = (): UseWebSocketReturn => {
     manualCloseRef.current = false;
 
     try {
-      const ws = new WebSocket(wsUrl);
+		const ws = new WebSocket(wsUrl, `caf.jwt.${token}`);
 
       ws.onopen = () => {
         setIsConnected(true);

@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/BryanPMX/CAF/api/models"
+	securityutil "github.com/BryanPMX/CAF/api/security"
 	"github.com/BryanPMX/CAF/api/storage"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -100,15 +101,12 @@ func UploadProfileAvatar(db *gorm.DB, baseURL string) gin.HandlerFunc {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Se requiere un archivo 'avatar'"})
 			return
 		}
-		// Basic image type check
-		ct := file.Header.Get("Content-Type")
-		allowed := map[string]bool{
-			"image/jpeg": true, "image/png": true, "image/gif": true, "image/webp": true,
-		}
-		if !allowed[ct] {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Solo se permiten imágenes (JPEG, PNG, GIF, WebP)"})
+		detectedType, err := securityutil.ValidateImageUpload(file)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
+		file.Header.Set("Content-Type", detectedType)
 
 		st := storage.GetActiveStorage()
 		if st == nil {

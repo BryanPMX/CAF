@@ -10,11 +10,10 @@ import (
 	"github.com/BryanPMX/CAF/api/config"
 	"github.com/BryanPMX/CAF/api/middleware"
 	"github.com/BryanPMX/CAF/api/models"
+	securityutil "github.com/BryanPMX/CAF/api/security"
 	"github.com/gin-gonic/gin"
-	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
-
 
 // GetAppointmentsEnhanced returns appointments based on user permissions and department
 func GetAppointmentsEnhanced(db *gorm.DB) gin.HandlerFunc {
@@ -215,7 +214,7 @@ func CreateAppointmentEnhanced(db *gorm.DB) gin.HandlerFunc {
 		if input.NewClient != nil {
 
 			// Hash default password for new client
-			hashedPassword, err := bcrypt.GenerateFromPassword([]byte("TempPassword123!"), bcrypt.DefaultCost)
+			hashedPassword, err := securityutil.HashRandomPassword()
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to hash password"})
 				return
@@ -225,7 +224,7 @@ func CreateAppointmentEnhanced(db *gorm.DB) gin.HandlerFunc {
 				FirstName: input.NewClient.FirstName,
 				LastName:  input.NewClient.LastName,
 				Email:     input.NewClient.Email,
-				Password:  string(hashedPassword),
+				Password:  hashedPassword,
 				Role:      "client",
 				IsActive:  true,
 			}
@@ -405,7 +404,7 @@ func UpdateAppointmentEnhanced(db *gorm.DB) gin.HandlerFunc {
 				},
 				"updatedAt": time.Now(),
 			},
-			"message": fmt.Sprintf("Cita '%s' actualizada por %s %s", appointment.Title, user.FirstName, user.LastName),
+			"message":   fmt.Sprintf("Cita '%s' actualizada por %s %s", appointment.Title, user.FirstName, user.LastName),
 			"timestamp": time.Now(),
 		}
 
@@ -580,7 +579,6 @@ func GetMyAppointments(db *gorm.DB) gin.HandlerFunc {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve appointments"})
 			return
 		}
-
 
 		// Calculate pagination info
 		page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))

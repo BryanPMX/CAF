@@ -38,10 +38,14 @@ func RoleAuth(db *gorm.DB, requiredRole string) gin.HandlerFunc {
 			c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "User not found"})
 			return
 		}
+		if !user.IsActive {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "User account is inactive"})
+			return
+		}
 
 		// Step 3: Check if user has the required role or is part of staff roles
 		hasAccess := false
-		
+
 		if requiredRole == "staff" {
 			// For staff routes, check if user has any staff role
 			hasAccess = IsStaffRole(user.Role)

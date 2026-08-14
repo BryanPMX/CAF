@@ -6,8 +6,14 @@ services:
     image: brpmx/caf-api:latest
     container_name: caf-api-1
     restart: unless-stopped
-    links:
-      - db
+    pull_policy: always
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
     depends_on:
       db:
         condition: service_healthy
@@ -21,6 +27,10 @@ services:
       - PORT=8080
       - NODE_ENV=production
       - JWT_SECRET=${JWT_SECRET}
+      - CONTACT_API_SHARED_SECRET=${CONTACT_API_SHARED_SECRET}
+      - BOOTSTRAP_ADMIN_EMAIL=${BOOTSTRAP_ADMIN_EMAIL:-}
+      - BOOTSTRAP_ADMIN_PASSWORD=${BOOTSTRAP_ADMIN_PASSWORD:-}
+      - TRUSTED_PROXIES=${TRUSTED_PROXIES:-}
       - API_BASE_URL=${API_BASE_URL:-https://api.caf-mexico.com}
       - TZ=UTC
       - CORS_ALLOWED_ORIGINS=https://admin.caf-mexico.com,https://admin.caf-mexico.org,https://caf-mexico.com,https://www.caf-mexico.com
@@ -48,6 +58,8 @@ services:
     image: postgres:15-alpine
     container_name: caf-db
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-caf_user} -d ${DB_NAME:-caf_db}"]
       interval: 5s
@@ -67,6 +79,7 @@ services:
 networks:
   caf_default:
     driver: bridge
+    internal: true
   nginx-proxy-manager_default:
     external: true
 

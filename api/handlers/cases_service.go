@@ -9,8 +9,8 @@ import (
 
 	"github.com/BryanPMX/CAF/api/config"
 	"github.com/BryanPMX/CAF/api/models"
+	securityutil "github.com/BryanPMX/CAF/api/security"
 	"github.com/gin-gonic/gin"
-	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
@@ -309,7 +309,7 @@ func (s *CaseService) CreateCase(c *gin.Context) (*models.Case, error) {
 				requestData["clientId"] = float64(existingUser.ID)
 			} else {
 				// Create new client user
-				hashedPassword, err := bcrypt.GenerateFromPassword([]byte("TempPassword123!"), bcrypt.DefaultCost)
+				hashedPassword, err := securityutil.HashRandomPassword()
 				if err != nil {
 					return nil, fmt.Errorf("failed to hash password: %v", err)
 				}
@@ -317,7 +317,7 @@ func (s *CaseService) CreateCase(c *gin.Context) (*models.Case, error) {
 					FirstName: strings.TrimSpace(firstName),
 					LastName:  strings.TrimSpace(lastName),
 					Email:     emailTrim,
-					Password:  string(hashedPassword),
+					Password:  hashedPassword,
 					Role:      "client",
 					IsActive:  true,
 				}

@@ -12,12 +12,11 @@ import (
 	"log"
 	"mime/multipart"
 	"net/http"
-	"path/filepath"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/BryanPMX/CAF/api/models"
+	securityutil "github.com/BryanPMX/CAF/api/security"
 	"github.com/BryanPMX/CAF/api/storage"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -483,19 +482,12 @@ func UploadSiteImage(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		// Validate file type
-		ext := strings.ToLower(filepath.Ext(file.Filename))
-		allowedExts := map[string]bool{".jpg": true, ".jpeg": true, ".png": true, ".gif": true, ".webp": true, ".svg": true}
-		if !allowedExts[ext] {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Tipo de archivo no permitido. Use: jpg, png, gif, webp, svg"})
+		detectedType, err := securityutil.ValidateImageUpload(file)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-
-		// Validate file size (max 10MB)
-		if file.Size > 10*1024*1024 {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Archivo demasiado grande. Máximo 10MB"})
-			return
-		}
+		file.Header.Set("Content-Type", detectedType)
 
 		fileURL, err := uploadCMSFile(file)
 		if err != nil {

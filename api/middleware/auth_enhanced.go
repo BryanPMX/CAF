@@ -1,13 +1,12 @@
 package middleware
 
 import (
-	"fmt"
 	"net/http"
 	"strings"
 	"time"
 
+	securityutil "github.com/BryanPMX/CAF/api/security"
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v5"
 )
 
 // EnhancedJWTAuth is a stateless middleware that validates JWT tokens
@@ -27,40 +26,18 @@ func EnhancedJWTAuth(jwtSecret string) gin.HandlerFunc {
 			return
 		}
 
-		// Step 2: Parse and validate the JWT token with explicit UTC time validation
-		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
-			}
-			return []byte(jwtSecret), nil
-		}, jwt.WithTimeFunc(func() time.Time {
-			return time.Now().UTC() // CRITICAL: Use UTC for token validation
-		}))
-
-		if err != nil || !token.Valid {
+		// Step 2: Require HS256 plus the CAF issuer, audience, subject and expiry.
+		userID, err := securityutil.ParseJWT(tokenString, jwtSecret, time.Now())
+		if err != nil {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})
 			return
 		}
 
-		// Step 3: Extract claims and set user context (stateless)
-		if claims, ok := token.Claims.(jwt.MapClaims); ok {
-			userID, ok := claims["sub"].(string)
-			if !ok {
-				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid token claims"})
-				return
-			}
-
-			// Step 4: Set user ID in context (no database session tracking)
-			c.Set("userID", userID)
-			
-			// Step 5: Set a temporary userRole that will be overwritten by DataAccessControl
-			// This prevents issues where handlers try to access userRole before DataAccessControl runs
-			c.Set("userRole", "pending") // Temporary value
-
-			c.Next()
-		} else {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid token claims"})
-		}
+		// Step 3: Set user context (stateless). DataAccessControl replaces the
+		// temporary role after confirming the database account is active.
+		c.Set("userID", userID)
+		c.Set("userRole", "pending")
+		c.Next()
 	}
 }
 

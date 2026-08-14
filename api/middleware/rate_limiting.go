@@ -144,13 +144,13 @@ func (rl *RateLimiter) Cleanup() {
 var (
 	// General API rate limiter - configurable via environment
 	GeneralRateLimiter *RateLimiter
-	
-	// Auth rate limiter - configurable via environment  
+
+	// Auth rate limiter - configurable via environment
 	AuthRateLimiter *RateLimiter
-	
+
 	// Contact form rate limiter - configurable via environment
 	ContactRateLimiter *RateLimiter
-	
+
 	// Admin operations rate limiter - configurable via environment
 	AdminRateLimiter *RateLimiter
 )
@@ -161,12 +161,12 @@ func InitializeRateLimiters(requestsPerMinute, authRequestsPerMinute, contactReq
 	AuthRateLimiter = NewRateLimiter(time.Minute, authRequestsPerMinute)
 	ContactRateLimiter = NewRateLimiter(time.Hour, contactRequestsPerHour)
 	AdminRateLimiter = NewRateLimiter(time.Minute, adminRequestsPerMinute)
-	
+
 	// Start cleanup routine
 	go func() {
 		ticker := time.NewTicker(5 * time.Minute)
 		defer ticker.Stop()
-		
+
 		for range ticker.C {
 			if GeneralRateLimiter != nil {
 				GeneralRateLimiter.Cleanup()
@@ -188,18 +188,18 @@ func InitializeRateLimiters(requestsPerMinute, authRequestsPerMinute, contactReq
 func RateLimitMiddleware(limiter *RateLimiter, keyFunc func(*gin.Context) string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		key := keyFunc(c)
-		
+
 		if !limiter.Allow(key) {
 			resetTime := limiter.GetResetTime(key)
 			remaining := limiter.GetRemainingRequests(key)
-			
+
 			c.Header("X-RateLimit-Limit", fmt.Sprintf("%d", limiter.limit))
 			c.Header("X-RateLimit-Remaining", fmt.Sprintf("%d", remaining))
 			c.Header("X-RateLimit-Reset", fmt.Sprintf("%d", resetTime.Unix()))
-			
+
 			c.JSON(http.StatusTooManyRequests, gin.H{
-				"error":   "Rate limit exceeded",
-				"message": "Too many requests. Please try again later.",
+				"error":       "Rate limit exceeded",
+				"message":     "Too many requests. Please try again later.",
 				"retry_after": int(time.Until(resetTime).Seconds()),
 			})
 			c.Abort()
@@ -209,37 +209,19 @@ func RateLimitMiddleware(limiter *RateLimiter, keyFunc func(*gin.Context) string
 		// Add rate limit headers
 		remaining := limiter.GetRemainingRequests(key)
 		resetTime := limiter.GetResetTime(key)
-		
+
 		c.Header("X-RateLimit-Limit", fmt.Sprintf("%d", limiter.limit))
 		c.Header("X-RateLimit-Remaining", fmt.Sprintf("%d", remaining))
 		c.Header("X-RateLimit-Reset", fmt.Sprintf("%d", resetTime.Unix()))
-		
+
 		c.Next()
 	}
 }
 
 // GetClientIP extracts the client IP from the request
 func GetClientIP(c *gin.Context) string {
-	// Check X-Forwarded-For header first (for load balancers)
-	if xff := c.GetHeader("X-Forwarded-For"); xff != "" {
-		// Take the first IP if there are multiple
-		if idx := len(xff); idx > 0 {
-			for i, char := range xff {
-				if char == ',' {
-					idx = i
-					break
-				}
-			}
-			return xff[:idx]
-		}
-	}
-	
-	// Check X-Real-IP header
-	if xri := c.GetHeader("X-Real-IP"); xri != "" {
-		return xri
-	}
-	
-	// Fall back to RemoteAddr
+	// Gin only honors forwarding headers from proxies explicitly configured
+	// through Engine.SetTrustedProxies. Never trust raw client-supplied headers.
 	return c.ClientIP()
 }
 

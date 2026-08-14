@@ -11,8 +11,8 @@ import (
 	"github.com/BryanPMX/CAF/api/config"
 	"github.com/BryanPMX/CAF/api/models"
 	"github.com/BryanPMX/CAF/api/notifications"
+	securityutil "github.com/BryanPMX/CAF/api/security"
 	"github.com/gin-gonic/gin"
-	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
@@ -107,7 +107,7 @@ func CreateAppointmentSmart(db *gorm.DB) gin.HandlerFunc {
 				// A user with this email already exists (possibly soft-deleted)
 				if existingUser.DeletedAt.Valid {
 					// User is soft-deleted, restore them for the appointment
-					existingUser.DeletedAt = gorm.DeletedAt{} // Clear the soft delete
+					existingUser.DeletedAt = gorm.DeletedAt{}          // Clear the soft delete
 					existingUser.FirstName = input.NewClient.FirstName // Update with provided info
 					existingUser.LastName = input.NewClient.LastName
 					if err := tx.Unscoped().Save(&existingUser).Error; err != nil {
@@ -123,24 +123,28 @@ func CreateAppointmentSmart(db *gorm.DB) gin.HandlerFunc {
 					c.JSON(http.StatusBadRequest, gin.H{
 						"error": "A user with this email already exists. Please use the existing client or choose a different email.",
 						"existingUser": gin.H{
-							"id": existingUser.ID,
-							"email": existingUser.Email,
-							"role": existingUser.Role,
+							"id":        existingUser.ID,
+							"email":     existingUser.Email,
+							"role":      existingUser.Role,
 							"firstName": existingUser.FirstName,
-							"lastName": existingUser.LastName,
+							"lastName":  existingUser.LastName,
 						},
 					})
 					return
 				}
 			} else if err == gorm.ErrRecordNotFound {
 				// No user with this email exists, create a new one
-				tempPassword := "password123" // Placeholder password
-				hashedPassword, _ := bcrypt.GenerateFromPassword([]byte(tempPassword), bcrypt.DefaultCost)
+				hashedPassword, err := securityutil.HashRandomPassword()
+				if err != nil {
+					tx.Rollback()
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to provision client credentials"})
+					return
+				}
 				client = models.User{
 					FirstName: input.NewClient.FirstName,
 					LastName:  input.NewClient.LastName,
 					Email:     input.NewClient.Email,
-					Password:  string(hashedPassword),
+					Password:  hashedPassword,
 					Role:      "client",
 				}
 				if err := tx.Create(&client).Error; err != nil {

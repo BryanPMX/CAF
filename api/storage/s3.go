@@ -14,7 +14,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/google/uuid"
 )
 
@@ -113,7 +112,6 @@ func CreateBucketIfNotExists() error {
 			log.Printf("Bucket '%s' not found. Creating it...", bucketName)
 			_, createErr := s3Client.CreateBucket(context.TODO(), &s3.CreateBucketInput{
 				Bucket: &bucketName,
-				ACL:    types.BucketCannedACLPublicRead,
 			})
 			if createErr != nil {
 				return fmt.Errorf("failed to create bucket: %w", createErr)
@@ -147,10 +145,10 @@ func UploadFile(file *multipart.FileHeader, caseID string) (string, error) {
 	objectKey := fmt.Sprintf("cases/%s/%s", caseID, uniqueFileName)
 
 	_, err = s3Client.PutObject(context.TODO(), &s3.PutObjectInput{
-		Bucket: &bucketName,
-		Key:    &objectKey,
-		Body:   src,
-		ACL:    types.ObjectCannedACLPublicRead,
+		Bucket:      &bucketName,
+		Key:         &objectKey,
+		Body:        src,
+		ContentType: aws.String(file.Header.Get("Content-Type")),
 	})
 
 	if err != nil {
@@ -160,7 +158,7 @@ func UploadFile(file *multipart.FileHeader, caseID string) (string, error) {
 	// Generate the correct file URL based on environment
 	endpoint := os.Getenv("AWS_ENDPOINT_URL")
 	region := os.Getenv("AWS_REGION")
-	
+
 	var fileURL string
 	if endpoint != "" {
 		// LocalStack or custom endpoint
@@ -173,7 +171,7 @@ func UploadFile(file *multipart.FileHeader, caseID string) (string, error) {
 	return fileURL, nil
 }
 
-// UploadAvatarFile uploads a profile image to S3 at avatars/{userID}.{ext} and returns the public URL.
+// UploadAvatarFile uploads a private profile image to S3 at avatars/{userID}.{ext}.
 func UploadAvatarFile(file *multipart.FileHeader, userID string) (string, error) {
 	bucketName := os.Getenv("S3_BUCKET")
 	if s3Client == nil {
@@ -193,10 +191,10 @@ func UploadAvatarFile(file *multipart.FileHeader, userID string) (string, error)
 	objectKey := fmt.Sprintf("avatars/%s%s", userID, ext)
 
 	_, err = s3Client.PutObject(context.TODO(), &s3.PutObjectInput{
-		Bucket: &bucketName,
-		Key:    &objectKey,
-		Body:   src,
-		ACL:    types.ObjectCannedACLPublicRead,
+		Bucket:      &bucketName,
+		Key:         &objectKey,
+		Body:        src,
+		ContentType: aws.String(file.Header.Get("Content-Type")),
 	})
 	if err != nil {
 		return "", fmt.Errorf("failed to upload avatar to S3: %w", err)

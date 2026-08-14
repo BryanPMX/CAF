@@ -10,6 +10,54 @@ import (
 	"gorm.io/gorm"
 )
 
+// CanAccessCase applies the same object-level authorization rule to handlers
+// whose route contains an event/document ID instead of a case ID.
+func CanAccessCase(db *gorm.DB, currentUser models.User, caseID uint) (bool, error) {
+	var caseRecord models.Case
+	if err := db.Select("id, client_id, category, office_id, primary_staff_id").First(&caseRecord, caseID).Error; err != nil {
+		return false, err
+	}
+	if currentUser.Role == config.RoleAdmin {
+		return true, nil
+	}
+	if currentUser.Role == "client" {
+		return caseRecord.ClientID != nil && *caseRecord.ClientID == currentUser.ID, nil
+	}
+	if currentUser.Role == config.RoleOfficeManager {
+		return currentUser.OfficeID != nil && *currentUser.OfficeID == caseRecord.OfficeID, nil
+	}
+
+	if caseRecord.PrimaryStaffID != nil && *caseRecord.PrimaryStaffID == currentUser.ID {
+		return true, nil
+	}
+	if currentUser.OfficeID != nil && *currentUser.OfficeID == caseRecord.OfficeID {
+		if currentUser.Department == nil || *currentUser.Department == caseRecord.Category {
+			return true, nil
+		}
+	}
+	if currentUser.OfficeID == nil && currentUser.Department != nil && *currentUser.Department == caseRecord.Category {
+		return true, nil
+	}
+
+	var taskCount int64
+	if err := db.Model(&models.Task{}).
+		Where("case_id = ? AND assigned_to_id = ? AND deleted_at IS NULL", caseID, currentUser.ID).
+		Count(&taskCount).Error; err != nil {
+		return false, err
+	}
+	if taskCount > 0 {
+		return true, nil
+	}
+
+	var assignmentCount int64
+	if err := db.Model(&models.UserCaseAssignment{}).
+		Where("user_id = ? AND case_id = ? AND deleted_at IS NULL", currentUser.ID, caseID).
+		Count(&assignmentCount).Error; err != nil {
+		return false, err
+	}
+	return assignmentCount > 0, nil
+}
+
 // DataAccessControl is a comprehensive middleware that enforces fine-grained access control
 // based on user roles, departments, and case assignments
 func DataAccessControl(db *gorm.DB) gin.HandlerFunc {
@@ -25,6 +73,10 @@ func DataAccessControl(db *gorm.DB) gin.HandlerFunc {
 			// Log the error for debugging
 			fmt.Printf("DataAccessControl: Failed to find user with ID %v: %v\n", userID, err)
 			c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "User not found"})
+			return
+		}
+		if !user.IsActive {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "User account is inactive"})
 			return
 		}
 

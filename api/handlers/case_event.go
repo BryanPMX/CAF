@@ -11,12 +11,15 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"mime"
 	"net/http"
 	"path/filepath"
 	"strconv"
 	"strings"
 
+	"github.com/BryanPMX/CAF/api/middleware"
 	"github.com/BryanPMX/CAF/api/models"
+	securityutil "github.com/BryanPMX/CAF/api/security"
 	"github.com/BryanPMX/CAF/api/storage"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -25,13 +28,32 @@ import (
 // CreateCommentInput defines the structure for adding a comment.
 type CreateCommentInput struct {
 	Comment    string `json:"comment" binding:"required"`
-	Visibility string `json:"visibility" binding:"required"` // "internal" or "client_visible"
+	Visibility string `json:"visibility" binding:"required,oneof=internal client_visible"`
 }
 
 // UpdateCommentInput defines the structure for updating a comment.
 type UpdateCommentInput struct {
 	Comment    string `json:"comment" binding:"required"`
-	Visibility string `json:"visibility" binding:"required"` // "internal" or "client_visible"
+	Visibility string `json:"visibility" binding:"required,oneof=internal client_visible"`
+}
+
+func requireEventCaseAccess(c *gin.Context, db *gorm.DB, caseID uint) bool {
+	value, exists := c.Get("currentUser")
+	currentUser, ok := value.(models.User)
+	if !exists || !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Usuario no autenticado"})
+		return false
+	}
+	allowed, err := middleware.CanAccessCase(db, currentUser, caseID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Caso no encontrado"})
+		return false
+	}
+	if !allowed {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Acceso denegado al caso"})
+		return false
+	}
+	return true
 }
 
 // CreateComment is an admin-only handler to add a comment to a case.
@@ -129,6 +151,9 @@ func UpdateComment(db *gorm.DB) gin.HandlerFunc {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Evento no es un comentario"})
 			return
 		}
+		if !requireEventCaseAccess(c, db, event.CaseID) {
+			return
+		}
 
 		// Only the author can update their own comments
 		if event.UserID != user.ID {
@@ -186,6 +211,9 @@ func DeleteComment(db *gorm.DB) gin.HandlerFunc {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Evento no es un comentario"})
 			return
 		}
+		if !requireEventCaseAccess(c, db, event.CaseID) {
+			return
+		}
 
 		// Only admins and office managers can delete comments
 		userRole, _ := c.Get("userRole")
@@ -229,10 +257,20 @@ func UploadDocument(db *gorm.DB) gin.HandlerFunc {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "File is required"})
 			return
 		}
+		detectedType, err := securityutil.ValidateDocumentUpload(file)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		file.Header.Set("Content-Type", detectedType)
 
 		visibility := c.PostForm("visibility")
 		if visibility == "" {
 			visibility = "internal"
+		}
+		if visibility != "internal" && visibility != "client_visible" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Visibilidad inválida"})
+			return
 		}
 
 		// Use the active storage provider (Strategy Pattern)
@@ -257,7 +295,7 @@ func UploadDocument(db *gorm.DB) gin.HandlerFunc {
 			Visibility: visibility,
 			FileName:   file.Filename,
 			FileUrl:    fileURL,
-			FileType:   file.Header.Get("Content-Type"),
+			FileType:   detectedType,
 		}
 
 		if err := db.Create(&event).Error; err != nil {
@@ -298,6 +336,9 @@ func UpdateDocument(db *gorm.DB) gin.HandlerFunc {
 
 		if event.EventType != "file_upload" {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Evento no es un documento"})
+			return
+		}
+		if !requireEventCaseAccess(c, db, event.CaseID) {
 			return
 		}
 
@@ -365,6 +406,9 @@ func DeleteDocument(db *gorm.DB) gin.HandlerFunc {
 
 		if event.EventType != "file_upload" {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Evento no es un documento"})
+			return
+		}
+		if !requireEventCaseAccess(c, db, event.CaseID) {
 			return
 		}
 
@@ -439,25 +483,15 @@ func GetDocument(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
+		if !requireEventCaseAccess(c, db, event.CaseID) {
+			return
+		}
+
 		// Check access permissions based on visibility
 		userRole, _ := c.Get("userRole")
 		if event.Visibility == "internal" && userRole == "client" {
 			c.JSON(http.StatusForbidden, gin.H{"error": "Acceso denegado: documento interno"})
 			return
-		}
-		if userRole == "client" {
-			userID, _ := c.Get("userID")
-			var count int64
-			if err := db.Model(&models.Case{}).
-				Where("id = ? AND client_id = ?", event.CaseID, userID).
-				Count(&count).Error; err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al validar acceso al documento"})
-				return
-			}
-			if count == 0 {
-				c.JSON(http.StatusForbidden, gin.H{"error": "Acceso denegado: documento no pertenece a su caso"})
-				return
-			}
 		}
 
 		// Use the active storage provider to retrieve the file
@@ -485,11 +519,16 @@ func GetDocument(db *gorm.DB) gin.HandlerFunc {
 		fileExt := strings.ToLower(filepath.Ext(event.FileName))
 		canPreview := isPreviewableFile(fileExt)
 
+		disposition := "inline"
 		if mode == "download" || !canPreview {
-			c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", event.FileName))
-		} else {
-			c.Header("Content-Disposition", fmt.Sprintf("inline; filename=\"%s\"", event.FileName))
+			disposition = "attachment"
 		}
+		safeName := filepath.Base(strings.ReplaceAll(event.FileName, "\\", "/"))
+		formattedDisposition := mime.FormatMediaType(disposition, map[string]string{"filename": safeName})
+		if formattedDisposition == "" {
+			formattedDisposition = "attachment"
+		}
+		c.Header("Content-Disposition", formattedDisposition)
 
 		// Security headers
 		c.Header("X-Content-Type-Options", "nosniff")
@@ -499,7 +538,7 @@ func GetDocument(db *gorm.DB) gin.HandlerFunc {
 
 		// Caching headers
 		if mode == "preview" && canPreview {
-			c.Header("Cache-Control", "public, max-age=3600")
+			c.Header("Cache-Control", "private, no-store")
 			c.Header("ETag", fmt.Sprintf("\"%d-%s\"", event.ID, event.UpdatedAt.Format("20060102150405")))
 		} else {
 			c.Header("Cache-Control", "no-cache, no-store, must-revalidate")
@@ -525,10 +564,7 @@ func isPreviewableFile(extension string) bool {
 		".png":  true,
 		".gif":  true,
 		".webp": true,
-		".svg":  true,
 		".txt":  true,
-		".html": true,
-		".htm":  true,
 	}
 	return previewableExtensions[extension]
 }

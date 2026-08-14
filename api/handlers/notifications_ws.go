@@ -1,12 +1,17 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
+	"strings"
 	"sync"
+	"time"
 
+	"github.com/BryanPMX/CAF/api/models"
+	securityutil "github.com/BryanPMX/CAF/api/security"
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/net/websocket"
+	"gorm.io/gorm"
 )
 
 // Simple in-memory subscription registry: userID -> set of connections
@@ -16,38 +21,29 @@ var (
 )
 
 // NotificationsWebSocket handles per-user WebSocket connections.
-// Auth via JWT token passed as query param `token` (stateless).
-func NotificationsWebSocket(jwtSecret string) gin.HandlerFunc {
+// Auth uses a WebSocket subprotocol instead of a URL query parameter so JWTs
+// are not copied into proxy access logs, browser history, or analytics.
+func NotificationsWebSocket(database *gorm.DB, jwtSecret string, allowedOrigins []string) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Validate JWT from query param
-		tokenStr := c.Query("token")
+		protocol, tokenStr := websocketTokenProtocol(c.GetHeader("Sec-WebSocket-Protocol"))
 		if tokenStr == "" {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "missing token"})
 			return
 		}
 
-		token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
-			return []byte(jwtSecret), nil
-		})
-		if err != nil || !token.Valid {
+		userID, err := securityutil.ParseJWT(tokenStr, jwtSecret, time.Now())
+		if err != nil {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid token"})
 			return
 		}
 
-		claims, ok := token.Claims.(jwt.MapClaims)
-		if !ok {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid claims"})
+		// JWTs are intentionally short-lived, but a disabled/deleted account must
+		// lose WebSocket access immediately rather than when its token expires.
+		var user models.User
+		if err := database.Select("id", "is_active").First(&user, userID).Error; err != nil || !user.IsActive {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "account is not active"})
 			return
 		}
-
-		userID, _ := claims["sub"].(string)
-		if userID == "" {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid subject"})
-			return
-		}
-
-		// In stateless JWT system, token validation is sufficient
-		// No additional session validation needed
 
 		handler := websocket.Handler(func(conn *websocket.Conn) {
 			RegisterConn(userID, conn)
@@ -62,8 +58,45 @@ func NotificationsWebSocket(jwtSecret string) gin.HandlerFunc {
 			}
 		})
 
-		handler.ServeHTTP(c.Writer, c.Request)
+		server := websocket.Server{
+			Handler: handler,
+			Handshake: func(config *websocket.Config, request *http.Request) error {
+				origin, err := websocket.Origin(config, request)
+				if err != nil {
+					return err
+				}
+				if origin != nil && !originAllowed(origin.Scheme+"://"+origin.Host, allowedOrigins) {
+					return fmt.Errorf("origin not allowed")
+				}
+				config.Origin = origin
+				config.Protocol = []string{protocol}
+				return nil
+			},
+		}
+		server.ServeHTTP(c.Writer, c.Request)
 	}
+}
+
+const websocketJWTProtocolPrefix = "caf.jwt."
+
+func websocketTokenProtocol(header string) (string, string) {
+	for _, item := range strings.Split(header, ",") {
+		protocol := strings.TrimSpace(item)
+		if strings.HasPrefix(protocol, websocketJWTProtocolPrefix) {
+			return protocol, strings.TrimPrefix(protocol, websocketJWTProtocolPrefix)
+		}
+	}
+	return "", ""
+}
+
+func originAllowed(origin string, allowed []string) bool {
+	for _, candidate := range allowed {
+		candidate = strings.TrimSuffix(strings.TrimSpace(candidate), "/")
+		if candidate == "*" || strings.EqualFold(candidate, origin) {
+			return true
+		}
+	}
+	return false
 }
 
 func RegisterConn(userID string, conn *websocket.Conn) {

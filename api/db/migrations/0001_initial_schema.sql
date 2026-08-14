@@ -4,27 +4,9 @@
 -- Author: CAF System Team
 -- Version: 3.1 - Fully Synchronized with GORM models (Renamed from 001 to 0001 for consistency)
 
--- Drop existing tables if they exist (for clean migration)
-DROP TABLE IF EXISTS therapist_capacity CASCADE;
-DROP TABLE IF EXISTS user_notes CASCADE;
-DROP TABLE IF EXISTS admin_notes CASCADE;
-DROP TABLE IF EXISTS announcement_dismissals CASCADE;
-DROP TABLE IF EXISTS announcements CASCADE;
-DROP TABLE IF EXISTS notifications CASCADE;
-DROP TABLE IF EXISTS audit_logs CASCADE;
-DROP TABLE IF EXISTS case_events CASCADE;
-DROP TABLE IF EXISTS task_comments CASCADE;
-DROP TABLE IF EXISTS tasks CASCADE;
-DROP TABLE IF EXISTS user_case_assignments CASCADE;
-DROP TABLE IF EXISTS sessions CASCADE;
-DROP TABLE IF EXISTS appointments CASCADE;
-DROP TABLE IF EXISTS cases CASCADE;
-DROP TABLE IF EXISTS users CASCADE;
-DROP TABLE IF EXISTS offices CASCADE;
-
--- Drop views if they exist
-DROP VIEW IF EXISTS active_cases CASCADE;
-DROP VIEW IF EXISTS deleted_cases CASCADE;
+-- This migration is intentionally non-destructive. Never drop application
+-- tables from an automatic startup migration: a missing migration ledger must
+-- not be able to erase an existing deployment.
 
 -- Create offices table (Fully Synchronized with Office model)
 CREATE TABLE IF NOT EXISTS offices (
@@ -280,23 +262,11 @@ CREATE TABLE IF NOT EXISTS migrations (
 
 -- Insert essential seed data
 
--- Insert default office (required for admin user)
+-- Insert a default office for local development. Administrator creation is an
+-- explicit, environment-driven bootstrap step in the API process.
 INSERT INTO offices (name, address, code) VALUES
 ('Default Office', 'Default Address', 'DEFAULT')
 ON CONFLICT DO NOTHING;
-
--- Insert admin user with proper credentials (ONLY admin user)
--- Default password: admin123
-INSERT INTO users (first_name, last_name, email, password, role, office_id, department, specialty) VALUES
-('Admin', 'User', 'admin@caf.org', '$2a$10$HRly5tidgBfZqgZIx8N5Fee.qqRfKvKSIHjcIAx1gjOrkLdxP71Wq', 'admin', 1, 'legal', 'general_practice')
-ON CONFLICT (email) DO UPDATE SET
-    first_name = EXCLUDED.first_name,
-    last_name = EXCLUDED.last_name,
-    password = EXCLUDED.password,
-    role = EXCLUDED.role,
-    department = EXCLUDED.department,
-    specialty = EXCLUDED.specialty,
-    updated_at = CURRENT_TIMESTAMP;
 
 -- Create indexes for better performance
 CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email_unique ON users(email) WHERE deleted_at IS NULL;

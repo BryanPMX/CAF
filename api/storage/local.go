@@ -39,7 +39,7 @@ func NewLocalStorage(baseDir string) (*LocalStorage, error) {
 	if baseDir == "" {
 		baseDir = DefaultUploadsDir
 	}
-	if err := os.MkdirAll(baseDir, 0755); err != nil {
+	if err := os.MkdirAll(baseDir, 0700); err != nil {
 		return nil, fmt.Errorf("failed to create uploads directory %s: %w", baseDir, err)
 	}
 	return &LocalStorage{baseDir: baseDir}, nil
@@ -49,7 +49,7 @@ func NewLocalStorage(baseDir string) (*LocalStorage, error) {
 func (ls *LocalStorage) Upload(file *multipart.FileHeader, caseID string) (string, error) {
 	// Create case-specific subdirectory
 	caseDir := filepath.Join(ls.baseDir, "cases", caseID)
-	if err := os.MkdirAll(caseDir, 0755); err != nil {
+	if err := os.MkdirAll(caseDir, 0700); err != nil {
 		return "", fmt.Errorf("failed to create case directory: %w", err)
 	}
 
@@ -65,7 +65,7 @@ func (ls *LocalStorage) Upload(file *multipart.FileHeader, caseID string) (strin
 	defer src.Close()
 
 	// Create the destination file
-	dst, err := os.Create(destPath)
+	dst, err := os.OpenFile(destPath, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
 	if err != nil {
 		return "", fmt.Errorf("failed to create destination file: %w", err)
 	}
@@ -86,7 +86,7 @@ func (ls *LocalStorage) Upload(file *multipart.FileHeader, caseID string) (strin
 // UploadAvatar saves a profile image under avatars/{userID}.{ext} and returns local://avatars/...
 func (ls *LocalStorage) UploadAvatar(file *multipart.FileHeader, userID string) (string, error) {
 	avatarDir := filepath.Join(ls.baseDir, "avatars")
-	if err := os.MkdirAll(avatarDir, 0755); err != nil {
+	if err := os.MkdirAll(avatarDir, 0700); err != nil {
 		return "", fmt.Errorf("failed to create avatars directory: %w", err)
 	}
 	ext := filepath.Ext(file.Filename)
@@ -101,7 +101,7 @@ func (ls *LocalStorage) UploadAvatar(file *multipart.FileHeader, userID string) 
 	}
 	defer src.Close()
 
-	dst, err := os.Create(destPath)
+	dst, err := os.OpenFile(destPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
 		return "", fmt.Errorf("failed to create destination file: %w", err)
 	}
@@ -171,13 +171,21 @@ func (ls *LocalStorage) resolvePath(fileURL string) (string, error) {
 	}
 	relative := strings.TrimPrefix(fileURL, LocalURLPrefix)
 
-	// Security: prevent directory traversal
+	// Security: accept only a non-empty path that remains inside baseDir.
+	if relative == "" || filepath.IsAbs(relative) {
+		return "", fmt.Errorf("invalid local path in URL: %s", fileURL)
+	}
 	cleaned := filepath.Clean(relative)
-	if strings.Contains(cleaned, "..") {
+	if cleaned == "." || cleaned == ".." || strings.HasPrefix(cleaned, ".."+string(filepath.Separator)) {
 		return "", fmt.Errorf("path traversal detected in URL: %s", fileURL)
 	}
 
-	return filepath.Join(ls.baseDir, cleaned), nil
+	candidate := filepath.Join(ls.baseDir, cleaned)
+	rel, err := filepath.Rel(ls.baseDir, candidate)
+	if err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+		return "", fmt.Errorf("path escapes uploads directory: %s", fileURL)
+	}
+	return candidate, nil
 }
 
 // IsLocalURL returns true if the file URL uses the local:// scheme.

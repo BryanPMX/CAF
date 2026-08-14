@@ -110,12 +110,16 @@ export async function POST({ request }) {
     return json({ success: false, error: 'No pudimos validar el captcha. Intenta nuevamente.' }, { status: 400 });
   }
 
-  const upstreamPayload = {
+	const upstreamPayload = {
     name: payload.name,
     email: payload.email,
     phone: payload.phone,
     message: payload.message
-  };
+	};
+	const contactAPISharedSecret = String(privateEnv.CONTACT_API_SHARED_SECRET || '').trim();
+	if (!contactAPISharedSecret) {
+		return json({ success: false, error: 'El servicio de contacto no está configurado.' }, { status: 503 });
+	}
 
   if (payload.officeId != null) {
     upstreamPayload.officeId = payload.officeId;
@@ -125,7 +129,10 @@ export async function POST({ request }) {
   try {
     upstreamResponse = await fetchPublicApi('/public/contact', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+		headers: {
+			'Content-Type': 'application/json',
+			'X-CAF-Contact-Secret': contactAPISharedSecret
+		},
       body: JSON.stringify(upstreamPayload)
     });
   } catch {

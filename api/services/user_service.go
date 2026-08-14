@@ -9,6 +9,7 @@ import (
 
 	"github.com/BryanPMX/CAF/api/interfaces"
 	"github.com/BryanPMX/CAF/api/models"
+	securityutil "github.com/BryanPMX/CAF/api/security"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -142,7 +143,7 @@ func (s *UserServiceImpl) CreateUser(ctx context.Context, userData interfaces.Cr
 	}
 
 	// Hash password
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte("defaultPassword123"), bcrypt.DefaultCost)
+	hashedPassword, err := securityutil.HashRandomPassword()
 	if err != nil {
 		return nil, fmt.Errorf("failed to hash password: %w", err)
 	}
@@ -153,7 +154,7 @@ func (s *UserServiceImpl) CreateUser(ctx context.Context, userData interfaces.Cr
 		LastName:  userData.LastName,
 		Role:      userData.Role,
 		OfficeID:  &userData.OfficeID,
-		Password:  string(hashedPassword),
+		Password:  hashedPassword,
 		IsActive:  true,
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),

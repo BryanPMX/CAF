@@ -3,11 +3,12 @@ package handlers
 import (
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/BryanPMX/CAF/api/models"
+	securityutil "github.com/BryanPMX/CAF/api/security"
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
@@ -32,7 +33,12 @@ func EnhancedLogin(db *gorm.DB, jwtSecret string) gin.HandlerFunc {
 		}
 
 		// Step 2: Find User in Database
-		if err := db.Where("email = ?", input.Email).First(&user).Error; err != nil {
+		input.Email = strings.ToLower(strings.TrimSpace(input.Email))
+		if err := db.Where("LOWER(email) = ?", input.Email).First(&user).Error; err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
+			return
+		}
+		if !user.IsActive {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
 			return
 		}
@@ -44,15 +50,7 @@ func EnhancedLogin(db *gorm.DB, jwtSecret string) gin.HandlerFunc {
 		}
 
 		// Step 4: Generate JWT Token with explicit UTC time (24-hour expiration)
-		expirationTime := time.Now().UTC().Add(24 * time.Hour)
-		claims := &jwt.RegisteredClaims{
-			Subject:   strconv.FormatUint(uint64(user.ID), 10),
-			ExpiresAt: jwt.NewNumericDate(expirationTime),
-			IssuedAt:  jwt.NewNumericDate(time.Now().UTC()),
-		}
-
-		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-		tokenString, err := token.SignedString([]byte(jwtSecret))
+		tokenString, expirationTime, err := securityutil.IssueJWT(jwtSecret, user.ID, time.Now())
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error: could not create token"})
 			return
@@ -101,7 +99,7 @@ func LogoutAll() gin.HandlerFunc {
 func GetActiveSessions() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userID, _ := c.Get("userID")
-		
+
 		// In a stateless system, we return basic token info
 		// The client manages its own token state
 		c.JSON(http.StatusOK, gin.H{
@@ -120,7 +118,11 @@ type RefreshTokenInput struct {
 func RefreshToken(db *gorm.DB, jwtSecret string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userID, _ := c.Get("userID")
-		userIDUint, _ := strconv.ParseUint(userID.(string), 10, 32)
+		userIDUint, err := strconv.ParseUint(userID.(string), 10, 32)
+		if err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid user"})
+			return
+		}
 
 		// Verify user still exists in database
 		var user models.User
@@ -130,15 +132,12 @@ func RefreshToken(db *gorm.DB, jwtSecret string) gin.HandlerFunc {
 		}
 
 		// Generate new token with explicit UTC time (24-hour expiration)
-		expirationTime := time.Now().UTC().Add(24 * time.Hour)
-		claims := &jwt.RegisteredClaims{
-			Subject:   strconv.FormatUint(uint64(userIDUint), 10),
-			ExpiresAt: jwt.NewNumericDate(expirationTime),
-			IssuedAt:  jwt.NewNumericDate(time.Now().UTC()),
+		if !user.IsActive {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "User is inactive"})
+			return
 		}
 
-		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-		tokenString, err := token.SignedString([]byte(jwtSecret))
+		tokenString, expirationTime, err := securityutil.IssueJWT(jwtSecret, uint(userIDUint), time.Now())
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate new token"})
 			return
@@ -156,8 +155,7 @@ type RegisterInput struct {
 	FirstName string `json:"firstName" binding:"required"`
 	LastName  string `json:"lastName" binding:"required"`
 	Email     string `json:"email" binding:"required,email"`
-	Password  string `json:"password" binding:"required,min=6"`
-	Role      string `json:"role" binding:"required,oneof=admin staff client"`
+	Password  string `json:"password" binding:"required,min=12,max=72"`
 	OfficeID  *uint  `json:"officeId,omitempty"`
 }
 
@@ -172,15 +170,16 @@ func Register(db *gorm.DB) gin.HandlerFunc {
 
 		// Check if user already exists
 		var existingUser models.User
-		if err := db.Where("email = ?", input.Email).First(&existingUser).Error; err == nil {
+		input.Email = strings.ToLower(strings.TrimSpace(input.Email))
+		if err := db.Where("LOWER(email) = ?", input.Email).First(&existingUser).Error; err == nil {
 			c.JSON(http.StatusConflict, gin.H{"error": "User with this email already exists"})
 			return
 		}
 
 		// Hash password
-		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
+		hashedPassword, err := securityutil.HashPassword(input.Password)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to hash password"})
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 
@@ -189,9 +188,10 @@ func Register(db *gorm.DB) gin.HandlerFunc {
 			FirstName: input.FirstName,
 			LastName:  input.LastName,
 			Email:     input.Email,
-			Password:  string(hashedPassword),
-			Role:      input.Role,
+			Password:  hashedPassword,
+			Role:      "client",
 			OfficeID:  input.OfficeID,
+			IsActive:  true,
 		}
 
 		if err := db.Create(&user).Error; err != nil {

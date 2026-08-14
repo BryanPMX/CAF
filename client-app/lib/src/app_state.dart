@@ -36,13 +36,11 @@ class AppConfig {
         '${apiBaseUrl.replaceAll(RegExp(r'/+$'), '')}$normalizedPath');
   }
 
-  static Uri websocketUri(String token) {
+  static Uri websocketUri() {
     final base = wsBaseUrlOverride.trim().isNotEmpty
         ? _normalizeWsUri(Uri.parse(wsBaseUrlOverride.trim()))
         : _deriveWsUriFromApi();
-    final nextParams = Map<String, String>.from(base.queryParameters)
-      ..['token'] = token;
-    return base.replace(queryParameters: nextParams);
+    return base;
   }
 
   static Uri _normalizeWsUri(Uri uri) {
@@ -390,8 +388,11 @@ class RealtimeService {
 
     _subscription?.cancel();
     try {
-      final uri = AppConfig.websocketUri(token);
-      _channel = WebSocketChannel.connect(uri);
+      final uri = AppConfig.websocketUri();
+      _channel = WebSocketChannel.connect(
+        uri,
+        protocols: <String>['caf.jwt.$token'],
+      );
       _setConnected(true);
       _subscription = _channel!.stream.listen(
         (event) {

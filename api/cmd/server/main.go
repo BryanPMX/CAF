@@ -40,10 +40,10 @@ func main() {
 	// --- Step 2.5: Initialize Rate Limiters ---
 	log.Println("INFO: Initializing rate limiters...")
 	middleware.InitializeRateLimiters(
-		cfg.RateLimitRequests,    // General requests per minute
-		cfg.RateLimitRequests/2,  // Auth requests per minute (half of general)
-		cfg.RateLimitRequests/20, // Contact requests per hour (1/20th of general)
-		cfg.RateLimitRequests*2,  // Admin requests per minute (double general)
+		cfg.RateLimitRequests, // General requests per minute
+		10,                    // Authentication attempts per minute per client IP
+		10,                    // Contact submissions per hour per client IP
+		cfg.RateLimitRequests, // Admin requests per minute per authenticated user
 	)
 
 	// --- Step 3: Run Database Migrations ---
@@ -69,6 +69,17 @@ func main() {
 	}
 
 	log.Println("INFO: Database migrations completed successfully")
+	createdAdmin, err := db.BootstrapAdmin(
+		database,
+		os.Getenv("BOOTSTRAP_ADMIN_EMAIL"),
+		os.Getenv("BOOTSTRAP_ADMIN_PASSWORD"),
+	)
+	if err != nil {
+		log.Fatalf("FATAL: Secure administrator bootstrap failed: %v", err)
+	}
+	if createdAdmin {
+		log.Println("WARN: Bootstrap administrator created; remove BOOTSTRAP_ADMIN_EMAIL and BOOTSTRAP_ADMIN_PASSWORD from the stack and redeploy")
+	}
 
 	// --- Step 2.5b: Initialize dependency injection container ---
 	cont := container.NewContainer(database)
@@ -138,7 +149,27 @@ func main() {
 	}
 
 	// --- Step 4: Set up Gin HTTP Router ---
-	r := gin.Default()
+	if os.Getenv("NODE_ENV") == "production" {
+		gin.SetMode(gin.ReleaseMode)
+	}
+	r := gin.New()
+	r.Use(gin.Logger(), gin.Recovery())
+	r.MaxMultipartMemory = 8 << 20
+	trustedProxies := []string{}
+	for _, proxy := range strings.Split(os.Getenv("TRUSTED_PROXIES"), ",") {
+		if proxy = strings.TrimSpace(proxy); proxy != "" {
+			trustedProxies = append(trustedProxies, proxy)
+		}
+	}
+	if len(trustedProxies) == 0 {
+		if err := r.SetTrustedProxies(nil); err != nil {
+			log.Fatalf("FATAL: Failed to disable proxy trust: %v", err)
+		}
+	} else if err := r.SetTrustedProxies(trustedProxies); err != nil {
+		log.Fatalf("FATAL: Invalid TRUSTED_PROXIES configuration: %v", err)
+	}
+	r.Use(middleware.SecurityHeaders())
+	r.Use(middleware.LimitRequestBody(middleware.MaxRequestBodyBytes))
 
 	// Enable gzip compression for responses
 	r.Use(gzip.Gzip(gzip.BestSpeed))
@@ -185,7 +216,6 @@ func main() {
 	// Group 1: Public Routes (No authentication required)
 	public := r.Group("/api/v1")
 	{
-		public.POST("/register", middleware.ValidateUserRegistration(), handlers.Register(database))
 		public.POST("/login", middleware.AuthRateLimit(), handlers.EnhancedLogin(database, cfg.JWTSecret))
 		public.POST("/webhooks/stripe", handlers.StripeWebhook(database))
 		// Public endpoints for marketing site (no auth required)
@@ -194,11 +224,16 @@ func main() {
 		public.GET("/public/site-services", handlers.GetPublicSiteServices(database))
 		public.GET("/public/site-events", handlers.GetPublicSiteEvents(database))
 		public.GET("/public/site-images", handlers.GetPublicSiteImages(database))
-		public.POST("/public/contact", middleware.ContactFormRateLimit(), handlers.SubmitContact(database))
+		public.POST(
+			"/public/contact",
+			middleware.ContactFormRateLimit(),
+			middleware.RequireSharedSecret(cfg.ContactAPISharedSecret, "X-CAF-Contact-Secret"),
+			handlers.SubmitContact(database),
+		)
 	}
 
-	// WebSocket endpoint for per-user notifications (token via query param)
-	r.GET("/ws", handlers.NotificationsWebSocket(cfg.JWTSecret))
+	// WebSocket endpoint for per-user notifications (JWT via subprotocol)
+	r.GET("/ws", handlers.NotificationsWebSocket(database, cfg.JWTSecret, allowedOrigins))
 
 	// Health check endpoints - Basic health check that doesn't depend on external services
 	r.GET("/health", func(c *gin.Context) {
@@ -242,53 +277,8 @@ func main() {
 		})
 	})
 
-	r.GET("/test", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"message": "API server is working", "timestamp": time.Now()})
-	})
-
 	// API version information endpoint
 	r.GET("/api/version", middleware.VersionInfo())
-
-	r.GET("/health/migrations", func(c *gin.Context) {
-		migrationStatus, err := migrationManager.GetMigrationStatus()
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "service": "migrations", "error": err.Error()})
-			return
-		}
-		c.JSON(http.StatusOK, gin.H{"status": "healthy", "service": "migrations", "migrations": migrationStatus})
-	})
-
-	r.GET("/health/storage", func(c *gin.Context) {
-		store := storage.GetActiveStorage()
-		if store == nil {
-			c.JSON(http.StatusServiceUnavailable, gin.H{"status": "unavailable", "service": "storage", "error": "no storage provider initialized"})
-			return
-		}
-		if err := store.HealthCheck(); err != nil {
-			c.JSON(http.StatusServiceUnavailable, gin.H{"status": "unhealthy", "service": "storage", "error": err.Error()})
-			return
-		}
-		// Identify which backend is active
-		backend := "s3"
-		if _, ok := store.(*storage.LocalStorage); ok {
-			backend = "local"
-		}
-		c.JSON(http.StatusOK, gin.H{"status": "healthy", "service": "storage", "backend": backend})
-	})
-
-	// Keep legacy /health/s3 endpoint for backward compatibility
-	r.GET("/health/s3", func(c *gin.Context) {
-		if err := storage.HealthCheck(); err != nil {
-			c.JSON(http.StatusServiceUnavailable, gin.H{"status": "unhealthy", "service": "S3", "error": err.Error()})
-			return
-		}
-		c.JSON(http.StatusOK, gin.H{"status": "healthy", "service": "S3"})
-	})
-
-	r.GET("/health/cache", func(c *gin.Context) {
-		stats := handlers.GetCacheStats()
-		c.JSON(http.StatusOK, gin.H{"status": "healthy", "service": "Cache", "stats": stats})
-	})
 
 	apiBaseURL := strings.TrimSuffix(os.Getenv("API_BASE_URL"), "/")
 
@@ -380,10 +370,10 @@ func main() {
 		protected.POST("/notifications/mark-read", handlers.MarkNotificationsAsRead(database))
 
 		// Case Events CRUD for authenticated users
-		protected.POST("/cases/:id/comments", handlers.CreateComment(database))
+		protected.POST("/cases/:id/comments", middleware.CaseAccessControl(database), handlers.CreateComment(database))
 		protected.PUT("/cases/comments/:eventId", handlers.UpdateComment(database))
 		protected.DELETE("/cases/comments/:eventId", handlers.DeleteComment(database))
-		protected.POST("/cases/:id/documents", handlers.UploadDocument(database))
+		protected.POST("/cases/:id/documents", middleware.CaseAccessControl(database), handlers.UploadDocument(database))
 		protected.PUT("/cases/documents/:eventId", handlers.UpdateDocument(database))
 		protected.DELETE("/cases/documents/:eventId", handlers.DeleteDocument(database))
 
@@ -500,8 +490,7 @@ func main() {
 		admin.GET("/appointments", handlers.GetAppointmentsEnhanced(database))
 		admin.GET("/appointments/:id", handlers.GetAppointmentByIDAdmin(database))
 		admin.POST("/appointments", handlers.CreateAppointmentSmart(database))
-		// Temporarily allow unauthenticated access to migration endpoint for development
-		r.POST("/api/v1/admin/appointments/fix-categories", handlers.FixExistingAppointmentCategories(database)) // Fix existing appointment categories (temp: no auth for dev)
+		admin.POST("/appointments/fix-categories", handlers.FixExistingAppointmentCategories(database))
 		admin.PATCH("/appointments/:id", handlers.UpdateAppointmentEnhanced(database))
 		admin.DELETE("/appointments/:id", handlers.DeleteAppointmentAdmin(database))
 
@@ -524,6 +513,22 @@ func main() {
 		admin.GET("/dashboard/stats", handlers.GetDashboardStats(database))
 		admin.GET("/dashboard/activity", handlers.GetRecentActivity(database))
 		admin.GET("/dashboard/health", handlers.GetSystemHealth(database))
+		admin.GET("/health/migrations", func(c *gin.Context) {
+			migrationStatus, err := migrationManager.GetMigrationStatus()
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "service": "migrations"})
+				return
+			}
+			c.JSON(http.StatusOK, gin.H{"status": "healthy", "service": "migrations", "migrations": migrationStatus})
+		})
+		admin.GET("/health/storage", func(c *gin.Context) {
+			store := storage.GetActiveStorage()
+			if store == nil || store.HealthCheck() != nil {
+				c.JSON(http.StatusServiceUnavailable, gin.H{"status": "unhealthy", "service": "storage"})
+				return
+			}
+			c.JSON(http.StatusOK, gin.H{"status": "healthy", "service": "storage"})
+		})
 		admin.POST("/bulk-operations", handlers.GetBulkOperations(database))
 		admin.POST("/export", handlers.ExportData(database))
 		admin.GET("/users/search", handlers.SearchClients(database))                                           // For client search
