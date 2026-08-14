@@ -6,7 +6,7 @@ const config = {
 	kit: {
 		// Using adapter-vercel for explicit Vercel deployment
 		adapter: adapter({
-			runtime: 'nodejs20.x'
+			runtime: 'nodejs24.x'
 		})
 	}
 };
