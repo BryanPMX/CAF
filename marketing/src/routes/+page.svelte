@@ -1,7 +1,8 @@
 <script>
-  import { onDestroy, onMount } from 'svelte';
-  import { fade, slide as slideTransition } from 'svelte/transition';
-  import { cubicOut } from 'svelte/easing';
+  import {
+    ArrowLeft, ArrowRight, CheckCircle2, Eye, HandHeart, HeartHandshake,
+    MessageCircle, Scale, ShieldCheck, Sparkles, Target, UsersRound
+  } from '@lucide/svelte';
   import { buildResponsiveSrcSet, getOptimizedImageUrl } from '$lib/utils/imageOptimizer.js';
 
   export let data;
@@ -12,367 +13,244 @@
   const services = data.services || [];
   const heroSlides = data.images || [];
   const gallerySlides = data.galleryImages || [];
-  const slides = gallerySlides.length > 0 ? gallerySlides : heroSlides;
   const gallerySectionImages = data.gallerySectionImages || [];
   const aboutSectionImages = data.aboutSectionImages || [];
-
-  let currentSlide = 0;
-  let carouselContainer;
-  let autoSlideInterval = null;
-  let carouselObserver = null;
-
-  function startAutoSlide() {
-    if (autoSlideInterval || slides.length <= 1) return;
-    autoSlideInterval = setInterval(() => {
-      currentSlide = (currentSlide + 1) % slides.length;
-    }, 5000);
-  }
-
-  function stopAutoSlide() {
-    if (!autoSlideInterval) return;
-    clearInterval(autoSlideInterval);
-    autoSlideInterval = null;
-  }
-
-  onMount(() => {
-    if (slides.length <= 1) return undefined;
-
-    if (typeof IntersectionObserver === 'undefined') {
-      startAutoSlide();
-      return () => stopAutoSlide();
-    }
-
-    carouselObserver = new IntersectionObserver(
-      (entries) => {
-        if (entries[0]?.isIntersecting) {
-          startAutoSlide();
-        } else {
-          stopAutoSlide();
-        }
-      },
-      { rootMargin: '200px 0px' }
-    );
-
-    if (carouselContainer) carouselObserver.observe(carouselContainer);
-
-    return () => {
-      carouselObserver?.disconnect();
-      carouselObserver = null;
-      stopAutoSlide();
-    };
-  });
-
-  onDestroy(() => {
-    carouselObserver?.disconnect();
-    carouselObserver = null;
-    stopAutoSlide();
-  });
-
-  function prevSlide() {
-    currentSlide = (currentSlide - 1 + slides.length) % slides.length;
-  }
-
-  function nextSlide() {
-    currentSlide = (currentSlide + 1) % slides.length;
-  }
-
-  const serviceIcons = [
-    '<svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 3v18m-7-7l7-8 7 8M5 14h14"/></svg>',
-    '<svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>',
-    '<svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>',
+  const communityImages = gallerySectionImages.length > 0 ? gallerySectionImages : (gallerySlides.length > 0 ? gallerySlides : heroSlides);
+  const serviceIcons = [Scale, HeartHandshake, UsersRound];
+  const serviceTones = [
+    'bg-primary-50 text-primary-700',
+    'bg-warm-100 text-warm-600',
+    'bg-accent-50 text-accent-700',
   ];
-
-  const serviceColors = [
-    { bg: 'bg-primary-100', text: 'text-primary-700' },
-    { bg: 'bg-sky-100', text: 'text-sky-700' },
-    { bg: 'bg-emerald-100', text: 'text-emerald-700' },
+  const defaultServices = [
+    { title: 'Asesoría legal', description: 'Orientación clara para comprender opciones, derechos y próximos pasos.' },
+    { title: 'Apoyo psicológico', description: 'Un espacio de escucha profesional para fortalecer el bienestar emocional.' },
+    { title: 'Asistencia social', description: 'Acompañamiento para identificar recursos y redes de apoyo disponibles.' },
   ];
+  const processSteps = [
+    { icon: MessageCircle, number: '01', title: 'Cuéntanos tu situación', copy: 'Comunícate con nuestro equipo por el medio que te resulte más cómodo.' },
+    { icon: Scale, number: '02', title: 'Recibe orientación', copy: 'Escuchamos tus necesidades y te explicamos con claridad las opciones disponibles.' },
+    { icon: HandHeart, number: '03', title: 'Avanza con acompañamiento', copy: 'Te conectamos con el servicio adecuado para continuar tu proceso.' },
+  ];
+  let currentCommunityImage = 0;
+
+  function previousImage() {
+    currentCommunityImage = (currentCommunityImage - 1 + communityImages.length) % communityImages.length;
+  }
+
+  function nextImage() {
+    currentCommunityImage = (currentCommunityImage + 1) % communityImages.length;
+  }
 </script>
 
 <svelte:head>
-  <title>Inicio - Centro de Apoyo para la Familia A.C.</title>
-  <meta
-    name="description"
-    content="Brindamos apoyo legal, psicológico y social a familias vulnerables. Conozca nuestros servicios."
-  />
+  <title>Centro de Apoyo para la Familia A.C. | Apoyo integral para familias</title>
+  <meta name="description" content="Acompañamiento legal, psicológico y social para familias. Un espacio profesional, cercano y confidencial." />
 </svelte:head>
 
-<section class="hero-wave-scene relative overflow-hidden bg-gradient-to-br from-primary-900 via-primary-700 to-[#8d6bf7] text-white">
-  <div class="absolute inset-0 bg-[radial-gradient(circle_at_18%_15%,rgba(255,255,255,0.24),transparent_45%),radial-gradient(circle_at_82%_18%,rgba(232,206,255,0.28),transparent_38%)]"></div>
-  <div class="spotlight -left-28 top-14 h-52 w-72 bg-primary-300"></div>
-  <div class="spotlight -right-20 top-12 h-52 w-72 bg-[#d4b7ff]"></div>
-
-  <div class="container relative z-10 mx-auto px-4 py-16 sm:px-6 sm:py-20 md:py-28">
-    <div class="mx-auto max-w-4xl text-center">
-      <span class="mb-6 inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-white/85">
-        Acompañamiento Integral
-      </span>
-
-      <h1
-        class="mb-5 text-3xl font-extrabold leading-tight tracking-tight drop-shadow-[0_6px_22px_rgba(2,15,33,0.45)] sm:text-4xl md:text-6xl"
-        in:fade={{ duration: 800, easing: cubicOut }}
-      >
-        {hero.title || 'Fortaleciendo Familias, Construyendo Comunidad'}
+<section class="relative isolate overflow-hidden bg-white">
+  <div class="pointer-events-none absolute inset-y-0 right-0 -z-10 hidden w-[43%] bg-primary-950 lg:block"></div>
+  <div class="pointer-events-none absolute -left-28 top-10 -z-10 h-72 w-72 rounded-full bg-primary-100/70 blur-3xl"></div>
+  <div class="site-container grid min-h-[clamp(34rem,68vh,43rem)] items-center gap-8 py-10 lg:grid-cols-[1.03fr_0.97fr] lg:gap-12 lg:py-12">
+    <div class="reveal-up max-w-2xl">
+      <p class="eyebrow mb-4"><Sparkles size={14} /> Acompañamiento integral</p>
+      <h1 class="text-balance text-[clamp(2.7rem,6vw,5.25rem)] font-extrabold leading-[0.99] tracking-[-0.055em] text-primary-950">
+        {hero.title || 'Fortaleciendo familias, construyendo comunidad'}
       </h1>
-
-      <p
-        class="mx-auto mb-9 max-w-3xl text-base leading-relaxed text-primary-100 sm:text-lg md:text-xl"
-        in:slideTransition={{ duration: 800, delay: 200, easing: cubicOut }}
-      >
-        {hero.subtitle || 'Centro de Apoyo para la Familia A.C. brinda servicios legales, psicológicos y de asistencia social.'}
+      <p class="mt-5 max-w-xl text-pretty text-lg leading-8 text-slate-600 sm:text-xl">
+        {hero.subtitle || 'Acompañamiento legal, psicológico y social con la cercanía que tu familia necesita.'}
       </p>
-
-      <div class="flex flex-col justify-center gap-3 sm:flex-row sm:gap-4" in:slideTransition={{ duration: 800, delay: 400, easing: cubicOut }}>
-        <a
-          href="/servicios"
-          class="btn-elevated fade-interact rounded-xl bg-white px-8 py-3.5 text-base font-bold text-primary-800 shadow-[0_16px_34px_rgba(4,19,41,0.35)] transition-all duration-300 hover:-translate-y-1 hover:bg-primary-50 sm:text-lg"
-        >
-          Nuestros Servicios
-        </a>
+      <div class="mt-7 flex flex-col gap-3 sm:flex-row">
+        <a href="/contacto" class="button-primary inline-flex">Hablar con el equipo <ArrowRight size={18} /></a>
+        <a href="/servicios" class="button-secondary inline-flex">Conocer los servicios</a>
       </div>
     </div>
-  </div>
 
-  <div class="hero-wave-wrap">
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 120" preserveAspectRatio="none" class="hero-wave-svg hero-wave-back h-20 w-full md:h-28">
-      <path class="hero-wave-path-back" d="M0,64L80,69.3C160,75,320,85,480,80C640,75,800,53,960,48C1120,43,1280,53,1360,58.7L1440,64L1440,120L0,120Z"></path>
-    </svg>
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 120" preserveAspectRatio="none" class="hero-wave-svg hero-wave-front h-16 w-full md:h-24">
-      <path class="hero-wave-path-front" d="M0,64L80,69.3C160,75,320,85,480,80C640,75,800,53,960,48C1120,43,1280,53,1360,58.7L1440,64L1440,120L0,120Z"></path>
-    </svg>
-  </div>
-</section>
-
-<section class="py-12 sm:py-20 bg-[radial-gradient(circle_at_14%_20%,rgba(141,107,247,0.18),transparent_34%),radial-gradient(circle_at_84%_20%,rgba(56,120,214,0.15),transparent_36%),linear-gradient(180deg,#ffffff_0%,#f8f2ff_50%,#eef6ff_100%)]">
-  <div class="container mx-auto px-4 sm:px-6">
-    <div class="mx-auto mb-10 max-w-3xl text-center sm:mb-14" in:fade={{ duration: 700, easing: cubicOut }}>
-      <p class="mb-3 text-sm font-semibold uppercase tracking-[0.18em] text-primary-600">Compromiso CAF</p>
-      <h2 class="mb-5 text-3xl font-bold md:text-4xl">{about.title || 'Sobre Nosotros'}</h2>
-      <p class="text-lg leading-relaxed text-slate-600">
-        {about.description || 'Somos una organización sin fines de lucro dedicada a fortalecer el núcleo familiar.'}
-      </p>
-    </div>
-
-    {#if aboutSectionImages.length > 0}
-      <div class="mx-auto mb-12 grid max-w-5xl grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {#each aboutSectionImages as img}
-          <div class="card-lift group overflow-hidden rounded-2xl">
-            <img
-              src={getOptimizedImageUrl(img.src, 960)}
-              alt={img.alt}
-              width="1200"
-              height="780"
-              srcset={buildResponsiveSrcSet(img.src, [360, 540, 720, 960, 1200]) || undefined}
-              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-              class="h-52 w-full object-cover transition-transform duration-500 group-hover:scale-105"
-              loading="lazy"
-              decoding="async"
-            />
-          </div>
-        {/each}
-      </div>
-    {/if}
-
-    {#if about.mission || about.vision}
-      <div class="mx-auto grid max-w-5xl gap-6 md:grid-cols-2 md:gap-8">
-        {#if about.mission}
-          <div class="card-lift rounded-2xl p-8">
-            <div class="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 text-white shadow-[0_10px_20px_rgba(19,80,145,0.24)]">
-              <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-              </svg>
-            </div>
-            <h3 class="mb-3 text-xl font-bold text-slate-900">Nuestra Misión</h3>
-            <p class="leading-relaxed text-slate-600">{about.mission}</p>
+    <div class="relative lg:pl-4">
+      <div class="relative overflow-hidden rounded-[2rem] bg-primary-100 shadow-[0_32px_80px_rgba(16,41,70,0.25)] lg:rounded-[2.5rem]">
+        {#if heroSlides[0]}
+          <img
+            src={getOptimizedImageUrl(heroSlides[0].src, 1280, { quality: 75 })}
+            alt={heroSlides[0].alt || 'Familias acompañadas por CAF'}
+            width="1280"
+            height="1440"
+            srcset={buildResponsiveSrcSet(heroSlides[0].src, [480, 768, 960, 1280], { quality: 75 }) || undefined}
+            sizes="(max-width: 1024px) 100vw, 46vw"
+            class="h-[27rem] w-full object-cover sm:h-[32rem] lg:h-[35rem]"
+            decoding="async"
+            fetchpriority="high"
+          />
+        {:else}
+          <div class="flex h-[32rem] items-center justify-center bg-gradient-to-br from-primary-100 to-accent-100 text-primary-700">
+            <HandHeart size={96} strokeWidth={1.2} />
           </div>
         {/if}
-
-        {#if about.vision}
-          <div class="card-lift rounded-2xl p-8">
-            <div class="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-accent-600 to-accent-700 text-white shadow-[0_10px_20px_rgba(12,124,113,0.25)]">
-              <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-              </svg>
-            </div>
-            <h3 class="mb-3 text-xl font-bold text-slate-900">Nuestra Visión</h3>
-            <p class="leading-relaxed text-slate-600">{about.vision}</p>
-          </div>
-        {/if}
-      </div>
-    {/if}
-  </div>
-</section>
-
-<section class="bg-[radial-gradient(circle_at_14%_16%,rgba(141,107,247,0.16),transparent_35%),radial-gradient(circle_at_84%_16%,rgba(56,120,214,0.14),transparent_36%),linear-gradient(180deg,#ffffff_0%,#f7f1ff_48%,#eef6ff_100%)] py-12 sm:py-20">
-  <div class="container mx-auto px-4 sm:px-6">
-    <div class="mx-auto mb-10 max-w-3xl text-center sm:mb-14" in:fade={{ duration: 700, easing: cubicOut }}>
-      <p class="mb-3 text-sm font-semibold uppercase tracking-[0.18em] text-primary-600">Atención Especializada</p>
-      <h2 class="mb-4 text-3xl font-bold text-slate-900 md:text-4xl">Nuestros Servicios</h2>
-      <p class="mx-auto max-w-2xl text-lg text-slate-600">Un enfoque integral para el bienestar de su familia.</p>
-    </div>
-
-    <div class="grid grid-cols-1 gap-7 md:grid-cols-3">
-      {#each services as service, i}
-        <div class="card-lift overflow-hidden rounded-2xl" in:slideTransition={{ duration: 600, delay: i * 150, easing: cubicOut }}>
-          <div class="h-1.5 bg-gradient-to-r from-primary-500 via-primary-400 to-accent-500"></div>
-          <div class="p-8">
-            <div class="{serviceColors[i % 3].bg} {serviceColors[i % 3].text} mb-5 flex h-14 w-14 items-center justify-center rounded-xl">
-              {@html serviceIcons[i % 3]}
-            </div>
-            <h3 class="mb-3 text-xl font-bold text-slate-900">{service.title}</h3>
-            <p class="text-sm leading-relaxed text-slate-600">{service.description}</p>
-          </div>
-          <div class="px-8 pb-7">
-            <a
-              href="/servicios"
-              class="touch-target inline-flex items-center gap-1 rounded-lg px-2 text-sm font-semibold text-primary-700 transition-colors hover:bg-primary-50 hover:text-primary-800"
-              aria-label={`Más información sobre ${service.title || 'este servicio'}`}
-            >
-              Más información sobre {service.title || 'este servicio'}
-              <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-              </svg>
-            </a>
-          </div>
+        <div class="absolute inset-0 bg-gradient-to-t from-primary-950/55 via-transparent to-transparent"></div>
+        <div class="absolute bottom-4 left-4 right-4 rounded-xl border border-white/20 bg-white/92 p-3.5 shadow-lg backdrop-blur sm:bottom-5 sm:left-5 sm:right-auto sm:max-w-[18rem]">
+          <p class="flex items-center gap-2 text-sm font-extrabold text-primary-950"><CheckCircle2 class="text-accent-600" size={19} /> Un primer paso, a tu ritmo</p>
+          <p class="mt-1 text-xs leading-5 text-slate-600">Escuchamos tu situación y te orientamos hacia el apoyo adecuado.</p>
         </div>
-      {/each}
+      </div>
+      <div class="absolute -right-4 -top-4 -z-10 h-24 w-24 rounded-full border-[18px] border-accent-300/35 sm:-right-7 sm:-top-7 sm:h-32 sm:w-32"></div>
+    </div>
+  </div>
+</section>
 
-      {#if services.length === 0}
-        {#each ['Asesoría Legal', 'Apoyo Psicológico', 'Asistencia Social'] as title, i}
-          <div class="card-lift rounded-2xl p-8">
-            <div class="{serviceColors[i].bg} {serviceColors[i].text} mb-5 flex h-14 w-14 items-center justify-center rounded-xl">
-              {@html serviceIcons[i]}
-            </div>
-            <h3 class="mb-3 text-xl font-bold text-slate-900">{title}</h3>
-            <p class="text-sm text-slate-600">Orientación y apoyo profesional para su familia.</p>
-          </div>
-        {/each}
+<section class="border-y border-slate-200 bg-primary-950 py-4 text-white">
+  <div class="site-container grid gap-5 text-center sm:grid-cols-3 sm:text-left">
+    <div class="flex items-center justify-center gap-3 sm:justify-start"><Scale class="text-primary-300" size={22} /><span class="text-sm font-bold">Orientación profesional</span></div>
+    <div class="flex items-center justify-center gap-3 sm:justify-start"><HeartHandshake class="text-warm-200" size={22} /><span class="text-sm font-bold">Trato cercano y respetuoso</span></div>
+    <div class="flex items-center justify-center gap-3 sm:justify-start"><ShieldCheck class="text-accent-300" size={22} /><span class="text-sm font-bold">Privacidad en cada consulta</span></div>
+  </div>
+</section>
+
+<section class="section-shell section-soft">
+  <div class="site-container grid items-center gap-9 lg:grid-cols-[0.88fr_1.12fr] lg:gap-14">
+    <div class="relative">
+      {#if aboutSectionImages[0]}
+        <div class="overflow-hidden rounded-[2rem] shadow-[0_24px_60px_rgba(21,50,78,0.16)]">
+          <img
+            src={getOptimizedImageUrl(aboutSectionImages[0].src, 960)}
+            alt={aboutSectionImages[0].alt || 'Equipo de Centro de Apoyo para la Familia'}
+            width="960" height="1080"
+            srcset={buildResponsiveSrcSet(aboutSectionImages[0].src, [480, 720, 960]) || undefined}
+            sizes="(max-width: 1024px) 100vw, 42vw"
+            class="h-[27rem] w-full object-cover sm:h-[34rem]"
+            loading="lazy" decoding="async"
+          />
+        </div>
+      {:else}
+        <div class="grid min-h-[28rem] place-items-center rounded-[2rem] bg-gradient-to-br from-primary-100 via-white to-accent-100 text-primary-700 shadow-[0_24px_60px_rgba(21,50,78,0.12)]">
+          <HandHeart size={108} strokeWidth={1.1} />
+        </div>
       {/if}
+      <div class="absolute -bottom-5 right-0 max-w-[14rem] rounded-2xl bg-warm-500 p-5 text-white shadow-xl xl:-right-7">
+        <p class="text-sm font-extrabold leading-6">Cada familia merece sentirse escuchada, informada y acompañada.</p>
+      </div>
+    </div>
+
+    <div>
+      <p class="eyebrow mb-4">Quiénes somos</p>
+      <h2 class="section-title text-primary-950">{about.title || 'Un centro de apoyo pensado para las personas'}</h2>
+      <p class="section-copy mt-4">{about.description || 'Somos una organización sin fines de lucro dedicada a fortalecer el núcleo familiar mediante servicios integrales.'}</p>
+
+      <div class="mt-6 grid gap-4 sm:grid-cols-2">
+        {#if about.mission}
+          <article class="surface-card rounded-2xl p-6">
+            <Target class="text-primary-600" size={25} />
+            <h3 class="mt-4 text-lg font-extrabold">Nuestra misión</h3>
+            <p class="mt-2 text-sm leading-6 text-slate-600">{about.mission}</p>
+          </article>
+        {/if}
+        {#if about.vision}
+          <article class="surface-card rounded-2xl p-6">
+            <Eye class="text-accent-600" size={25} />
+            <h3 class="mt-4 text-lg font-extrabold">Nuestra visión</h3>
+            <p class="mt-2 text-sm leading-6 text-slate-600">{about.vision}</p>
+          </article>
+        {/if}
+      </div>
     </div>
   </div>
 </section>
 
-{#if slides.length > 0}
-  <section class="py-16 sm:py-20">
-    <div class="container mx-auto px-6">
-      <div class="mb-10 text-center">
-        <p class="mb-3 text-sm font-semibold uppercase tracking-[0.18em] text-primary-600">Vida Comunitaria</p>
-        <h2 class="text-3xl font-bold text-slate-900 md:text-4xl">Nuestra Comunidad</h2>
-        <p class="mt-2 text-slate-600">Momentos de nuestros talleres, eventos y actividades.</p>
+<section class="section-shell section-alive">
+  <div class="site-container">
+    <div class="grid gap-8 lg:grid-cols-[0.8fr_1.2fr] lg:items-end">
+      <div>
+        <p class="eyebrow mb-4">Atención especializada</p>
+        <h2 class="section-title text-primary-950">Apoyo integral para distintos momentos de la vida familiar</h2>
       </div>
+      <div class="lg:pb-1">
+        <p class="section-copy max-w-xl lg:ml-auto">Unimos distintas áreas de atención para que no tengas que navegar una situación compleja sin orientación.</p>
+      </div>
+    </div>
 
-      <div bind:this={carouselContainer} class="relative mx-auto h-[28rem] w-full max-w-4xl overflow-hidden rounded-3xl border border-white/55 bg-white/15 shadow-[0_30px_60px_rgba(13,33,56,0.22)] backdrop-blur-xl sm:h-[32rem] md:h-[36rem]" role="region" aria-label="Carrusel de fotos">
-        {#each slides as slideItem, index}
-          {#if index === currentSlide}
-            <div class="absolute inset-0" transition:fade={{ duration: 500 }}>
-              <img
-                src={getOptimizedImageUrl(slideItem.src, 1280, { quality: 68 })}
-                alt={slideItem.alt}
-                width="1600"
-                height="900"
-                srcset={buildResponsiveSrcSet(slideItem.src, [480, 768, 960, 1280, 1600], { quality: 68 }) || undefined}
-                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 92vw, 960px"
-                class="h-full w-full object-cover"
-                loading="lazy"
-                decoding="async"
-                fetchpriority="low"
-              />
-              <div class="absolute inset-0 bg-gradient-to-t from-slate-950/45 via-transparent to-transparent"></div>
-            </div>
-          {/if}
-        {/each}
+    <div class="mt-8 grid gap-5 md:grid-cols-3">
+      {#each services.length > 0 ? services : defaultServices as service, i}
+        <article class="card-lift group flex flex-col rounded-2xl p-6">
+          <div class="flex items-start justify-between gap-4">
+            <span class="flex h-11 w-11 items-center justify-center rounded-xl {serviceTones[i % 3]}">
+              <svelte:component this={serviceIcons[i % 3]} size={22} strokeWidth={1.9} />
+            </span>
+          </div>
+          <h3 class="mt-5 text-xl font-extrabold tracking-[-0.025em] text-primary-950">{service.title}</h3>
+          <p class="mt-3 flex-1 text-sm leading-6 text-slate-600">{service.description}</p>
+          <a href="/servicios" class="touch-target mt-5 inline-flex items-center gap-2 text-sm font-extrabold text-primary-700 transition-colors hover:text-primary-900" aria-label={`Conocer más sobre ${service.title}`}>
+            Conocer más <ArrowRight class="transition-transform group-hover:translate-x-1" size={17} />
+          </a>
+        </article>
+      {/each}
+    </div>
+  </div>
+</section>
 
-        {#if slides.length > 1}
-          <button on:click={prevSlide} class="touch-target absolute left-4 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/35 bg-white/80 text-slate-800 shadow-md backdrop-blur-sm transition-all hover:scale-105 hover:bg-white" aria-label="Ver imagen anterior">
-            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-            </svg>
-          </button>
-          <button on:click={nextSlide} class="touch-target absolute right-4 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/35 bg-white/80 text-slate-800 shadow-md backdrop-blur-sm transition-all hover:scale-105 hover:bg-white" aria-label="Ver siguiente imagen">
-            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
+<section class="section-shell section-alive-alt">
+  <div class="site-container">
+    <div class="mx-auto max-w-2xl text-center">
+      <p class="eyebrow mb-4">Cómo comenzar</p>
+      <h2 class="section-title text-primary-950">Un proceso claro, humano y sin presión</h2>
+      <p class="section-copy mt-4">Dar el primer paso puede sentirse difícil. Por eso simplificamos el camino para pedir orientación.</p>
+    </div>
+    <ol class="relative mt-8 grid gap-5 md:grid-cols-3">
+      {#each processSteps as step}
+        <li class="surface-card relative rounded-2xl p-6">
+          <span class="text-sm font-extrabold text-accent-700">{step.number}</span>
+          <svelte:component this={step.icon} class="mt-5 text-primary-600" size={27} strokeWidth={1.9} />
+          <h3 class="mt-4 text-xl font-extrabold text-primary-950">{step.title}</h3>
+          <p class="mt-3 text-sm leading-7 text-slate-600">{step.copy}</p>
+        </li>
+      {/each}
+    </ol>
+  </div>
+</section>
 
-          <div class="absolute bottom-4 left-1/2 flex -translate-x-1/2 gap-2.5">
-            {#each slides as _, i}
-              <button
-                class="touch-target inline-flex h-11 w-11 items-center justify-center rounded-full transition-all"
-                on:click={() => currentSlide = i}
-                aria-label="Ir a imagen {i + 1} del carrusel"
-              >
-                <span class="h-2.5 w-2.5 rounded-full transition-all {i === currentSlide ? 'bg-white scale-110' : 'bg-white/50'}"></span>
-              </button>
-            {/each}
+{#if communityImages.length > 0}
+  <section class="section-shell section-alive">
+    <div class="site-container grid items-center gap-10 lg:grid-cols-[0.68fr_1.32fr] lg:gap-16">
+      <div>
+        <p class="eyebrow mb-4">Nuestra comunidad</p>
+        <h2 class="section-title text-primary-950">El apoyo también se construye juntos</h2>
+        <p class="section-copy mt-4">Talleres, encuentros y actividades que crean vínculos y fortalecen a nuestra comunidad.</p>
+        {#if communityImages.length > 1}
+          <div class="mt-6 flex items-center gap-3">
+            <button on:click={previousImage} class="touch-target inline-flex items-center justify-center rounded-full border border-slate-300 bg-white text-primary-950 transition hover:border-primary-300 hover:bg-primary-50" aria-label="Ver imagen anterior">
+              <ArrowLeft size={20} />
+            </button>
+            <span class="min-w-[4rem] text-center text-sm font-extrabold tabular-nums text-slate-500">{currentCommunityImage + 1} / {communityImages.length}</span>
+            <button on:click={nextImage} class="touch-target inline-flex items-center justify-center rounded-full border border-slate-300 bg-white text-primary-950 transition hover:border-primary-300 hover:bg-primary-50" aria-label="Ver siguiente imagen">
+              <ArrowRight size={20} />
+            </button>
           </div>
         {/if}
       </div>
-    </div>
-  </section>
-{/if}
 
-{#if gallerySectionImages.length > 0}
-  <section class="bg-[radial-gradient(circle_at_18%_16%,rgba(141,107,247,0.16),transparent_34%),radial-gradient(circle_at_82%_14%,rgba(56,120,214,0.14),transparent_36%),linear-gradient(180deg,#ffffff_0%,#f8f2ff_52%,#edf6ff_100%)] py-16 sm:py-20">
-    <div class="container mx-auto px-4 sm:px-6">
-      <div class="mb-10 text-center">
-        <h2 class="text-3xl font-bold text-slate-900 md:text-4xl">Galería</h2>
-        <p class="mx-auto mt-2 max-w-2xl text-slate-600">Algunos momentos de nuestro trabajo y comunidad.</p>
-      </div>
-      <div class="mx-auto grid max-w-5xl grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
-        {#each gallerySectionImages as img}
-          <div class="group overflow-hidden rounded-2xl border border-white/75 bg-white/75 shadow-[0_14px_28px_rgba(16,39,67,0.12)] aspect-square">
-            <img
-              src={getOptimizedImageUrl(img.src, 640)}
-              alt={img.alt}
-              width="800"
-              height="800"
-              srcset={buildResponsiveSrcSet(img.src, [240, 360, 480, 640, 800]) || undefined}
-              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-              class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
-              loading="lazy"
-              decoding="async"
-            />
-          </div>
-        {/each}
-      </div>
-    </div>
-  </section>
-{/if}
-
-<section class="relative overflow-hidden bg-gradient-to-br from-primary-900 via-primary-700 to-[#8d6bf7] text-white">
-  <div class="spotlight -left-24 top-10 h-40 w-72 bg-primary-300"></div>
-  <div class="spotlight -right-20 bottom-8 h-40 w-72 bg-accent-400"></div>
-  <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_18%,rgba(255,255,255,0.16),transparent_42%),radial-gradient(circle_at_86%_20%,rgba(232,206,255,0.2),transparent_38%)]"></div>
-
-  <div class="container relative mx-auto px-6 py-16 text-center md:py-20">
-    <div class="mx-auto max-w-4xl rounded-[2rem] border border-white/28 bg-[linear-gradient(140deg,rgba(255,255,255,0.2),rgba(255,255,255,0.08))] p-1 shadow-[0_26px_56px_rgba(5,17,38,0.34)] backdrop-blur-xl">
-      <div class="relative overflow-hidden rounded-[1.8rem] bg-[linear-gradient(135deg,rgba(21,53,108,0.9),rgba(53,83,165,0.78)_42%,rgba(110,88,198,0.76)_100%)] px-8 py-10 sm:px-12 sm:py-12">
-        <div class="pointer-events-none absolute inset-0 bg-[linear-gradient(120deg,rgba(255,255,255,0.22)_0%,rgba(255,255,255,0.04)_52%,transparent_75%)]"></div>
-        <div class="pointer-events-none absolute -left-10 top-10 h-28 w-48 rounded-full bg-primary-300/35 blur-3xl"></div>
-        <div class="pointer-events-none absolute -right-10 bottom-8 h-28 w-52 rounded-full bg-[#cdb1ff]/45 blur-3xl"></div>
-
-        <div class="relative mx-auto max-w-2xl">
-          <span class="mb-4 inline-flex items-center rounded-full border border-white/28 bg-white/12 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-white/90">
-            Orientación Profesional CAF
-          </span>
-
-          <h2 class="mb-4 text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
-            ¿Listo para dar el primer paso?
-          </h2>
-
-          <p class="mb-8 text-base leading-relaxed text-blue-100/95 sm:text-lg">
-            Nuestro equipo está aquí para ayudarle. Contáctenos hoy para programar una consulta confidencial con acompañamiento legal, psicológico o social.
-          </p>
-
-          <a
-            href="/contacto"
-            class="btn-elevated fade-interact inline-flex items-center justify-center rounded-xl bg-white px-8 py-3.5 text-lg font-bold text-primary-800 shadow-[0_18px_34px_rgba(3,20,41,0.34)] transition-all duration-300 hover:-translate-y-1 hover:bg-primary-50"
-          >
-            Habla con Nosotros
-          </a>
+      <div class="relative overflow-hidden rounded-[2rem] bg-slate-100 shadow-[0_24px_60px_rgba(21,50,78,0.16)]" role="region" aria-label="Galería de la comunidad" aria-live="polite">
+        <img
+          src={getOptimizedImageUrl(communityImages[currentCommunityImage].src, 1280, { quality: 72 })}
+          alt={communityImages[currentCommunityImage].alt || 'Actividad de la comunidad CAF'}
+          width="1280" height="800"
+          srcset={buildResponsiveSrcSet(communityImages[currentCommunityImage].src, [480, 768, 960, 1280], { quality: 72 }) || undefined}
+          sizes="(max-width: 1024px) 100vw, 62vw"
+          class="h-[22rem] w-full object-cover sm:h-[31rem]"
+          loading="lazy" decoding="async"
+        />
+        <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-primary-950/65 to-transparent px-6 pb-6 pt-20 text-sm font-bold text-white">
+          Creando espacios de confianza, aprendizaje y conexión.
         </div>
       </div>
+    </div>
+  </section>
+{/if}
+
+<section class="bg-primary-950 py-12 text-white sm:py-14">
+  <div class="site-container relative overflow-hidden rounded-[1.5rem] bg-gradient-to-br from-primary-800 to-accent-700 px-6 py-10 text-center sm:px-10 sm:py-12">
+    <div class="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full border-[30px] border-white/10"></div>
+    <div class="relative mx-auto max-w-3xl">
+      <p class="text-xs font-extrabold uppercase tracking-[0.16em] text-accent-100">Estamos para escucharte</p>
+      <h2 class="mt-4 text-balance text-3xl font-extrabold tracking-[-0.035em] text-white sm:text-5xl">No tienes que resolverlo todo por tu cuenta</h2>
+      <p class="mx-auto mt-5 max-w-2xl text-base leading-8 text-blue-50/90 sm:text-lg">Conversemos sobre tu situación y encontremos juntos el apoyo más adecuado para ti y tu familia.</p>
+      <a href="/contacto" class="button-light mt-8 inline-flex">Solicitar orientación <ArrowRight size={18} /></a>
     </div>
   </div>
 </section>
