@@ -1,5 +1,4 @@
 // marketing/tailwind.config.cjs
-// Updated palette: professional navy + aqua accents.
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: ['./src/**/*.{html,js,svelte,ts}'],
@@ -7,26 +6,19 @@ module.exports = {
     extend: {
       colors: {
         primary: {
-          50: '#eef6ff',
-          100: '#d9e9ff',
-          200: '#b8d4ff',
-          300: '#89b9ff',
-          400: '#5f97f2',
-          500: '#3878d6',
-          600: '#1f5eb3',
-          700: '#17498d',
-          800: '#143b72',
-          900: '#112f5b',
+          50: '#eff7ff', 100: '#dceeff', 200: '#b9ddff', 300: '#86c4ff',
+          400: '#4aa4f4', 500: '#2385df', 600: '#1268bd', 700: '#125395',
+          800: '#144778', 900: '#163b63', 950: '#102946',
         },
         accent: {
-          400: '#7ee8d8',
-          500: '#3dd8c3',
-          600: '#17b7a5',
-          700: '#0f8a7d',
+          50: '#edfcf9', 100: '#d3f8f1', 200: '#acf0e5', 300: '#76e1d4',
+          400: '#41c9bc', 500: '#26aea3', 600: '#198c85', 700: '#196f6b',
+          800: '#195956', 900: '#194a48',
         },
+        warm: { 50: '#fff9f4', 100: '#fff1e5', 200: '#ffdfc7', 500: '#ef7f5c', 600: '#dd6340' },
       },
       fontFamily: {
-        sans: ['Avenir Next', 'Montserrat', 'Segoe UI', 'Helvetica Neue', 'Arial', 'sans-serif'],
+        sans: ['Manrope Variable', 'Avenir Next', 'Segoe UI', 'Helvetica Neue', 'Arial', 'sans-serif'],
       },
     },
   },
