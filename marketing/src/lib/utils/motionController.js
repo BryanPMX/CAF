@@ -35,7 +35,7 @@ export function initializeMotionController(root) {
   let destroyRuntime = noop;
 
   function createRuntime() {
-    if (reducedMotionQuery.matches || typeof IntersectionObserver === 'undefined') {
+    if (typeof IntersectionObserver === 'undefined') {
       document.documentElement.classList.remove(READY_CLASS);
       return noop;
     }
@@ -47,6 +47,7 @@ export function initializeMotionController(root) {
     const seenTargets = new WeakSet();
     const heroProgress = new WeakMap();
     const scheduledRevealFrames = new Set();
+    const isReducedMotion = reducedMotionQuery.matches;
     const isDesktop = desktopQuery.matches;
     const initialRevealBoundary = isDesktop ? 0.9 : 0.78;
     const entranceBoundary = isDesktop ? 0.95 : 0.8;
@@ -60,6 +61,15 @@ export function initializeMotionController(root) {
     let mutationObserver;
     let resizeObserver;
     let listenersAttached = false;
+
+    function hasReachedDocumentEnd() {
+      const documentHeight = Math.max(
+        document.documentElement.scrollHeight,
+        document.body?.scrollHeight ?? 0
+      );
+
+      return window.scrollY + window.innerHeight >= documentHeight - 2;
+    }
 
     function scheduleTargetReveal(target) {
       target.classList.add('is-motion-pending');
@@ -90,12 +100,26 @@ export function initializeMotionController(root) {
       target.style.setProperty('--motion-order', String(Number.isFinite(order) ? Math.max(0, Math.min(order, 6)) : 0));
 
       const rect = target.getBoundingClientRect();
-      const currentlyVisible = rect.bottom > window.innerHeight * 0.04 && rect.top < window.innerHeight * initialRevealBoundary;
+      const intersectsViewport = rect.bottom > window.innerHeight * 0.04 && rect.top < window.innerHeight;
+      const currentlyVisible = intersectsViewport
+        && (rect.top < window.innerHeight * initialRevealBoundary || hasReachedDocumentEnd());
       const isMobileOpeningScene = !isDesktop
         && window.scrollY < 2
         && rect.top > window.innerHeight * 0.38;
       const animateOnPaint = currentlyVisible
         && (animateNewTarget || target.hasAttribute('data-motion-intro') || isMobileOpeningScene);
+
+      if (isReducedMotion) {
+        target.classList.add('is-motion-prepared');
+
+        if (currentlyVisible && target.hasAttribute('data-motion-intro')) {
+          scheduleTargetReveal(target);
+        } else {
+          seenTargets.add(target);
+          target.classList.add('is-motion-visible');
+        }
+        return;
+      }
 
       if (currentlyVisible && !animateOnPaint) {
         seenTargets.add(target);
@@ -112,13 +136,13 @@ export function initializeMotionController(root) {
     }
 
     function registerScene(scene) {
-      if (runtimeDisposed || scenes.has(scene)) return;
+      if (runtimeDisposed || isReducedMotion || scenes.has(scene)) return;
       scenes.add(scene);
       sceneObserver.observe(scene);
     }
 
     function registerHero(hero) {
-      if (runtimeDisposed || heroes.has(hero)) return;
+      if (runtimeDisposed || isReducedMotion || heroes.has(hero)) return;
       heroes.add(hero);
       heroObserver.observe(hero);
       resizeObserver?.observe(hero);
@@ -199,6 +223,8 @@ export function initializeMotionController(root) {
       reconciliationTimer = undefined;
       if (runtimeDisposed) return;
 
+      const atDocumentEnd = hasReachedDocumentEnd();
+
       targets.forEach((target) => {
         if (!target.isConnected) {
           unregisterTarget(target);
@@ -208,10 +234,11 @@ export function initializeMotionController(root) {
         if (target.classList.contains('is-motion-pending')) return;
 
         const rect = target.getBoundingClientRect();
+        const intersectsViewport = rect.bottom > 0 && rect.top < window.innerHeight;
         const insideRevealBand = rect.bottom > window.innerHeight * (isDesktop ? 0.03 : 0.24)
           && rect.top < window.innerHeight * entranceBoundary;
 
-        if (insideRevealBand) {
+        if (insideRevealBand || (atDocumentEnd && intersectsViewport)) {
           seenTargets.add(target);
           target.classList.add('is-motion-visible');
           target.classList.remove('is-motion-past');
@@ -356,9 +383,11 @@ export function initializeMotionController(root) {
         mutationObserver.observe(observedRoot, { childList: true, subtree: true });
       }
 
-      window.addEventListener('scroll', handleViewportChange, { passive: true });
-      window.addEventListener('resize', handleViewportChange, { passive: true });
-      listenersAttached = true;
+      if (!isReducedMotion) {
+        window.addEventListener('scroll', handleViewportChange, { passive: true });
+        window.addEventListener('resize', handleViewportChange, { passive: true });
+        listenersAttached = true;
+      }
 
       document.documentElement.classList.add(READY_CLASS);
       heroes.forEach(updateHero);

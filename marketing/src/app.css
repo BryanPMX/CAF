@@ -147,6 +147,7 @@
 .section-shell {
   position: relative;
   isolation: isolate;
+  overflow-x: hidden;
   overflow-x: clip;
   padding-block: clamp(3.25rem, 5.5vw, 5rem);
 }
@@ -185,6 +186,7 @@
   --motion-y: 4rem;
   --motion-scale: 0.94;
   --motion-rotate: 0deg;
+  --motion-transform: translate3d(var(--motion-x), var(--motion-y), 0) scale(var(--motion-scale)) rotate(var(--motion-rotate));
   --motion-opacity-duration: 620ms;
   --motion-transform-duration: 760ms;
   --motion-delay: calc(var(--motion-order, 0) * 55ms);
@@ -226,22 +228,16 @@
 
 .motion-ready :where([data-motion].is-motion-prepared) {
   opacity: 0;
-  translate: var(--motion-x) var(--motion-y);
-  scale: var(--motion-scale);
-  rotate: var(--motion-rotate);
+  transform: var(--motion-transform);
   transition:
     opacity var(--motion-opacity-duration) cubic-bezier(0.22, 1, 0.36, 1) var(--motion-delay),
-    translate var(--motion-transform-duration) cubic-bezier(0.22, 1, 0.36, 1) var(--motion-delay),
-    scale var(--motion-transform-duration) cubic-bezier(0.22, 1, 0.36, 1) var(--motion-delay),
-    rotate var(--motion-transform-duration) cubic-bezier(0.22, 1, 0.36, 1) var(--motion-delay);
+    transform var(--motion-transform-duration) cubic-bezier(0.22, 1, 0.36, 1) var(--motion-delay);
 }
 
 .motion-ready :where([data-motion].is-motion-prepared.is-motion-visible),
 .motion-ready :where([data-motion].is-motion-prepared:focus-within) {
   opacity: 1;
-  translate: 0 0;
-  scale: 1;
-  rotate: 0deg;
+  --motion-transform: translate3d(0, 0, 0) scale(1) rotate(0deg);
 }
 
 @media (max-width: 1023px) {
@@ -325,10 +321,8 @@
   --motion-opacity-duration: 420ms;
   --motion-transform-duration: 420ms;
   --motion-delay: 0ms;
+  --motion-transform: translate3d(0, -1.75rem, 0) scale(0.985) rotate(0deg);
   opacity: 0.24;
-  translate: 0 -1.75rem;
-  scale: 0.985;
-  rotate: 0deg;
 }
 
 .section-shell::before {
@@ -638,22 +632,21 @@
 
 .card-lift {
   position: relative;
-  transition: transform 220ms ease, box-shadow 220ms ease, border-color 220ms ease;
+  top: 0;
+  transition: top 220ms ease, box-shadow 220ms ease, border-color 220ms ease;
 }
 
 .motion-ready .card-lift:where([data-motion].is-motion-prepared) {
   transition:
     opacity var(--motion-opacity-duration) cubic-bezier(0.22, 1, 0.36, 1) var(--motion-delay),
-    translate var(--motion-transform-duration) cubic-bezier(0.22, 1, 0.36, 1) var(--motion-delay),
-    scale var(--motion-transform-duration) cubic-bezier(0.22, 1, 0.36, 1) var(--motion-delay),
-    rotate var(--motion-transform-duration) cubic-bezier(0.22, 1, 0.36, 1) var(--motion-delay),
-    transform 220ms ease,
+    transform var(--motion-transform-duration) cubic-bezier(0.22, 1, 0.36, 1) var(--motion-delay),
+    top 220ms ease,
     box-shadow 220ms ease,
     border-color 220ms ease;
 }
 
 .card-lift:hover {
-  transform: translateY(-2px);
+  top: -2px;
   border-color: #b9ddff;
   box-shadow: 0 14px 34px rgba(21, 50, 78, 0.11);
 }
@@ -962,14 +955,26 @@
     transition-duration: 0.01ms !important;
   }
 
-  [data-motion],
+  [data-motion] {
+    --motion-opacity-duration: 240ms;
+    --motion-transform-duration: 0ms;
+    --motion-delay: calc(var(--motion-order, 0) * 30ms);
+    transform: none !important;
+  }
+
+  .motion-ready :where([data-motion].is-motion-prepared) {
+    opacity: 0 !important;
+    transform: none !important;
+    transition: opacity var(--motion-opacity-duration) ease-out var(--motion-delay) !important;
+  }
+
+  .motion-ready :where([data-motion].is-motion-prepared.is-motion-visible),
+  .motion-ready :where([data-motion].is-motion-prepared.is-motion-past),
+  .motion-ready :where([data-motion].is-motion-prepared:focus-within),
   [data-motion-hero-copy],
   [data-motion-hero-visual] {
     opacity: 1 !important;
     transform: none !important;
-    translate: none !important;
-    scale: none !important;
-    rotate: none !important;
   }
 
   .live-background__grid,
