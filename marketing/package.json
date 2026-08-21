@@ -27,6 +27,7 @@
 	"type": "module",
 	"dependencies": {
 		"@fontsource-variable/manrope": "^5.3.0",
-		"@lucide/svelte": "^1.31.0"
+		"@lucide/svelte": "^1.31.0",
+		"leaflet": "^1.9.4"
 	}
 }

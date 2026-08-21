@@ -63,7 +63,7 @@ marketing/
 
 - `config.api.baseUrl` – API base URL (e.g. `https://api.caf-mexico.com/api/v1`); set `VITE_API_URL` in production.
 - `config.site`, `config.contact`, `config.social` – site name, contact info, social links.
-- Google Maps: `VITE_GOOGLE_MAPS_API_KEY` (required for contact page map).
+- The contact map uses Leaflet with OpenStreetMap tiles and requires no browser API key.
 - Contact anti-bot: `VITE_TURNSTILE_SITE_KEY` (public key) and `TURNSTILE_SECRET_KEY` (server-only secret).
 
 ### 2. Utility Functions
