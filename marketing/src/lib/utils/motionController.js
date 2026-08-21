@@ -46,14 +46,41 @@ export function initializeMotionController(root) {
     const activeHeroes = new Set();
     const seenTargets = new WeakSet();
     const heroProgress = new WeakMap();
+    const scheduledRevealFrames = new Set();
+    const isDesktop = desktopQuery.matches;
+    const initialRevealBoundary = isDesktop ? 0.9 : 0.78;
+    const entranceBoundary = isDesktop ? 0.95 : 0.8;
+    const exitBoundary = isDesktop ? 0.14 : 0.28;
     let runtimeDisposed = false;
     let heroFrame;
+    let reconciliationTimer;
     let targetObserver;
     let sceneObserver;
     let heroObserver;
     let mutationObserver;
     let resizeObserver;
     let listenersAttached = false;
+
+    function scheduleTargetReveal(target) {
+      target.classList.add('is-motion-pending');
+
+      const firstFrame = requestAnimationFrame(() => {
+        scheduledRevealFrames.delete(firstFrame);
+
+        const revealFrame = requestAnimationFrame(() => {
+          scheduledRevealFrames.delete(revealFrame);
+          if (disposed || runtimeDisposed || !target.isConnected) return;
+
+          target.classList.remove('is-motion-pending');
+          seenTargets.add(target);
+          target.classList.add('is-motion-visible');
+        });
+
+        scheduledRevealFrames.add(revealFrame);
+      });
+
+      scheduledRevealFrames.add(firstFrame);
+    }
 
     function setInitialTargetState(target, animateNewTarget = false) {
       if (runtimeDisposed || targets.has(target)) return;
@@ -63,12 +90,17 @@ export function initializeMotionController(root) {
       target.style.setProperty('--motion-order', String(Number.isFinite(order) ? Math.max(0, Math.min(order, 6)) : 0));
 
       const rect = target.getBoundingClientRect();
-      const currentlyVisible = rect.bottom > window.innerHeight * 0.04 && rect.top < window.innerHeight * 0.9;
+      const currentlyVisible = rect.bottom > window.innerHeight * 0.04 && rect.top < window.innerHeight * initialRevealBoundary;
+      const isMobileOpeningScene = !isDesktop
+        && window.scrollY < 2
+        && rect.top > window.innerHeight * 0.38;
+      const animateOnPaint = currentlyVisible
+        && (animateNewTarget || target.hasAttribute('data-motion-intro') || isMobileOpeningScene);
 
-      if (currentlyVisible && !animateNewTarget) {
+      if (currentlyVisible && !animateOnPaint) {
         seenTargets.add(target);
         target.classList.add('is-motion-visible');
-      } else if (rect.bottom < window.innerHeight * 0.14) {
+      } else if (rect.bottom < window.innerHeight * exitBoundary) {
         seenTargets.add(target);
         target.classList.add(target.dataset.motionExit === 'dissolve' ? 'is-motion-past' : 'is-motion-visible');
       }
@@ -76,14 +108,7 @@ export function initializeMotionController(root) {
       targetObserver.observe(target);
       target.classList.add('is-motion-prepared');
 
-      if (currentlyVisible && animateNewTarget) {
-        requestAnimationFrame(() => {
-          if (!disposed && !runtimeDisposed && target.isConnected) {
-            seenTargets.add(target);
-            target.classList.add('is-motion-visible');
-          }
-        });
-      }
+      if (animateOnPaint) scheduleTargetReveal(target);
     }
 
     function registerScene(scene) {
@@ -103,7 +128,7 @@ export function initializeMotionController(root) {
       if (!targets.delete(target)) return;
       targetObserver.unobserve(target);
       seenTargets.delete(target);
-      target.classList.remove('is-motion-prepared', 'is-motion-visible', 'is-motion-past');
+      target.classList.remove('is-motion-prepared', 'is-motion-pending', 'is-motion-visible', 'is-motion-past');
       target.style.removeProperty('--motion-order');
     }
 
@@ -134,27 +159,28 @@ export function initializeMotionController(root) {
         return;
       }
 
-      const isDesktop = desktopQuery.matches;
       const copy = hero.querySelector('[data-motion-hero-copy]');
       const visual = hero.querySelector('[data-motion-hero-visual]');
       const rect = hero.getBoundingClientRect();
       const startOffset = isDesktop ? 78 : 66;
-      const travel = Math.max(rect.height * (isDesktop ? 0.72 : 0.62), 1);
+      const travel = isDesktop
+        ? Math.max(rect.height * 0.72, 1)
+        : Math.max(Math.min(rect.height * 0.48, window.innerHeight * 0.72), 1);
       const progress = Math.min(1, Math.max(0, (startOffset - rect.top) / travel));
       const previousProgress = heroProgress.get(hero);
       if (previousProgress !== undefined && Math.abs(previousProgress - progress) < 0.001) return;
       heroProgress.set(hero, progress);
 
       if (copy) {
-        const copyTravel = isDesktop ? -72 : -46;
-        copy.style.opacity = String(1 - progress * 0.84);
-        copy.style.transform = `translate3d(0, ${progress * copyTravel}px, 0) scale(${1 - progress * 0.035})`;
+        const copyTravel = isDesktop ? -72 : -58;
+        copy.style.opacity = String(1 - progress * (isDesktop ? 0.84 : 0.9));
+        copy.style.transform = `translate3d(0, ${progress * copyTravel}px, 0) scale(${1 - progress * (isDesktop ? 0.035 : 0.05)})`;
       }
 
       if (visual) {
-        const visualTravel = isDesktop ? 68 : 40;
-        visual.style.opacity = String(1 - progress * 0.56);
-        visual.style.transform = `translate3d(0, ${progress * visualTravel}px, 0) scale(${1 - progress * (isDesktop ? 0.07 : 0.045)})`;
+        const visualTravel = isDesktop ? 68 : 44;
+        visual.style.opacity = String(1 - progress * (isDesktop ? 0.56 : 0.68));
+        visual.style.transform = `translate3d(0, ${progress * visualTravel}px, 0) scale(${1 - progress * (isDesktop ? 0.07 : 0.06)})`;
       }
     }
 
@@ -169,6 +195,40 @@ export function initializeMotionController(root) {
       heroFrame = requestAnimationFrame(updateHeroes);
     }
 
+    function reconcileTargets() {
+      reconciliationTimer = undefined;
+      if (runtimeDisposed) return;
+
+      targets.forEach((target) => {
+        if (!target.isConnected) {
+          unregisterTarget(target);
+          return;
+        }
+
+        if (target.classList.contains('is-motion-pending')) return;
+
+        const rect = target.getBoundingClientRect();
+        const insideRevealBand = rect.bottom > window.innerHeight * (isDesktop ? 0.03 : 0.24)
+          && rect.top < window.innerHeight * entranceBoundary;
+
+        if (insideRevealBand) {
+          seenTargets.add(target);
+          target.classList.add('is-motion-visible');
+          target.classList.remove('is-motion-past');
+        } else if (rect.bottom < window.innerHeight * exitBoundary) {
+          seenTargets.add(target);
+          target.classList.toggle('is-motion-past', target.dataset.motionExit === 'dissolve');
+          target.classList.toggle('is-motion-visible', target.dataset.motionExit !== 'dissolve');
+        }
+      });
+    }
+
+    function handleViewportChange() {
+      requestHeroUpdate();
+      if (reconciliationTimer !== undefined) window.clearTimeout(reconciliationTimer);
+      reconciliationTimer = window.setTimeout(reconcileTargets, 90);
+    }
+
     function cleanupRuntime() {
       if (runtimeDisposed) return;
       runtimeDisposed = true;
@@ -180,14 +240,17 @@ export function initializeMotionController(root) {
       resizeObserver?.disconnect();
 
       if (listenersAttached) {
-        window.removeEventListener('scroll', requestHeroUpdate);
-        window.removeEventListener('resize', requestHeroUpdate);
+        window.removeEventListener('scroll', handleViewportChange);
+        window.removeEventListener('resize', handleViewportChange);
       }
 
       if (heroFrame !== undefined) cancelAnimationFrame(heroFrame);
+      if (reconciliationTimer !== undefined) window.clearTimeout(reconciliationTimer);
+      scheduledRevealFrames.forEach(cancelAnimationFrame);
+      scheduledRevealFrames.clear();
 
       targets.forEach((target) => {
-        target.classList.remove('is-motion-prepared', 'is-motion-visible', 'is-motion-past');
+        target.classList.remove('is-motion-prepared', 'is-motion-pending', 'is-motion-visible', 'is-motion-past');
         target.style.removeProperty('--motion-order');
       });
       scenes.forEach((scene) => scene.classList.remove('is-motion-scene-active'));
@@ -209,13 +272,15 @@ export function initializeMotionController(root) {
           const target = entry.target;
 
           if (entry.isIntersecting) {
+            if (target.classList.contains('is-motion-pending')) return;
+
             seenTargets.add(target);
             target.classList.add('is-motion-visible');
             target.classList.remove('is-motion-past');
             return;
           }
 
-          if (entry.boundingClientRect.bottom < window.innerHeight * 0.14) {
+          if (entry.boundingClientRect.bottom < window.innerHeight * exitBoundary) {
             if (target.dataset.motionExit === 'dissolve') {
               target.classList.add('is-motion-past');
               target.classList.remove('is-motion-visible');
@@ -227,8 +292,8 @@ export function initializeMotionController(root) {
           }
         });
       }, {
-        rootMargin: '-3% 0px -5% 0px',
-        threshold: [0, 0.08, 0.32]
+        rootMargin: isDesktop ? '-3% 0px -5% 0px' : '-24% 0px -20% 0px',
+        threshold: isDesktop ? [0, 0.08, 0.32] : [0, 0.01, 0.22]
       });
 
       sceneObserver = new IntersectionObserver((entries) => {
@@ -238,7 +303,7 @@ export function initializeMotionController(root) {
           entry.target.classList.toggle('is-motion-scene-active', entry.isIntersecting);
         });
       }, {
-        rootMargin: '0px 0px -55% 0px',
+        rootMargin: isDesktop ? '0px 0px -55% 0px' : '0px 0px -24% 0px',
         threshold: 0.01
       });
 
@@ -291,8 +356,8 @@ export function initializeMotionController(root) {
         mutationObserver.observe(observedRoot, { childList: true, subtree: true });
       }
 
-      window.addEventListener('scroll', requestHeroUpdate, { passive: true });
-      window.addEventListener('resize', requestHeroUpdate, { passive: true });
+      window.addEventListener('scroll', handleViewportChange, { passive: true });
+      window.addEventListener('resize', handleViewportChange, { passive: true });
       listenersAttached = true;
 
       document.documentElement.classList.add(READY_CLASS);

@@ -246,37 +246,43 @@
 
 @media (max-width: 1023px) {
   [data-motion] {
-    --motion-y: 3.25rem;
-    --motion-scale: 0.95;
-    --motion-opacity-duration: 560ms;
-    --motion-transform-duration: 680ms;
-    --motion-delay: calc(var(--motion-order, 0) * 42ms);
+    --motion-y: 3.75rem;
+    --motion-scale: 0.955;
+    --motion-opacity-duration: 620ms;
+    --motion-transform-duration: 820ms;
+    --motion-delay: calc(var(--motion-order, 0) * 70ms);
+  }
+
+  [data-motion-intro] {
+    --motion-opacity-duration: 680ms;
+    --motion-transform-duration: 900ms;
+    --motion-delay: calc(70ms + var(--motion-order, 0) * 85ms);
   }
 
   [data-motion="left"] {
-    --motion-x: -2rem;
-    --motion-y: 2.75rem;
-    --motion-scale: 0.95;
+    --motion-x: -2.75rem;
+    --motion-y: 3.25rem;
+    --motion-scale: 0.955;
   }
 
   [data-motion="right"] {
-    --motion-x: 2rem;
-    --motion-y: 2.75rem;
-    --motion-scale: 0.95;
+    --motion-x: 2.75rem;
+    --motion-y: 3.25rem;
+    --motion-scale: 0.955;
   }
 
   [data-motion="scale"] {
-    --motion-y: 2.75rem;
-    --motion-scale: 0.9;
+    --motion-y: 3.5rem;
+    --motion-scale: 0.92;
   }
 
   [data-motion="fade"] {
-    --motion-y: 1rem;
+    --motion-y: 1.75rem;
     --motion-scale: 1;
   }
 
   [data-motion="down"] {
-    --motion-y: -1.75rem;
+    --motion-y: -2.5rem;
     --motion-scale: 0.98;
   }
 
@@ -287,10 +293,28 @@
   }
 
   .section-shell[data-motion-scene]::after {
-    top: -3rem;
-    height: 6.5rem;
+    top: -2.5rem;
+    left: -24%;
+    width: 148%;
+    height: 7.5rem;
+    background: linear-gradient(
+      90deg,
+      transparent 5%,
+      rgba(46, 142, 221, 0.26) 32%,
+      rgba(43, 188, 173, 0.32) 56%,
+      rgba(239, 127, 92, 0.2) 76%,
+      transparent 95%
+    );
+    transform: translate3d(-30%, 0, 0) skewY(-2deg);
+    transition:
+      opacity 620ms ease,
+      transform 1050ms cubic-bezier(0.22, 1, 0.36, 1);
   }
 
+  .motion-ready .section-shell[data-motion-scene].is-motion-scene-active::after {
+    opacity: 0.96;
+    transform: translate3d(18%, 0, 0) skewY(-2deg);
+  }
 }
 
 .motion-ready :where([data-motion].is-motion-prepared:focus-within) {
@@ -891,7 +915,7 @@
   }
 
   .home-hero.is-motion-scene-active .hero-particle-field {
-    animation-duration: 42s;
+    animation-duration: 26s;
   }
 
   .hero-gradient--warm {
@@ -907,8 +931,8 @@
 
   .live-background__grid {
     background-size: 62px 62px;
-    opacity: 0.32;
-    animation-duration: 55s;
+    opacity: 0.38;
+    animation-duration: 28s;
   }
 
   .live-background__aurora--warm {
@@ -917,6 +941,15 @@
 
   .section-shell::before {
     animation: none;
+    opacity: 0.42;
+    transform: translate3d(-3%, -4%, 0) scale(0.94);
+    transition: opacity 700ms ease;
+  }
+
+  .section-shell.is-motion-scene-active::before {
+    opacity: 1;
+    will-change: transform;
+    animation: section-orbit 12s ease-in-out infinite alternate;
   }
 }
 

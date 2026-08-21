@@ -58,21 +58,21 @@
   </div>
   <div class="site-container relative z-10 grid min-h-[clamp(34rem,68vh,43rem)] items-center gap-8 py-10 lg:grid-cols-[1.03fr_0.97fr] lg:gap-12 lg:py-12">
     <div class="max-w-2xl lg:text-center" data-motion-hero-copy>
-      <p class="eyebrow hero-eyebrow mb-4 lg:mx-auto"><Sparkles size={14} /> Acompañamiento integral</p>
-      <h1 class="text-balance text-[clamp(2.7rem,6vw,4.5rem)] font-extrabold leading-[1.02] tracking-[-0.05em] text-white">
+      <p class="eyebrow hero-eyebrow mb-4 lg:mx-auto" data-motion="down" data-motion-intro data-motion-order="0"><Sparkles size={14} /> Acompañamiento integral</p>
+      <h1 class="text-balance text-[clamp(2.7rem,6vw,4.5rem)] font-extrabold leading-[1.02] tracking-[-0.05em] text-white" data-motion="rise" data-motion-intro data-motion-order="1">
         {hero.title || 'Fortaleciendo familias, construyendo comunidad'}
       </h1>
-      <p class="hero-copy mt-5 max-w-xl text-pretty text-lg leading-8 sm:text-xl lg:mx-auto">
+      <p class="hero-copy mt-5 max-w-xl text-pretty text-lg leading-8 sm:text-xl lg:mx-auto" data-motion="rise" data-motion-intro data-motion-order="2">
         {hero.subtitle || 'Acompañamiento legal, psicológico y social con la cercanía que tu familia necesita.'}
       </p>
-      <div class="mt-7 flex flex-col gap-3 sm:flex-row lg:justify-center">
+      <div class="mt-7 flex flex-col gap-3 sm:flex-row lg:justify-center" data-motion="rise" data-motion-intro data-motion-order="3">
         <a href="/contacto" class="button-primary inline-flex">Hablar con el equipo <ArrowRight size={18} /></a>
         <a href="/servicios" class="button-secondary inline-flex">Conocer los servicios</a>
       </div>
     </div>
 
     <div class="hero-visual relative lg:pl-4" data-motion-hero-visual>
-      <div class="hero-media relative overflow-hidden rounded-[2rem] bg-primary-100 shadow-[0_32px_80px_rgba(3,15,29,0.38)] lg:rounded-[2.5rem]">
+      <div class="hero-media relative overflow-hidden rounded-[2rem] bg-primary-100 shadow-[0_32px_80px_rgba(3,15,29,0.38)] lg:rounded-[2.5rem]" data-motion="scale" data-motion-intro data-motion-order="4">
         {#if heroSlides[0]}
           <img
             src={getOptimizedImageUrl(heroSlides[0].src, 1280, { quality: 75 })}
