@@ -87,6 +87,25 @@
   z-index: 2 !important;
   width: 100% !important;
   height: 100% !important;
+  opacity: 0.96;
+}
+
+.live-background__grid {
+  position: absolute;
+  inset: -18%;
+  z-index: 1;
+  display: block;
+  background-image:
+    linear-gradient(rgba(18, 104, 189, 0.13) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(38, 174, 163, 0.11) 1px, transparent 1px);
+  background-size: 74px 74px;
+  opacity: 0.5;
+  mask-image: radial-gradient(ellipse at center, black 8%, rgba(0, 0, 0, 0.74) 54%, transparent 82%);
+  transform: rotate(-7deg);
+  transform-origin: center;
+  will-change: transform;
+  pointer-events: none;
+  animation: live-grid-drift 32s linear infinite;
 }
 
 .live-background__aurora {
@@ -98,7 +117,7 @@
   aspect-ratio: 1;
   border-radius: 999px;
   filter: blur(2px);
-  opacity: 0.78;
+  opacity: 0.96;
   will-change: transform;
   pointer-events: none;
 }
@@ -106,23 +125,23 @@
 .live-background__aurora--blue {
   top: -20rem;
   left: -12rem;
-  background: radial-gradient(circle, rgba(57, 143, 221, 0.22), transparent 68%);
-  animation: live-aurora-blue 22s ease-in-out infinite alternate;
+  background: radial-gradient(circle, rgba(57, 143, 221, 0.34), transparent 68%);
+  animation: live-aurora-blue 18s ease-in-out infinite alternate;
 }
 
 .live-background__aurora--teal {
   right: -16rem;
   top: 28%;
-  background: radial-gradient(circle, rgba(39, 183, 169, 0.2), transparent 68%);
-  animation: live-aurora-teal 27s ease-in-out infinite alternate;
+  background: radial-gradient(circle, rgba(39, 183, 169, 0.3), transparent 68%);
+  animation: live-aurora-teal 22s ease-in-out infinite alternate;
 }
 
 .live-background__aurora--warm {
   bottom: -20rem;
   left: 18%;
   width: min(38vw, 34rem);
-  background: radial-gradient(circle, rgba(239, 127, 92, 0.16), transparent 68%);
-  animation: live-aurora-warm 25s ease-in-out infinite alternate;
+  background: radial-gradient(circle, rgba(239, 127, 92, 0.24), transparent 68%);
+  animation: live-aurora-warm 20s ease-in-out infinite alternate;
 }
 
 .section-shell {
@@ -285,7 +304,7 @@
   color: #153552;
   background:
     radial-gradient(circle at 50% -80%, rgba(38, 174, 163, 0.13), transparent 55%),
-    rgba(255, 255, 255, 0.88);
+    rgba(255, 255, 255, 0.8);
   backdrop-filter: blur(10px);
   box-shadow: 0 12px 30px rgba(21, 50, 78, 0.06);
 }
@@ -295,7 +314,7 @@
     radial-gradient(circle at 100% 4%, rgba(38, 174, 163, 0.14), transparent 30rem),
     radial-gradient(circle at 0% 92%, rgba(35, 133, 223, 0.11), transparent 28rem),
     radial-gradient(rgba(18, 104, 189, 0.1) 0.75px, transparent 0.75px),
-    linear-gradient(180deg, rgba(248, 251, 253, 0.84) 0%, rgba(238, 246, 250, 0.78) 100%);
+    linear-gradient(180deg, rgba(248, 251, 253, 0.66) 0%, rgba(238, 246, 250, 0.56) 100%);
   background-size: auto, auto, 22px 22px, auto;
 }
 
@@ -303,7 +322,7 @@
   background:
     radial-gradient(circle at 8% 15%, rgba(239, 127, 92, 0.12), transparent 24rem),
     radial-gradient(circle at 92% 20%, rgba(65, 201, 188, 0.14), transparent 28rem),
-    linear-gradient(135deg, rgba(255, 255, 255, 0.85), rgba(240, 247, 252, 0.8));
+    linear-gradient(135deg, rgba(255, 255, 255, 0.7), rgba(240, 247, 252, 0.6));
 }
 
 .section-alive-alt {
@@ -311,7 +330,7 @@
     linear-gradient(120deg, rgba(18, 104, 189, 0.05) 1px, transparent 1px),
     linear-gradient(30deg, rgba(38, 174, 163, 0.05) 1px, transparent 1px),
     radial-gradient(circle at 78% 12%, rgba(35, 133, 223, 0.12), transparent 26rem),
-    rgba(249, 252, 254, 0.8);
+    rgba(249, 252, 254, 0.6);
   background-size: 42px 42px, 42px 42px, auto, auto;
 }
 
@@ -645,6 +664,11 @@
   to { transform: translate3d(28%, -20%, 0) scale(1.12); }
 }
 
+@keyframes live-grid-drift {
+  from { transform: rotate(-7deg) translate3d(0, 0, 0); }
+  to { transform: rotate(-7deg) translate3d(74px, 74px, 0); }
+}
+
 @media (max-width: 640px) {
   .site-container { width: min(100% - 1.5rem, 74rem); }
 
@@ -666,7 +690,13 @@
 
   .live-background__aurora {
     min-width: 28rem;
-    opacity: 0.62;
+    opacity: 0.82;
+  }
+
+  .live-background__grid {
+    background-size: 62px 62px;
+    opacity: 0.38;
+    animation-duration: 42s;
   }
 
   .live-background__aurora--warm {
