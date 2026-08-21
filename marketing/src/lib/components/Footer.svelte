@@ -4,7 +4,7 @@
   import { primaryNavigation } from '$lib/navigation.js';
 </script>
 
-<footer class="relative overflow-hidden bg-primary-950 text-slate-200">
+<footer class="site-footer relative overflow-hidden bg-primary-950 text-slate-200">
   <div class="pointer-events-none absolute -right-32 -top-44 h-96 w-96 rounded-full bg-accent-500/10 blur-3xl"></div>
   <div class="site-container relative py-14 sm:py-16">
     <div class="grid gap-12 border-b border-white/10 pb-12 md:grid-cols-[1.35fr_0.7fr_1fr] md:gap-10">

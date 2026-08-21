@@ -3,6 +3,7 @@
   import { afterNavigate } from '$app/navigation';
   import Header from '$lib/components/Header.svelte';
   import Footer from '$lib/components/Footer.svelte';
+  import LiveBackground from '$lib/components/LiveBackground.svelte';
   import { initializeAos } from '$lib/utils/aosClient.js';
   import '@fontsource-variable/manrope';
   import '../app.css';
@@ -12,12 +13,16 @@
   });
 </script>
 
-<div class="flex min-h-screen flex-col bg-transparent font-sans">
-  <Header />
+<div class="site-live-shell min-h-screen font-sans">
+  <LiveBackground />
 
-  <main class="flex-grow">
-    <slot />
-  </main>
+  <div class="site-live-content flex min-h-screen flex-col">
+    <Header />
 
-  <Footer />
+    <main class="flex-grow">
+      <slot />
+    </main>
+
+    <Footer />
+  </div>
 </div>

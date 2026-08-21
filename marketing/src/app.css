@@ -58,6 +58,73 @@
   margin-inline: auto;
 }
 
+.site-live-shell {
+  position: relative;
+  isolation: isolate;
+  background: #f4f9fc;
+}
+
+.site-live-content {
+  position: relative;
+  z-index: 1;
+}
+
+.live-background {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 12% 12%, rgba(67, 151, 226, 0.11), transparent 32rem),
+    radial-gradient(circle at 88% 34%, rgba(41, 179, 166, 0.1), transparent 34rem),
+    linear-gradient(145deg, #f7fbfe, #eef7fa 54%, #f7fbfd);
+  pointer-events: none;
+}
+
+.live-background canvas {
+  position: absolute !important;
+  inset: 0 !important;
+  z-index: 2 !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.live-background__aurora {
+  position: absolute;
+  z-index: 1;
+  display: block;
+  width: min(48vw, 43rem);
+  min-width: 24rem;
+  aspect-ratio: 1;
+  border-radius: 999px;
+  filter: blur(2px);
+  opacity: 0.78;
+  will-change: transform;
+  pointer-events: none;
+}
+
+.live-background__aurora--blue {
+  top: -20rem;
+  left: -12rem;
+  background: radial-gradient(circle, rgba(57, 143, 221, 0.22), transparent 68%);
+  animation: live-aurora-blue 22s ease-in-out infinite alternate;
+}
+
+.live-background__aurora--teal {
+  right: -16rem;
+  top: 28%;
+  background: radial-gradient(circle, rgba(39, 183, 169, 0.2), transparent 68%);
+  animation: live-aurora-teal 27s ease-in-out infinite alternate;
+}
+
+.live-background__aurora--warm {
+  bottom: -20rem;
+  left: 18%;
+  width: min(38vw, 34rem);
+  background: radial-gradient(circle, rgba(239, 127, 92, 0.16), transparent 68%);
+  animation: live-aurora-warm 25s ease-in-out infinite alternate;
+}
+
 .section-shell {
   position: relative;
   isolation: isolate;
@@ -103,9 +170,7 @@
 }
 
 .home-hero {
-  background:
-    linear-gradient(118deg, rgba(8, 30, 55, 0.98) 0%, rgba(11, 53, 87, 0.96) 50%, rgba(9, 79, 82, 0.95) 100%),
-    #0b2d4d;
+  background: linear-gradient(118deg, rgba(8, 30, 55, 0.91) 0%, rgba(11, 53, 87, 0.87) 50%, rgba(9, 79, 82, 0.84) 100%);
 }
 
 .hero-atmosphere {
@@ -220,7 +285,8 @@
   color: #153552;
   background:
     radial-gradient(circle at 50% -80%, rgba(38, 174, 163, 0.13), transparent 55%),
-    rgba(255, 255, 255, 0.98);
+    rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(10px);
   box-shadow: 0 12px 30px rgba(21, 50, 78, 0.06);
 }
 
@@ -229,7 +295,7 @@
     radial-gradient(circle at 100% 4%, rgba(38, 174, 163, 0.14), transparent 30rem),
     radial-gradient(circle at 0% 92%, rgba(35, 133, 223, 0.11), transparent 28rem),
     radial-gradient(rgba(18, 104, 189, 0.1) 0.75px, transparent 0.75px),
-    linear-gradient(180deg, #f8fbfd 0%, #eef6fa 100%);
+    linear-gradient(180deg, rgba(248, 251, 253, 0.84) 0%, rgba(238, 246, 250, 0.78) 100%);
   background-size: auto, auto, 22px 22px, auto;
 }
 
@@ -237,7 +303,7 @@
   background:
     radial-gradient(circle at 8% 15%, rgba(239, 127, 92, 0.12), transparent 24rem),
     radial-gradient(circle at 92% 20%, rgba(65, 201, 188, 0.14), transparent 28rem),
-    linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(240, 247, 252, 0.96));
+    linear-gradient(135deg, rgba(255, 255, 255, 0.85), rgba(240, 247, 252, 0.8));
 }
 
 .section-alive-alt {
@@ -245,7 +311,7 @@
     linear-gradient(120deg, rgba(18, 104, 189, 0.05) 1px, transparent 1px),
     linear-gradient(30deg, rgba(38, 174, 163, 0.05) 1px, transparent 1px),
     radial-gradient(circle at 78% 12%, rgba(35, 133, 223, 0.12), transparent 26rem),
-    #f9fcfe;
+    rgba(249, 252, 254, 0.8);
   background-size: 42px 42px, 42px 42px, auto, auto;
 }
 
@@ -383,7 +449,7 @@
   position: relative;
   isolation: isolate;
   overflow: hidden;
-  background: linear-gradient(135deg, rgba(16, 41, 70, 0.99), rgba(20, 71, 120, 0.97) 56%, rgba(25, 111, 107, 0.93)), #102946;
+  background: linear-gradient(135deg, rgba(16, 41, 70, 0.91), rgba(20, 71, 120, 0.86) 56%, rgba(25, 111, 107, 0.82));
 }
 
 .page-hero::after {
@@ -424,6 +490,7 @@
   position: relative;
   isolation: isolate;
   overflow: hidden;
+  background-color: rgba(8, 30, 55, 0.88) !important;
 }
 
 .cta-live::before,
@@ -521,6 +588,11 @@
   transition: color 180ms ease, transform 180ms ease;
 }
 
+.site-footer {
+  background-color: rgba(8, 30, 55, 0.93) !important;
+  backdrop-filter: blur(2px);
+}
+
 .footer-link:hover { color: white; transform: translateX(2px); }
 
 @keyframes hero-orbit-blue {
@@ -558,6 +630,21 @@
   to { transform: translate3d(-14%, 13%, 0) scale(1.14); }
 }
 
+@keyframes live-aurora-blue {
+  from { transform: translate3d(-5%, -4%, 0) scale(0.92); }
+  to { transform: translate3d(30%, 20%, 0) scale(1.14); }
+}
+
+@keyframes live-aurora-teal {
+  from { transform: translate3d(9%, -12%, 0) scale(1); }
+  to { transform: translate3d(-26%, 18%, 0) scale(1.16); }
+}
+
+@keyframes live-aurora-warm {
+  from { transform: translate3d(-16%, 9%, 0) scale(0.94); }
+  to { transform: translate3d(28%, -20%, 0) scale(1.12); }
+}
+
 @media (max-width: 640px) {
   .site-container { width: min(100% - 1.5rem, 74rem); }
 
@@ -575,6 +662,15 @@
     right: -8rem;
     top: 30%;
     width: 26rem;
+  }
+
+  .live-background__aurora {
+    min-width: 28rem;
+    opacity: 0.62;
+  }
+
+  .live-background__aurora--warm {
+    left: -12rem;
   }
 }
 
