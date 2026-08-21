@@ -52,15 +52,15 @@
   <div class="pointer-events-none absolute inset-y-0 right-0 -z-10 hidden w-[43%] bg-primary-950 lg:block"></div>
   <div class="pointer-events-none absolute -left-28 top-10 -z-10 h-72 w-72 rounded-full bg-primary-100/70 blur-3xl"></div>
   <div class="site-container grid min-h-[clamp(34rem,68vh,43rem)] items-center gap-8 py-10 lg:grid-cols-[1.03fr_0.97fr] lg:gap-12 lg:py-12">
-    <div class="reveal-up max-w-2xl">
-      <p class="eyebrow mb-4"><Sparkles size={14} /> Acompañamiento integral</p>
-      <h1 class="text-balance text-[clamp(2.7rem,6vw,5.25rem)] font-extrabold leading-[0.99] tracking-[-0.055em] text-primary-950">
+    <div class="reveal-up max-w-2xl lg:text-center">
+      <p class="eyebrow mb-4 lg:mx-auto"><Sparkles size={14} /> Acompañamiento integral</p>
+      <h1 class="text-balance text-[clamp(2.7rem,6vw,4.5rem)] font-extrabold leading-[1.02] tracking-[-0.05em] text-primary-950">
         {hero.title || 'Fortaleciendo familias, construyendo comunidad'}
       </h1>
-      <p class="mt-5 max-w-xl text-pretty text-lg leading-8 text-slate-600 sm:text-xl">
+      <p class="mt-5 max-w-xl text-pretty text-lg leading-8 text-slate-600 sm:text-xl lg:mx-auto">
         {hero.subtitle || 'Acompañamiento legal, psicológico y social con la cercanía que tu familia necesita.'}
       </p>
-      <div class="mt-7 flex flex-col gap-3 sm:flex-row">
+      <div class="mt-7 flex flex-col gap-3 sm:flex-row lg:justify-center">
         <a href="/contacto" class="button-primary inline-flex">Hablar con el equipo <ArrowRight size={18} /></a>
         <a href="/servicios" class="button-secondary inline-flex">Conocer los servicios</a>
       </div>
@@ -120,8 +120,8 @@
           />
         </div>
       {:else}
-        <div class="grid min-h-[28rem] place-items-center rounded-[2rem] bg-gradient-to-br from-primary-100 via-white to-accent-100 text-primary-700 shadow-[0_24px_60px_rgba(21,50,78,0.12)]">
-          <HandHeart size={108} strokeWidth={1.1} />
+        <div class="grid min-h-[18rem] place-items-center rounded-[2rem] bg-gradient-to-br from-primary-100 via-white to-accent-100 text-primary-700 shadow-[0_24px_60px_rgba(21,50,78,0.12)] sm:min-h-[22rem] lg:min-h-[24rem]">
+          <HandHeart class="h-16 w-16 lg:h-[4.5rem] lg:w-[4.5rem]" strokeWidth={1.1} />
         </div>
       {/if}
       <div class="absolute -bottom-5 right-0 max-w-[14rem] rounded-2xl bg-warm-500 p-5 text-white shadow-xl xl:-right-7">
