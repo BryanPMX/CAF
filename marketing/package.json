@@ -14,7 +14,7 @@
 		"@sveltejs/adapter-auto": "^7.0.1",
 		"@sveltejs/adapter-static": "^3.0.10",
 		"@sveltejs/adapter-vercel": "^6.3.4",
-		"@sveltejs/kit": "^2.70.2",
+		"@sveltejs/kit": "^2.70.3",
 		"@sveltejs/vite-plugin-svelte": "^7.3.0",
 		"@tailwindcss/vite": "^4.3.3",
 		"svelte": "^5.56.9",
@@ -27,7 +27,7 @@
 	"type": "module",
 	"dependencies": {
 		"@fontsource-variable/manrope": "^5.3.0",
-		"@lucide/svelte": "^1.31.0",
+		"@lucide/svelte": "^1.32.0",
 		"@tsparticles/engine": "^4.3.2",
 		"@tsparticles/slim": "^4.3.2",
 		"leaflet": "^1.9.4"
