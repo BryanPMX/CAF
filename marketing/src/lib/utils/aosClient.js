@@ -13,6 +13,12 @@ function prefersReducedMotion() {
 export async function initializeAos() {
   if (typeof window === 'undefined') return;
 
+  document.querySelectorAll('[data-aos]').forEach((element) => {
+    if (!element.hasAttribute('data-aos-once')) {
+      element.setAttribute('data-aos-once', 'false');
+    }
+  });
+
   if (!initializationPromise) {
     initializationPromise = import('aos').then((module) => module.default ?? module);
   }
@@ -25,7 +31,6 @@ export async function initializeAos() {
       easing: 'ease-out-cubic',
       offset: 24,
       once: false,
-      mirror: true,
       anchorPlacement: 'top-bottom',
       disable: prefersReducedMotion
     });

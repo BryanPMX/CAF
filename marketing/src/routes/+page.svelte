@@ -59,27 +59,26 @@
   <div class="hero-atmosphere pointer-events-none absolute inset-0 z-0" aria-hidden="true">
     <span class="hero-gradient hero-gradient--blue"></span>
     <span class="hero-gradient hero-gradient--teal"></span>
+    <span class="hero-gradient hero-gradient--warm"></span>
     <span class="hero-particle-field"></span>
   </div>
-  <div class="pointer-events-none absolute inset-y-0 right-0 z-[1] hidden w-[43%] bg-primary-950/95 lg:block"></div>
-  <div class="pointer-events-none absolute -left-28 top-10 z-[2] h-72 w-72 rounded-full bg-primary-100/60 blur-3xl"></div>
   <div class="site-container relative z-10 grid min-h-[clamp(34rem,68vh,43rem)] items-center gap-8 py-10 lg:grid-cols-[1.03fr_0.97fr] lg:gap-12 lg:py-12">
     <div class="max-w-2xl lg:text-center">
-      <p class="eyebrow mb-4 lg:mx-auto" data-aos="fade-down"><Sparkles size={14} /> Acompañamiento integral</p>
-      <h1 class="text-balance text-[clamp(2.7rem,6vw,4.5rem)] font-extrabold leading-[1.02] tracking-[-0.05em] text-primary-950" data-aos="fade-up" data-aos-delay="70">
+      <p class="eyebrow hero-eyebrow mb-4 lg:mx-auto" data-aos="fade-down"><Sparkles size={14} /> Acompañamiento integral</p>
+      <h1 class="text-balance text-[clamp(2.7rem,6vw,4.5rem)] font-extrabold leading-[1.02] tracking-[-0.05em] text-white" data-aos="fade-up" data-aos-delay="90">
         {hero.title || 'Fortaleciendo familias, construyendo comunidad'}
       </h1>
-      <p class="mt-5 max-w-xl text-pretty text-lg leading-8 text-slate-600 sm:text-xl lg:mx-auto" data-aos="fade-up" data-aos-delay="140">
+      <p class="hero-copy mt-5 max-w-xl text-pretty text-lg leading-8 sm:text-xl lg:mx-auto" data-aos="fade-up" data-aos-delay="180">
         {hero.subtitle || 'Acompañamiento legal, psicológico y social con la cercanía que tu familia necesita.'}
       </p>
-      <div class="mt-7 flex flex-col gap-3 sm:flex-row lg:justify-center" data-aos="fade-up" data-aos-delay="210">
+      <div class="mt-7 flex flex-col gap-3 sm:flex-row lg:justify-center" data-aos="fade-up" data-aos-delay="270">
         <a href="/contacto" class="button-primary inline-flex">Hablar con el equipo <ArrowRight size={18} /></a>
         <a href="/servicios" class="button-secondary inline-flex">Conocer los servicios</a>
       </div>
     </div>
 
-    <div class="relative lg:pl-4" data-aos="fade-left" data-aos-delay="160" data-aos-duration="820">
-      <div class="relative overflow-hidden rounded-[2rem] bg-primary-100 shadow-[0_32px_80px_rgba(16,41,70,0.25)] lg:rounded-[2.5rem]">
+    <div class="hero-visual relative lg:pl-4" data-aos="fade-left" data-aos-delay="180" data-aos-duration="900">
+      <div class="hero-media relative overflow-hidden rounded-[2rem] bg-primary-100 shadow-[0_32px_80px_rgba(3,15,29,0.38)] lg:rounded-[2.5rem]">
         {#if heroSlides[0]}
           <img
             src={getOptimizedImageUrl(heroSlides[0].src, 1280, { quality: 75 })}
@@ -103,22 +102,22 @@
           <p class="mt-1 text-xs leading-5 text-slate-600">Escuchamos tu situación y te orientamos hacia el apoyo adecuado.</p>
         </div>
       </div>
-      <div class="absolute -right-4 -top-4 -z-10 h-24 w-24 rounded-full border-[18px] border-accent-300/35 sm:-right-7 sm:-top-7 sm:h-32 sm:w-32"></div>
+      <div class="hero-visual-ring absolute -right-4 -top-4 -z-10 h-24 w-24 rounded-full border-[18px] sm:-right-7 sm:-top-7 sm:h-32 sm:w-32"></div>
     </div>
   </div>
 </section>
 
-<section class="border-y border-slate-200 bg-primary-950 py-4 text-white">
+<section class="home-trust-bar border-y py-4">
   <div class="site-container grid gap-5 text-center sm:grid-cols-3 sm:text-left">
-    <div class="flex items-center justify-center gap-3 sm:justify-start" data-aos="fade-up"><Scale class="text-primary-300" size={22} /><span class="text-sm font-bold">Orientación profesional</span></div>
-    <div class="flex items-center justify-center gap-3 sm:justify-start" data-aos="fade-up" data-aos-delay="70"><HeartHandshake class="text-warm-200" size={22} /><span class="text-sm font-bold">Trato cercano y respetuoso</span></div>
-    <div class="flex items-center justify-center gap-3 sm:justify-start" data-aos="fade-up" data-aos-delay="140"><ShieldCheck class="text-accent-300" size={22} /><span class="text-sm font-bold">Privacidad en cada consulta</span></div>
+    <div class="flex items-center justify-center gap-3 sm:justify-start"><Scale class="text-primary-600" size={22} /><span class="text-sm font-bold">Orientación profesional</span></div>
+    <div class="flex items-center justify-center gap-3 sm:justify-start"><HeartHandshake class="text-warm-500" size={22} /><span class="text-sm font-bold">Trato cercano y respetuoso</span></div>
+    <div class="flex items-center justify-center gap-3 sm:justify-start"><ShieldCheck class="text-accent-600" size={22} /><span class="text-sm font-bold">Privacidad en cada consulta</span></div>
   </div>
 </section>
 
 <section class="section-shell section-soft">
   <div class="site-container grid items-center gap-9 lg:grid-cols-[0.88fr_1.12fr] lg:gap-14">
-    <div class="relative">
+    <div class="relative" data-aos="fade-right">
       {#if aboutSectionImages[0]}
         <div class="overflow-hidden rounded-[2rem] shadow-[0_24px_60px_rgba(21,50,78,0.16)]">
           <img
@@ -141,7 +140,7 @@
       </div>
     </div>
 
-    <div>
+    <div data-aos="fade-left" data-aos-delay="90">
       <p class="eyebrow mb-4">Quiénes somos</p>
       <h2 class="section-title text-primary-950">{about.title || 'Un centro de apoyo pensado para las personas'}</h2>
       <p class="section-copy mt-4">{about.description || 'Somos una organización sin fines de lucro dedicada a fortalecer el núcleo familiar mediante servicios integrales.'}</p>
@@ -169,18 +168,18 @@
 <section class="section-shell section-alive">
   <div class="site-container">
     <div class="grid gap-8 lg:grid-cols-[0.8fr_1.2fr] lg:items-end">
-      <div>
+      <div data-aos="fade-up">
         <p class="eyebrow mb-4">Atención especializada</p>
         <h2 class="section-title text-primary-950">Apoyo integral para distintos momentos de la vida familiar</h2>
       </div>
-      <div class="lg:pb-1">
+      <div class="lg:pb-1" data-aos="fade-up" data-aos-delay="90">
         <p class="section-copy max-w-xl lg:ml-auto">Unimos distintas áreas de atención para que no tengas que navegar una situación compleja sin orientación.</p>
       </div>
     </div>
 
     <div class="mt-8 grid gap-5 md:grid-cols-3">
       {#each services.length > 0 ? services : defaultServices as service, i}
-        <article class="card-lift group flex flex-col rounded-2xl p-6">
+        <article class="card-lift group flex flex-col rounded-2xl p-6" data-aos="fade-up" data-aos-delay={String(i * 70)}>
           <div class="flex items-start justify-between gap-4">
             <span class="flex h-11 w-11 items-center justify-center rounded-xl {serviceTones[i % 3]}">
               <svelte:component this={serviceIcons[i % 3]} size={22} strokeWidth={1.9} />
@@ -199,14 +198,14 @@
 
 <section class="section-shell section-alive-alt">
   <div class="site-container">
-    <div class="mx-auto max-w-2xl text-center">
+    <div class="mx-auto max-w-2xl text-center" data-aos="fade-up">
       <p class="eyebrow mb-4">Cómo comenzar</p>
       <h2 class="section-title text-primary-950">Un proceso claro, humano y sin presión</h2>
       <p class="section-copy mt-4">Dar el primer paso puede sentirse difícil. Por eso simplificamos el camino para pedir orientación.</p>
     </div>
     <ol class="relative mt-8 grid gap-5 md:grid-cols-3">
-      {#each processSteps as step}
-        <li class="surface-card relative rounded-2xl p-6">
+      {#each processSteps as step, i}
+        <li class="surface-card relative rounded-2xl p-6" data-aos="fade-up" data-aos-delay={String(i * 70)}>
           <span class="text-sm font-extrabold text-accent-700">{step.number}</span>
           <svelte:component this={step.icon} class="mt-5 text-primary-600" size={27} strokeWidth={1.9} />
           <h3 class="mt-4 text-xl font-extrabold text-primary-950">{step.title}</h3>
@@ -220,7 +219,7 @@
 {#if communityImages.length > 0}
   <section class="section-shell section-alive">
     <div class="site-container grid items-center gap-10 lg:grid-cols-[0.68fr_1.32fr] lg:gap-16">
-      <div>
+      <div data-aos="fade-right">
         <p class="eyebrow mb-4">Nuestra comunidad</p>
         <h2 class="section-title text-primary-950">El apoyo también se construye juntos</h2>
         <p class="section-copy mt-4">Talleres, encuentros y actividades que crean vínculos y fortalecen a nuestra comunidad.</p>
@@ -237,7 +236,7 @@
         {/if}
       </div>
 
-      <div class="relative overflow-hidden rounded-[2rem] bg-slate-100 shadow-[0_24px_60px_rgba(21,50,78,0.16)]" role="region" aria-label="Galería de la comunidad" aria-live="polite">
+      <div class="relative overflow-hidden rounded-[2rem] bg-slate-100 shadow-[0_24px_60px_rgba(21,50,78,0.16)]" role="region" aria-label="Galería de la comunidad" aria-live="polite" data-aos="fade-left" data-aos-delay="90">
         <img
           src={getOptimizedImageUrl(communityImages[currentCommunityImage].src, 1280, { quality: 72 })}
           alt={communityImages[currentCommunityImage].alt || 'Actividad de la comunidad CAF'}
@@ -258,7 +257,7 @@
 <section class="bg-primary-950 py-12 text-white sm:py-14">
   <div class="site-container relative overflow-hidden rounded-[1.5rem] bg-gradient-to-br from-primary-800 to-accent-700 px-6 py-10 text-center sm:px-10 sm:py-12">
     <div class="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full border-[30px] border-white/10"></div>
-    <div class="relative mx-auto max-w-3xl">
+    <div class="relative mx-auto max-w-3xl" data-aos="fade-up">
       <p class="text-xs font-extrabold uppercase tracking-[0.16em] text-accent-100">Estamos para escucharte</p>
       <h2 class="mt-4 text-balance text-3xl font-extrabold tracking-[-0.035em] text-white sm:text-5xl">No tienes que resolverlo todo por tu cuenta</h2>
       <p class="mx-auto mt-5 max-w-2xl text-base leading-8 text-blue-50/90 sm:text-lg">Conversemos sobre tu situación y encontremos juntos el apoyo más adecuado para ti y tu familia.</p>
