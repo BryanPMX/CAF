@@ -1,7 +1,5 @@
 <script>
   import { ArrowRight, CalendarDays, Clock3, MapPin } from '@lucide/svelte';
-  import { fade, slide } from 'svelte/transition';
-  import { cubicOut } from 'svelte/easing';
   import PageHero from '$lib/components/PageHero.svelte';
   import { buildResponsiveSrcSet, getOptimizedImageUrl } from '$lib/utils/imageOptimizer.js';
   export let data;
@@ -25,7 +23,7 @@
 
 <PageHero eyebrow="Comunidad CAF" title="Espacios para aprender, crecer y conectar" description="Conoce nuestros próximos talleres, pláticas y actividades para familias y comunidad." />
 
-<section class="section-shell section-soft">
+<section class="section-shell section-alive-alt">
   <div class="site-container max-w-5xl">
     <h2 class="sr-only">Listado de eventos comunitarios</h2>
     {#if data.events.length > 0}
@@ -33,12 +31,13 @@
         {#each data.events as event, i}
           <div
             class="card-lift overflow-hidden rounded-2xl"
-            in:slide={{ duration: 600, delay: i * 100, easing: cubicOut }}
+            data-aos="fade-up"
+            data-aos-delay={String(Math.min(i * 70, 210))}
           >
             <div class="flex flex-col md:flex-row min-h-[180px]">
               <!-- Event image (from URL) -->
               {#if event.imageUrl && event.imageUrl.trim()}
-                <div class="md:w-48 lg:w-56 flex-shrink-0 bg-gray-100 min-h-[160px] md:min-h-[180px]">
+                <div class="media-zoom min-h-[160px] flex-shrink-0 bg-gray-100 md:min-h-[180px] md:w-48 lg:w-56">
                   <img
                     src={getOptimizedImageUrl(event.imageUrl, 640)}
                     alt={event.title || 'Evento'}
@@ -84,7 +83,7 @@
         {/each}
       </div>
     {:else}
-      <div class="surface-card rounded-2xl px-6 py-12 text-center" in:fade={{ duration: 800, easing: cubicOut }}>
+      <div class="surface-card rounded-2xl px-6 py-12 text-center" data-aos="zoom-in-up">
         <div class="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-primary-50 text-primary-600">
           <CalendarDays size={38} strokeWidth={1.6} />
         </div>

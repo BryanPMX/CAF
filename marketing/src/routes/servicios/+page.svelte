@@ -1,7 +1,5 @@
 <script>
   import { ArrowRight, CheckCircle2 } from '@lucide/svelte';
-  import { slide } from 'svelte/transition';
-  import { cubicOut } from 'svelte/easing';
   import PageHero from '$lib/components/PageHero.svelte';
   import { buildResponsiveSrcSet, getOptimizedImageUrl } from '$lib/utils/imageOptimizer.js';
   export let data;
@@ -18,7 +16,7 @@
 
 <section class="section-shell section-soft">
   <div class="site-container">
-    <div class="mx-auto max-w-3xl text-center">
+    <div class="mx-auto max-w-3xl text-center" data-aos="fade-up">
       <p class="eyebrow mb-4">Cómo podemos ayudarte</p>
       <h2 class="section-title text-primary-950">Atención coordinada, clara y centrada en tu familia</h2>
       <p class="section-copy mt-4">Cada situación es distinta. Nuestro equipo escucha tus necesidades y te ayuda a identificar el servicio más adecuado.</p>
@@ -27,9 +25,10 @@
       {#each data.services as service, i}
         <div
           class="card-lift grid items-center gap-7 overflow-hidden rounded-2xl p-5 md:grid-cols-2 md:p-6 lg:gap-10"
-          in:slide={{ duration: 600, delay: i * 150, easing: cubicOut }}
+          data-aos={i % 2 === 0 ? 'fade-right' : 'fade-left'}
+          data-aos-delay={String(Math.min(i * 70, 210))}
         >
-          <div class:md:order-2={i % 2 !== 0}>
+          <div class="media-zoom overflow-hidden rounded-2xl" class:md:order-2={i % 2 !== 0}>
             {#if service.imageUrl}
               <img
                 src={getOptimizedImageUrl(service.imageUrl, 960)}
@@ -38,7 +37,7 @@
                 height="900"
                 srcset={buildResponsiveSrcSet(service.imageUrl, [480, 640, 768, 960, 1200]) || undefined}
                 sizes="(max-width: 768px) 100vw, 50vw"
-                class="h-64 w-full rounded-2xl object-cover md:h-80"
+                class="h-64 w-full object-cover md:h-80"
                 loading="lazy"
                 decoding="async"
               />
@@ -69,8 +68,8 @@
   </div>
 </section>
 
-<section class="bg-primary-950 py-16 text-white">
-  <div class="site-container text-center">
+<section class="cta-live bg-primary-950 py-16 text-white">
+  <div class="site-container relative z-10 text-center" data-aos="zoom-in-up">
     <h2 class="text-3xl font-extrabold tracking-[-0.03em] text-white sm:text-4xl">¿No sabes por dónde comenzar?</h2>
     <p class="mx-auto mt-4 max-w-xl leading-7 text-blue-100/85">Cuéntanos tu situación. Te ayudaremos a identificar el apoyo más adecuado.</p>
     <a href="/contacto" class="button-light mt-8 inline-flex">
