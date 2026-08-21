@@ -1,5 +1,6 @@
 <script>
   import { onMount } from 'svelte';
+  import { listenForMediaChange } from '$lib/utils/mediaQuery.js';
 
   const BACKGROUND_ID = 'caf-live-background-particles';
   const ENGINE_PROMISE_KEY = '__cafTsParticlesSlimReady';
@@ -27,19 +28,19 @@
     return window[ENGINE_PROMISE_KEY];
   }
 
-  function createOptions(isMobile) {
+  function createOptions() {
     return {
       fullScreen: { enable: false },
       background: { color: { value: 'transparent' } },
-      detectRetina: !isMobile,
-      fpsLimit: isMobile ? 28 : 42,
+      detectRetina: false,
+      fpsLimit: 36,
       pauseOnBlur: true,
       pauseOnOutsideViewport: true,
       interactivity: {
         detectsOn: 'window',
         events: {
           onClick: { enable: true, mode: 'push' },
-          onHover: { enable: !isMobile, mode: ['grab', 'repulse'] },
+          onHover: { enable: true, mode: ['grab', 'repulse'] },
           resize: true
         },
         modes: {
@@ -47,7 +48,7 @@
             distance: 185,
             links: { opacity: 0.56 }
           },
-          push: { quantity: isMobile ? 2 : 4 },
+          push: { quantity: 3 },
           repulse: { distance: 95, duration: 0.35 }
         }
       },
@@ -56,20 +57,20 @@
         links: {
           enable: true,
           color: '#67a9c8',
-          distance: isMobile ? 112 : 158,
-          opacity: isMobile ? 0.18 : 0.25,
+          distance: 152,
+          opacity: 0.22,
           width: 1.1
         },
         move: {
           enable: true,
-          speed: isMobile ? 0.46 : 0.72,
+          speed: 0.58,
           direction: 'none',
           random: true,
           straight: false,
           outModes: { default: 'out' }
         },
         number: {
-          value: isMobile ? 34 : 64,
+          value: 48,
           density: { enable: true, width: 1280, height: 800 }
         },
         opacity: {
@@ -78,7 +79,7 @@
         },
         shape: { type: 'circle' },
         size: {
-          value: { min: 1.4, max: isMobile ? 3.2 : 4.2 },
+          value: { min: 1.4, max: 3.8 },
           animation: { enable: true, speed: 0.62, sync: false }
         }
       }
@@ -88,30 +89,92 @@
   onMount(() => {
     let disposed = false;
     let particleContainer;
+    let initializationRun = 0;
+    let idleHandle;
+    let fallbackTimer;
+    const reducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const desktopQuery = window.matchMedia('(min-width: 1024px)');
+    const connection = navigator.connection;
 
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      return;
+    function canRunParticles() {
+      return desktopQuery.matches && !reducedMotionQuery.matches && !connection?.saveData && !document.hidden;
     }
 
-    const isMobile = window.matchMedia('(max-width: 767px)').matches;
+    function cancelScheduledInitialization() {
+      if (idleHandle !== undefined && 'cancelIdleCallback' in window) {
+        window.cancelIdleCallback(idleHandle);
+      }
+      if (fallbackTimer !== undefined) window.clearTimeout(fallbackTimer);
+      idleHandle = undefined;
+      fallbackTimer = undefined;
+    }
 
-    async function initializeParticles() {
+    async function initializeParticles(run) {
       const tsParticles = await getParticlesEngine();
-      if (disposed || !host) return;
+      if (disposed || run !== initializationRun || !host || !canRunParticles()) return;
 
-      particleContainer = await tsParticles.load({
+      const nextContainer = await tsParticles.load({
         id: BACKGROUND_ID,
         element: host,
-        options: createOptions(isMobile)
+        options: createOptions()
       });
+
+      if (disposed || run !== initializationRun || !canRunParticles()) {
+        nextContainer?.destroy();
+        return;
+      }
+
+      particleContainer = nextContainer;
     }
 
-    void initializeParticles().catch((error) => {
-      console.warn('Live background could not be initialized:', error);
-    });
+    function refreshParticles() {
+      const run = ++initializationRun;
+      cancelScheduledInitialization();
+      particleContainer?.destroy();
+      particleContainer = undefined;
+
+      if (!canRunParticles()) return;
+
+      const start = () => {
+        idleHandle = undefined;
+        fallbackTimer = undefined;
+        void initializeParticles(run).catch((error) => {
+          console.warn('Live background could not be initialized:', error);
+        });
+      };
+
+      if ('requestIdleCallback' in window) {
+        idleHandle = window.requestIdleCallback(start, { timeout: 1200 });
+      } else {
+        fallbackTimer = window.setTimeout(start, 320);
+      }
+    }
+
+    function handleVisibilityChange() {
+      if (document.hidden) {
+        cancelScheduledInitialization();
+        particleContainer?.pause?.();
+      } else if (particleContainer) {
+        void particleContainer.play?.();
+      } else {
+        refreshParticles();
+      }
+    }
+
+    const stopReducedMotionListener = listenForMediaChange(reducedMotionQuery, refreshParticles);
+    const stopDesktopListener = listenForMediaChange(desktopQuery, refreshParticles);
+    connection?.addEventListener?.('change', refreshParticles);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    refreshParticles();
 
     return () => {
       disposed = true;
+      initializationRun += 1;
+      cancelScheduledInitialization();
+      stopReducedMotionListener();
+      stopDesktopListener();
+      connection?.removeEventListener?.('change', refreshParticles);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       particleContainer?.destroy();
     };
   });
