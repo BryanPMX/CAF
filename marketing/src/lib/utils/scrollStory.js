@@ -20,6 +20,186 @@ async function loadScrollEngine() {
   return enginePromise;
 }
 
+function createMobileReveal(gsap, target, options = {}) {
+  if (!target) return;
+
+  const {
+    x = 0,
+    y = 72,
+    scale = 0.94,
+    rotate = 0,
+    start = 'top 94%',
+    end = 'top 60%',
+    dissolve = true
+  } = options;
+
+  gsap.fromTo(target,
+    { x, y, scale, rotate, autoAlpha: 0 },
+    {
+      x: 0,
+      y: 0,
+      scale: 1,
+      rotate: 0,
+      autoAlpha: 1,
+      ease: 'none',
+      scrollTrigger: {
+        trigger: target,
+        start,
+        end,
+        scrub: 0.55,
+        invalidateOnRefresh: true
+      }
+    }
+  );
+
+  if (dissolve) {
+    gsap.to(target, {
+      y: -26,
+      scale: 0.98,
+      autoAlpha: 0.16,
+      ease: 'none',
+      scrollTrigger: {
+        trigger: target,
+        start: 'bottom 26%',
+        end: 'bottom 3%',
+        scrub: 0.45,
+        invalidateOnRefresh: true
+      }
+    });
+  }
+}
+
+function createMobileScrollStory(gsap, story) {
+  const hero = story.querySelector('[data-scroll-scene="hero"]');
+  const heroCopy = hero?.querySelector('[data-story-role="hero-copy"]');
+  const heroVisual = hero?.querySelector('[data-story-role="hero-visual"]');
+
+  if (hero && heroCopy && heroVisual) {
+    gsap.timeline({
+      scrollTrigger: {
+        trigger: hero,
+        start: 'top top',
+        end: 'bottom 42%',
+        scrub: 0.55,
+        invalidateOnRefresh: true
+      }
+    })
+      .to(heroCopy, { y: -68, scale: 0.95, autoAlpha: 0.08, ease: 'none' }, 0)
+      .to(heroVisual, { y: 52, scale: 0.92, autoAlpha: 0.26, ease: 'none' }, 0);
+  }
+
+  const bridgeItems = story.querySelectorAll('[data-story-role="bridge-item"]');
+  bridgeItems.forEach((item, index) => {
+    createMobileReveal(gsap, item, {
+      x: index % 2 === 0 ? -28 : 28,
+      y: 24,
+      scale: 0.97,
+      end: 'top 76%',
+      dissolve: false
+    });
+  });
+
+  const narrativeScenes = story.querySelectorAll('.section-shell[data-scroll-scene]');
+  narrativeScenes.forEach((scene) => {
+    gsap.timeline({
+      scrollTrigger: {
+        trigger: scene,
+        start: 'top 98%',
+        end: 'top 58%',
+        scrub: 0.45,
+        invalidateOnRefresh: true
+      }
+    })
+      .fromTo(scene,
+        { '--story-sweep-x': '-26%', '--story-sweep-opacity': 0 },
+        { '--story-sweep-x': '0%', '--story-sweep-opacity': 1, ease: 'none', duration: 0.48 }
+      )
+      .to(scene,
+        { '--story-sweep-x': '26%', '--story-sweep-opacity': 0, ease: 'none', duration: 0.52 }
+      );
+  });
+
+  createMobileReveal(gsap, story.querySelector('[data-story-role="about-visual"]'), {
+    x: -42,
+    rotate: -2,
+    scale: 0.9
+  });
+  createMobileReveal(gsap, story.querySelector('[data-story-role="about-copy"]'), {
+    x: 34,
+    y: 52,
+    scale: 0.97
+  });
+
+  story.querySelectorAll('[data-story-role="services-heading"]').forEach((heading, index) => {
+    createMobileReveal(gsap, heading, {
+      x: index === 0 ? -30 : 30,
+      y: 48,
+      scale: 0.97
+    });
+  });
+
+  story.querySelectorAll('[data-story-role="service-card"]').forEach((card, index) => {
+    createMobileReveal(gsap, card, {
+      x: index % 2 === 0 ? -34 : 34,
+      y: 76,
+      rotate: index % 2 === 0 ? -1.5 : 1.5,
+      scale: 0.91,
+      end: 'top 62%'
+    });
+  });
+
+  createMobileReveal(gsap, story.querySelector('[data-story-role="process-heading"]'), {
+    y: 58,
+    scale: 0.9
+  });
+  story.querySelectorAll('[data-story-role="process-step"]').forEach((step, index) => {
+    createMobileReveal(gsap, step, {
+      x: index % 2 === 0 ? -38 : 38,
+      y: 70,
+      scale: 0.9,
+      end: 'top 62%'
+    });
+  });
+
+  createMobileReveal(gsap, story.querySelector('[data-story-role="community-copy"]'), {
+    x: -38,
+    y: 52,
+    scale: 0.96
+  });
+  createMobileReveal(gsap, story.querySelector('[data-story-role="community-visual"]'), {
+    x: 38,
+    y: 62,
+    scale: 0.9
+  });
+
+  const ctaContent = story.querySelector('[data-story-role="cta-content"]');
+  const ctaRing = story.querySelector('[data-story-role="cta-ring"]');
+  createMobileReveal(gsap, ctaContent, {
+    y: 88,
+    scale: 0.86,
+    end: 'top 56%',
+    dissolve: false
+  });
+  if (ctaRing) {
+    gsap.fromTo(ctaRing,
+      { rotate: -42, scale: 0.68, autoAlpha: 0.08 },
+      {
+        rotate: 28,
+        scale: 1.12,
+        autoAlpha: 1,
+        ease: 'none',
+        scrollTrigger: {
+          trigger: ctaRing,
+          start: 'top 96%',
+          end: 'top 48%',
+          scrub: 0.55,
+          invalidateOnRefresh: true
+        }
+      }
+    );
+  }
+}
+
 /**
  * Creates the curated Inicio scroll narrative and returns a cleanup function.
  * Each scene owns its animation so route changes can revert every inline style.
@@ -42,6 +222,12 @@ export async function initializeScrollStory(root = document) {
       },
       ({ conditions }) => {
         const isDesktop = conditions.desktop;
+
+        if (!isDesktop) {
+          createMobileScrollStory(gsap, story);
+          return;
+        }
+
         const scrub = isDesktop ? 0.8 : 0.45;
         const entranceStart = isDesktop ? 'top 88%' : 'top 92%';
         const entranceEnd = isDesktop ? 'top 30%' : 'top 48%';

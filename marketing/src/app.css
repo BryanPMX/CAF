@@ -190,6 +190,19 @@
   }
 }
 
+@media (max-width: 767px) {
+  .scroll-story .section-shell[data-scroll-scene]::after {
+    top: -3rem;
+    height: 8rem;
+    filter: blur(9px);
+  }
+
+  .scroll-story [data-story-role="service-card"],
+  .scroll-story [data-story-role="process-step"] {
+    transform-origin: center bottom;
+  }
+}
+
 .section-shell::before {
   content: '';
   position: absolute;
