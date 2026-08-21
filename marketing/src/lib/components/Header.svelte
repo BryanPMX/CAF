@@ -14,8 +14,8 @@
 
 <header class="header-shell sticky top-0 z-50">
   <nav class="site-container flex min-h-[4.75rem] items-center gap-5" aria-label="Navegación principal">
-    <a href="/" class="flex min-w-0 items-center gap-3" on:click={() => mobileMenuOpen = false} aria-label="CAF, ir al inicio">
-      <span class="flex h-12 w-[4.8rem] shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+    <a href="/" class="brand-link flex min-w-0 items-center gap-3" on:click={() => mobileMenuOpen = false} aria-label="CAF, ir al inicio">
+      <span class="brand-mark flex h-12 w-[4.8rem] shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
         <img src="/logo-header.webp" alt="" width="160" height="157" class="h-full w-full object-cover" />
       </span>
       <span class="hidden min-w-0 lg:block">
@@ -44,7 +44,7 @@
     </a>
 
     <button
-      class="touch-target ml-auto inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white text-primary-950 shadow-sm md:hidden"
+      class="menu-trigger touch-target ml-auto inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white text-primary-950 shadow-sm md:hidden"
       on:click={() => mobileMenuOpen = !mobileMenuOpen}
       aria-label={mobileMenuOpen ? 'Cerrar menú' : 'Abrir menú'}
       aria-expanded={mobileMenuOpen}

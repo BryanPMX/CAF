@@ -1,12 +1,9 @@
 <script>
-  import 'aos/dist/aos.css';
-  import { onMount } from 'svelte';
   import {
     ArrowLeft, ArrowRight, CheckCircle2, Eye, HandHeart, HeartHandshake,
     MessageCircle, Scale, ShieldCheck, Sparkles, Target, UsersRound
   } from '@lucide/svelte';
   import { buildResponsiveSrcSet, getOptimizedImageUrl } from '$lib/utils/imageOptimizer.js';
-  import { initializeAos } from '$lib/utils/aosClient.js';
 
   export let data;
 
@@ -36,10 +33,6 @@
     { icon: HandHeart, number: '03', title: 'Avanza con acompañamiento', copy: 'Te conectamos con el servicio adecuado para continuar tu proceso.' },
   ];
   let currentCommunityImage = 0;
-
-  onMount(() => {
-    void initializeAos();
-  });
 
   function previousImage() {
     currentCommunityImage = (currentCommunityImage - 1 + communityImages.length) % communityImages.length;
@@ -254,7 +247,7 @@
   </section>
 {/if}
 
-<section class="bg-primary-950 py-12 text-white sm:py-14">
+<section class="cta-live bg-primary-950 py-12 text-white sm:py-14">
   <div class="site-container relative overflow-hidden rounded-[1.5rem] bg-gradient-to-br from-primary-800 to-accent-700 px-6 py-10 text-center sm:px-10 sm:py-12">
     <div class="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full border-[30px] border-white/10"></div>
     <div class="relative mx-auto max-w-3xl" data-aos="fade-up">

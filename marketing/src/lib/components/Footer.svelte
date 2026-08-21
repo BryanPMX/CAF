@@ -8,7 +8,7 @@
   <div class="pointer-events-none absolute -right-32 -top-44 h-96 w-96 rounded-full bg-accent-500/10 blur-3xl"></div>
   <div class="site-container relative py-14 sm:py-16">
     <div class="grid gap-12 border-b border-white/10 pb-12 md:grid-cols-[1.35fr_0.7fr_1fr] md:gap-10">
-      <div class="max-w-md">
+      <div class="max-w-md" data-aos="fade-up">
         <a href="/" class="inline-flex items-center gap-3" aria-label="CAF, ir al inicio">
           <span class="flex h-14 w-20 items-center justify-center overflow-hidden rounded-xl bg-white shadow-lg">
             <img src="/logo-header.webp" alt="" width="160" height="157" class="h-full w-full object-cover" loading="lazy" />
@@ -21,7 +21,7 @@
         </p>
       </div>
 
-      <div>
+      <div data-aos="fade-up" data-aos-delay="70">
         <h2 class="text-xs font-extrabold uppercase tracking-[0.14em] text-white">Explorar</h2>
         <ul class="mt-5 space-y-3 text-sm">
           {#each primaryNavigation as link}
@@ -30,7 +30,7 @@
         </ul>
       </div>
 
-      <div>
+      <div data-aos="fade-up" data-aos-delay="140">
         <h2 class="text-xs font-extrabold uppercase tracking-[0.14em] text-white">Contacto</h2>
         <ul class="mt-5 space-y-4 text-sm text-slate-300">
           <li class="flex items-start gap-3">
@@ -52,7 +52,7 @@
       </div>
     </div>
 
-    <div class="flex flex-col gap-2 pt-6 text-xs text-slate-400 sm:flex-row sm:items-center sm:justify-between">
+    <div class="flex flex-col gap-2 pt-6 text-xs text-slate-400 sm:flex-row sm:items-center sm:justify-between" data-aos="fade-up">
       <p>&copy; {new Date().getFullYear()} {config.site.name}</p>
       <p>Tu tranquilidad es nuestra misión.</p>
     </div>
