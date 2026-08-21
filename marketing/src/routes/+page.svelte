@@ -119,10 +119,6 @@
       <div class="hero-visual-ring absolute -right-4 -top-4 -z-10 h-24 w-24 rounded-full border-[18px] sm:-right-7 sm:-top-7 sm:h-32 sm:w-32"></div>
     </div>
   </div>
-  <div class="story-scroll-cue" data-story-role="hero-cue" aria-hidden="true">
-    <span>Descubre</span>
-    <span class="story-scroll-cue__track"><span></span></span>
-  </div>
 </section>
 
 <section class="home-trust-bar border-y py-4" data-scroll-scene="bridge">

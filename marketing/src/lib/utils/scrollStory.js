@@ -50,7 +50,6 @@ export async function initializeScrollStory(root = document) {
         const hero = story.querySelector('[data-scroll-scene="hero"]');
         const heroCopy = hero?.querySelector('[data-story-role="hero-copy"]');
         const heroVisual = hero?.querySelector('[data-story-role="hero-visual"]');
-        const heroCue = hero?.querySelector('[data-story-role="hero-cue"]');
 
         if (hero && heroCopy && heroVisual) {
           gsap.timeline({
@@ -73,11 +72,6 @@ export async function initializeScrollStory(root = document) {
               scale: isDesktop ? 0.88 : 0.94,
               autoAlpha: 0.34,
               filter: isDesktop ? 'blur(4px)' : 'blur(0px)',
-              ease: 'none'
-            }, 0)
-            .to(heroCue, {
-              y: 22,
-              autoAlpha: 0,
               ease: 'none'
             }, 0);
         }
