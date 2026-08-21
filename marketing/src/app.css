@@ -202,7 +202,7 @@
     transform-origin: center bottom;
   }
 
-  .mobile-story-enabled [data-story-role]:not([data-story-role="hero-copy"]):not([data-story-role="hero-visual"]) {
+  .mobile-story-enabled :where([data-story-role]:not([data-story-role="hero-copy"]):not([data-story-role="hero-visual"])) {
     opacity: 0;
     transform: translate3d(0, 4.5rem, 0) scale(0.93);
     transition:
@@ -250,7 +250,7 @@
     transform: translate3d(18%, 0, 0) skewY(-2deg);
   }
 
-  .mobile-story-reduced [data-story-role]:not([data-story-role="hero-copy"]):not([data-story-role="hero-visual"]) {
+  .mobile-story-reduced :where([data-story-role]:not([data-story-role="hero-copy"]):not([data-story-role="hero-visual"])) {
     transform: none;
     transition-duration: 380ms;
   }
@@ -827,7 +827,7 @@
     transform: none !important;
   }
 
-  .mobile-story-reduced [data-story-role]:not([data-story-role="hero-copy"]):not([data-story-role="hero-visual"]) {
+  .mobile-story-reduced :where([data-story-role]:not([data-story-role="hero-copy"]):not([data-story-role="hero-visual"])) {
     transition-property: opacity !important;
     transition-duration: 240ms !important;
   }
