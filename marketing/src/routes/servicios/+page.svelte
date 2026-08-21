@@ -14,9 +14,9 @@
 
 <PageHero eyebrow="Acompañamiento integral" title="Servicios para cada etapa de tu proceso" description="Orientación legal, apoyo psicológico y asistencia social reunidos en un mismo espacio de confianza." />
 
-<section class="section-shell section-soft">
+<section class="section-shell section-soft" data-motion-scene="services-list">
   <div class="site-container">
-    <div class="mx-auto max-w-3xl text-center" data-aos="fade-up">
+    <div class="mx-auto max-w-3xl text-center" data-motion="scale" data-motion-exit="dissolve">
       <p class="eyebrow mb-4">Cómo podemos ayudarte</p>
       <h2 class="section-title text-primary-950">Atención coordinada, clara y centrada en tu familia</h2>
       <p class="section-copy mt-4">Cada situación es distinta. Nuestro equipo escucha tus necesidades y te ayuda a identificar el servicio más adecuado.</p>
@@ -25,8 +25,8 @@
       {#each data.services as service, i}
         <div
           class="card-lift grid items-center gap-7 overflow-hidden rounded-2xl p-5 md:grid-cols-2 md:p-6 lg:gap-10"
-          data-aos={i % 2 === 0 ? 'fade-right' : 'fade-left'}
-          data-aos-delay={String(Math.min(i * 70, 210))}
+          data-motion={i % 2 === 0 ? 'left' : 'right'}
+          data-motion-order={Math.min(i, 3)}
         >
           <div class="media-zoom overflow-hidden rounded-2xl" class:md:order-2={i % 2 !== 0}>
             {#if service.imageUrl}
@@ -68,8 +68,8 @@
   </div>
 </section>
 
-<section class="cta-live bg-primary-950 py-16 text-white">
-  <div class="site-container relative z-10 text-center" data-aos="zoom-in-up">
+<section class="cta-live bg-primary-950 py-16 text-white" data-motion-scene="services-cta">
+  <div class="site-container relative z-10 text-center" data-motion="scale">
     <h2 class="text-3xl font-extrabold tracking-[-0.03em] text-white sm:text-4xl">¿No sabes por dónde comenzar?</h2>
     <p class="mx-auto mt-4 max-w-xl leading-7 text-blue-100/85">Cuéntanos tu situación. Te ayudaremos a identificar el apoyo más adecuado.</p>
     <a href="/contacto" class="button-light mt-8 inline-flex">

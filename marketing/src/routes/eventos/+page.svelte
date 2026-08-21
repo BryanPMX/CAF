@@ -23,7 +23,7 @@
 
 <PageHero eyebrow="Comunidad CAF" title="Espacios para aprender, crecer y conectar" description="Conoce nuestros próximos talleres, pláticas y actividades para familias y comunidad." />
 
-<section class="section-shell section-alive-alt">
+<section class="section-shell section-alive-alt" data-motion-scene="events-list">
   <div class="site-container max-w-5xl">
     <h2 class="sr-only">Listado de eventos comunitarios</h2>
     {#if data.events.length > 0}
@@ -31,8 +31,8 @@
         {#each data.events as event, i}
           <div
             class="card-lift overflow-hidden rounded-2xl"
-            data-aos="fade-up"
-            data-aos-delay={String(Math.min(i * 70, 210))}
+            data-motion="rise"
+            data-motion-order={Math.min(i, 3)}
           >
             <div class="flex flex-col md:flex-row min-h-[180px]">
               <!-- Event image (from URL) -->
@@ -83,7 +83,7 @@
         {/each}
       </div>
     {:else}
-      <div class="surface-card rounded-2xl px-6 py-12 text-center" data-aos="zoom-in-up">
+      <div class="surface-card rounded-2xl px-6 py-12 text-center" data-motion="scale">
         <div class="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-primary-50 text-primary-600">
           <CalendarDays size={38} strokeWidth={1.6} />
         </div>

@@ -143,10 +143,10 @@
 
 <PageHero eyebrow="Estamos para escucharte" title="Dar el primer paso puede ser más sencillo" description="Encuentra la oficina más cercana o envíanos un mensaje. Nuestro equipo te orientará con respeto y confidencialidad." />
 
-<section class="section-shell section-soft">
+<section class="section-shell section-soft" data-motion-scene="contact-primary">
   <div class="site-container">
     <div class="grid gap-7 lg:grid-cols-[0.92fr_1.08fr] lg:gap-10">
-      <div data-aos="fade-right">
+      <div data-motion="fade">
         <p class="eyebrow mb-4"><MapPin size={14} /> Ubicaciones</p>
         <h2 class="mb-5 text-3xl font-extrabold tracking-[-0.03em] text-primary-950">Encuentra tu oficina CAF</h2>
         <div class="surface-card overflow-hidden rounded-2xl">
@@ -154,7 +154,7 @@
         </div>
       </div>
 
-      <div data-aos="fade-left" data-aos-delay="90">
+      <div data-motion="fade" data-motion-order="1">
         <p class="eyebrow mb-4"><Mail size={14} /> Mensaje directo</p>
         <h2 class="mb-5 text-3xl font-extrabold tracking-[-0.03em] text-primary-950">Cuéntanos cómo podemos ayudarte</h2>
         <form id="form" class="surface-card space-y-4 rounded-2xl p-6" on:submit={handleSubmit}>
@@ -247,8 +247,8 @@
       </div>
     </div>
 
-    <div class="mt-12">
-      <div class="mx-auto mb-7 max-w-2xl text-center" data-aos="fade-up">
+    <div class="mt-12" data-motion-scene="office-directory">
+      <div class="mx-auto mb-7 max-w-2xl text-center" data-motion="scale" data-motion-exit="dissolve">
         <p class="eyebrow mb-4">Directorio</p>
         <h2 class="text-3xl font-extrabold tracking-[-0.03em] text-primary-950">Todas nuestras oficinas</h2>
       </div>
@@ -259,8 +259,8 @@
           {#each offices as office, i}
             <div
               class="card-lift rounded-2xl p-5"
-              data-aos="fade-up"
-              data-aos-delay={String(Math.min(i * 60, 180))}
+              data-motion="rise"
+              data-motion-order={Math.min(i, 3)}
             >
               <div class="flex items-start gap-3 mb-4">
                 <div class="w-10 h-10 bg-primary-100 text-primary-600 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -322,13 +322,13 @@
       {/if}
     </div>
 
-    <div class="mx-auto mt-9 grid max-w-3xl gap-4 sm:grid-cols-2">
-      <a href="mailto:{config.contact.email}" class="card-lift rounded-2xl p-5 text-center" data-aos="fade-right">
+    <div class="mx-auto mt-9 grid max-w-3xl gap-4 sm:grid-cols-2" data-motion-scene="contact-details">
+      <a href="mailto:{config.contact.email}" class="card-lift rounded-2xl p-5 text-center" data-motion="left">
         <Mail class="mx-auto text-primary-600" size={26} />
         <span class="mt-4 block text-xs font-extrabold uppercase tracking-[0.14em] text-slate-400">Correo oficial</span>
         <span class="mt-2 block break-all text-sm font-bold text-primary-700">{config.contact.email}</span>
       </a>
-      <div class="surface-card rounded-2xl p-5 text-center" data-aos="fade-left" data-aos-delay="80">
+      <div class="surface-card rounded-2xl p-5 text-center" data-motion="right" data-motion-order="1">
         <ShieldCheck class="mx-auto text-accent-600" size={26} />
         <span class="mt-4 block text-xs font-extrabold uppercase tracking-[0.14em] text-slate-400">Privacidad</span>
         <span class="mt-2 block text-sm font-bold text-primary-950">Atención respetuosa y confidencial</span>

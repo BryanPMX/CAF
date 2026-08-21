@@ -71,9 +71,9 @@
   });
 </script>
 
-<section class="section-shell section-soft px-6">
+<section class="section-shell section-soft px-6" data-motion-scene="payment-return">
   <div class="mx-auto max-w-3xl">
-    <div class="glass-panel rounded-3xl p-6 sm:p-8" data-aos="zoom-in-up">
+    <div class="glass-panel rounded-3xl p-6 sm:p-8" data-motion="scale">
       <div class="mb-6 flex flex-wrap items-center gap-3">
         <span class="inline-flex items-center rounded-full border border-blue-200/70 bg-white/80 px-3 py-1 text-xs font-semibold text-blue-800">
           {badge}
