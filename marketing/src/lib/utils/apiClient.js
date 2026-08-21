@@ -90,11 +90,16 @@ class ApiClient {
 
   // Health check (uses fetch directly so 404 = no health endpoint, treat as OK)
   async healthCheck() {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), this.timeout);
+
     try {
-      const res = await fetch(`${this.baseURL}/health`, { method: 'GET', signal: AbortSignal.timeout(this.timeout) });
+      const res = await fetch(`${this.baseURL}/health`, { method: 'GET', signal: controller.signal });
       return res.ok || res.status === 404;
     } catch {
       return false;
+    } finally {
+      clearTimeout(timeoutId);
     }
   }
 }
