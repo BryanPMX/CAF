@@ -1,9 +1,12 @@
 <script>
+  import 'aos/dist/aos.css';
+  import { onMount } from 'svelte';
   import {
     ArrowLeft, ArrowRight, CheckCircle2, Eye, HandHeart, HeartHandshake,
     MessageCircle, Scale, ShieldCheck, Sparkles, Target, UsersRound
   } from '@lucide/svelte';
   import { buildResponsiveSrcSet, getOptimizedImageUrl } from '$lib/utils/imageOptimizer.js';
+  import { initializeAos } from '$lib/utils/aosClient.js';
 
   export let data;
 
@@ -34,6 +37,10 @@
   ];
   let currentCommunityImage = 0;
 
+  onMount(() => {
+    void initializeAos();
+  });
+
   function previousImage() {
     currentCommunityImage = (currentCommunityImage - 1 + communityImages.length) % communityImages.length;
   }
@@ -48,25 +55,30 @@
   <meta name="description" content="Acompañamiento legal, psicológico y social para familias. Un espacio profesional, cercano y confidencial." />
 </svelte:head>
 
-<section class="relative isolate overflow-hidden bg-white">
-  <div class="pointer-events-none absolute inset-y-0 right-0 -z-10 hidden w-[43%] bg-primary-950 lg:block"></div>
-  <div class="pointer-events-none absolute -left-28 top-10 -z-10 h-72 w-72 rounded-full bg-primary-100/70 blur-3xl"></div>
-  <div class="site-container grid min-h-[clamp(34rem,68vh,43rem)] items-center gap-8 py-10 lg:grid-cols-[1.03fr_0.97fr] lg:gap-12 lg:py-12">
-    <div class="reveal-up max-w-2xl lg:text-center">
-      <p class="eyebrow mb-4 lg:mx-auto"><Sparkles size={14} /> Acompañamiento integral</p>
-      <h1 class="text-balance text-[clamp(2.7rem,6vw,4.5rem)] font-extrabold leading-[1.02] tracking-[-0.05em] text-primary-950">
+<section class="home-hero relative isolate overflow-hidden">
+  <div class="hero-atmosphere pointer-events-none absolute inset-0 z-0" aria-hidden="true">
+    <span class="hero-gradient hero-gradient--blue"></span>
+    <span class="hero-gradient hero-gradient--teal"></span>
+    <span class="hero-particle-field"></span>
+  </div>
+  <div class="pointer-events-none absolute inset-y-0 right-0 z-[1] hidden w-[43%] bg-primary-950/95 lg:block"></div>
+  <div class="pointer-events-none absolute -left-28 top-10 z-[2] h-72 w-72 rounded-full bg-primary-100/60 blur-3xl"></div>
+  <div class="site-container relative z-10 grid min-h-[clamp(34rem,68vh,43rem)] items-center gap-8 py-10 lg:grid-cols-[1.03fr_0.97fr] lg:gap-12 lg:py-12">
+    <div class="max-w-2xl lg:text-center">
+      <p class="eyebrow mb-4 lg:mx-auto" data-aos="fade-down"><Sparkles size={14} /> Acompañamiento integral</p>
+      <h1 class="text-balance text-[clamp(2.7rem,6vw,4.5rem)] font-extrabold leading-[1.02] tracking-[-0.05em] text-primary-950" data-aos="fade-up" data-aos-delay="70">
         {hero.title || 'Fortaleciendo familias, construyendo comunidad'}
       </h1>
-      <p class="mt-5 max-w-xl text-pretty text-lg leading-8 text-slate-600 sm:text-xl lg:mx-auto">
+      <p class="mt-5 max-w-xl text-pretty text-lg leading-8 text-slate-600 sm:text-xl lg:mx-auto" data-aos="fade-up" data-aos-delay="140">
         {hero.subtitle || 'Acompañamiento legal, psicológico y social con la cercanía que tu familia necesita.'}
       </p>
-      <div class="mt-7 flex flex-col gap-3 sm:flex-row lg:justify-center">
+      <div class="mt-7 flex flex-col gap-3 sm:flex-row lg:justify-center" data-aos="fade-up" data-aos-delay="210">
         <a href="/contacto" class="button-primary inline-flex">Hablar con el equipo <ArrowRight size={18} /></a>
         <a href="/servicios" class="button-secondary inline-flex">Conocer los servicios</a>
       </div>
     </div>
 
-    <div class="relative lg:pl-4">
+    <div class="relative lg:pl-4" data-aos="fade-left" data-aos-delay="160" data-aos-duration="820">
       <div class="relative overflow-hidden rounded-[2rem] bg-primary-100 shadow-[0_32px_80px_rgba(16,41,70,0.25)] lg:rounded-[2.5rem]">
         {#if heroSlides[0]}
           <img
@@ -98,9 +110,9 @@
 
 <section class="border-y border-slate-200 bg-primary-950 py-4 text-white">
   <div class="site-container grid gap-5 text-center sm:grid-cols-3 sm:text-left">
-    <div class="flex items-center justify-center gap-3 sm:justify-start"><Scale class="text-primary-300" size={22} /><span class="text-sm font-bold">Orientación profesional</span></div>
-    <div class="flex items-center justify-center gap-3 sm:justify-start"><HeartHandshake class="text-warm-200" size={22} /><span class="text-sm font-bold">Trato cercano y respetuoso</span></div>
-    <div class="flex items-center justify-center gap-3 sm:justify-start"><ShieldCheck class="text-accent-300" size={22} /><span class="text-sm font-bold">Privacidad en cada consulta</span></div>
+    <div class="flex items-center justify-center gap-3 sm:justify-start" data-aos="fade-up"><Scale class="text-primary-300" size={22} /><span class="text-sm font-bold">Orientación profesional</span></div>
+    <div class="flex items-center justify-center gap-3 sm:justify-start" data-aos="fade-up" data-aos-delay="70"><HeartHandshake class="text-warm-200" size={22} /><span class="text-sm font-bold">Trato cercano y respetuoso</span></div>
+    <div class="flex items-center justify-center gap-3 sm:justify-start" data-aos="fade-up" data-aos-delay="140"><ShieldCheck class="text-accent-300" size={22} /><span class="text-sm font-bold">Privacidad en cada consulta</span></div>
   </div>
 </section>
 

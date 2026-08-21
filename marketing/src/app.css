@@ -60,6 +60,57 @@
 
 .section-shell { padding-block: clamp(3.25rem, 5.5vw, 5rem); }
 
+.home-hero {
+  background:
+    linear-gradient(112deg, rgba(255, 255, 255, 0.98) 0%, rgba(245, 250, 253, 0.96) 52%, rgba(226, 243, 243, 0.9) 100%),
+    #f8fbfd;
+}
+
+.hero-atmosphere {
+  overflow: hidden;
+  contain: paint;
+}
+
+.hero-gradient,
+.hero-particle-field {
+  position: absolute;
+  display: block;
+  will-change: transform;
+}
+
+.hero-gradient {
+  width: min(68vw, 58rem);
+  aspect-ratio: 1;
+  border-radius: 999px;
+  filter: blur(1px);
+}
+
+.hero-gradient--blue {
+  top: -64%;
+  left: -18%;
+  background: radial-gradient(circle, rgba(64, 157, 238, 0.18), rgba(64, 157, 238, 0) 67%);
+  animation: hero-orbit-blue 18s ease-in-out infinite alternate;
+}
+
+.hero-gradient--teal {
+  right: -17%;
+  bottom: -68%;
+  background: radial-gradient(circle, rgba(46, 191, 176, 0.2), rgba(46, 191, 176, 0) 68%);
+  animation: hero-orbit-teal 22s ease-in-out infinite alternate;
+}
+
+.hero-particle-field {
+  inset: -12%;
+  opacity: 0.42;
+  background-image:
+    radial-gradient(circle, rgba(18, 104, 189, 0.32) 1px, transparent 1.5px),
+    radial-gradient(circle, rgba(38, 174, 163, 0.24) 1px, transparent 1.5px);
+  background-position: 0 0, 23px 23px;
+  background-size: 46px 46px;
+  mask-image: linear-gradient(100deg, rgba(0, 0, 0, 0.72), transparent 73%);
+  animation: hero-particles-drift 30s linear infinite;
+}
+
 .section-soft {
   background:
     radial-gradient(circle at 100% 4%, rgba(38, 174, 163, 0.14), transparent 30rem),
@@ -253,15 +304,33 @@
 
 .footer-link:hover { color: white; transform: translateX(2px); }
 
-@keyframes reveal-up {
-  from { opacity: 0; transform: translateY(18px); }
-  to { opacity: 1; transform: translateY(0); }
+@keyframes hero-orbit-blue {
+  from { transform: translate3d(-2%, -1%, 0) scale(0.94); }
+  to { transform: translate3d(12%, 8%, 0) scale(1.08); }
 }
 
-.reveal-up { animation: reveal-up 620ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+@keyframes hero-orbit-teal {
+  from { transform: translate3d(3%, 4%, 0) scale(1); }
+  to { transform: translate3d(-12%, -9%, 0) scale(1.12); }
+}
+
+@keyframes hero-particles-drift {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(46px, -46px, 0); }
+}
 
 @media (max-width: 640px) {
   .site-container { width: min(100% - 1.5rem, 74rem); }
+
+  .hero-gradient {
+    width: 42rem;
+  }
+
+  .hero-particle-field {
+    opacity: 0.26;
+    background-size: 58px 58px;
+    animation-duration: 42s;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -271,5 +340,10 @@
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+
+  [data-aos] {
+    opacity: 1 !important;
+    transform: none !important;
   }
 }
