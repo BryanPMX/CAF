@@ -27,6 +27,7 @@
           class="card-lift grid items-center gap-7 overflow-hidden rounded-2xl p-5 md:grid-cols-2 md:p-6 lg:gap-10"
           data-motion={i % 2 === 0 ? 'left' : 'right'}
           data-motion-order={Math.min(i, 3)}
+          data-motion-exit="replay"
         >
           <div class="media-zoom overflow-hidden rounded-2xl" class:md:order-2={i % 2 !== 0}>
             {#if service.imageUrl}

@@ -17,6 +17,7 @@
   const aboutSectionImages = data.aboutSectionImages || [];
   const communityImages = gallerySectionImages.length > 0 ? gallerySectionImages : (gallerySlides.length > 0 ? gallerySlides : heroSlides);
   const serviceIcons = [Scale, HeartHandshake, UsersRound];
+  const serviceMotions = ['left', 'rise', 'right'];
   const serviceTones = [
     'bg-primary-50 text-primary-700',
     'bg-warm-100 text-warm-600',
@@ -173,7 +174,12 @@
 
     <div class="mt-8 grid gap-5 md:grid-cols-3">
       {#each services.length > 0 ? services : defaultServices as service, i}
-        <article class="card-lift group flex flex-col rounded-2xl p-6" data-motion="rise" data-motion-order={i}>
+        <article
+          class="card-lift group flex flex-col rounded-2xl p-6"
+          data-motion={serviceMotions[i % serviceMotions.length]}
+          data-motion-order={i}
+          data-motion-exit="replay"
+        >
           <div class="flex items-start justify-between gap-4">
             <span class="flex h-11 w-11 items-center justify-center rounded-xl {serviceTones[i % 3]}">
               <svelte:component this={serviceIcons[i % 3]} size={22} strokeWidth={1.9} />
