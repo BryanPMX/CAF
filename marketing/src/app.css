@@ -16,7 +16,7 @@
 
 @layer base {
   html {
-    scroll-behavior: smooth;
+    scroll-behavior: auto;
     -webkit-text-size-adjust: 100%;
   }
 
@@ -318,9 +318,14 @@
 }
 
 .motion-ready :where([data-motion].is-motion-prepared.is-motion-past:not(:focus-within)) {
-  --motion-opacity-duration: 420ms;
+  --motion-opacity-duration: 360ms;
   --motion-transform-duration: 420ms;
   --motion-delay: 0ms;
+  --motion-transform: translate3d(0, -2.25rem, 0) scale(0.975) rotate(0deg);
+  opacity: 0.08;
+}
+
+.motion-ready :where([data-motion][data-motion-exit="dissolve"].is-motion-prepared.is-motion-past:not(:focus-within)) {
   --motion-transform: translate3d(0, -1.75rem, 0) scale(0.985) rotate(0deg);
   opacity: 0.24;
 }

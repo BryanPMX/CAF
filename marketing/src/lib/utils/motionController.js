@@ -4,6 +4,12 @@ const MOTION_TARGET = '[data-motion]';
 const MOTION_SCENE = '[data-motion-scene]';
 const MOTION_HERO = '[data-motion-hero]';
 const READY_CLASS = 'motion-ready';
+const TARGET_STATE = Object.freeze({
+  BEFORE: 'before',
+  ACTIVE: 'active',
+  PAST: 'past'
+});
+const LIVE_RECONCILIATION_INTERVAL = 48;
 
 function noop() {}
 
@@ -44,16 +50,20 @@ export function initializeMotionController(root) {
     const scenes = new Set();
     const heroes = new Set();
     const activeHeroes = new Set();
-    const seenTargets = new WeakSet();
+    const activatedTargets = new WeakSet();
+    const endPromotedTargets = new WeakSet();
     const heroProgress = new WeakMap();
     const scheduledRevealFrames = new Set();
     const isReducedMotion = reducedMotionQuery.matches;
     const isDesktop = desktopQuery.matches;
-    const initialRevealBoundary = isDesktop ? 0.9 : 0.78;
     const entranceBoundary = isDesktop ? 0.95 : 0.8;
     const exitBoundary = isDesktop ? 0.14 : 0.28;
+    const stateHysteresis = isDesktop ? 18 : 14;
     let runtimeDisposed = false;
     let heroFrame;
+    let targetFrame;
+    let forceTargetReconciliation = false;
+    let lastTargetReconciliation = 0;
     let reconciliationTimer;
     let targetObserver;
     let sceneObserver;
@@ -71,6 +81,74 @@ export function initializeMotionController(root) {
       return window.scrollY + window.innerHeight >= documentHeight - 2;
     }
 
+    function getCurrentTargetState(target) {
+      if (target.classList.contains('is-motion-past')) return TARGET_STATE.PAST;
+      if (target.classList.contains('is-motion-visible')) return TARGET_STATE.ACTIVE;
+      return TARGET_STATE.BEFORE;
+    }
+
+    function setTargetState(target, requestedState) {
+      const exitMode = target.dataset.motionExit || 'replay';
+      const nextState = exitMode === 'once'
+        && activatedTargets.has(target)
+        && requestedState !== TARGET_STATE.ACTIVE
+        ? TARGET_STATE.ACTIVE
+        : requestedState;
+
+      if (getCurrentTargetState(target) === nextState) return;
+
+      target.classList.toggle('is-motion-visible', nextState === TARGET_STATE.ACTIVE);
+      target.classList.toggle('is-motion-past', nextState === TARGET_STATE.PAST);
+
+      if (nextState === TARGET_STATE.ACTIVE) activatedTargets.add(target);
+    }
+
+    function resolveTargetState(target, rect, atDocumentEnd = false) {
+      const viewportHeight = window.innerHeight;
+      const entranceLine = viewportHeight * entranceBoundary;
+      const exitLine = viewportHeight * exitBoundary;
+      const targetExitLine = target.hasAttribute('data-motion-intro') ? 0 : exitLine;
+      const intersectsViewport = rect.bottom > 0 && rect.top < viewportHeight;
+      const currentState = getCurrentTargetState(target);
+
+      if (
+        atDocumentEnd
+        && intersectsViewport
+        && rect.bottom > targetExitLine + stateHysteresis
+      ) {
+        if (
+          currentState === TARGET_STATE.BEFORE
+          && rect.top >= entranceLine - stateHysteresis
+        ) {
+          endPromotedTargets.add(target);
+        }
+        return TARGET_STATE.ACTIVE;
+      }
+
+      if (endPromotedTargets.has(target)) {
+        if (rect.top < viewportHeight && rect.bottom > 0) return TARGET_STATE.ACTIVE;
+        endPromotedTargets.delete(target);
+      }
+
+      if (currentState === TARGET_STATE.ACTIVE) {
+        if (rect.bottom <= targetExitLine - stateHysteresis) return TARGET_STATE.PAST;
+        if (rect.top >= entranceLine + stateHysteresis) return TARGET_STATE.BEFORE;
+        return TARGET_STATE.ACTIVE;
+      }
+
+      if (currentState === TARGET_STATE.PAST) {
+        if (rect.top >= entranceLine + stateHysteresis) return TARGET_STATE.BEFORE;
+        return rect.bottom > targetExitLine + stateHysteresis
+          ? TARGET_STATE.ACTIVE
+          : TARGET_STATE.PAST;
+      }
+
+      if (rect.bottom <= targetExitLine - stateHysteresis) return TARGET_STATE.PAST;
+      return rect.top < entranceLine - stateHysteresis
+        ? TARGET_STATE.ACTIVE
+        : TARGET_STATE.BEFORE;
+    }
+
     function scheduleTargetReveal(target) {
       target.classList.add('is-motion-pending');
 
@@ -82,8 +160,8 @@ export function initializeMotionController(root) {
           if (disposed || runtimeDisposed || !target.isConnected) return;
 
           target.classList.remove('is-motion-pending');
-          seenTargets.add(target);
-          target.classList.add('is-motion-visible');
+          const rect = target.getBoundingClientRect();
+          setTargetState(target, resolveTargetState(target, rect, hasReachedDocumentEnd()));
         });
 
         scheduledRevealFrames.add(revealFrame);
@@ -100,34 +178,30 @@ export function initializeMotionController(root) {
       target.style.setProperty('--motion-order', String(Number.isFinite(order) ? Math.max(0, Math.min(order, 6)) : 0));
 
       const rect = target.getBoundingClientRect();
-      const intersectsViewport = rect.bottom > window.innerHeight * 0.04 && rect.top < window.innerHeight;
-      const currentlyVisible = intersectsViewport
-        && (rect.top < window.innerHeight * initialRevealBoundary || hasReachedDocumentEnd());
+      const initialState = resolveTargetState(target, rect, hasReachedDocumentEnd());
       const isMobileOpeningScene = !isDesktop
         && window.scrollY < 2
         && rect.top > window.innerHeight * 0.38;
-      const animateOnPaint = currentlyVisible
-        && (animateNewTarget || target.hasAttribute('data-motion-intro') || isMobileOpeningScene);
+      const animateOnPaint = initialState === TARGET_STATE.ACTIVE
+        && (
+          animateNewTarget
+          || target.hasAttribute('data-motion-intro')
+          || target.hasAttribute('data-motion-order')
+          || isMobileOpeningScene
+        );
 
       if (isReducedMotion) {
         target.classList.add('is-motion-prepared');
 
-        if (currentlyVisible && target.hasAttribute('data-motion-intro')) {
+        if (initialState === TARGET_STATE.ACTIVE && target.hasAttribute('data-motion-intro')) {
           scheduleTargetReveal(target);
         } else {
-          seenTargets.add(target);
-          target.classList.add('is-motion-visible');
+          setTargetState(target, TARGET_STATE.ACTIVE);
         }
         return;
       }
 
-      if (currentlyVisible && !animateOnPaint) {
-        seenTargets.add(target);
-        target.classList.add('is-motion-visible');
-      } else if (rect.bottom < window.innerHeight * exitBoundary) {
-        seenTargets.add(target);
-        target.classList.add(target.dataset.motionExit === 'dissolve' ? 'is-motion-past' : 'is-motion-visible');
-      }
+      setTargetState(target, animateOnPaint ? TARGET_STATE.BEFORE : initialState);
 
       targetObserver.observe(target);
       target.classList.add('is-motion-prepared');
@@ -151,7 +225,8 @@ export function initializeMotionController(root) {
     function unregisterTarget(target) {
       if (!targets.delete(target)) return;
       targetObserver.unobserve(target);
-      seenTargets.delete(target);
+      activatedTargets.delete(target);
+      endPromotedTargets.delete(target);
       target.classList.remove('is-motion-prepared', 'is-motion-pending', 'is-motion-visible', 'is-motion-past');
       target.style.removeProperty('--motion-order');
     }
@@ -220,40 +295,65 @@ export function initializeMotionController(root) {
     }
 
     function reconcileTargets() {
-      reconciliationTimer = undefined;
       if (runtimeDisposed) return;
 
       const atDocumentEnd = hasReachedDocumentEnd();
+      const detachedTargets = [];
+      const stateUpdates = [];
 
       targets.forEach((target) => {
         if (!target.isConnected) {
-          unregisterTarget(target);
+          detachedTargets.push(target);
           return;
         }
 
         if (target.classList.contains('is-motion-pending')) return;
 
         const rect = target.getBoundingClientRect();
-        const intersectsViewport = rect.bottom > 0 && rect.top < window.innerHeight;
-        const insideRevealBand = rect.bottom > window.innerHeight * (isDesktop ? 0.03 : 0.24)
-          && rect.top < window.innerHeight * entranceBoundary;
-
-        if (insideRevealBand || (atDocumentEnd && intersectsViewport)) {
-          seenTargets.add(target);
-          target.classList.add('is-motion-visible');
-          target.classList.remove('is-motion-past');
-        } else if (rect.bottom < window.innerHeight * exitBoundary) {
-          seenTargets.add(target);
-          target.classList.toggle('is-motion-past', target.dataset.motionExit === 'dissolve');
-          target.classList.toggle('is-motion-visible', target.dataset.motionExit !== 'dissolve');
-        }
+        stateUpdates.push([target, resolveTargetState(target, rect, atDocumentEnd)]);
       });
+
+      detachedTargets.forEach(unregisterTarget);
+      stateUpdates.forEach(([target, state]) => setTargetState(target, state));
+    }
+
+    function runTargetReconciliation(timestamp) {
+      targetFrame = undefined;
+      if (runtimeDisposed) return;
+
+      const shouldReconcile = forceTargetReconciliation
+        || timestamp - lastTargetReconciliation >= LIVE_RECONCILIATION_INTERVAL;
+      forceTargetReconciliation = false;
+      if (!shouldReconcile) return;
+
+      lastTargetReconciliation = timestamp;
+      reconcileTargets();
+    }
+
+    function requestTargetReconciliation(force = false) {
+      if (runtimeDisposed || isReducedMotion) return;
+      forceTargetReconciliation ||= force;
+      if (targetFrame !== undefined) return;
+      targetFrame = requestAnimationFrame(runTargetReconciliation);
     }
 
     function handleViewportChange() {
       requestHeroUpdate();
+      requestTargetReconciliation();
       if (reconciliationTimer !== undefined) window.clearTimeout(reconciliationTimer);
-      reconciliationTimer = window.setTimeout(reconcileTargets, 90);
+      reconciliationTimer = window.setTimeout(() => {
+        reconciliationTimer = undefined;
+        requestTargetReconciliation(true);
+      }, 90);
+    }
+
+    function handlePageShow() {
+      requestHeroUpdate();
+      requestTargetReconciliation(true);
+    }
+
+    function handleVisibilityChange() {
+      if (!document.hidden) handlePageShow();
     }
 
     function cleanupRuntime() {
@@ -269,10 +369,14 @@ export function initializeMotionController(root) {
       if (listenersAttached) {
         window.removeEventListener('scroll', handleViewportChange);
         window.removeEventListener('resize', handleViewportChange);
+        window.removeEventListener('pageshow', handlePageShow);
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
       }
 
       if (heroFrame !== undefined) cancelAnimationFrame(heroFrame);
+      if (targetFrame !== undefined) cancelAnimationFrame(targetFrame);
       if (reconciliationTimer !== undefined) window.clearTimeout(reconciliationTimer);
+      forceTargetReconciliation = false;
       scheduledRevealFrames.forEach(cancelAnimationFrame);
       scheduledRevealFrames.clear();
 
@@ -292,35 +396,18 @@ export function initializeMotionController(root) {
     }
 
     try {
+      const observerTopInset = Math.round(window.innerHeight * exitBoundary);
+      const observerBottomInset = Math.round(window.innerHeight * (1 - entranceBoundary));
+
       targetObserver = new IntersectionObserver((entries) => {
         if (runtimeDisposed) return;
 
-        entries.forEach((entry) => {
-          const target = entry.target;
-
-          if (entry.isIntersecting) {
-            if (target.classList.contains('is-motion-pending')) return;
-
-            seenTargets.add(target);
-            target.classList.add('is-motion-visible');
-            target.classList.remove('is-motion-past');
-            return;
-          }
-
-          if (entry.boundingClientRect.bottom < window.innerHeight * exitBoundary) {
-            if (target.dataset.motionExit === 'dissolve') {
-              target.classList.add('is-motion-past');
-              target.classList.remove('is-motion-visible');
-            } else if (seenTargets.has(target)) {
-              target.classList.add('is-motion-visible');
-            }
-          } else if (!seenTargets.has(target)) {
-            target.classList.remove('is-motion-visible', 'is-motion-past');
-          }
-        });
+        if (entries.some((entry) => !entry.target.classList.contains('is-motion-pending'))) {
+          requestTargetReconciliation(true);
+        }
       }, {
-        rootMargin: isDesktop ? '-3% 0px -5% 0px' : '-24% 0px -20% 0px',
-        threshold: isDesktop ? [0, 0.08, 0.32] : [0, 0.01, 0.22]
+        rootMargin: `-${observerTopInset}px 0px -${observerBottomInset}px 0px`,
+        threshold: 0
       });
 
       sceneObserver = new IntersectionObserver((entries) => {
@@ -353,7 +440,12 @@ export function initializeMotionController(root) {
 
       resizeObserver = typeof ResizeObserver === 'undefined'
         ? null
-        : new ResizeObserver(requestHeroUpdate);
+        : new ResizeObserver(() => {
+          requestHeroUpdate();
+          requestTargetReconciliation(true);
+        });
+
+      if (!isReducedMotion) resizeObserver?.observe(observedRoot);
 
       [...scope.querySelectorAll(MOTION_TARGET)].forEach((target) => setInitialTargetState(target));
       [...scope.querySelectorAll(MOTION_SCENE)].forEach(registerScene);
@@ -379,6 +471,7 @@ export function initializeMotionController(root) {
             });
           });
           requestHeroUpdate();
+          requestTargetReconciliation(true);
         });
         mutationObserver.observe(observedRoot, { childList: true, subtree: true });
       }
@@ -386,11 +479,14 @@ export function initializeMotionController(root) {
       if (!isReducedMotion) {
         window.addEventListener('scroll', handleViewportChange, { passive: true });
         window.addEventListener('resize', handleViewportChange, { passive: true });
+        window.addEventListener('pageshow', handlePageShow);
+        document.addEventListener('visibilitychange', handleVisibilityChange);
         listenersAttached = true;
       }
 
       document.documentElement.classList.add(READY_CLASS);
       heroes.forEach(updateHero);
+      if (!isReducedMotion) requestTargetReconciliation(true);
 
       return cleanupRuntime;
     } catch (error) {
