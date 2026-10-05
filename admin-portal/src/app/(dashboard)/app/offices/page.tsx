@@ -1,7 +1,7 @@
 // admin-portal/src/app/(dashboard)/app/offices/page.tsx
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Button, Table, message, Spin, Popconfirm, Drawer, Descriptions, Tag, List, Avatar, Card, Statistic, Row, Col, Typography, Space, Empty } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, TeamOutlined, UserOutlined, BankOutlined, PhoneOutlined, EnvironmentOutlined, MailOutlined, FolderOpenOutlined, CalendarOutlined } from '@ant-design/icons';
 import { apiClient } from '@/app/lib/api';
@@ -22,7 +22,7 @@ interface Office {
   code?: string;
 }
 
-interface StaffMember {
+interface OfficeUser {
   id: number;
   firstName: string;
   lastName: string;
@@ -34,11 +34,12 @@ interface StaffMember {
 
 interface OfficeDetail {
   office: Office;
-  staff: StaffMember[];
+  staff: OfficeUser[];
+  clients: OfficeUser[];
   activeCases: number;
   totalAppointments: number;
   staffCount: number;
-  clientCount?: number;
+  clientCount: number;
 }
 
 // Role color mapping for consistent badges
@@ -51,6 +52,37 @@ const ROLE_COLORS: Record<string, string> = {
   event_coordinator: 'gold',
   client: 'default',
 };
+
+const renderOfficeUser = (member: OfficeUser, activeColor: string) => (
+  <List.Item>
+    <List.Item.Meta
+      avatar={
+        <Avatar
+          style={{
+            backgroundColor: member.isActive ? activeColor : '#d9d9d9',
+          }}
+        >
+          {member.firstName?.charAt(0)}{member.lastName?.charAt(0)}
+        </Avatar>
+      }
+      title={
+        <Space>
+          <span>{member.firstName} {member.lastName}</span>
+          <Tag color={ROLE_COLORS[member.role] || 'default'} style={{ fontSize: 11 }}>
+            {getRoleDisplayName(member.role)}
+          </Tag>
+          {!member.isActive && <Tag color="red">Inactivo</Tag>}
+        </Space>
+      }
+      description={
+        <Space direction="vertical" size={0}>
+          <Text type="secondary"><MailOutlined /> {member.email}</Text>
+          {member.phone && <Text type="secondary"><PhoneOutlined /> {member.phone}</Text>}
+        </Space>
+      }
+    />
+  </List.Item>
+);
 
 const OfficeManagementPage = () => {
   const isHydrated = useHydrationSafe();
@@ -66,7 +98,7 @@ const OfficeManagementPage = () => {
   const [selectedOffice, setSelectedOffice] = useState<OfficeDetail | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
 
-  const fetchOffices = async () => {
+  const fetchOffices = useCallback(async () => {
     try {
       if (!user?.role) {
         setLoading(false);
@@ -81,7 +113,7 @@ const OfficeManagementPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user?.role]);
 
   useEffect(() => {
     if (!isHydrated) return;
@@ -89,8 +121,8 @@ const OfficeManagementPage = () => {
     if (user?.role) {
       setUserRole(user.role);
     }
-    fetchOffices();
-  }, [isHydrated, user]);
+    void fetchOffices();
+  }, [isHydrated, user?.role, fetchOffices]);
 
   const handleCreate = () => {
     setEditingOffice(null);
@@ -125,12 +157,27 @@ const OfficeManagementPage = () => {
     try {
       const base = user?.role === 'office_manager' ? '/manager' : '/admin';
       const response = await apiClient.get(`${base}/offices/${office.id}/detail`);
-      setSelectedOffice(response.data);
+      const detail = response.data as Partial<OfficeDetail>;
+      const allUsers = [...(detail.staff ?? []), ...(detail.clients ?? [])];
+      const uniqueUsers = Array.from(new Map(allUsers.map(officeUser => [officeUser.id, officeUser])).values());
+      const staff = uniqueUsers.filter(officeUser => officeUser.role !== 'client');
+      const clients = uniqueUsers.filter(officeUser => officeUser.role === 'client');
+
+      setSelectedOffice({
+        office: detail.office ?? office,
+        staff,
+        clients,
+        activeCases: detail.activeCases ?? 0,
+        totalAppointments: detail.totalAppointments ?? 0,
+        staffCount: staff.length,
+        clientCount: clients.length,
+      });
     } catch (error) {
       // Fallback: show office info without staff
       setSelectedOffice({
         office,
         staff: [],
+        clients: [],
         activeCases: 0,
         totalAppointments: 0,
         staffCount: 0,
@@ -199,7 +246,7 @@ const OfficeManagementPage = () => {
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-bold">Gestión de Oficinas</h1>
-          <Text type="secondary">Haga clic en el nombre de una oficina para ver su detalle y personal</Text>
+          <Text type="secondary">Haga clic en el nombre de una oficina para ver su detalle, personal y clientes</Text>
         </div>
         {userRole === 'admin' && (
           <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
@@ -244,7 +291,7 @@ const OfficeManagementPage = () => {
                 <Card size="small">
                   <Statistic
                     title="Personal"
-                    value={selectedOffice.staffCount ?? 0}
+                    value={selectedOffice.staff.length}
                     prefix={<TeamOutlined />}
                     valueStyle={{ color: '#1890ff' }}
                   />
@@ -254,7 +301,7 @@ const OfficeManagementPage = () => {
                 <Card size="small">
                   <Statistic
                     title="Clientes"
-                    value={selectedOffice.clientCount ?? 0}
+                    value={selectedOffice.clients.length}
                     prefix={<UserOutlined />}
                     valueStyle={{ color: '#fa8c16' }}
                   />
@@ -309,7 +356,7 @@ const OfficeManagementPage = () => {
               title={
                 <Space>
                   <TeamOutlined />
-                  <span>Personal ({selectedOffice.staffCount})</span>
+                  <span>Personal ({selectedOffice.staff.length})</span>
                 </Space>
               }
               size="small"
@@ -317,39 +364,30 @@ const OfficeManagementPage = () => {
               {selectedOffice.staff.length > 0 ? (
                 <List
                   dataSource={selectedOffice.staff}
-                  renderItem={(member: StaffMember) => (
-                    <List.Item>
-                      <List.Item.Meta
-                        avatar={
-                          <Avatar
-                            style={{
-                              backgroundColor: member.isActive ? '#1890ff' : '#d9d9d9',
-                            }}
-                          >
-                            {member.firstName?.charAt(0)}{member.lastName?.charAt(0)}
-                          </Avatar>
-                        }
-                        title={
-                          <Space>
-                            <span>{member.firstName} {member.lastName}</span>
-                            <Tag color={ROLE_COLORS[member.role] || 'default'} style={{ fontSize: 11 }}>
-                              {getRoleDisplayName(member.role)}
-                            </Tag>
-                            {!member.isActive && <Tag color="red">Inactivo</Tag>}
-                          </Space>
-                        }
-                        description={
-                          <Space direction="vertical" size={0}>
-                            <Text type="secondary"><MailOutlined /> {member.email}</Text>
-                            {member.phone && <Text type="secondary"><PhoneOutlined /> {member.phone}</Text>}
-                          </Space>
-                        }
-                      />
-                    </List.Item>
-                  )}
+                  renderItem={(member: OfficeUser) => renderOfficeUser(member, '#1890ff')}
                 />
               ) : (
                 <Empty description="No hay personal asignado a esta oficina" />
+              )}
+            </Card>
+
+            {/* Client List */}
+            <Card
+              title={
+                <Space>
+                  <UserOutlined />
+                  <span>Clientes ({selectedOffice.clients.length})</span>
+                </Space>
+              }
+              size="small"
+            >
+              {selectedOffice.clients.length > 0 ? (
+                <List
+                  dataSource={selectedOffice.clients}
+                  renderItem={(client: OfficeUser) => renderOfficeUser(client, '#fa8c16')}
+                />
+              ) : (
+                <Empty description="No hay clientes asignados a esta oficina" />
               )}
             </Card>
           </div>

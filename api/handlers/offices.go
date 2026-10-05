@@ -211,7 +211,7 @@ func DeleteOffice(repo interfaces.OfficeRepository) gin.HandlerFunc {
 	}
 }
 
-// GetOfficeDetailWithStaff retrieves an office along with its staff members and stats.
+// GetOfficeDetailWithStaff retrieves an office along with its users, separated into staff and clients.
 func GetOfficeDetailWithStaff(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		id, err := parseOfficeID(c.Param("id"))
@@ -227,47 +227,51 @@ func GetOfficeDetailWithStaff(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		// Get staff members for this office
-		var staff []models.User
+		// Get all users assigned to this office. They are separated by role below.
+		var officeUsers []models.User
 		if err := db.Where("office_id = ? AND deleted_at IS NULL", id).
 			Select("id, first_name, last_name, email, role, phone, is_active").
-			Order("role, first_name").
-			Find(&staff).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch staff"})
+			Order("role, first_name, last_name").
+			Find(&officeUsers).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch office users"})
 			return
 		}
 
-		// Get counts for cases, appointments, and distinct clients (by cases in this office)
+		// Get counts for cases and appointments.
 		var activeCases int64
 		db.Model(&models.Case{}).Where("office_id = ? AND deleted_at IS NULL AND status != 'closed'", id).Count(&activeCases)
 
 		var totalAppointments int64
 		db.Model(&models.Appointment{}).Where("office_id = ?", id).Count(&totalAppointments)
 
-		var clientCount int64
-		db.Raw("SELECT COUNT(DISTINCT client_id) FROM cases WHERE office_id = ? AND deleted_at IS NULL AND client_id IS NOT NULL", id).Scan(&clientCount)
-
-		// Transform staff for response
-		staffList := make([]gin.H, 0, len(staff))
-		for _, s := range staff {
-			staffList = append(staffList, gin.H{
-				"id":        s.ID,
-				"firstName": s.FirstName,
-				"lastName":  s.LastName,
-				"email":     s.Email,
-				"role":      s.Role,
-				"phone":     s.Phone,
-				"isActive":  s.IsActive,
-			})
+		// Transform and separate users for response.
+		staffList := make([]gin.H, 0, len(officeUsers))
+		clientList := make([]gin.H, 0)
+		for _, officeUser := range officeUsers {
+			userResponse := gin.H{
+				"id":        officeUser.ID,
+				"firstName": officeUser.FirstName,
+				"lastName":  officeUser.LastName,
+				"email":     officeUser.Email,
+				"role":      officeUser.Role,
+				"phone":     officeUser.Phone,
+				"isActive":  officeUser.IsActive,
+			}
+			if officeUser.Role == "client" {
+				clientList = append(clientList, userResponse)
+			} else {
+				staffList = append(staffList, userResponse)
+			}
 		}
 
 		c.JSON(http.StatusOK, gin.H{
 			"office":            office,
 			"staff":             staffList,
+			"clients":           clientList,
 			"activeCases":       activeCases,
 			"totalAppointments": totalAppointments,
 			"staffCount":        len(staffList),
-			"clientCount":       clientCount,
+			"clientCount":       len(clientList),
 		})
 	}
 }
