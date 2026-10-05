@@ -2,9 +2,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Button, Table, message, Spin, Tag, Popconfirm, Select, Space } from 'antd';
+import { Button, Table, message, Spin, Tag, Popconfirm, Select, Tooltip } from 'antd';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import { isAxiosError } from 'axios';
 import { STAFF_ROLES, PERMISSIONS, getAllRoles } from '@/config/roles';
 import { useHydrationSafe } from '@/hooks/useHydrationSafe';
 import { useAuth } from '@/context/AuthContext';
@@ -25,6 +26,24 @@ interface User {
 }
 
 interface Office { id: number; name: string; }
+
+const DELETE_ERROR_TRANSLATIONS: Record<string, string> = {
+  'Cannot delete your own account': 'No puede eliminar la cuenta que está usando actualmente.',
+  'Cannot delete the system administrator account': 'La cuenta del administrador del sistema está protegida.',
+  'Cannot delete the last administrator account': 'No se puede eliminar la última cuenta de administrador.',
+};
+
+const getDeleteErrorMessage = (error: unknown): string => {
+  const apiMessage = isAxiosError<{ error?: string }>(error)
+    ? error.response?.data?.error
+    : undefined;
+
+  if (!apiMessage) {
+    return 'No se pudo eliminar el usuario.';
+  }
+
+  return DELETE_ERROR_TRANSLATIONS[apiMessage] || apiMessage;
+};
 
 const UserManagementPage = () => {
   const router = useRouter();
@@ -214,8 +233,23 @@ const UserManagementPage = () => {
       message.success({ content: 'Usuario eliminado exitosamente.', key: 'deleteUser' });
       fetchUsers(); // Refresh the user list to reflect the deletion.
     } catch (error) {
-      message.error({ content: 'No se pudo eliminar el usuario.', key: 'deleteUser' });
+      message.error({
+        content: getDeleteErrorMessage(error),
+        key: 'deleteUser',
+      });
     }
+  };
+
+  const getDeleteBlockReason = (record: User): string | null => {
+    if (record.id === user?.id) {
+      return 'No puede eliminar la cuenta que está usando actualmente.';
+    }
+
+    if (record.id === 1) {
+      return 'La cuenta del administrador del sistema está protegida.';
+    }
+
+    return null;
   };
 
   // --- Table Configuration ---
@@ -261,23 +295,44 @@ const UserManagementPage = () => {
     {
       title: 'Acciones',
       key: 'actions',
-      render: (_: any, record: User) => (
-        (userRole === 'admin' || userRole === 'office_manager') ? (
+      render: (_: any, record: User) => {
+        if (userRole !== 'admin' && userRole !== 'office_manager') {
+          return null;
+        }
+
+        const deleteBlockReason = getDeleteBlockReason(record);
+
+        return (
           <span className="space-x-2">
             <Button icon={<EditOutlined />} onClick={() => handleEdit(record)} />
-            {userRole === 'admin' && (
+            {userRole === 'admin' && (deleteBlockReason ? (
+              <Tooltip title={deleteBlockReason}>
+                <span>
+                  <Button
+                    aria-label={deleteBlockReason}
+                    icon={<DeleteOutlined />}
+                    danger
+                    disabled
+                  />
+                </span>
+              </Tooltip>
+            ) : (
               <Popconfirm
                 title="¿Está seguro de que desea eliminar este usuario?"
                 onConfirm={() => handleDelete(record.id)}
                 okText="Sí"
                 cancelText="No"
               >
-                <Button icon={<DeleteOutlined />} danger />
+                <Button
+                  aria-label={`Eliminar a ${record.firstName} ${record.lastName}`}
+                  icon={<DeleteOutlined />}
+                  danger
+                />
               </Popconfirm>
-            )}
+            ))}
           </span>
-        ) : null
-      ),
+        );
+      },
     },
   ];
 
