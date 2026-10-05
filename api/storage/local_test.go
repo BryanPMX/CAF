@@ -117,6 +117,45 @@ func TestUploadAndGet(t *testing.T) {
 	}
 }
 
+func TestUploadAvatarUsesPersistentImmutableFiles(t *testing.T) {
+	tmpDir := t.TempDir()
+	ls, err := NewLocalStorage(tmpDir)
+	if err != nil {
+		t.Fatalf("NewLocalStorage failed: %v", err)
+	}
+
+	firstURL, err := ls.UploadAvatar(createTestFile(t, "avatar.jpg", "first image"), "42")
+	if err != nil {
+		t.Fatalf("first UploadAvatar failed: %v", err)
+	}
+	secondURL, err := ls.UploadAvatar(createTestFile(t, "avatar.jpg", "second image"), "42")
+	if err != nil {
+		t.Fatalf("second UploadAvatar failed: %v", err)
+	}
+	if firstURL == secondURL {
+		t.Fatalf("avatar replacements must use unique URLs, got %q", firstURL)
+	}
+
+	// Recreate the provider to simulate an API container restart while the
+	// Docker volume remains mounted.
+	restartedStorage, err := NewLocalStorage(tmpDir)
+	if err != nil {
+		t.Fatalf("recreating LocalStorage failed: %v", err)
+	}
+	body, _, err := restartedStorage.Get(secondURL)
+	if err != nil {
+		t.Fatalf("persistent avatar was unavailable after restart: %v", err)
+	}
+	defer body.Close()
+	data, err := io.ReadAll(body)
+	if err != nil {
+		t.Fatalf("reading persistent avatar failed: %v", err)
+	}
+	if got, want := string(data), "second image"; got != want {
+		t.Fatalf("avatar contents = %q, want %q", got, want)
+	}
+}
+
 func TestDelete(t *testing.T) {
 	tmpDir := t.TempDir()
 	ls, _ := NewLocalStorage(tmpDir)

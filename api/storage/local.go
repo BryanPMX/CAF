@@ -83,17 +83,20 @@ func (ls *LocalStorage) Upload(file *multipart.FileHeader, caseID string) (strin
 	return LocalURLPrefix + relativePath, nil
 }
 
-// UploadAvatar saves a profile image under avatars/{userID}.{ext} and returns local://avatars/...
+// UploadAvatar saves a profile image under an immutable, user-specific name and
+// returns local://avatars/.... Unique names make avatar replacement atomic and
+// give callers a stable value they can use for cache versioning.
 func (ls *LocalStorage) UploadAvatar(file *multipart.FileHeader, userID string) (string, error) {
 	avatarDir := filepath.Join(ls.baseDir, "avatars")
 	if err := os.MkdirAll(avatarDir, 0700); err != nil {
 		return "", fmt.Errorf("failed to create avatars directory: %w", err)
 	}
-	ext := filepath.Ext(file.Filename)
+	ext := strings.ToLower(filepath.Ext(file.Filename))
 	if ext == "" {
 		ext = ".jpg"
 	}
-	destPath := filepath.Join(avatarDir, userID+ext)
+	uniqueName := fmt.Sprintf("%s-%s%s", userID, uuid.New().String(), ext)
+	destPath := filepath.Join(avatarDir, uniqueName)
 
 	src, err := file.Open()
 	if err != nil {
@@ -101,18 +104,35 @@ func (ls *LocalStorage) UploadAvatar(file *multipart.FileHeader, userID string) 
 	}
 	defer src.Close()
 
-	dst, err := os.OpenFile(destPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
+	tempFile, err := os.CreateTemp(avatarDir, ".avatar-upload-*")
 	if err != nil {
-		return "", fmt.Errorf("failed to create destination file: %w", err)
+		return "", fmt.Errorf("failed to create temporary avatar file: %w", err)
 	}
-	defer dst.Close()
+	tempPath := tempFile.Name()
+	keepTemp := true
+	defer func() {
+		if keepTemp {
+			_ = os.Remove(tempPath)
+		}
+	}()
 
-	if _, err := io.Copy(dst, src); err != nil {
-		os.Remove(destPath)
+	if _, err := io.Copy(tempFile, src); err != nil {
+		_ = tempFile.Close()
 		return "", fmt.Errorf("failed to write file to disk: %w", err)
 	}
+	if err := tempFile.Sync(); err != nil {
+		_ = tempFile.Close()
+		return "", fmt.Errorf("failed to sync avatar file: %w", err)
+	}
+	if err := tempFile.Close(); err != nil {
+		return "", fmt.Errorf("failed to close avatar file: %w", err)
+	}
+	if err := os.Rename(tempPath, destPath); err != nil {
+		return "", fmt.Errorf("failed to publish avatar file: %w", err)
+	}
+	keepTemp = false
 
-	relativePath := fmt.Sprintf("avatars/%s%s", userID, ext)
+	relativePath := fmt.Sprintf("avatars/%s", uniqueName)
 	return LocalURLPrefix + relativePath, nil
 }
 

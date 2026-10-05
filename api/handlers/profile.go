@@ -2,6 +2,9 @@
 package handlers
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -56,6 +59,7 @@ func UpdateProfile(db *gorm.DB) gin.HandlerFunc {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Usuario no encontrado"})
 			return
 		}
+		previousAvatarURL := user.AvatarURL
 
 		if input.AvatarURL != nil {
 			s := strings.TrimSpace(*input.AvatarURL)
@@ -73,6 +77,7 @@ func UpdateProfile(db *gorm.DB) gin.HandlerFunc {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al actualizar perfil"})
 			return
 		}
+		deleteReplacedLocalAvatar(storage.GetActiveStorage(), previousAvatarURL, user.AvatarURL)
 
 		c.JSON(http.StatusOK, gin.H{
 			"message":   "Perfil actualizado",
@@ -82,7 +87,7 @@ func UpdateProfile(db *gorm.DB) gin.HandlerFunc {
 }
 
 // UploadProfileAvatar accepts a multipart image and sets it as the current user's avatar. POST /profile/avatar
-func UploadProfileAvatar(db *gorm.DB, baseURL string) gin.HandlerFunc {
+func UploadProfileAvatar(db *gorm.DB, baseURL string, avatarPaths ...string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userID, exists := c.Get("userID")
 		if !exists {
@@ -93,6 +98,12 @@ func UploadProfileAvatar(db *gorm.DB, baseURL string) gin.HandlerFunc {
 		uid, err := strconv.ParseUint(uidStr, 10, 32)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "ID de usuario inválido"})
+			return
+		}
+
+		var user models.User
+		if err := db.Select("avatar_url").First(&user, uid).Error; err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Usuario no encontrado"})
 			return
 		}
 
@@ -120,15 +131,19 @@ func UploadProfileAvatar(db *gorm.DB, baseURL string) gin.HandlerFunc {
 		}
 
 		if err := db.Model(&models.User{}).Where("id = ?", uid).Update("avatar_url", avatarURL).Error; err != nil {
+			// The database remains authoritative. Remove the new file if its
+			// reference could not be persisted.
+			_ = st.Delete(avatarURL)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al guardar avatar"})
 			return
 		}
+		newAvatarURL := &avatarURL
+		deleteReplacedLocalAvatar(st, user.AvatarURL, newAvatarURL)
 
-		// Return URL the client can use: for local storage, that's the API avatar endpoint
-		displayURL := avatarURL
-		if storage.IsLocalURL(avatarURL) && baseURL != "" {
-			displayURL = strings.TrimSuffix(baseURL, "/") + "/api/v1/avatar"
-		}
+		// Return a versioned protected endpoint for local storage. The version
+		// changes with each immutable file reference, so clients refresh now and
+		// can safely cache it across sessions afterward.
+		displayURL := BuildProfileAvatarURL(newAvatarURL, baseURL, avatarPaths...)
 		c.JSON(http.StatusOK, gin.H{
 			"message":   "Avatar actualizado",
 			"avatarUrl": displayURL,
@@ -169,22 +184,49 @@ func GetProfileAvatar(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 		defer rc.Close()
+		if c.Query("v") == avatarVersion(url) {
+			c.Header("Cache-Control", "private, max-age=31536000, immutable")
+		} else {
+			c.Header("Cache-Control", "private, no-store")
+		}
 		c.DataFromReader(http.StatusOK, -1, contentType, rc, nil)
 	}
 }
 
 // BuildProfileAvatarURL returns the URL the frontend should use for the current user's avatar.
-// If avatar is stored locally, returns baseURL + "/api/v1/avatar" or "/api/v1/avatar" when baseURL is empty.
-func BuildProfileAvatarURL(avatarURL *string, baseURL string) string {
+// If avatar is stored locally, it returns a versioned, authenticated API URL.
+func BuildProfileAvatarURL(avatarURL *string, baseURL string, avatarPaths ...string) string {
 	if avatarURL == nil || *avatarURL == "" {
 		return ""
 	}
 	s := *avatarURL
 	if storage.IsLocalURL(s) {
-		if baseURL != "" {
-			return strings.TrimSuffix(baseURL, "/") + "/api/v1/avatar"
+		avatarPath := "/api/v1/avatar"
+		if len(avatarPaths) > 0 && strings.HasPrefix(avatarPaths[0], "/") {
+			avatarPath = avatarPaths[0]
 		}
-		return "/api/v1/avatar"
+		versionedPath := avatarPath + "?v=" + avatarVersion(s)
+		if baseURL != "" {
+			return strings.TrimSuffix(baseURL, "/") + versionedPath
+		}
+		return versionedPath
 	}
 	return s
+}
+
+func avatarVersion(storedURL string) string {
+	sum := sha256.Sum256([]byte(storedURL))
+	return hex.EncodeToString(sum[:8])
+}
+
+func deleteReplacedLocalAvatar(st storage.FileStorage, previous, current *string) {
+	if st == nil || previous == nil || *previous == "" || !storage.IsLocalURL(*previous) {
+		return
+	}
+	if current != nil && *current == *previous {
+		return
+	}
+	if err := st.Delete(*previous); err != nil {
+		log.Printf("WARN: Failed to remove replaced local avatar: %v", err)
+	}
 }

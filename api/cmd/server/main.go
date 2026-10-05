@@ -394,7 +394,7 @@ func main() {
 				c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
 				return
 			}
-			avatarUrl := handlers.BuildProfileAvatarURL(user.AvatarURL, apiBaseURL)
+			avatarUrl := handlers.BuildProfileAvatarURL(user.AvatarURL, apiBaseURL, "/api/v1/client/avatar")
 			c.JSON(http.StatusOK, gin.H{
 				"userID":    userID,
 				"role":      user.Role,
@@ -408,7 +408,7 @@ func main() {
 			})
 		})
 		clientPortal.PATCH("/profile", handlers.UpdateProfile(database))
-		clientPortal.POST("/profile/avatar", handlers.UploadProfileAvatar(database, apiBaseURL))
+		clientPortal.POST("/profile/avatar", handlers.UploadProfileAvatar(database, apiBaseURL, "/api/v1/client/avatar"))
 		clientPortal.GET("/avatar", handlers.GetProfileAvatar(database))
 
 		// Client dashboard data primitives

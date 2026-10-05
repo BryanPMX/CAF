@@ -122,7 +122,9 @@ Recommended for the current CAF architecture (no separate client web portal):
 Document/avatar storage uses a strategy pattern:
 
 - S3 (`AWS_*`, `S3_BUCKET`) when configured
-- Local filesystem fallback when S3 is unavailable
+- Local filesystem fallback when S3 is unavailable. In the production stack,
+  `/app/uploads` is mounted to the `caf_uploads` Docker volume, so profile
+  pictures and documents survive API container replacement and redeployment.
 
 ## Environment Configuration
 

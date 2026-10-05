@@ -171,7 +171,7 @@ func UploadFile(file *multipart.FileHeader, caseID string) (string, error) {
 	return fileURL, nil
 }
 
-// UploadAvatarFile uploads a private profile image to S3 at avatars/{userID}.{ext}.
+// UploadAvatarFile uploads a private profile image to an immutable S3 object.
 func UploadAvatarFile(file *multipart.FileHeader, userID string) (string, error) {
 	bucketName := os.Getenv("S3_BUCKET")
 	if s3Client == nil {
@@ -184,11 +184,11 @@ func UploadAvatarFile(file *multipart.FileHeader, userID string) (string, error)
 	}
 	defer src.Close()
 
-	ext := filepath.Ext(file.Filename)
+	ext := strings.ToLower(filepath.Ext(file.Filename))
 	if ext == "" {
 		ext = ".jpg"
 	}
-	objectKey := fmt.Sprintf("avatars/%s%s", userID, ext)
+	objectKey := fmt.Sprintf("avatars/%s-%s%s", userID, uuid.New().String(), ext)
 
 	_, err = s3Client.PutObject(context.TODO(), &s3.PutObjectInput{
 		Bucket:      &bucketName,
