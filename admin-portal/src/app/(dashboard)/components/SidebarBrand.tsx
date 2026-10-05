@@ -25,7 +25,11 @@ export default function SidebarBrand() {
       className="sidebar-brand group flex items-center gap-3 px-4 py-5 w-full transition-colors"
       aria-label="Ir a mi perfil"
     >
-      <div className="sidebar-brand-logo relative flex-shrink-0 flex items-center justify-center overflow-hidden rounded-2xl w-16 h-16">
+      <div
+        className={`sidebar-brand-logo relative flex-shrink-0 flex items-center justify-center w-16 h-16 ${
+          hasAvatar ? 'sidebar-brand-logo-avatar' : 'overflow-hidden rounded-2xl'
+        }`}
+      >
         {hasAvatar ? (
           <AuthAvatar
             avatarUrl={user!.avatarUrl}

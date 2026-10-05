@@ -98,6 +98,14 @@
   background: rgba(15, 23, 42, 0.45);
 }
 
+.sidebar-brand-logo.sidebar-brand-logo-avatar {
+  overflow: visible;
+  border: 0;
+  border-radius: 9999px;
+  background: transparent;
+  box-shadow: none;
+}
+
 .sidebar-brand-copy {
   flex: 1;
 }
@@ -218,6 +226,10 @@
   width: 44px !important;
   height: 44px !important;
   border-radius: 14px;
+}
+
+.ant-layout-sider-collapsed .sidebar-brand-logo-avatar {
+  border-radius: 9999px;
 }
 
 .ant-layout-sider-collapsed .sidebar-brand-logo .sidebar-brand-img,
