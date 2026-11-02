@@ -39,6 +39,10 @@ The CAF System uses a custom migration system that:
 - **0054_contact_submissions_office_id.sql**: Add office_id to contact_submissions for contact form office selection
 - **0055_contact_submissions_user_id.sql**: Add user_id to contact_submissions to link submissions to client user (created from form)
 - **0056_users_avatar_url.sql**: Add avatar_url to users for profile image (URL or stored upload)
+- **0057_users_stripe_customer_id.sql**: Add Stripe customer identifiers to users
+- **0058_create_payment_records.sql**: Persist Stripe payment lifecycle records
+- **0059_disable_insecure_default_admin.sql**: Disable the untouched development administrator account
+- **0060_clear_legacy_notifications.sql**: Clear existing legacy notification rows once so the actionable inbox starts empty
 
 ## Adding New Migrations
 
