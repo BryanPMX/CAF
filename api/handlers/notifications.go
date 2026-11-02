@@ -32,9 +32,12 @@ func GetNotifications(db *gorm.DB) gin.HandlerFunc {
 		// This ensures the frontend always receives an array, even when empty
 		notifications := make([]models.Notification, 0)
 
-		// Query notifications for the authenticated user, ordered by created_at desc
-		// Security: WHERE clause ensures user can only see their own notifications
+		// Return actionable notifications only. Historical case/appointment audit events
+		// are excluded because those actions are already visible in their own timelines.
+		// Security: WHERE clause ensures user can only see their own notifications.
 		if err := db.Where("user_id = ?", userIDUint).
+			Where("deleted_at IS NULL").
+			Where("dedup_key IS NULL OR (dedup_key NOT LIKE ? AND dedup_key NOT LIKE ?)", "case:%", "appointment:%").
 			Order("created_at DESC").
 			Find(&notifications).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al obtener notificaciones"})
@@ -99,7 +102,7 @@ func MarkNotificationsAsRead(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		c.JSON(http.StatusOK, gin.H{
-			"message": "Notificaciones marcadas como leídas exitosamente",
+			"message":       "Notificaciones marcadas como leídas exitosamente",
 			"updated_count": result.RowsAffected,
 		})
 	}

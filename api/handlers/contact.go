@@ -18,11 +18,11 @@ import (
 
 // ContactSubmitInput is the body for POST /api/v1/public/contact
 type ContactSubmitInput struct {
-	Name    string `json:"name" binding:"required,max=255"`
-	Email   string `json:"email" binding:"required,email,max=255"`
-	Phone   string `json:"phone" binding:"omitempty,max=50"`
-	Message string `json:"message" binding:"required,max=5000"`
-	OfficeID *uint `json:"officeId" binding:"omitempty"` // optional: selected office from dropdown
+	Name     string `json:"name" binding:"required,max=255"`
+	Email    string `json:"email" binding:"required,email,max=255"`
+	Phone    string `json:"phone" binding:"omitempty,max=50"`
+	Message  string `json:"message" binding:"required,max=5000"`
+	OfficeID *uint  `json:"officeId" binding:"omitempty"` // optional: selected office from dropdown
 }
 
 // findOrCreateClientUser finds an existing client by email or creates a new client user.
@@ -118,13 +118,13 @@ func SubmitContact(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		sub := models.ContactSubmission{
-			Name:    input.Name,
-			Email:   input.Email,
-			Phone:   input.Phone,
-			Message: input.Message,
-			Source:  "contacto",
+			Name:     input.Name,
+			Email:    input.Email,
+			Phone:    input.Phone,
+			Message:  input.Message,
+			Source:   "contacto",
 			OfficeID: input.OfficeID,
-			UserID:  &clientID,
+			UserID:   &clientID,
 		}
 		if err := db.Create(&sub).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al guardar el mensaje"})
@@ -132,7 +132,7 @@ func SubmitContact(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		// Notify all admins and the manager(s) of the selected office (if any); link to client profile
-		msg := fmt.Sprintf("Nuevo interés desde Contacto: %s (%s). Mensaje: %s", input.Name, input.Email, truncate(input.Message, 200))
+		msg := fmt.Sprintf("Nuevo contacto de %s: %s", input.Name, truncate(input.Message, 200))
 		link := fmt.Sprintf("/app/users/%d", clientID)
 		eid := sub.ID
 		NotifyAdminsAndOfficeManagersForContact(db, msg, "info", &link, "contact_interest", &eid, fmt.Sprintf("contact_interest:%d", sub.ID), input.OfficeID)
@@ -207,4 +207,3 @@ func GetContactSubmissions(db *gorm.DB) gin.HandlerFunc {
 		})
 	}
 }
-

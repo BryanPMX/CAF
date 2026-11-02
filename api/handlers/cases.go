@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/BryanPMX/CAF/api/models"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -91,8 +90,6 @@ func CreateCaseEnhanced(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		link := "/app/cases/" + strconv.FormatUint(uint64(caseData.ID), 10)
-		NotifyAdminsForCase(db, "creado", caseData.ID, caseData.Title, caseData.Category, caseData.Status, &link)
 		c.JSON(http.StatusCreated, gin.H{"data": caseData})
 	}
 }
@@ -117,8 +114,6 @@ func UpdateCase(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		link := "/app/cases/" + caseID
-		NotifyAdminsForCase(db, "actualizado", caseData.ID, caseData.Title, caseData.Category, caseData.Status, &link)
 		c.JSON(http.StatusOK, gin.H{"data": caseData})
 	}
 }
@@ -132,8 +127,6 @@ func DeleteCase(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		var caseData models.Case
-		_ = db.First(&caseData, caseID).Error // best-effort for notification payload
 		caseService := NewCaseService(db)
 		err := caseService.DeleteCase(caseID, c)
 		if err != nil {
@@ -142,11 +135,6 @@ func DeleteCase(db *gorm.DB) gin.HandlerFunc {
 				"message": err.Error(),
 			})
 			return
-		}
-		if caseData.ID != 0 {
-			caseIDNum, _ := strconv.ParseUint(caseID, 10, 32)
-			link := "/app/cases"
-			NotifyAdminsForCase(db, "eliminado", uint(caseIDNum), caseData.Title, caseData.Category, caseData.Status, &link)
 		}
 		c.JSON(http.StatusOK, gin.H{"message": "Case deleted successfully"})
 	}

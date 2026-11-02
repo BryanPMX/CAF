@@ -37,7 +37,6 @@ export default function OperationalAlerts({ alerts }: OperationalAlertsProps) {
       <div className="flex items-start justify-between gap-4">
         <div>
           <h2 className="text-lg font-semibold text-slate-950">Prioridades operativas</h2>
-          <p className="mt-1 text-sm text-slate-500">Alertas generadas a partir de la actividad actual.</p>
         </div>
         <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
           {alerts.length}

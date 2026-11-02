@@ -148,7 +148,9 @@ const { unreadCount, isLoading } = useNotifications();
 - **Consistent Data Source**: Uses global context for all notification data
 - **Real-time Updates**: Automatically reflects changes from other components
 - **Better Error Handling**: Centralized error management with user feedback
-- **Enhanced UX**: Added refresh button and error alerts
+- **Actionable Inbox**: Displays contact, client-message, task, and payment events without duplicating ordinary case/appointment edits
+- **Consistent UI**: Uses the same compact header, statistics, filters, and card hierarchy as the other administrative sections
+- **Enhanced UX**: Includes search, status/type filters, sorting, refresh, and error alerts
 
 ## Benefits Achieved
 
@@ -211,9 +213,7 @@ Body: { notificationIds: number[] }
 - Connection health telemetry in the admin UI
 
 ### 2. Advanced Filtering
-- Filter by notification type
 - Date range filtering
-- Search functionality
 
 ### 3. Notification Preferences
 - User-configurable notification settings

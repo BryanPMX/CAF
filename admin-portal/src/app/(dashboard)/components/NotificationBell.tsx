@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Alert, Badge, Button, Empty, Popover, Skeleton, Space, Typography, message } from 'antd';
+import { Alert, Badge, Button, Empty, Popover, Skeleton, message } from 'antd';
 import {
   BellOutlined,
   CheckOutlined,
@@ -11,12 +11,7 @@ import {
 import { useRouter } from 'next/navigation';
 import { useNotifications, type Notification } from '@/context/NotificationContext';
 import NotificationCard from './NotificationCard';
-import {
-  formatSyncTime,
-  resolveNotificationHref,
-} from './notificationPresentation';
-
-const { Text } = Typography;
+import { resolveNotificationHref } from './notificationPresentation';
 
 export default function NotificationBell() {
   const router = useRouter();
@@ -27,8 +22,6 @@ export default function NotificationBell() {
     isLoading,
     isRefreshing,
     error,
-    wsConnected,
-    lastUpdatedAt,
     markAsRead,
     markAllAsRead,
     refreshNotifications,
@@ -70,7 +63,7 @@ export default function NotificationBell() {
     try {
       await markAllAsRead();
     } catch {
-      message.error('No fue posible marcar las notificaciones como leidas.');
+      message.error('No fue posible marcar las notificaciones como leídas.');
     }
   };
 
@@ -78,7 +71,7 @@ export default function NotificationBell() {
     try {
       await markAsRead(notificationId);
     } catch {
-      message.error('No fue posible actualizar la notificacion.');
+      message.error('No fue posible actualizar la notificación.');
     }
   };
 
@@ -86,12 +79,7 @@ export default function NotificationBell() {
     <div className="w-[380px] max-w-[calc(100vw-32px)]">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <div className="text-sm font-semibold text-slate-900">Centro de notificaciones</div>
-          <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-500">
-            <span className={`h-2 w-2 rounded-full ${wsConnected ? 'bg-emerald-500' : 'bg-amber-400'}`} />
-            <span>{wsConnected ? 'En vivo' : 'Reconectando'}</span>
-            <span>Actualizado {formatSyncTime(lastUpdatedAt)}</span>
-          </div>
+          <div className="text-sm font-semibold text-slate-900">Notificaciones</div>
         </div>
 
         <Button
@@ -152,7 +140,7 @@ export default function NotificationBell() {
             ))}
           </div>
         ) : (
-          <div className="rounded-3xl border border-dashed border-slate-200 bg-slate-50 py-6">
+          <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 py-6">
             <Empty
               image={Empty.PRESENTED_IMAGE_SIMPLE}
               description="No hay notificaciones recientes"
@@ -170,14 +158,9 @@ export default function NotificationBell() {
         >
           Marcar todo
         </Button>
-        <Space size={8}>
-          <Text type="secondary" className="text-xs">
-            Bandeja completa
-          </Text>
-          <Button type="primary" onClick={handleOpenCenter} icon={<RightOutlined />}>
-            Abrir
-          </Button>
-        </Space>
+        <Button type="primary" onClick={handleOpenCenter} icon={<RightOutlined />}>
+          Abrir
+        </Button>
       </div>
     </div>
   );

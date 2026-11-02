@@ -62,7 +62,7 @@ export default function NotificationCard({
       tabIndex={canOpen ? 0 : undefined}
       onClick={handleCardClick}
       onKeyDown={handleKeyDown}
-      className={`group relative overflow-hidden rounded-3xl border transition-all duration-200 ${
+      className={`group relative overflow-hidden rounded-2xl border transition-all duration-200 ${
         notification.isRead
           ? 'border-slate-200 bg-white/75'
           : 'border-sky-200 bg-white shadow-[0_16px_40px_rgba(14,165,233,0.08)]'
@@ -146,7 +146,7 @@ export default function NotificationCard({
                       onMarkAsRead?.();
                     }}
                   >
-                    Marcar como leida
+                    Marcar como leída
                   </Button>
                 )}
               </div>

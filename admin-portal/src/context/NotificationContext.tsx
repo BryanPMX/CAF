@@ -88,8 +88,8 @@ function normalizeNotification(item: NotificationApiItem): Notification {
   const normalizedType = normalizeNotificationType(item.type);
   const normalized: Notification = {
     id: item.id,
-    title: item.title?.trim() || item.message?.trim() || 'Notificacion',
-    message: item.message?.trim() || 'Tienes una nueva notificacion.',
+    title: item.title?.trim() || item.message?.trim() || 'Notificación',
+    message: item.message?.trim() || 'Tienes una nueva notificación.',
     type: normalizedType,
     isRead: Boolean(item.isRead),
     createdAt: item.createdAt,
@@ -236,7 +236,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
         );
         setLastUpdatedAt(Date.now());
       } catch (markError) {
-        const nextError = extractErrorMessage(markError, 'No fue posible actualizar la notificacion.');
+        const nextError = extractErrorMessage(markError, 'No fue posible actualizar la notificación.');
         setError(nextError);
         throw markError instanceof Error ? markError : new Error(nextError);
       }
@@ -264,7 +264,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
       );
       setLastUpdatedAt(Date.now());
     } catch (markError) {
-      const nextError = extractErrorMessage(markError, 'No fue posible marcar las notificaciones como leidas.');
+      const nextError = extractErrorMessage(markError, 'No fue posible marcar las notificaciones como leídas.');
       setError(nextError);
       throw markError instanceof Error ? markError : new Error(nextError);
     } finally {
@@ -280,7 +280,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
           ? '/app/appointments'
           : resolveNotificationHref({ link: payload.link });
 
-      const description = payload.message?.trim() || 'Tienes una nueva notificacion.';
+      const description = payload.message?.trim() || 'Tienes una nueva notificación.';
       const toastNotification: Notification = {
         id: -1,
         title: payload.title?.trim() || description,

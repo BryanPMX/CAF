@@ -87,10 +87,17 @@ The protected root route (`/`) is a role-aware operations dashboard backed exclu
 
 - Admin and office-manager views use `GET /api/v1/dashboard-summary`; staff views use `GET /api/v1/staff/dashboard-summary`.
 - Summary cards link to the corresponding workflows and distribution charts visualize current case and appointment states without mock data.
-- Operational alerts are derived from pending tasks, today's appointments, unread notifications, and WebSocket connection health.
-- Admin office filtering is applied server-side. Office-manager scope remains enforced by the API.
+- Operational alerts are derived from pending tasks, today's appointments, and unread notifications.
+- Admin office filtering is applied server-side and includes an explicit "Todas las oficinas" option. Office-manager scope remains enforced by the API.
 - Data refreshes every 30 seconds and can be refreshed manually. The UI differentiates initial loading from background synchronization.
 - Reusable dashboard components keep presentation, data access, normalization, and alert derivation separate.
+
+### Notifications
+
+- The inbox is reserved for actionable events such as new contact inquiries, client messages, assigned tasks, and payments.
+- Case and appointment CRUD activity remains in its corresponding timeline and is not duplicated in the notification inbox.
+- Historical case/appointment audit notifications are excluded by their deduplication keys without deleting database records.
+- The page uses the same header, compact statistics, filters, and card hierarchy as the other administrative sections.
 
 ### 2. Authentication System (`src/context/AuthContext.tsx`)
 

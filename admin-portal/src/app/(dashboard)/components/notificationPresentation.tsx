@@ -34,14 +34,14 @@ interface NotificationEntityMeta {
 export const NOTIFICATION_TONE_META: Record<NotificationTone, NotificationToneMeta> = {
   info: {
     icon: <InfoCircleFilled />,
-    label: 'Actualizacion',
-    color: '#0f766e',
-    softBackground: 'rgba(13, 148, 136, 0.12)',
-    borderColor: 'rgba(13, 148, 136, 0.18)',
+    label: 'Actualización',
+    color: '#2563eb',
+    softBackground: 'rgba(37, 99, 235, 0.1)',
+    borderColor: 'rgba(37, 99, 235, 0.18)',
   },
   success: {
     icon: <CheckCircleFilled />,
-    label: 'Confirmacion',
+    label: 'Confirmación',
     color: '#15803d',
     softBackground: 'rgba(34, 197, 94, 0.12)',
     borderColor: 'rgba(34, 197, 94, 0.18)',
@@ -55,7 +55,7 @@ export const NOTIFICATION_TONE_META: Record<NotificationTone, NotificationToneMe
   },
   error: {
     icon: <CloseCircleFilled />,
-    label: 'Atencion',
+    label: 'Atención',
     color: '#b91c1c',
     softBackground: 'rgba(239, 68, 68, 0.12)',
     borderColor: 'rgba(239, 68, 68, 0.2)',
@@ -94,6 +94,11 @@ const SUPPORTED_TONES: NotificationTone[] = ['info', 'success', 'warning', 'erro
 
 function startOfLocalDay(date: Date): number {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+}
+
+function capitalizeLabel(value: string): string {
+  if (!value) return value;
+  return value.charAt(0).toLocaleUpperCase('es-MX') + value.slice(1);
 }
 
 function extractNumericSuffix(link: string, pattern: RegExp): number | null {
@@ -164,14 +169,14 @@ export function getNotificationEntityMeta(notification: Pick<Notification, 'enti
 
 export function getNotificationTitle(notification: Notification): string {
   const title = notification.title?.trim();
-  const message = notification.message?.trim() || 'Tienes una nueva notificacion.';
+  const message = notification.message?.trim() || 'Tienes una nueva notificación.';
 
   if (title && title !== message) {
     return title;
   }
 
   if (notification.entityType === 'appointment') {
-    return notification.type === 'success' ? 'Cita confirmada' : 'Actualizacion de cita';
+    return notification.type === 'success' ? 'Cita confirmada' : 'Actualización de cita';
   }
 
   if (notification.entityType === 'case') {
@@ -194,7 +199,7 @@ export function getNotificationLinkLabel(notification: Notification): string {
   if (entityMeta) {
     return entityMeta.actionLabel;
   }
-  return resolveNotificationHref(notification) ? 'Abrir detalle' : 'Ver notificacion';
+  return resolveNotificationHref(notification) ? 'Abrir detalle' : 'Ver notificación';
 }
 
 export function getNotificationAccentLabel(notification: Notification): string {
@@ -310,6 +315,7 @@ export function groupNotificationsByDay(notifications: Notification[]): Array<{ 
       label = createdAt.toLocaleDateString('es-MX', { weekday: 'long' });
     }
 
+    label = capitalizeLabel(label);
     const existing = groups.get(label) || [];
     groups.set(label, [...existing, notification]);
   });

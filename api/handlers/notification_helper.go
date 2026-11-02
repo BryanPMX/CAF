@@ -3,7 +3,6 @@
 package handlers
 
 import (
-	"fmt"
 	"strconv"
 	"sync"
 	"time"
@@ -63,21 +62,6 @@ func GetOfficeManagerUserIDs(db *gorm.DB, officeID uint) ([]uint, error) {
 	return ids, err
 }
 
-// NotifyAdmins creates a notification for every admin with optional dedup key to avoid duplicates.
-// Link and entityType/entityID are included for rich notifications.
-func NotifyAdmins(db *gorm.DB, message, notifType string, link *string, entityType string, entityID *uint, dedupKey string) {
-	adminIDs, err := GetAdminUserIDs(db)
-	if err != nil || len(adminIDs) == 0 {
-		return
-	}
-	for _, id := range adminIDs {
-		_ = CreateNotificationWithMeta(db, id, message, notifType, link, entityType, entityID, dedupKey)
-		SendUserNotification(strconv.FormatUint(uint64(id), 10), map[string]interface{}{
-			"message": message, "type": notifType, "link": link, "entityType": entityType, "entityId": entityID,
-		})
-	}
-}
-
 // NotifyAdminsAndOfficeManagersForContact notifies all admins and, when officeID is set, the manager(s) of that office.
 // Recipients are deduplicated (e.g. an office manager who is also admin gets one notification).
 func NotifyAdminsAndOfficeManagersForContact(db *gorm.DB, message, notifType string, link *string, entityType string, entityID *uint, dedupKey string, officeID *uint) {
@@ -112,20 +96,4 @@ func NotifyAdminsAndOfficeManagersForContact(db *gorm.DB, message, notifType str
 			"message": message, "type": notifType, "link": link, "entityType": entityType, "entityId": entityID,
 		})
 	}
-}
-
-// NotifyAdminsForCase notifies admins about a case event (created, updated, deleted) with full case info in the message.
-func NotifyAdminsForCase(db *gorm.DB, action string, caseID uint, title, category, status string, link *string) {
-	msg := fmt.Sprintf("Caso #%d (%s) %s. Categoría: %s, Estado: %s.", caseID, title, action, category, status)
-	eid := caseID
-	dedup := fmt.Sprintf("case:%d:%s", caseID, action)
-	NotifyAdmins(db, msg, "info", link, "case", &eid, dedup)
-}
-
-// NotifyAdminsForAppointment notifies admins about an appointment event with full appointment info.
-func NotifyAdminsForAppointment(db *gorm.DB, action string, appointmentID uint, title, status string, startTime time.Time, link *string) {
-	msg := fmt.Sprintf("Cita #%d '%s' %s. Estado: %s. Fecha: %s.", appointmentID, title, action, status, startTime.Format("02/01/2006 15:04"))
-	eid := appointmentID
-	dedup := fmt.Sprintf("appointment:%d:%s", appointmentID, action)
-	NotifyAdmins(db, msg, "info", link, "appointment", &eid, dedup)
 }

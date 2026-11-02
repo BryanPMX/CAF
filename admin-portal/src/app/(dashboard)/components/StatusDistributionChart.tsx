@@ -8,7 +8,7 @@ export interface ChartSegment {
 
 interface StatusDistributionChartProps {
   title: string;
-  description: string;
+  description?: string;
   totalLabel: string;
   segments: ChartSegment[];
 }
@@ -26,7 +26,7 @@ export default function StatusDistributionChart({
     <section className="h-full rounded-[30px] border border-slate-200 bg-white p-5 shadow-[0_18px_45px_rgba(15,23,42,0.06)] sm:p-6">
       <div>
         <h2 className="text-lg font-semibold text-slate-950">{title}</h2>
-        <p className="mt-1 text-sm text-slate-500">{description}</p>
+        {description && <p className="mt-1 text-sm text-slate-500">{description}</p>}
       </div>
 
       <div className="mt-6 grid items-center gap-6 sm:grid-cols-[190px_minmax(0,1fr)]">
