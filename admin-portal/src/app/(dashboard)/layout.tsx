@@ -1,10 +1,10 @@
 // admin-portal/src/app/(dashboard)/layout.tsx
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
-import Link from 'next/link';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { Layout, Menu, Spin, Button, Alert, Badge, Drawer } from 'antd';
+import type { MenuProps } from 'antd';
 import { LogoutOutlined } from '@ant-design/icons';
 import SidebarBrand from './components/SidebarBrand';
 import { useAuth } from '@/context/AuthContext';
@@ -94,15 +94,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return null;
   }, [pathname]);
 
+  const navigationItems = useMemo(() => {
+    if (!user?.role) return [];
+    const staffRole = user.role as StaffRoleKey;
+    return getNavigationItemsForRole(staffRole);
+  }, [user?.role]);
+
   // Filter menu items based on user role using centralized role configuration
   const filteredMenuItems = useMemo(() => {
-    if (!user?.role) return [];
-
-    // Convert user role to StaffRoleKey if it's a valid staff role
-    const staffRole = user.role as StaffRoleKey;
-    const navigationItems = getNavigationItemsForRole(staffRole);
-
-    // Convert navigation items to Ant Design menu format
      return navigationItems.map(item => {
        const IconComponent = ICON_MAP[item.icon as keyof typeof ICON_MAP] || HomeOutlined;
        const icon = React.createElement(IconComponent);
@@ -112,18 +111,30 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
            ? <Badge dot color="#38bdf8" offset={[2, 0]}>{icon}</Badge>
            : icon,
          label: (
-           <Link href={item.path} className="flex items-center justify-between gap-3">
+           <span className="flex items-center justify-between gap-3">
              <span>{item.label}</span>
              {item.key === 'notifications' && unreadCount > 0 && (
                <span className="min-w-6 rounded-full bg-sky-400/20 px-2 py-0.5 text-center text-[11px] font-semibold text-sky-100">
                  {unreadCount > 99 ? '99+' : unreadCount}
                </span>
              )}
-           </Link>
+           </span>
          ),
        };
      });
-  }, [unreadCount, user?.role]);
+  }, [navigationItems, unreadCount]);
+
+  const handleNavigationClick = useCallback<NonNullable<MenuProps['onClick']>>(({ key }) => {
+    const destination = navigationItems.find((item) => item.key === key)?.path;
+    if (destination && destination !== pathname) {
+      router.push(destination);
+    }
+  }, [navigationItems, pathname, router]);
+
+  const handleMobileNavigationClick = useCallback<NonNullable<MenuProps['onClick']>>((info) => {
+    handleNavigationClick(info);
+    setMobileNavOpen(false);
+  }, [handleNavigationClick]);
 
   // Get role display configuration using centralized role definitions
   const roleDisplay = useMemo(() => {
@@ -203,6 +214,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 selectedKeys={selectedKey ? [selectedKey] : []}
                 mode="inline"
                 items={filteredMenuItems}
+                onClick={handleNavigationClick}
               />
             </div>
           </Sider>
@@ -228,7 +240,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 selectedKeys={selectedKey ? [selectedKey] : []}
                 mode="inline"
                 items={filteredMenuItems}
-                onClick={() => setMobileNavOpen(false)}
+                onClick={handleMobileNavigationClick}
               />
             </div>
           </Drawer>
