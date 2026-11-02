@@ -75,7 +75,7 @@ export default function WebContentPage() {
         bodyStyle={{ padding: '16px 24px' }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-          <GlobalOutlined style={{ fontSize: 24, color: '#4f46e5' }} />
+          <GlobalOutlined style={{ fontSize: 24, color: '#2563eb' }} />
           <div>
             <Title level={4} style={{ margin: 0 }}>Gestión de Contenido Web</Title>
             <Text type="secondary">Administre el contenido del sitio web público</Text>

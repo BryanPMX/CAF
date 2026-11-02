@@ -23,7 +23,8 @@ import {
   PlusOutlined, 
   EyeOutlined, 
   SearchOutlined,
-  FilterOutlined
+  FilterOutlined,
+  FolderOpenOutlined
 } from '@ant-design/icons';
 import { useAuth } from '@/context/AuthContext';
 import { CaseService } from '@/services/caseService';
@@ -471,7 +472,10 @@ const CaseManagementPage = () => {
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-2xl font-bold">Gestión de Casos</h1>
+          <h1 className="flex items-center gap-3 text-2xl font-bold">
+            <FolderOpenOutlined className="text-blue-600" />
+            <span>Gestión de Casos</span>
+          </h1>
           <p className="text-gray-500 text-sm">
             Total: {total} casos • Última actualización: {lastRefresh.toLocaleTimeString()}
           </p>

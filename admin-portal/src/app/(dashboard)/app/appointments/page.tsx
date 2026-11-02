@@ -354,7 +354,10 @@ const AppointmentsPage = () => {
     <div>
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-2xl font-bold">Gestión de Citas</h1>
+          <h1 className="flex items-center gap-3 text-2xl font-bold">
+            <CalendarOutlined className="text-blue-600" />
+            <span>Gestión de Citas</span>
+          </h1>
         </div>
         <div className="flex gap-2">
           {/* IMPROVEMENT: Button is only shown to authorized roles and is disabled during loading */}

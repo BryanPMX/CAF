@@ -4,7 +4,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Table, message, Spin, Tag, Popconfirm, Select, Tooltip } from 'antd';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import { PlusOutlined, EditOutlined, DeleteOutlined, UserOutlined } from '@ant-design/icons';
 import { isAxiosError } from 'axios';
 import { STAFF_ROLES, PERMISSIONS, getAllRoles } from '@/config/roles';
 import { useHydrationSafe } from '@/hooks/useHydrationSafe';
@@ -339,7 +339,10 @@ const UserManagementPage = () => {
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-6">Gestión de Usuarios</h1>
+        <h1 className="mb-6 flex items-center gap-3 text-2xl font-bold text-gray-800 md:text-3xl">
+          <UserOutlined className="text-blue-600" />
+          <span>Gestión de Usuarios</span>
+        </h1>
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="flex flex-wrap items-center gap-2 md:gap-3">
             {(userRole === 'admin' || userRole === 'office_manager') && (

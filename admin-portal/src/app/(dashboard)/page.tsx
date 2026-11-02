@@ -9,6 +9,7 @@ import {
   BellOutlined,
   CalendarOutlined,
   ClockCircleOutlined,
+  DashboardOutlined,
   FileAddOutlined,
   FolderOpenOutlined,
   ReloadOutlined,
@@ -299,7 +300,10 @@ export default function DashboardPage() {
         <div aria-hidden className="absolute -bottom-32 left-1/3 h-72 w-72 rounded-full bg-blue-500/20 blur-3xl" />
         <div className="relative">
           <div className="max-w-3xl">
-            <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Panel de Control</h1>
+            <h1 className="flex items-center gap-3 text-3xl font-semibold tracking-tight sm:text-4xl">
+              <DashboardOutlined className="text-cyan-300" />
+              <span>Panel de Control</span>
+            </h1>
             <p className="mt-4 text-xs text-slate-400">Indicadores actualizados a las {formatUpdatedAt(dashboardUpdatedAt)}</p>
           </div>
         </div>

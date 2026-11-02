@@ -475,7 +475,10 @@ const ReportsPage = () => {
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Reportes del Sistema</h1>
+        <h1 className="flex items-center gap-3 text-2xl font-bold">
+          <BarChartOutlined className="text-blue-600" />
+          <span>Reportes del Sistema</span>
+        </h1>
         <Space>
           <Button 
             type="primary" 

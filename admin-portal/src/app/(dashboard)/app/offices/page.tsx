@@ -245,7 +245,10 @@ const OfficeManagementPage = () => {
     <div>
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-2xl font-bold">Gestión de Oficinas</h1>
+          <h1 className="flex items-center gap-3 text-2xl font-bold">
+            <BankOutlined className="text-blue-600" />
+            <span>Gestión de Oficinas</span>
+          </h1>
           <Text type="secondary">Haga clic en el nombre de una oficina para ver su detalle, personal y clientes</Text>
         </div>
         {userRole === 'admin' && (
