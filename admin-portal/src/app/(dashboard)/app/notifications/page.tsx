@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Alert,
   Button,
@@ -54,10 +54,6 @@ export default function NotificationsPage() {
   const [typeFilter, setTypeFilter] = useState<'all' | Notification['type']>('all');
   const [sortOrder, setSortOrder] = useState<SortOrder>('newest');
   const [searchValue, setSearchValue] = useState('');
-
-  useEffect(() => {
-    void refreshNotifications();
-  }, [refreshNotifications]);
 
   const typeOptions = useMemo(() => {
     const uniqueTypes = Array.from(new Set(notifications.map((item) => item.type)));
@@ -125,6 +121,14 @@ export default function NotificationsPage() {
     }
   };
 
+  const handleRefresh = async () => {
+    try {
+      await refreshNotifications();
+    } catch {
+      message.error('No fue posible actualizar las notificaciones.');
+    }
+  };
+
   const clearFilters = () => {
     setStatusFilter('all');
     setTypeFilter('all');
@@ -164,7 +168,7 @@ export default function NotificationsPage() {
           <Space wrap>
             <Button
               icon={<ReloadOutlined />}
-              onClick={() => void refreshNotifications()}
+              onClick={() => void handleRefresh()}
               loading={isRefreshing}
             >
               Actualizar

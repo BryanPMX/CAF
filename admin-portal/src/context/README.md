@@ -40,7 +40,7 @@ We implemented a centralized notification system using React's Context API with 
 │  └─────────────────────────────────────────────────────┘   │
 │  ┌─────────────────────────────────────────────────────┐   │
 │  │ Data Fetching:                                      │   │
-│  │ - Periodic refresh (30s)                            │   │
+│  │ - Initial + WebSocket-triggered refresh             │   │
 │  │ - Error handling                                    │   │
 │  │ - Optimistic updates                                │   │
 │  └─────────────────────────────────────────────────────┘   │
@@ -66,7 +66,7 @@ We implemented a centralized notification system using React's Context API with 
 - **Centralized State**: All notification-related state managed in one place
 - **Realtime Sync**: WebSocket-triggered refresh using backend `/ws` notifications
 - **Error Handling**: Comprehensive error management with user feedback
-- **Optimistic Updates**: Immediate UI updates for better UX
+- **Canonical Updates**: Read state is updated after the API confirms the change
 - **Type Safety**: Full TypeScript support with proper interfaces
 
 **Core Functions**:
@@ -89,8 +89,9 @@ clearError(): void
 **Location**: `admin-portal/src/app/(dashboard)/layout.tsx`
 
 **Changes Made**:
-- Wrapped the entire layout with `NotificationProvider`
+- The root app layout wraps authenticated surfaces with `NotificationProvider`
 - Removed `userId` prop from `NotificationBell` (now handled by context)
+- Added a role-aware left-navigation entry with the shared unread badge
 - Simplified component structure for better HMR stability
 
 **Before**:
@@ -192,7 +193,7 @@ Body: { notificationIds: number[] }
 
 1. **Initial Load**: Context fetches notifications on mount
 2. **Realtime Updates**: WebSocket events trigger an API refresh for canonical notification data
-3. **User Actions**: Immediate optimistic updates with API calls
+3. **User Actions**: API-confirmed read-state updates shared by all consumers
 4. **Error Recovery**: Automatic retry and user feedback
 
 ### Error Handling Strategy

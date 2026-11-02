@@ -24,22 +24,31 @@ func GetStaffDashboardSummary(db *gorm.DB) gin.HandlerFunc {
 
 		// Get cases assigned to this staff member
 		var myCases int64
-		db.Model(&models.Case{}).Where("id IN (SELECT case_id FROM user_case_assignments WHERE user_id = ?)", userIDStr).Count(&myCases)
+		db.Model(&models.Case{}).
+			Where("id IN (SELECT case_id FROM user_case_assignments WHERE user_id = ? AND deleted_at IS NULL) AND is_archived = ?", userIDStr, false).
+			Count(&myCases)
 
 		// Get open cases assigned to this staff member
 		var myOpenCases int64
-		db.Model(&models.Case{}).Where("id IN (SELECT case_id FROM user_case_assignments WHERE user_id = ?) AND status IN (?)", userIDStr, []string{"open", "active", "in_progress"}).Count(&myOpenCases)
+		db.Model(&models.Case{}).
+			Where("id IN (SELECT case_id FROM user_case_assignments WHERE user_id = ? AND deleted_at IS NULL) AND status IN (?) AND is_archived = ?", userIDStr, []string{"open", "active", "in_progress"}, false).
+			Count(&myOpenCases)
 
 		// Get appointments for cases assigned to this staff member
 		var myAppointments int64
-		db.Model(&models.Appointment{}).Where("case_id IN (SELECT case_id FROM user_case_assignments WHERE user_id = ?)", userIDStr).Count(&myAppointments)
+		db.Model(&models.Appointment{}).
+			Where("case_id IN (SELECT case_id FROM user_case_assignments WHERE user_id = ? AND deleted_at IS NULL)", userIDStr).
+			Count(&myAppointments)
 
 		// Get pending appointments for cases assigned to this staff member
 		var myPendingAppointments int64
-		db.Model(&models.Appointment{}).Where("case_id IN (SELECT case_id FROM user_case_assignments WHERE user_id = ?) AND status = ?", userIDStr, "pending").Count(&myPendingAppointments)
+		db.Model(&models.Appointment{}).
+			Where("case_id IN (SELECT case_id FROM user_case_assignments WHERE user_id = ? AND deleted_at IS NULL) AND status = ?", userIDStr, "pending").
+			Count(&myPendingAppointments)
 
 		// Today's appointments for this staff member
-		todayStart := time.Now().Truncate(24 * time.Hour)
+		now := time.Now()
+		todayStart := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
 		todayEnd := todayStart.Add(24 * time.Hour)
 		var myAppointmentsToday int64
 		db.Model(&models.Appointment{}).Where(
@@ -50,16 +59,16 @@ func GetStaffDashboardSummary(db *gorm.DB) gin.HandlerFunc {
 		// Pending tasks assigned to this staff member
 		var myPendingTasks int64
 		db.Model(&models.Task{}).Where(
-			"assigned_to = ? AND status IN (?) AND deleted_at IS NULL",
+			"assigned_to_id = ? AND status IN (?) AND deleted_at IS NULL",
 			userIDStr, []string{"pending", "in_progress"},
 		).Count(&myPendingTasks)
 
 		// Completed cases this month
-		currentMonthStart := time.Date(time.Now().Year(), time.Now().Month(), 1, 0, 0, 0, 0, time.Now().Location())
+		currentMonthStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
 		var myCompletedCases int64
 		db.Model(&models.Case{}).Where(
-			"id IN (SELECT case_id FROM user_case_assignments WHERE user_id = ?) AND status IN (?) AND updated_at >= ?",
-			userIDStr, []string{"completed", "closed"}, currentMonthStart,
+			"id IN (SELECT case_id FROM user_case_assignments WHERE user_id = ? AND deleted_at IS NULL) AND status IN (?) AND updated_at >= ? AND is_archived = ?",
+			userIDStr, []string{"completed", "closed"}, currentMonthStart, false,
 		).Count(&myCompletedCases)
 
 		c.JSON(http.StatusOK, gin.H{
@@ -155,7 +164,7 @@ func GetDashboardSummary(db *gorm.DB) gin.HandlerFunc {
 		completedApptQuery.Count(&completedAppointments)
 
 		var appointmentsToday int64
-		todayStart := time.Now().Truncate(24 * time.Hour)
+		todayStart := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
 		todayEnd := todayStart.Add(24 * time.Hour)
 		apptTodayQuery := db.Model(&models.Appointment{}).Where("start_time >= ? AND start_time < ? AND deleted_at IS NULL", todayStart, todayEnd)
 		if officeFilter != 0 {
@@ -175,14 +184,29 @@ func GetDashboardSummary(db *gorm.DB) gin.HandlerFunc {
 		staffQuery.Count(&totalStaff)
 
 		var totalClients int64
-		db.Model(&models.User{}).Where("role = 'client' AND deleted_at IS NULL").Count(&totalClients)
+		clientQuery := db.Model(&models.User{}).Where("role = 'client' AND deleted_at IS NULL")
+		if officeFilter != 0 {
+			clientQuery = clientQuery.Where("office_id = ?", officeFilter)
+		}
+		clientQuery.Count(&totalClients)
 
 		// Pending tasks count
 		var pendingTasks int64
-		db.Model(&models.Task{}).Where("status IN (?) AND deleted_at IS NULL", []string{"pending", "in_progress"}).Count(&pendingTasks)
+		pendingTasksQuery := db.Model(&models.Task{}).Where("status IN (?) AND deleted_at IS NULL", []string{"pending", "in_progress"})
+		if officeFilter != 0 {
+			pendingTasksQuery = pendingTasksQuery.Where(
+				"case_id IN (SELECT id FROM cases WHERE office_id = ? AND deleted_at IS NULL)",
+				officeFilter,
+			)
+		}
+		pendingTasksQuery.Count(&pendingTasks)
 
 		// Appointments this week
-		weekStart := todayStart.AddDate(0, 0, -int(todayStart.Weekday()))
+		weekday := int(todayStart.Weekday())
+		if weekday == 0 {
+			weekday = 7
+		}
+		weekStart := todayStart.AddDate(0, 0, -(weekday - 1))
 		weekEnd := weekStart.AddDate(0, 0, 7)
 		var appointmentsThisWeek int64
 		apptWeekQuery := db.Model(&models.Appointment{}).Where("start_time >= ? AND start_time < ? AND deleted_at IS NULL", weekStart, weekEnd)

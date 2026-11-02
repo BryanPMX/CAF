@@ -14,9 +14,13 @@ admin-portal/
 │   ├── app/                        # Next.js 14 App Router
 │   │   ├── (dashboard)/            # Protected dashboard routes
 │   │   │   ├── layout.tsx          # Dashboard layout with sidebar, header, auth guard
-│   │   │   ├── page.tsx            # Panel de Control - role-based dashboard with stats
+│   │   │   ├── page.tsx            # Panel de Control - role-based operational dashboard
 │   │   │   ├── components/         # Dashboard-scoped shared components
 │   │   │   │   ├── SidebarBrand.tsx     # Sidebar brand logo (brand-only, no text)
+│   │   │   │   ├── DashboardMetricCard.tsx
+│   │   │   │   ├── StatusDistributionChart.tsx
+│   │   │   │   ├── OperationalAlerts.tsx
+│   │   │   │   ├── useDashboardSummary.ts # Typed data loading and refresh
 │   │   │   │   ├── AppointmentModal.tsx # Multi-step appointment creation wizard
 │   │   │   │   ├── EditAppointmentModal.tsx
 │   │   │   │   ├── SmartSearchBar.tsx   # Debounced search + filter component
@@ -75,6 +79,18 @@ admin-portal/
 - Root layout provides global context and styling
 - Dashboard layout includes navigation and authentication guards
 - Nested layouts for section-specific UI
+- The left navigation exposes the notification center for every portal role and displays the shared unread count
+
+### Operational Dashboard
+
+The protected root route (`/`) is a role-aware operations dashboard backed exclusively by live summary APIs:
+
+- Admin and office-manager views use `GET /api/v1/dashboard-summary`; staff views use `GET /api/v1/staff/dashboard-summary`.
+- Summary cards link to the corresponding workflows and distribution charts visualize current case and appointment states without mock data.
+- Operational alerts are derived from pending tasks, today's appointments, unread notifications, and WebSocket connection health.
+- Admin office filtering is applied server-side. Office-manager scope remains enforced by the API.
+- Data refreshes every 30 seconds and can be refreshed manually. The UI differentiates initial loading from background synchronization.
+- Reusable dashboard components keep presentation, data access, normalization, and alert derivation separate.
 
 ### 2. Authentication System (`src/context/AuthContext.tsx`)
 
@@ -119,6 +135,7 @@ admin-portal/
 **Context + Hooks Pattern**:
 - React Context for global state
 - Custom hooks for domain-specific logic
+- `useDashboardSummary()` centralizes dashboard loading, background refresh, office selection, error state, and API response normalization
 - Server-state management with SWR/React Query (future)
 
 **Authentication Flow**:

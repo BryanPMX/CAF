@@ -22,8 +22,8 @@ import { logVersionInfo, isCorrectDomain } from '@/app/lib/version';
 const { Title, Text } = Typography;
 
 const ROLE_REDIRECTS: Record<UserRole, string> = {
-  admin: '/admin',
-  office_manager: '/admin',
+  admin: '/',
+  office_manager: '/',
   lawyer: '/',
   psychologist: '/',
   receptionist: '/',

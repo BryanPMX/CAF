@@ -99,7 +99,8 @@ admin-portal/src/
 - **Login Page**: Split-panel design with CAF branding and indigo/violet gradient  
 - **Sidebar**: Full organization name "Centro de Apoyo para la Familia A.C." with logo; clicking the logo goes to the profile page; **Notificaciones** in the header for all roles  
 - **Profile**: Account view at `/app/profile` with circular avatar (initials), name, email, role, and office in a clear layout; reached via the sidebar logo or notification links  
-- **Notifications**: Centro de Notificaciones with card-style list (type icon, entity tag, relative time, unread indicator); cards are clickable and link to cases, appointments, or profile; dashboard shows recent notifications with the same card design  
+- **Dashboard**: Role-aware operational dashboard with live summary cards, accessible case/appointment distribution graphs, office-scoped metrics, quick actions, and alerts derived from real tasks, appointments, notifications, and connection health
+- **Notifications**: Centro de Notificaciones with card-style list (type icon, entity tag, relative time, unread indicator), search and filters, WebSocket refresh, header popover, and a persistent left-navigation entry with unread count; cards link to the relevant workflow
 - **CMS Image Upload**: Local file upload to server for "Sitio Web" gallery management
 
 ### Mobile Application (Flutter) - Client Portal

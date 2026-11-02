@@ -57,6 +57,21 @@
   box-shadow: 12px 0 28px rgba(2, 6, 23, 0.2);
 }
 
+.mobile-nav-trigger.ant-btn {
+  display: none;
+  margin-right: 6px;
+  color: #334155;
+}
+
+.admin-mobile-drawer .ant-drawer-title,
+.admin-mobile-drawer .ant-drawer-close {
+  color: #f8fafc;
+}
+
+.admin-mobile-drawer .admin-nav-menu.ant-menu {
+  min-height: calc(100vh - 174px);
+}
+
 .admin-sider.ant-layout-sider::before {
   content: '';
   position: absolute;
@@ -369,6 +384,16 @@
 
 /* Responsive Enhancements */
 @media (max-width: 768px) {
+  .admin-sider.ant-layout-sider {
+    display: none;
+  }
+
+  .mobile-nav-trigger.ant-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
   .admin-dashboard {
     padding: 8px;
   }

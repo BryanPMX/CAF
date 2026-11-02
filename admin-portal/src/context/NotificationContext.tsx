@@ -330,7 +330,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     }
 
     hasLoadedRef.current = false;
-    void fetchNotifications();
+    void fetchNotifications().catch(() => undefined);
   }, [fetchNotifications, isAuthenticated, isHydrated, resetState, user?.id]);
 
   useEffect(() => {
@@ -346,14 +346,14 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     if (now - lastRealtimeRefreshRef.current < 700) return;
     lastRealtimeRefreshRef.current = now;
 
-    void fetchNotifications({ silent: true });
+    void fetchNotifications({ silent: true }).catch(() => undefined);
   }, [fetchNotifications, isAuthenticated, isHydrated, lastMessage, showRealtimeToast, user?.id]);
 
   useEffect(() => {
     if (!isHydrated || !isAuthenticated || !user?.id) return;
 
     if (wsConnected && !previousWsConnectedRef.current && hasLoadedRef.current) {
-      void fetchNotifications({ silent: true });
+      void fetchNotifications({ silent: true }).catch(() => undefined);
     }
 
     previousWsConnectedRef.current = wsConnected;

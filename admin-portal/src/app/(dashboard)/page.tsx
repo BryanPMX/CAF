@@ -1,497 +1,481 @@
-// admin-portal/src/app/(dashboard)/page.tsx
 'use client';
 
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useMemo } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { Alert, Button, Empty, Select, Skeleton } from 'antd';
 import {
-  Button, Card, Col, Row, Statistic, Spin, message, Select, Typography, Divider, Empty,
-} from 'antd';
-import {
-  FolderOpenOutlined, CalendarOutlined, TeamOutlined, BarChartOutlined,
-  ClockCircleOutlined, CheckCircleOutlined, BellOutlined, ReloadOutlined, RightOutlined,
-  UserOutlined, BankOutlined,
-  ScheduleOutlined, ExclamationCircleOutlined, RiseOutlined,
+  BankOutlined,
+  BellOutlined,
+  CalendarOutlined,
+  ClockCircleOutlined,
+  FileAddOutlined,
+  FolderOpenOutlined,
+  ReloadOutlined,
+  RightOutlined,
+  ScheduleOutlined,
+  UserAddOutlined,
 } from '@ant-design/icons';
-import { apiClient } from '../lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { useNotifications } from '@/context/NotificationContext';
 import { useHydrationSafe } from '@/hooks/useHydrationSafe';
+import DashboardMetricCard, { type DashboardAccent } from './components/DashboardMetricCard';
 import NotificationCard from './components/NotificationCard';
+import OperationalAlerts, { type OperationalAlertItem } from './components/OperationalAlerts';
+import StatusDistributionChart, { type ChartSegment } from './components/StatusDistributionChart';
 import { formatSyncTime, resolveNotificationHref } from './components/notificationPresentation';
+import { isDashboardStaffRole, useDashboardSummary } from './components/useDashboardSummary';
 
-const { Text, Title } = Typography;
-
-// --- TypeScript Interfaces ---
-interface DashboardData {
-  // Case statistics
-  totalCases: number;
-  openCases: number;
-  completedCases: number;
-  casesThisMonth: number;
-  myCases?: number;
-  myOpenCases?: number;
-  myCompletedCases?: number;
-
-  // Appointment statistics
-  totalAppointments: number;
-  pendingAppointments: number;
-  completedAppointments: number;
-  appointmentsToday: number;
-  appointmentsThisWeek?: number;
-  myAppointments?: number;
-  myPendingAppointments?: number;
-  myAppointmentsToday?: number;
-
-  // Admin-only stats
-  totalStaff?: number;
-  totalClients?: number;
-  pendingTasks?: number;
-  myPendingTasks?: number;
-
-  // Office filter
-  offices?: Array<{ id: number; name: string }>;
-}
-
-// --- Stat Card Component ---
-const StatCard: React.FC<{
+interface MetricDefinition {
   title: string;
   value: number;
+  description: string;
   icon: React.ReactNode;
-  color: string;
-  suffix?: string;
-}> = ({ title, value, icon, color, suffix }) => (
-  <Card className="text-center" hoverable size="small" style={{ borderTop: `3px solid ${color}` }}>
-    <div className="flex items-center justify-center mb-1" style={{ color }}>
-      {icon}
-    </div>
-    <Statistic
-      title={<span style={{ fontSize: 12 }}>{title}</span>}
-      value={value}
-      suffix={suffix}
-      valueStyle={{ color, fontSize: 22, fontWeight: 'bold' }}
-    />
-  </Card>
-);
+  accent: DashboardAccent;
+  href?: string;
+}
 
-// --- Main Page Component ---
-const TrueDashboardPage = () => {
+interface CapacityIndicator {
+  label: string;
+  value: number;
+  helper: string;
+}
+
+function formatUpdatedAt(timestamp: number | null): string {
+  if (!timestamp) return 'Pendiente de sincronizar';
+  return new Date(timestamp).toLocaleTimeString('es-MX', {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function buildSegments(total: number, first: ChartSegment, second?: ChartSegment): ChartSegment[] {
+  const known = first.value + (second?.value || 0);
+  const other = Math.max(0, total - known);
+  const segments = [first];
+  if (second) segments.push(second);
+  if (other > 0 || total === 0) {
+    segments.push({ label: 'Otros estados', value: other, color: '#cbd5e1' });
+  }
+  return segments;
+}
+
+export default function DashboardPage() {
   const router = useRouter();
-  const isHydrated = useHydrationSafe();
+  const hydrated = useHydrationSafe();
   const { user } = useAuth();
-
-  const [userRole, setUserRole] = useState<string | null>(null);
-  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [selectedOfficeId, setSelectedOfficeId] = useState<string>('');
-  const [offices, setOffices] = useState<Array<{ id: number; name: string }>>([]);
-  const initializedRef = useRef(false);
+  const role = user?.role;
+  const isStaff = isDashboardStaffRole(role);
+  const isAdmin = role === 'admin';
+  const isManager = role === 'office_manager';
 
   const {
-    notifications: contextNotifications,
-    unreadCount: contextUnreadCount,
+    summary,
+    offices,
+    selectedOfficeId,
+    selectOffice,
+    isLoading,
+    isRefreshing,
+    error: dashboardError,
+    lastUpdatedAt: dashboardUpdatedAt,
+    refresh,
+  } = useDashboardSummary({
+    enabled: hydrated && Boolean(role),
+    role,
+    userOfficeId: user?.officeId,
+  });
+
+  const {
+    notifications,
+    unreadCount,
     isRefreshing: notificationsRefreshing,
+    error: notificationError,
     wsConnected,
-    lastUpdatedAt,
+    lastUpdatedAt: notificationsUpdatedAt,
     markAsRead,
     refreshNotifications,
   } = useNotifications();
-  const recentNotifications = contextNotifications.slice(0, 5);
 
-  const isStaffRole = useMemo(() =>
-    ['lawyer', 'psychologist', 'receptionist', 'event_coordinator'].includes(userRole || ''),
-    [userRole]
-  );
-  const isAdmin = userRole === 'admin';
-  const isManager = userRole === 'office_manager';
+  const metrics = useMemo<MetricDefinition[]>(() => {
+    if (!summary) return [];
 
-  // Fetch offices
-  const fetchOffices = async () => {
-    try {
-      const response = await apiClient.get('/offices');
-      setOffices(response.data || []);
-    } catch {
-      // Non-critical, continue without offices
+    if (isStaff) {
+      return [
+        {
+          title: 'Casos abiertos',
+          value: summary.myOpenCases,
+          description: `de ${summary.myCases} casos asignados`,
+          icon: <FolderOpenOutlined />,
+          accent: 'blue',
+          href: '/app/cases',
+        },
+        {
+          title: 'Citas pendientes',
+          value: summary.myPendingAppointments,
+          description: `de ${summary.myAppointments} citas asignadas`,
+          icon: <ClockCircleOutlined />,
+          accent: 'amber',
+          href: '/app/appointments',
+        },
+        {
+          title: 'Agenda de hoy',
+          value: summary.myAppointmentsToday,
+          description: 'citas programadas para hoy',
+          icon: <CalendarOutlined />,
+          accent: 'cyan',
+          href: '/app/appointments',
+        },
+        {
+          title: 'Tareas pendientes',
+          value: summary.myPendingTasks,
+          description: 'acciones asignadas por completar',
+          icon: <ScheduleOutlined />,
+          accent: 'rose',
+          href: '/app/cases',
+        },
+      ];
     }
-  };
 
-  // Fetch dashboard data
-  const fetchDashboardData = async (officeId?: string, overrideRole?: string) => {
-    const effectiveRole = overrideRole || userRole;
-    if (!effectiveRole) return;
+    return [
+      {
+        title: 'Casos activos',
+        value: summary.openCases,
+        description: `de ${summary.totalCases} expedientes vigentes`,
+        icon: <FolderOpenOutlined />,
+        accent: 'blue',
+        href: '/app/cases',
+      },
+      {
+        title: 'Citas pendientes',
+        value: summary.pendingAppointments,
+        description: `de ${summary.totalAppointments} citas registradas`,
+        icon: <ClockCircleOutlined />,
+        accent: 'amber',
+        href: '/app/appointments',
+      },
+      {
+        title: 'Agenda de hoy',
+        value: summary.appointmentsToday,
+        description: `${summary.appointmentsThisWeek} citas en la semana`,
+        icon: <CalendarOutlined />,
+        accent: 'cyan',
+        href: '/app/appointments',
+      },
+      {
+        title: 'Tareas pendientes',
+        value: summary.pendingTasks,
+        description: 'acciones abiertas en expedientes',
+        icon: <ScheduleOutlined />,
+        accent: 'rose',
+        href: '/app/cases',
+      },
+    ];
+  }, [isStaff, summary]);
 
-    try {
-      setLoading(true);
-
-      const params = new URLSearchParams();
-      if (officeId && (effectiveRole === 'admin' || effectiveRole === 'office_manager')) {
-        params.append('officeId', officeId);
-      }
-
-      let endpoint = '/dashboard-summary';
-      if (!['admin', 'office_manager'].includes(effectiveRole)) {
-        endpoint = '/staff/dashboard-summary';
-      }
-
-      const queryString = params.toString();
-      const fullEndpoint = queryString ? `${endpoint}?${queryString}` : endpoint;
-      const response = await apiClient.get(fullEndpoint);
-      const rawData = response.data;
-
-      let processedData: DashboardData;
-
-      if (effectiveRole === 'admin') {
-        processedData = {
-          totalCases: rawData.totalCases || 0,
-          openCases: rawData.openCases || 0,
-          completedCases: rawData.completedCases || 0,
-          casesThisMonth: rawData.casesThisMonth || 0,
-          totalAppointments: rawData.totalAppointments || 0,
-          pendingAppointments: rawData.pendingAppointments || 0,
-          completedAppointments: rawData.completedAppointments || 0,
-          appointmentsToday: rawData.appointmentsToday || 0,
-          appointmentsThisWeek: rawData.appointmentsThisWeek || 0,
-          totalStaff: rawData.totalStaff || 0,
-          totalClients: rawData.totalClients || 0,
-          pendingTasks: rawData.pendingTasks || 0,
-          offices: offices.length > 0 ? offices : undefined,
-        };
-      } else if (effectiveRole === 'office_manager') {
-        processedData = {
-          totalCases: rawData.totalCases || 0,
-          openCases: rawData.openCases || 0,
-          completedCases: rawData.completedCases || 0,
-          casesThisMonth: rawData.casesThisMonth || 0,
-          totalAppointments: rawData.totalAppointments || 0,
-          pendingAppointments: rawData.pendingAppointments || 0,
-          completedAppointments: rawData.completedAppointments || 0,
-          appointmentsToday: rawData.appointmentsToday || 0,
-          appointmentsThisWeek: rawData.appointmentsThisWeek || 0,
-          totalStaff: rawData.totalStaff || 0,
-          pendingTasks: rawData.pendingTasks || 0,
-          offices: offices.length > 0 ? offices : undefined,
-        };
-      } else {
-        processedData = {
-          totalCases: 0,
-          openCases: 0,
-          completedCases: 0,
-          casesThisMonth: 0,
-          myCases: rawData.myCases || 0,
-          myOpenCases: rawData.myOpenCases || 0,
-          myCompletedCases: rawData.myCompletedCases || 0,
-          totalAppointments: 0,
-          pendingAppointments: 0,
-          completedAppointments: 0,
-          appointmentsToday: 0,
-          myAppointments: rawData.myAppointments || 0,
-          myPendingAppointments: rawData.myPendingAppointments || 0,
-          myAppointmentsToday: rawData.myAppointmentsToday || 0,
-          myPendingTasks: rawData.myPendingTasks || 0,
-        };
-      }
-
-      setDashboardData(processedData);
-    } catch {
-      message.error('No se pudo cargar el resumen del dashboard.');
-    } finally {
-      setLoading(false);
+  const caseSegments = useMemo<ChartSegment[]>(() => {
+    if (!summary) return [];
+    if (isStaff) {
+      return buildSegments(summary.myCases, {
+        label: 'Abiertos', value: summary.myOpenCases, color: '#2563eb',
+      });
     }
-  };
-
-  const handleOfficeChange = (officeId: string | undefined) => {
-    const value = officeId ?? '';
-    setSelectedOfficeId(value);
-    fetchDashboardData(value || undefined);
-  };
-
-  // Auto-refresh
-  useEffect(() => {
-    if (!userRole || !dashboardData) return;
-    const interval = setInterval(() => {
-      fetchDashboardData(selectedOfficeId || undefined);
-    }, 30000);
-    return () => clearInterval(interval);
-  }, [userRole, dashboardData, selectedOfficeId]);
-
-  // Initialize
-  useEffect(() => {
-    if (!isHydrated || !user?.role || initializedRef.current) return;
-    initializedRef.current = true;
-    const role = user.role;
-    setUserRole(role);
-    fetchOffices();
-    const managerOfficeId =
-      role === 'office_manager' &&
-      (user?.officeId != null
-        ? String(user.officeId)
-        : typeof window !== 'undefined'
-          ? localStorage.getItem('userOfficeId') ?? ''
-          : '');
-    const initialOfficeId = role === 'office_manager' ? managerOfficeId : '';
-    if (initialOfficeId) setSelectedOfficeId(initialOfficeId);
-    fetchDashboardData(initialOfficeId || undefined, role);
-  }, [isHydrated, user?.role, user?.officeId]);
-
-  // Handle logout
-  const prevUserRef = useRef(user);
-  useEffect(() => {
-    if (prevUserRef.current && !user) {
-      setUserRole(null);
-      setDashboardData(null);
-      initializedRef.current = false;
-    }
-    prevUserRef.current = user;
-  }, []);
-
-  if (!isHydrated || loading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <Spin size="large" tip={isHydrated ? "Cargando resumen..." : "Cargando..."} />
-      </div>
+    return buildSegments(
+      summary.totalCases,
+      { label: 'Activos', value: summary.openCases, color: '#2563eb' },
+      { label: 'Completados', value: summary.completedCases, color: '#10b981' }
     );
-  }
+  }, [isStaff, summary]);
 
-  if (!userRole || !dashboardData) {
-    return (
-      <div className="flex justify-center items-center h-32">
-        <Spin size="large" tip="Cargando datos del dashboard..." />
-      </div>
+  const appointmentSegments = useMemo<ChartSegment[]>(() => {
+    if (!summary) return [];
+    if (isStaff) {
+      return buildSegments(summary.myAppointments, {
+        label: 'Pendientes', value: summary.myPendingAppointments, color: '#f59e0b',
+      });
+    }
+    return buildSegments(
+      summary.totalAppointments,
+      { label: 'Pendientes', value: summary.pendingAppointments, color: '#f59e0b' },
+      { label: 'Completadas', value: summary.completedAppointments, color: '#10b981' }
     );
-  }
+  }, [isStaff, summary]);
 
-  const unreadCount = contextUnreadCount;
+  const alerts = useMemo<OperationalAlertItem[]>(() => {
+    if (!summary) return [];
+    const items: OperationalAlertItem[] = [];
+    const tasks = isStaff ? summary.myPendingTasks : summary.pendingTasks;
+    const today = isStaff ? summary.myAppointmentsToday : summary.appointmentsToday;
 
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <Title level={2} className="!mb-1">Panel de Control</Title>
-          <Text type="secondary">
-            {isStaffRole ? 'Resumen de tus casos y citas asignadas' : 'Resumen general del sistema'}
-          </Text>
+    if (!wsConnected) {
+      items.push({
+        id: 'realtime',
+        title: 'Sincronizacion en vivo interrumpida',
+        description: 'El portal intentara reconectarse automaticamente. Puede actualizar la bandeja manualmente.',
+        tone: 'warning',
+        href: '/app/notifications',
+        actionLabel: 'Abrir notificaciones',
+      });
+    }
+    if (tasks > 0) {
+      items.push({
+        id: 'tasks',
+        title: `${tasks} ${tasks === 1 ? 'tarea pendiente' : 'tareas pendientes'}`,
+        description: 'Revise las acciones abiertas para evitar retrasos en los expedientes.',
+        tone: tasks >= 10 ? 'critical' : 'warning',
+        href: '/app/cases',
+        actionLabel: 'Revisar expedientes',
+      });
+    }
+    if (today > 0) {
+      items.push({
+        id: 'today',
+        title: `${today} ${today === 1 ? 'cita programada' : 'citas programadas'} para hoy`,
+        description: 'Consulte la agenda y confirme que el equipo tenga la informacion necesaria.',
+        tone: 'info',
+        href: '/app/appointments',
+        actionLabel: 'Ver agenda',
+      });
+    }
+    if (unreadCount > 0) {
+      items.push({
+        id: 'unread',
+        title: `${unreadCount} ${unreadCount === 1 ? 'notificacion sin leer' : 'notificaciones sin leer'}`,
+        description: 'Hay actividad reciente que puede requerir seguimiento.',
+        tone: unreadCount >= 10 ? 'warning' : 'info',
+        href: '/app/notifications',
+        actionLabel: 'Abrir centro',
+      });
+    }
+    if (items.length === 0) {
+      items.push({
+        id: 'clear',
+        title: 'Operacion al dia',
+        description: 'No hay alertas prioritarias en este momento.',
+        tone: 'success',
+      });
+    }
+    return items.slice(0, 4);
+  }, [isStaff, summary, unreadCount, wsConnected]);
+
+  const capacityIndicators = useMemo<CapacityIndicator[]>(() => {
+    if (!summary) return [];
+    if (isStaff) {
+      return [
+        { label: 'Casos asignados', value: summary.myCases, helper: 'Carga total' },
+        { label: 'Casos completados', value: summary.myCompletedCases, helper: 'Durante este mes' },
+        { label: 'Citas asignadas', value: summary.myAppointments, helper: 'Carga total' },
+        { label: 'Sin leer', value: unreadCount, helper: 'Notificaciones' },
+      ];
+    }
+    return [
+      { label: 'Casos nuevos', value: summary.casesThisMonth, helper: 'Durante este mes' },
+      { label: 'Casos completados', value: summary.completedCases, helper: 'Acumulado' },
+      { label: 'Personal', value: summary.totalStaff, helper: 'Usuarios del equipo' },
+      { label: 'Clientes', value: summary.totalClients, helper: 'Usuarios registrados' },
+    ];
+  }, [isStaff, summary, unreadCount]);
+
+  if (!hydrated || isLoading) {
+    return (
+      <div className="space-y-5" aria-label="Cargando panel de control">
+        <Skeleton active paragraph={{ rows: 2 }} />
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {[0, 1, 2, 3].map((item) => <Skeleton.Button key={item} active block style={{ height: 150 }} />)}
+        </div>
+        <div className="grid gap-5 xl:grid-cols-2">
+          <Skeleton active paragraph={{ rows: 6 }} />
+          <Skeleton active paragraph={{ rows: 6 }} />
         </div>
       </div>
+    );
+  }
 
-      {/* ========== ADMIN/MANAGER SECTIONS ========== */}
-      {(isAdmin || isManager) && (
-        <>
-          {/* Admin-Only: System Overview */}
-          {isAdmin && (
-            <>
-              <Divider orientation="left" style={{ fontSize: 14, color: '#6b7280' }}>
-                <TeamOutlined /> Resumen del Sistema
-              </Divider>
-              <Row gutter={[12, 12]}>
-                <Col xs={12} sm={8} md={6}>
-                  <StatCard title="Total Personal" value={dashboardData.totalStaff || 0} icon={<TeamOutlined style={{ fontSize: 20 }} />} color="#1890ff" />
-                </Col>
-                <Col xs={12} sm={8} md={6}>
-                  <StatCard title="Total Clientes" value={dashboardData.totalClients || 0} icon={<UserOutlined style={{ fontSize: 20 }} />} color="#13c2c2" />
-                </Col>
-                <Col xs={12} sm={8} md={6}>
-                  <StatCard title="Tareas Pendientes" value={dashboardData.pendingTasks || 0} icon={<ExclamationCircleOutlined style={{ fontSize: 20 }} />} color="#fa8c16" />
-                </Col>
-                <Col xs={12} sm={8} md={6}>
-                  <StatCard title="Citas Esta Semana" value={dashboardData.appointmentsThisWeek || 0} icon={<ScheduleOutlined style={{ fontSize: 20 }} />} color="#722ed1" />
-                </Col>
-              </Row>
-            </>
-          )}
+  if (!summary) {
+    return (
+      <Alert
+        showIcon
+        type="error"
+        message="No pudimos cargar el panel de control"
+        description={dashboardError || 'Verifique su conexion e intente nuevamente.'}
+        action={<Button onClick={() => void refresh()}>Reintentar</Button>}
+      />
+    );
+  }
 
-          {/* Office Filter - Admin/Manager */}
-          {(isAdmin || isManager) && offices.length > 0 && (
-            <Card size="small">
-              <div className="flex items-center gap-4">
-                <BankOutlined />
-                <Text strong>Filtrar por Oficina:</Text>
-                <Select
-                  placeholder="Todas las oficinas"
-                  value={selectedOfficeId || undefined}
-                  onChange={handleOfficeChange}
-                  style={{ minWidth: 200 }}
-                  allowClear
-                >
-                  {offices.map(office => (
-                    <Select.Option key={office.id} value={office.id.toString()}>
-                      {office.name}
-                    </Select.Option>
-                  ))}
-                </Select>
-              </div>
-            </Card>
-          )}
+  const recentNotifications = notifications.slice(0, 4);
 
-          {/* Case Statistics */}
-          <Divider orientation="left" style={{ fontSize: 14, color: '#6b7280' }}>
-            <FolderOpenOutlined /> Estadísticas de Casos
-          </Divider>
-          <Row gutter={[12, 12]}>
-            <Col xs={12} sm={12} md={6}>
-              <StatCard title="Total Casos" value={dashboardData.totalCases} icon={<FolderOpenOutlined style={{ fontSize: 20 }} />} color="#1890ff" />
-            </Col>
-            <Col xs={12} sm={12} md={6}>
-              <StatCard title="Casos Activos" value={dashboardData.openCases} icon={<ClockCircleOutlined style={{ fontSize: 20 }} />} color="#fa8c16" />
-            </Col>
-            <Col xs={12} sm={12} md={6}>
-              <StatCard title="Completados" value={dashboardData.completedCases} icon={<CheckCircleOutlined style={{ fontSize: 20 }} />} color="#52c41a" />
-            </Col>
-            <Col xs={12} sm={12} md={6}>
-              <StatCard title="Este Mes" value={dashboardData.casesThisMonth} icon={<RiseOutlined style={{ fontSize: 20 }} />} color="#722ed1" />
-            </Col>
-          </Row>
-
-          {/* Appointment Statistics */}
-          <Divider orientation="left" style={{ fontSize: 14, color: '#6b7280' }}>
-            <CalendarOutlined /> Estadísticas de Citas
-          </Divider>
-          <Row gutter={[12, 12]}>
-            <Col xs={12} sm={12} md={6}>
-              <StatCard title="Total Citas" value={dashboardData.totalAppointments} icon={<CalendarOutlined style={{ fontSize: 20 }} />} color="#13c2c2" />
-            </Col>
-            <Col xs={12} sm={12} md={6}>
-              <StatCard title="Pendientes" value={dashboardData.pendingAppointments} icon={<ClockCircleOutlined style={{ fontSize: 20 }} />} color="#fa8c16" />
-            </Col>
-            <Col xs={12} sm={12} md={6}>
-              <StatCard title="Completadas" value={dashboardData.completedAppointments} icon={<CheckCircleOutlined style={{ fontSize: 20 }} />} color="#52c41a" />
-            </Col>
-            <Col xs={12} sm={12} md={6}>
-              <StatCard title="Hoy" value={dashboardData.appointmentsToday} icon={<CalendarOutlined style={{ fontSize: 20 }} />} color="#722ed1" />
-            </Col>
-          </Row>
-        </>
-      )}
-
-      {/* ========== STAFF SECTIONS ========== */}
-      {isStaffRole && (
-        <>
-          {/* Quick Overview */}
-          <Divider orientation="left" style={{ fontSize: 14, color: '#6b7280' }}>
-            <BarChartOutlined /> Tu Resumen
-          </Divider>
-          <Row gutter={[12, 12]}>
-            <Col xs={12} sm={8} md={6}>
-              <StatCard title="Mis Casos" value={dashboardData.myCases || 0} icon={<FolderOpenOutlined style={{ fontSize: 20 }} />} color="#1890ff" />
-            </Col>
-            <Col xs={12} sm={8} md={6}>
-              <StatCard title="Casos Abiertos" value={dashboardData.myOpenCases || 0} icon={<ClockCircleOutlined style={{ fontSize: 20 }} />} color="#fa8c16" />
-            </Col>
-            <Col xs={12} sm={8} md={6}>
-              <StatCard title="Completados Este Mes" value={dashboardData.myCompletedCases || 0} icon={<CheckCircleOutlined style={{ fontSize: 20 }} />} color="#52c41a" />
-            </Col>
-            <Col xs={12} sm={8} md={6}>
-              <StatCard title="Mis Citas" value={dashboardData.myAppointments || 0} icon={<CalendarOutlined style={{ fontSize: 20 }} />} color="#13c2c2" />
-            </Col>
-            <Col xs={12} sm={8} md={6}>
-              <StatCard title="Citas Pendientes" value={dashboardData.myPendingAppointments || 0} icon={<ClockCircleOutlined style={{ fontSize: 20 }} />} color="#fa8c16" />
-            </Col>
-            <Col xs={12} sm={8} md={6}>
-              <StatCard title="Citas Hoy" value={dashboardData.myAppointmentsToday || 0} icon={<CalendarOutlined style={{ fontSize: 20 }} />} color="#722ed1" />
-            </Col>
-            <Col xs={12} sm={8} md={6}>
-              <StatCard title="Tareas Pendientes" value={dashboardData.myPendingTasks || 0} icon={<ExclamationCircleOutlined style={{ fontSize: 20 }} />} color="#eb2f96" />
-            </Col>
-          </Row>
-        </>
-      )}
-
-      <Card className="notification-summary-card" bodyStyle={{ padding: 20 }}>
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div className="flex items-start gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-3xl bg-sky-100 text-xl text-sky-700">
-              <BellOutlined />
+  return (
+    <div className="mx-auto max-w-[1600px] space-y-6">
+      <section className="relative overflow-hidden rounded-[32px] bg-gradient-to-br from-slate-950 via-slate-900 to-cyan-950 p-6 text-white shadow-[0_28px_70px_rgba(15,23,42,0.24)] sm:p-8">
+        <div aria-hidden className="absolute -right-20 -top-24 h-72 w-72 rounded-full bg-cyan-400/15 blur-3xl" />
+        <div aria-hidden className="absolute -bottom-32 left-1/3 h-72 w-72 rounded-full bg-blue-500/20 blur-3xl" />
+        <div className="relative flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
+          <div className="max-w-3xl">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-cyan-100">
+                Centro de operaciones
+              </span>
+              <span className={`flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium ${wsConnected ? 'border-emerald-300/20 bg-emerald-400/10 text-emerald-100' : 'border-amber-300/20 bg-amber-400/10 text-amber-100'}`}>
+                <span className={`h-2 w-2 rounded-full ${wsConnected ? 'bg-emerald-400' : 'bg-amber-400'}`} />
+                {wsConnected ? 'Datos en vivo' : 'Reconectando'}
+              </span>
             </div>
-            <div>
-              <div className="flex flex-wrap items-center gap-3">
-                <Title level={5} className="!mb-0">
-                  Bandeja de notificaciones
-                </Title>
-                <span
-                  className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ${
-                    wsConnected ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
-                  }`}
-                >
-                  <span className={`h-2 w-2 rounded-full ${wsConnected ? 'bg-emerald-500' : 'bg-amber-500'}`} />
-                  {wsConnected ? 'En vivo' : 'Reconectando'}
-                </span>
-                {unreadCount > 0 && (
-                  <span className="inline-flex rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-sky-700">
-                    {unreadCount} nuevas
-                  </span>
-                )}
-              </div>
-              <Text type="secondary" className="mt-2 block">
-                Resumen rapido de la actividad mas reciente del portal.
-              </Text>
-              <Text type="secondary" className="mt-1 block text-xs">
-                Ultima sincronizacion: {formatSyncTime(lastUpdatedAt)}
-              </Text>
-            </div>
+            <h1 className="mt-5 text-3xl font-semibold tracking-tight sm:text-4xl">Panel de Control</h1>
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-300 sm:text-base">
+              {isStaff
+                ? 'Priorice sus casos, citas y tareas desde una vista operativa unificada.'
+                : 'Supervise la operacion, detecte pendientes y acceda rapidamente a los flujos esenciales.'}
+            </p>
+            <p className="mt-4 text-xs text-slate-400">Indicadores actualizados a las {formatUpdatedAt(dashboardUpdatedAt)}</p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            {isAdmin && offices.length > 0 && (
+              <Select
+                aria-label="Filtrar por oficina"
+                value={selectedOfficeId || undefined}
+                placeholder="Todas las oficinas"
+                allowClear
+                onChange={selectOffice}
+                options={offices.map((office) => ({ value: String(office.id), label: office.name }))}
+                className="min-w-[220px]"
+                size="large"
+              />
+            )}
+            {isManager && (
+              <span className="inline-flex h-10 items-center gap-2 rounded-xl border border-white/15 bg-white/10 px-4 text-sm text-slate-200">
+                <BankOutlined /> Oficina asignada
+              </span>
+            )}
             <Button
+              size="large"
               icon={<ReloadOutlined />}
-              onClick={() => void refreshNotifications()}
-              loading={notificationsRefreshing}
+              loading={isRefreshing}
+              onClick={() => void refresh({ background: true })}
+              className="!border-white/20 !bg-white/10 !text-white hover:!bg-white/20"
             >
               Actualizar
             </Button>
+          </div>
+        </div>
+      </section>
+
+      {dashboardError && (
+        <Alert showIcon closable type="warning" message="Los indicadores no pudieron actualizarse" description={dashboardError} />
+      )}
+
+      <section aria-labelledby="dashboard-summary-title">
+        <div className="mb-3">
+          <h2 id="dashboard-summary-title" className="text-lg font-semibold text-slate-950">Resumen ejecutivo</h2>
+          <p className="mt-1 text-sm text-slate-500">Indicadores que requieren seguimiento inmediato.</p>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {metrics.map((metric) => <DashboardMetricCard key={metric.title} {...metric} />)}
+        </div>
+      </section>
+
+      <section className="grid gap-5 xl:grid-cols-2">
+        <StatusDistributionChart
+          title={isStaff ? 'Estado de mis casos' : 'Distribucion de casos'}
+          description={isStaff ? 'Casos abiertos frente al resto de sus asignaciones.' : 'Vista actual de expedientes activos, completados y otros estados.'}
+          totalLabel={isStaff ? 'asignados' : 'casos'}
+          segments={caseSegments}
+        />
+        <StatusDistributionChart
+          title={isStaff ? 'Estado de mis citas' : 'Distribucion de citas'}
+          description={isStaff ? 'Citas pendientes frente al resto de su agenda asignada.' : 'Vista actual de citas pendientes, completadas y otros estados.'}
+          totalLabel="citas"
+          segments={appointmentSegments}
+        />
+      </section>
+
+      <section className="grid gap-5 xl:grid-cols-[minmax(0,1.15fr)_minmax(360px,0.85fr)]">
+        <div className="rounded-[30px] border border-slate-200 bg-white p-5 shadow-[0_18px_45px_rgba(15,23,42,0.06)] sm:p-6">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-950">Indicadores de capacidad</h2>
+            <p className="mt-1 text-sm text-slate-500">Contexto adicional para dimensionar la carga operativa.</p>
+          </div>
+          <div className="mt-5 grid gap-3 sm:grid-cols-2">
+            {capacityIndicators.map((indicator) => (
+              <div key={indicator.label} className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">{indicator.label}</p>
+                <div className="mt-3 flex items-end justify-between gap-3">
+                  <p className="text-2xl font-semibold text-slate-950">{indicator.value.toLocaleString('es-MX')}</p>
+                  <p className="text-right text-xs text-slate-500">{indicator.helper}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-6 border-t border-slate-100 pt-5">
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Acciones rapidas</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Link href="/app/cases"><Button icon={<FileAddOutlined />}>Expedientes</Button></Link>
+              <Link href="/app/appointments"><Button icon={<CalendarOutlined />}>Agenda</Button></Link>
+              {(isAdmin || isManager) && <Link href="/app/users"><Button icon={<UserAddOutlined />}>Usuarios</Button></Link>}
+              {isAdmin && <Link href="/app/offices"><Button icon={<BankOutlined />}>Oficinas</Button></Link>}
+            </div>
+          </div>
+        </div>
+
+        <OperationalAlerts alerts={alerts} />
+      </section>
+
+      <section className="rounded-[30px] border border-slate-200 bg-white p-5 shadow-[0_18px_45px_rgba(15,23,42,0.06)] sm:p-6">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="flex items-start gap-4">
+            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-sky-50 text-xl text-sky-700">
+              <BellOutlined />
+            </span>
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="text-lg font-semibold text-slate-950">Notificaciones esenciales</h2>
+                {unreadCount > 0 && <span className="rounded-full bg-sky-100 px-2.5 py-1 text-xs font-semibold text-sky-700">{unreadCount} sin leer</span>}
+              </div>
+              <p className="mt-1 text-sm text-slate-500">Actividad reciente de casos, citas y tareas.</p>
+              <p className="mt-1 text-xs text-slate-400">Sincronizado: {formatSyncTime(notificationsUpdatedAt)}</p>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
             <Button
-              type="primary"
-              icon={<RightOutlined />}
-              onClick={() => router.push('/app/notifications')}
+              icon={<ReloadOutlined />}
+              loading={notificationsRefreshing}
+              onClick={() => void refreshNotifications().catch(() => undefined)}
             >
+              Actualizar
+            </Button>
+            <Button type="primary" icon={<RightOutlined />} onClick={() => router.push('/app/notifications')}>
               Abrir centro
             </Button>
           </div>
         </div>
 
-        <div className="mt-4 grid gap-3 sm:grid-cols-2">
-          <div className="rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">Sin leer</div>
-            <div className="mt-2 text-2xl font-semibold text-slate-900">{unreadCount}</div>
-          </div>
-          <div className="rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">Total reciente</div>
-            <div className="mt-2 text-2xl font-semibold text-slate-900">{contextNotifications.length}</div>
-          </div>
-        </div>
-
-        <div className="mt-4">
-        {recentNotifications.length > 0 ? (
-          <div className="flex flex-col gap-2">
-            {recentNotifications.map((item) => (
-              <NotificationCard
-                key={item.id}
-                notification={item}
-                onClick={() => {
-                  if (!item.isRead) {
-                    void markAsRead(item.id);
-                  }
-                  const href = resolveNotificationHref(item);
-                  if (href) {
-                    router.push(href);
-                  }
-                }}
-                onMarkAsRead={
-                  item.isRead
-                    ? undefined
-                    : () => {
-                        void markAsRead(item.id);
-                      }
-                }
-                compact
-              />
-            ))}
-          </div>
-        ) : (
-          <Empty description="No hay notificaciones recientes" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+        {notificationError && (
+          <Alert className="mt-4" showIcon type="warning" message="No pudimos sincronizar las notificaciones" description={notificationError} />
         )}
+
+        <div className="mt-5">
+          {recentNotifications.length > 0 ? (
+            <div className="grid gap-3 lg:grid-cols-2">
+              {recentNotifications.map((notification) => (
+                <NotificationCard
+                  key={notification.id}
+                  notification={notification}
+                  compact
+                  onClick={() => {
+                    if (!notification.isRead) void markAsRead(notification.id).catch(() => undefined);
+                    const href = resolveNotificationHref(notification);
+                    if (href) router.push(href);
+                  }}
+                  onMarkAsRead={notification.isRead ? undefined : () => void markAsRead(notification.id).catch(() => undefined)}
+                />
+              ))}
+            </div>
+          ) : (
+            <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No hay notificaciones recientes" />
+          )}
         </div>
-      </Card>
+      </section>
     </div>
   );
-};
-
-export default TrueDashboardPage;
+}

@@ -4,7 +4,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Layout, Menu, Spin, Button, Alert } from 'antd';
+import { Layout, Menu, Spin, Button, Alert, Badge, Drawer } from 'antd';
 import { LogoutOutlined } from '@ant-design/icons';
 import SidebarBrand from './components/SidebarBrand';
 import { useAuth } from '@/context/AuthContext';
@@ -22,10 +22,13 @@ import {
   BarChartOutlined,
   HomeOutlined,
   GlobalOutlined,
+  BellOutlined,
+  MenuOutlined,
 } from '@ant-design/icons';
 import ClientOnly from '@/components/ClientOnly';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import NotificationBell from './components/NotificationBell';
+import { useNotifications } from '@/context/NotificationContext';
 
 // Destructure Layout components once
 const { Header, Sider, Content } = Layout;
@@ -52,6 +55,7 @@ const ICON_MAP = {
   'BarChartOutlined': BarChartOutlined,
   'HomeOutlined': HomeOutlined,
   'GlobalOutlined': GlobalOutlined,
+  'BellOutlined': BellOutlined,
 } as const;
 
 export default function DashboardLayout({ children }: { children: React.ReactNode; }) {
@@ -61,6 +65,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   // Prevent hydration issues by ensuring we're on the client side
   const [isHydrated, setIsHydrated] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   useEffect(() => {
     setIsHydrated(true);
@@ -72,12 +77,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     isAuthenticated,
     logout,
   } = useAuth();
+  const { unreadCount } = useNotifications();
   const [profileError, setProfileError] = useState<string | null>(null);
 
   // Get selected menu key based on current path
   const selectedKey = useMemo<string | null>(() => {
     if (pathname === '/') return 'dashboard';
     if (pathname.startsWith('/app/appointments')) return 'appointments';
+    if (pathname.startsWith('/app/notifications')) return 'notifications';
     if (pathname.startsWith('/app/cases')) return 'cases';
     if (pathname.startsWith('/app/users')) return 'users';
     if (pathname.startsWith('/app/offices')) return 'offices';
@@ -98,13 +105,25 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     // Convert navigation items to Ant Design menu format
      return navigationItems.map(item => {
        const IconComponent = ICON_MAP[item.icon as keyof typeof ICON_MAP] || HomeOutlined;
+       const icon = React.createElement(IconComponent);
        return {
          key: item.key,
-         icon: IconComponent ? React.createElement(IconComponent) : React.createElement(HomeOutlined),
-         label: <Link href={item.path}>{item.label}</Link>,
+         icon: item.key === 'notifications' && unreadCount > 0
+           ? <Badge dot color="#38bdf8" offset={[2, 0]}>{icon}</Badge>
+           : icon,
+         label: (
+           <Link href={item.path} className="flex items-center justify-between gap-3">
+             <span>{item.label}</span>
+             {item.key === 'notifications' && unreadCount > 0 && (
+               <span className="min-w-6 rounded-full bg-sky-400/20 px-2 py-0.5 text-center text-[11px] font-semibold text-sky-100">
+                 {unreadCount > 99 ? '99+' : unreadCount}
+               </span>
+             )}
+           </Link>
+         ),
        };
      });
-  }, [user?.role]);
+  }, [unreadCount, user?.role]);
 
   // Get role display configuration using centralized role definitions
   const roleDisplay = useMemo(() => {
@@ -187,10 +206,43 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               />
             </div>
           </Sider>
+
+          <Drawer
+            title="Navegación"
+            placement="left"
+            width={300}
+            open={mobileNavOpen}
+            onClose={() => setMobileNavOpen(false)}
+            rootClassName="admin-mobile-drawer"
+            styles={{
+              header: { background: '#0f172a', borderBottomColor: 'rgba(148, 163, 184, 0.2)', color: '#fff' },
+              body: { padding: 0, background: 'linear-gradient(185deg, #111c36 0%, #0f172a 65%)' },
+            }}
+          >
+            <div className="admin-sider-inner">
+              <SidebarBrand />
+              <p className="admin-sider-section-label">Navegación</p>
+              <Menu
+                theme="dark"
+                className="admin-nav-menu"
+                selectedKeys={selectedKey ? [selectedKey] : []}
+                mode="inline"
+                items={filteredMenuItems}
+                onClick={() => setMobileNavOpen(false)}
+              />
+            </div>
+          </Drawer>
         
         <Layout>
           <Header className="dashboard-header" style={{ background: '#fff', padding: '0 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9' }}>
             <div className="flex items-center min-w-0 flex-1">
+              <Button
+                type="text"
+                icon={<MenuOutlined />}
+                aria-label="Abrir navegacion"
+                className="mobile-nav-trigger"
+                onClick={() => setMobileNavOpen(true)}
+              />
               <h1 className="text-base sm:text-lg font-semibold text-gray-800 truncate">
                 {user?.firstName && user?.lastName
                   ? `Bienvenido, ${user.firstName} ${user.lastName}`

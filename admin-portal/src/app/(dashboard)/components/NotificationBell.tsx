@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Alert, Badge, Button, Empty, Popover, Skeleton, Space, Typography } from 'antd';
+import { Alert, Badge, Button, Empty, Popover, Skeleton, Space, Typography, message } from 'antd';
 import {
   BellOutlined,
   CheckOutlined,
@@ -58,6 +58,30 @@ export default function NotificationBell() {
     router.push('/app/notifications');
   };
 
+  const handleRefresh = async () => {
+    try {
+      await refreshNotifications();
+    } catch {
+      message.error('No fue posible actualizar las notificaciones.');
+    }
+  };
+
+  const handleMarkAllAsRead = async () => {
+    try {
+      await markAllAsRead();
+    } catch {
+      message.error('No fue posible marcar las notificaciones como leidas.');
+    }
+  };
+
+  const handleMarkAsRead = async (notificationId: number) => {
+    try {
+      await markAsRead(notificationId);
+    } catch {
+      message.error('No fue posible actualizar la notificacion.');
+    }
+  };
+
   const content = (
     <div className="w-[380px] max-w-[calc(100vw-32px)]">
       <div className="flex items-start justify-between gap-3">
@@ -75,7 +99,7 @@ export default function NotificationBell() {
           size="small"
           icon={<ReloadOutlined />}
           loading={isRefreshing}
-          onClick={() => void refreshNotifications()}
+          onClick={() => void handleRefresh()}
           aria-label="Actualizar notificaciones"
         />
       </div>
@@ -121,7 +145,7 @@ export default function NotificationBell() {
                   notification.isRead
                     ? undefined
                     : () => {
-                        void markAsRead(notification.id);
+                        void handleMarkAsRead(notification.id);
                       }
                 }
               />
@@ -142,7 +166,7 @@ export default function NotificationBell() {
           type="text"
           icon={<CheckOutlined />}
           disabled={unreadCount === 0}
-          onClick={() => void markAllAsRead()}
+          onClick={() => void handleMarkAllAsRead()}
         >
           Marcar todo
         </Button>
