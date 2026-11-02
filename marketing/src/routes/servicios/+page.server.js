@@ -1,8 +1,6 @@
 // marketing/src/routes/servicios/+page.server.js
 // Fetches services from the public CMS API. Falls back to defaults if unreachable.
-import { config } from '$lib/config.js';
-
-const baseUrl = (typeof config?.api?.baseUrl === 'string' && config.api.baseUrl) || 'https://api.caf-mexico.com/api/v1';
+import { fetchPublicApi } from '$lib/utils/publicApiProxy.js';
 
 async function safeJson(res) {
   try {
@@ -34,9 +32,9 @@ const FALLBACK_SERVICES = [
 ];
 
 /** @type {import('./$types').PageServerLoad} */
-export async function load({ fetch }) {
+export async function load() {
   try {
-    const res = await fetch(`${baseUrl}/public/site-services`);
+    const res = await fetchPublicApi('/public/site-services');
     if (res.ok) {
       const data = await safeJson(res);
       const services = (data?.services && Array.isArray(data.services)) ? data.services : [];

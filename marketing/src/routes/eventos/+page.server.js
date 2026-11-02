@@ -1,8 +1,6 @@
 // marketing/src/routes/eventos/+page.server.js
 // Fetches public events from the CMS API. Falls back to empty array if unreachable.
-import { config } from '$lib/config.js';
-
-const baseUrl = (typeof config?.api?.baseUrl === 'string' && config.api.baseUrl) || 'https://api.caf-mexico.com/api/v1';
+import { fetchPublicApi } from '$lib/utils/publicApiProxy.js';
 
 async function safeJson(res) {
   try {
@@ -13,10 +11,10 @@ async function safeJson(res) {
 }
 
 /** @type {import('./$types').PageServerLoad} */
-export async function load({ fetch }) {
+export async function load() {
   let events = [];
   try {
-    const res = await fetch(`${baseUrl}/public/site-events`);
+    const res = await fetchPublicApi('/public/site-events');
     if (res.ok) {
       const data = await safeJson(res);
       const raw = (data?.events && Array.isArray(data.events)) ? data.events : [];

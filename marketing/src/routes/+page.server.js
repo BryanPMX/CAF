@@ -1,7 +1,7 @@
 // marketing/src/routes/+page.server.js
 // Fetches CMS content for the homepage from the public API.
 // Falls back to defaults if the API is unreachable (resilient SSR).
-import { config } from '$lib/config.js';
+import { fetchPublicApi } from '$lib/utils/publicApiProxy.js';
 
 const DEFAULTS = {
   hero: {
@@ -27,13 +27,11 @@ async function safeJson(res) {
 }
 
 /** @type {import('./$types').PageServerLoad} */
-export async function load({ fetch }) {
+export async function load() {
   let content = { ...DEFAULTS };
   let images = [];
   let galleryImages = [];
   let services = [];
-
-  const baseUrl = (typeof config?.api?.baseUrl === 'string' && config.api.baseUrl) || 'https://api.caf-mexico.com/api/v1';
 
   // Image sections: hero + inicio (carousel), gallery (grid), about (Sobre Nosotros block)
   let gallerySectionImages = [];
@@ -41,12 +39,12 @@ export async function load({ fetch }) {
 
   try {
     const [contentRes, heroImagesRes, inicioImagesRes, gallerySectionRes, aboutSectionRes, servicesRes] = await Promise.allSettled([
-      fetch(`${baseUrl}/public/site-content`),
-      fetch(`${baseUrl}/public/site-images?section=hero`),
-      fetch(`${baseUrl}/public/site-images?section=inicio`),
-      fetch(`${baseUrl}/public/site-images?section=gallery`),
-      fetch(`${baseUrl}/public/site-images?section=about`),
-      fetch(`${baseUrl}/public/site-services`),
+      fetchPublicApi('/public/site-content'),
+      fetchPublicApi('/public/site-images?section=hero'),
+      fetchPublicApi('/public/site-images?section=inicio'),
+      fetchPublicApi('/public/site-images?section=gallery'),
+      fetchPublicApi('/public/site-images?section=about'),
+      fetchPublicApi('/public/site-services'),
     ]);
 
     // Parse content (safe JSON)
