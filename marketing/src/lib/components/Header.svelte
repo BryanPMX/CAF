@@ -39,9 +39,11 @@
       {/each}
     </div>
 
-    <a href="/contacto" class="button-primary ml-1 hidden min-h-[2.85rem] px-5 lg:inline-flex">
-      Solicitar orientación <ArrowRight size={17} strokeWidth={2.2} />
-    </a>
+    {#if !isActive('/contacto')}
+      <a href="/contacto" class="button-primary ml-1 hidden min-h-[2.85rem] px-5 lg:inline-flex">
+        Solicitar orientación <ArrowRight size={17} strokeWidth={2.2} />
+      </a>
+    {/if}
 
     <button
       class="menu-trigger touch-target ml-auto inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white text-primary-950 shadow-sm md:hidden"
@@ -70,7 +72,9 @@
             {link.label}<ArrowRight size={17} />
           </a>
         {/each}
-        <a href="/contacto" class="button-primary mt-3 flex w-full" on:click={() => mobileMenuOpen = false}>Solicitar orientación</a>
+        {#if !isActive('/contacto')}
+          <a href="/contacto" class="button-primary mt-3 flex w-full" on:click={() => mobileMenuOpen = false}>Solicitar orientación</a>
+        {/if}
       </div>
     </div>
   {/if}
