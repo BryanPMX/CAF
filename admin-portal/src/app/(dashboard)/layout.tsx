@@ -6,7 +6,6 @@ import { usePathname, useRouter } from 'next/navigation';
 import { Layout, Menu, Spin, Button, Alert, Badge, Drawer } from 'antd';
 import type { MenuProps } from 'antd';
 import { LogoutOutlined } from '@ant-design/icons';
-import SidebarBrand from './components/SidebarBrand';
 import SidebarAccount from './components/SidebarAccount';
 import { useAuth } from '@/context/AuthContext';
 import {
@@ -250,7 +249,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             className="admin-sider"
           >
             <div className="admin-sider-inner">
-              <SidebarBrand />
+              <SidebarAccount
+                collapsed={collapsed}
+                roleLabel={roleDisplay?.label || 'Usuario'}
+                onProfile={handleProfileNavigation}
+                onLogout={logout}
+              />
               <Menu
                 theme="dark"
                 className="admin-nav-menu"
@@ -258,12 +262,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 mode="inline"
                 items={filteredMenuItems}
                 onClick={handleNavigationClick}
-              />
-              <SidebarAccount
-                collapsed={collapsed}
-                roleLabel={roleDisplay?.label || 'Usuario'}
-                onProfile={handleProfileNavigation}
-                onLogout={logout}
               />
             </div>
           </Sider>
@@ -281,7 +279,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             }}
           >
             <div className="admin-sider-inner">
-              <SidebarBrand />
+              <SidebarAccount
+                roleLabel={roleDisplay?.label || 'Usuario'}
+                onProfile={handleMobileProfileNavigation}
+                onLogout={handleMobileLogout}
+              />
               <Menu
                 theme="dark"
                 className="admin-nav-menu"
@@ -289,11 +291,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 mode="inline"
                 items={filteredMenuItems}
                 onClick={handleMobileNavigationClick}
-              />
-              <SidebarAccount
-                roleLabel={roleDisplay?.label || 'Usuario'}
-                onProfile={handleMobileProfileNavigation}
-                onLogout={handleMobileLogout}
               />
             </div>
           </Drawer>

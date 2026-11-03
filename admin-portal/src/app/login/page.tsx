@@ -104,6 +104,7 @@ export default function LoginPage() {
       <main className={styles.page}>
         <div className={styles.ambientTop} aria-hidden />
         <div className={styles.ambientBottom} aria-hidden />
+        <div className={styles.ambientPurple} aria-hidden />
 
         <section className={styles.card} aria-labelledby="login-title">
           <header className={styles.brandHeader}>

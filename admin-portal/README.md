@@ -16,7 +16,7 @@ admin-portal/
 │   │   │   ├── layout.tsx          # Dashboard layout with sidebar, header, auth guard
 │   │   │   ├── page.tsx            # Panel de Control - role-based operational dashboard
 │   │   │   ├── components/         # Dashboard-scoped shared components
-│   │   │   │   ├── SidebarBrand.tsx     # Sidebar brand logo (brand-only, no text)
+│   │   │   │   ├── SidebarAccount.tsx   # Top profile card with avatar and account actions
 │   │   │   │   ├── DashboardMetricCard.tsx
 │   │   │   │   ├── StatusDistributionChart.tsx
 │   │   │   │   ├── OperationalAlerts.tsx
@@ -84,7 +84,7 @@ admin-portal/
 - Dashboard layout includes navigation and authentication guards
 - Nested layouts for section-specific UI
 - The left navigation groups permitted routes by workflow, management, and information; it exposes the notification center for every portal role and displays the shared unread count
-- The responsive sidebar keeps organization branding separate from the signed-in account, preserves navigation in compact mode, and provides persistent profile and logout actions
+- The responsive sidebar places the signed-in user's photo and profile card above navigation on desktop and mobile, preserves navigation in compact mode, and provides persistent profile and logout actions
 
 ### Operational Dashboard
 

@@ -96,8 +96,8 @@ admin-portal/src/
 - **Route Protection**: Authentication guards and role-based access
 - **Real-time Updates**: WebSocket integration for live notifications
 - **Responsive Design**: Mobile-first approach with Ant Design + Tailwind CSS  
-- **Login Page**: Minimal institutional sign-in with CAF branding, accessible form feedback, password visibility control, Caps Lock awareness, and password-manager-compatible fields
-- **Sidebar**: Role-aware navigation grouped by workflow, management, and information; the compact state remains fully interactive and the account panel keeps profile and logout actions available
+- **Login Page**: Centered institutional sign-in with animated teal, blue, and purple CAF colors, reduced-motion support, accessible form feedback, password visibility control, Caps Lock awareness, and password-manager-compatible fields
+- **Sidebar**: Role-aware navigation grouped by workflow, management, and information; the user photo and profile card sit above navigation, with profile and logout actions available in both expanded and compact states
 - **Profile**: Account view at `/app/profile` with circular avatar (initials), name, email, role, and office in a clear layout; reached through the sidebar account panel or notification links
 - **Dashboard**: Role-aware operational dashboard with live summary cards, a shared calendar-first workspace for non-management staff, accessible case/appointment distribution graphs, explicit office filtering, quick actions, and alerts derived from real tasks, appointments, and notifications
 - **Employee Calendar**: Unified personal agenda for every employee, combining assigned client appointments with participant-scoped internal meetings, invitation responses, and notification-driven updates

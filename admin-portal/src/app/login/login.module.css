@@ -1,12 +1,12 @@
 .page,
 .loading {
   --login-navy: #0f2747;
-  --login-blue: #176b87;
-  --login-teal: #2f8f83;
+  --login-blue: #2563eb;
+  --login-teal: #0f766e;
   --login-border: #dbe4ee;
   --login-muted: #64748b;
   min-height: 100svh;
-  background: #f3f6f9;
+  background: #edf3fb;
 }
 
 .loading {
@@ -23,45 +23,41 @@
   isolation: isolate;
 }
 
-.page::before {
-  position: absolute;
-  z-index: -3;
-  inset: 0;
-  content: '';
-  background-image:
-    linear-gradient(rgba(148, 163, 184, 0.08) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(148, 163, 184, 0.08) 1px, transparent 1px);
-  background-size: 40px 40px;
-  mask-image: linear-gradient(to bottom, black, transparent 86%);
-  animation: gridDrift 28s linear infinite;
-}
-
 .ambientTop,
-.ambientBottom {
+.ambientBottom,
+.ambientPurple {
   position: absolute;
   z-index: -2;
   border-radius: 999px;
-  filter: blur(2px);
+  filter: blur(42px);
   pointer-events: none;
-  will-change: transform, opacity;
 }
 
 .ambientTop {
-  width: 520px;
-  height: 520px;
-  top: -330px;
-  right: -160px;
-  background: radial-gradient(circle, rgba(47, 143, 131, 0.2), rgba(47, 143, 131, 0));
+  width: clamp(520px, 65vw, 1100px);
+  height: clamp(520px, 65vw, 1100px);
+  top: -30%;
+  left: -20%;
+  background: radial-gradient(circle, rgba(20, 184, 166, 0.72), rgba(20, 184, 166, 0) 70%);
   animation: ambientFloatTop 16s ease-in-out infinite alternate;
 }
 
 .ambientBottom {
-  width: 580px;
-  height: 580px;
-  bottom: -390px;
-  left: -210px;
-  background: radial-gradient(circle, rgba(23, 107, 135, 0.16), rgba(23, 107, 135, 0));
+  width: clamp(540px, 65vw, 1100px);
+  height: clamp(540px, 65vw, 1100px);
+  bottom: -35%;
+  left: 0;
+  background: radial-gradient(circle, rgba(37, 99, 235, 0.58), rgba(37, 99, 235, 0) 70%);
   animation: ambientFloatBottom 20s ease-in-out infinite alternate;
+}
+
+.ambientPurple {
+  width: clamp(540px, 68vw, 1150px);
+  height: clamp(540px, 68vw, 1150px);
+  top: -5%;
+  right: -24%;
+  background: radial-gradient(circle, rgba(124, 58, 237, 0.6), rgba(124, 58, 237, 0) 70%);
+  animation: ambientFloatPurple 18s ease-in-out infinite alternate;
 }
 
 .card {
@@ -72,10 +68,12 @@
   padding: 34px;
   box-shadow: 0 24px 70px rgba(15, 39, 71, 0.12);
   animation: cardEnter 420ms ease-out both;
+  text-align: center;
 }
 
 .brandHeader {
   display: flex;
+  flex-direction: column;
   align-items: center;
   gap: 14px;
 }
@@ -164,6 +162,15 @@
   color: #334155;
   font-size: 0.83rem;
   font-weight: 650;
+}
+
+.card :global(.ant-form-item-label) {
+  text-align: center;
+}
+
+.card :global(.ant-form-item-explain),
+.input:global(.ant-input-affix-wrapper) :global(input.ant-input) {
+  text-align: center;
 }
 
 .card :global(.ant-form-item) {
@@ -257,34 +264,34 @@
   }
 }
 
-@keyframes gridDrift {
-  from {
-    background-position: 0 0;
-  }
-  to {
-    background-position: 40px 40px;
-  }
-}
-
 @keyframes ambientFloatTop {
   from {
-    opacity: 0.72;
+    opacity: 0.85;
     transform: translate3d(0, 0, 0) scale(1);
   }
   to {
     opacity: 1;
-    transform: translate3d(-72px, 54px, 0) scale(1.12);
+    transform: translate3d(100px, 70px, 0) scale(1.12);
   }
 }
 
 @keyframes ambientFloatBottom {
   from {
-    opacity: 0.68;
+    opacity: 0.85;
     transform: translate3d(0, 0, 0) scale(1);
   }
   to {
     opacity: 0.96;
     transform: translate3d(84px, -62px, 0) scale(1.1);
+  }
+}
+
+@keyframes ambientFloatPurple {
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    transform: translate3d(-100px, 80px, 0) scale(1.15);
   }
 }
 
@@ -310,9 +317,9 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .page::before,
   .ambientTop,
   .ambientBottom,
+  .ambientPurple,
   .card,
   .submit:global(.ant-btn) {
     animation: none;
