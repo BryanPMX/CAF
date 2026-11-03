@@ -23,6 +23,7 @@ import { useHydrationSafe } from '@/hooks/useHydrationSafe';
 import DashboardMetricCard, { type DashboardAccent } from './components/DashboardMetricCard';
 import NotificationCard from './components/NotificationCard';
 import OperationalAlerts, { type OperationalAlertItem } from './components/OperationalAlerts';
+import PsychologistDashboard from './components/PsychologistDashboard';
 import StatusDistributionChart, { type ChartSegment } from './components/StatusDistributionChart';
 import { resolveNotificationHref } from './components/notificationPresentation';
 import { isDashboardStaffRole, useDashboardSummary } from './components/useDashboardSummary';
@@ -287,6 +288,19 @@ export default function DashboardPage() {
         message="No pudimos cargar el panel de control"
         description={dashboardError || 'Verifique su conexion e intente nuevamente.'}
         action={<Button onClick={() => void refresh()}>Reintentar</Button>}
+      />
+    );
+  }
+
+  if (role === 'psychologist') {
+    return (
+      <PsychologistDashboard
+        summary={summary}
+        summaryError={dashboardError}
+        isRefreshing={isRefreshing}
+        lastUpdatedAt={dashboardUpdatedAt}
+        unreadCount={unreadCount}
+        onRefreshSummary={() => refresh({ background: true })}
       />
     );
   }

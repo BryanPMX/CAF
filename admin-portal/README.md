@@ -20,6 +20,7 @@ admin-portal/
 │   │   │   │   ├── DashboardMetricCard.tsx
 │   │   │   │   ├── StatusDistributionChart.tsx
 │   │   │   │   ├── OperationalAlerts.tsx
+│   │   │   │   ├── PsychologistDashboard.tsx # Calendar-first psychologist workspace
 │   │   │   │   ├── useDashboardSummary.ts # Typed data loading and refresh
 │   │   │   │   ├── AppointmentModal.tsx # Multi-step appointment creation wizard
 │   │   │   │   ├── EditAppointmentModal.tsx
@@ -86,6 +87,8 @@ admin-portal/
 The protected root route (`/`) is a role-aware operations dashboard backed exclusively by live summary APIs:
 
 - Admin and office-manager views use `GET /api/v1/dashboard-summary`; staff views use `GET /api/v1/staff/dashboard-summary`.
+- Psychologists receive a calendar-first dashboard backed by `GET /api/v1/appointments/my`, with month navigation, status filtering, day selection, and a selected-day agenda.
+- Psychologist navigation is intentionally limited to Dashboard, Expedientes, Citas, and Notificaciones. Usuarios, Oficinas, Reportes, and the management archive (`Archivos`) remain hidden; active case documents stay available inside each authorized expediente.
 - Summary cards link to the corresponding workflows and distribution charts visualize current case and appointment states without mock data.
 - Operational alerts are derived from pending tasks, today's appointments, and unread notifications.
 - Admin office filtering is applied server-side and includes an explicit "Todas las oficinas" option. Office-manager scope remains enforced by the API.
