@@ -118,10 +118,6 @@ export default function LoginPage() {
                 priority
               />
             </div>
-            <div className={styles.brandCopy}>
-              <span className={styles.brandName}>CAF</span>
-              <span className={styles.organization}>Centro de Apoyo para la Familia A.C.</span>
-            </div>
           </header>
 
           <div className={styles.divider} />

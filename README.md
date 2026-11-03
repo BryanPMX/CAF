@@ -96,7 +96,7 @@ admin-portal/src/
 - **Route Protection**: Authentication guards and role-based access
 - **Real-time Updates**: WebSocket integration for live notifications
 - **Responsive Design**: Mobile-first approach with Ant Design + Tailwind CSS  
-- **Login Page**: Centered institutional sign-in with animated teal, blue, and purple CAF colors, reduced-motion support, accessible form feedback, password visibility control, Caps Lock awareness, and password-manager-compatible fields
+- **Login Page**: Compact institutional sign-in with a centered logo and heading, left-aligned fields and guidance, animated teal, blue, and purple CAF colors, reduced-motion support, accessible form feedback, password visibility control, Caps Lock awareness, and password-manager-compatible fields
 - **Sidebar**: Role-aware navigation grouped by workflow, management, and information; the user photo and profile card sit above navigation, with profile and logout actions available in both expanded and compact states
 - **Profile**: Account view at `/app/profile` with circular avatar (initials), name, email, role, and office in a clear layout; reached through the sidebar account panel or notification links
 - **Dashboard**: Role-aware operational dashboard with live summary cards, a shared calendar-first workspace for non-management staff, accessible case/appointment distribution graphs, explicit office filtering, quick actions, and alerts derived from real tasks, appointments, and notifications

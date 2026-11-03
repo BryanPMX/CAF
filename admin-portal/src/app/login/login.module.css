@@ -1,6 +1,5 @@
 .page,
 .loading {
-  --login-navy: #0f2747;
   --login-blue: #2563eb;
   --login-teal: #0f766e;
   --login-border: #dbe4ee;
@@ -75,7 +74,6 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 14px;
 }
 
 .logoFrame {
@@ -97,29 +95,9 @@
   object-fit: cover;
 }
 
-.brandCopy {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.brandName {
-  color: var(--login-navy);
-  font-size: 1.18rem;
-  font-weight: 750;
-  letter-spacing: -0.02em;
-}
-
-.organization {
-  color: var(--login-muted);
-  font-size: 0.78rem;
-  line-height: 1.35;
-}
-
 .divider {
   height: 1px;
-  margin: 26px 0;
+  margin: 22px 0;
   background: linear-gradient(90deg, var(--login-border), rgba(219, 228, 238, 0.2));
 }
 
@@ -164,13 +142,11 @@
   font-weight: 650;
 }
 
-.card :global(.ant-form-item-label) {
-  text-align: center;
-}
-
+.card :global(.ant-form),
+.card :global(.ant-form-item-label),
 .card :global(.ant-form-item-explain),
 .input:global(.ant-input-affix-wrapper) :global(input.ant-input) {
-  text-align: center;
+  text-align: left;
 }
 
 .card :global(.ant-form-item) {
@@ -297,18 +273,12 @@
 
 @media (max-width: 520px) {
   .page {
-    align-items: start;
     padding: 20px 12px;
   }
 
   .card {
-    margin-top: max(0px, calc((100svh - 620px) / 2));
     border-radius: 20px;
     padding: 26px 22px;
-  }
-
-  .divider {
-    margin: 22px 0;
   }
 
   .title {
