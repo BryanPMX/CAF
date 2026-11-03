@@ -7,7 +7,7 @@ Go backend for the CAF platform. It serves the admin portal, marketing site inte
 - JWT authentication (`/api/v1/login`); accounts are provisioned by authorized administrators
 - Role-aware route groups (`/api/v1`, `/api/v1/admin`, `/api/v1/staff`, `/api/v1/manager`)
 - Client-safe mobile route group (`/api/v1/client`)
-- Case management, appointments, tasks, documents, notifications
+- Case management, client appointments, internal employee calendar, tasks, documents, notifications
 - Realtime notification websocket endpoint (`/ws`)
 - Profile avatar upload/storage (S3 or local fallback)
 - Hosted Stripe Checkout session creation + Stripe receipts listing for clients
@@ -44,7 +44,18 @@ api/
 ### Protected Staff/Admin (`/api/v1`)
 
 - Protected group for authenticated non-client users (`DenyClients` middleware)
-- Dashboard, cases, appointments, tasks, documents, notifications, profile, etc.
+- Dashboard, cases, appointments, internal calendar, tasks, documents, notifications, profile, etc.
+
+Internal calendar endpoints (all authenticated non-client employees):
+
+- `GET /calendar/staff` - minimal active employee directory for invitations
+- `GET /calendar/events?dateFrom=YYYY-MM-DD&dateTo=YYYY-MM-DD` - meetings organized by or addressed to the current employee
+- `POST /calendar/events` - create a meeting and attendee invitations
+- `PATCH /calendar/events/:id` - organizer/admin update
+- `PATCH /calendar/events/:id/response` - attendee response (`accepted`, `tentative`, `declined`)
+- `DELETE /calendar/events/:id` - organizer/admin cancellation (soft delete)
+
+Internal meetings are intentionally stored separately from case appointments. Event visibility is participant-scoped, attendee IDs are validated against active non-client accounts, and invite/update/cancellation notifications link back to `/app/calendar`.
 
 ### Client Mobile Portal (`/api/v1/client`)  [NEW]
 

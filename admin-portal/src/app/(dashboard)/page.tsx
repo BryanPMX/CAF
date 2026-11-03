@@ -23,7 +23,7 @@ import { useHydrationSafe } from '@/hooks/useHydrationSafe';
 import DashboardMetricCard, { type DashboardAccent } from './components/DashboardMetricCard';
 import NotificationCard from './components/NotificationCard';
 import OperationalAlerts, { type OperationalAlertItem } from './components/OperationalAlerts';
-import PsychologistDashboard from './components/PsychologistDashboard';
+import StaffCalendarDashboard from './components/StaffCalendarDashboard';
 import StatusDistributionChart, { type ChartSegment } from './components/StatusDistributionChart';
 import { resolveNotificationHref } from './components/notificationPresentation';
 import { isDashboardStaffRole, useDashboardSummary } from './components/useDashboardSummary';
@@ -292,9 +292,9 @@ export default function DashboardPage() {
     );
   }
 
-  if (role === 'psychologist') {
+  if (isStaff) {
     return (
-      <PsychologistDashboard
+      <StaffCalendarDashboard
         summary={summary}
         summaryError={dashboardError}
         isRefreshing={isRefreshing}

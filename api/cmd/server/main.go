@@ -334,6 +334,14 @@ func main() {
 		// Offices list available to authenticated staff/managers/admins
 		protected.GET("/offices", handlers.GetOffices(cont.GetOfficeRepository()))
 
+		// Internal employee calendar (separate from case/client appointments)
+		protected.GET("/calendar/staff", handlers.GetCalendarStaff(database))
+		protected.GET("/calendar/events", handlers.GetCalendarEvents(database))
+		protected.POST("/calendar/events", handlers.CreateCalendarEvent(database))
+		protected.PATCH("/calendar/events/:id", handlers.UpdateCalendarEvent(database))
+		protected.PATCH("/calendar/events/:id/response", handlers.RespondToCalendarEvent(database))
+		protected.DELETE("/calendar/events/:id", handlers.DeleteCalendarEvent(database))
+
 		// Enhanced Case Management with Access Control
 		protected.GET("/cases", middleware.CaseAccessControl(database), handlers.GetCasesEnhanced(database))
 		protected.GET("/cases/:id", middleware.CaseAccessControl(database), handlers.GetCaseByIDEnhanced(database))

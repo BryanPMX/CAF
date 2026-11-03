@@ -33,7 +33,7 @@ import {
 import type { DashboardSummary } from './useDashboardSummary';
 import DashboardMetricCard from './DashboardMetricCard';
 
-interface PsychologistAppointment extends Appointment {
+interface StaffAppointment extends Appointment {
   case?: {
     id: number;
     title: string;
@@ -46,10 +46,10 @@ interface PsychologistAppointment extends Appointment {
 }
 
 interface AppointmentListResponse {
-  data?: PsychologistAppointment[];
+  data?: StaffAppointment[];
 }
 
-interface PsychologistDashboardProps {
+interface StaffCalendarDashboardProps {
   summary: DashboardSummary;
   summaryError: string | null;
   isRefreshing: boolean;
@@ -79,24 +79,24 @@ function formatUpdatedAt(timestamp: number | null): string {
   });
 }
 
-function getClientName(appointment: PsychologistAppointment): string {
+function getClientName(appointment: StaffAppointment): string {
   const client = appointment.case?.client;
   if (!client) return 'Cliente no disponible';
   return `${client.firstName} ${client.lastName}`.trim();
 }
 
-export default function PsychologistDashboard({
+export default function StaffCalendarDashboard({
   summary,
   summaryError,
   isRefreshing,
   lastUpdatedAt,
   unreadCount,
   onRefreshSummary,
-}: PsychologistDashboardProps) {
+}: StaffCalendarDashboardProps) {
   const router = useRouter();
   const screens = Grid.useBreakpoint();
   const [calendarValue, setCalendarValue] = useState<Dayjs>(() => dayjs());
-  const [appointments, setAppointments] = useState<PsychologistAppointment[]>([]);
+  const [appointments, setAppointments] = useState<StaffAppointment[]>([]);
   const [statusFilter, setStatusFilter] = useState('all');
   const [isLoadingAppointments, setIsLoadingAppointments] = useState(true);
   const [isRefreshingAppointments, setIsRefreshingAppointments] = useState(false);
@@ -137,7 +137,7 @@ export default function PsychologistDashboard({
   }, [appointments, statusFilter]);
 
   const appointmentsByDate = useMemo(() => {
-    const grouped = new Map<string, PsychologistAppointment[]>();
+    const grouped = new Map<string, StaffAppointment[]>();
     filteredAppointments.forEach((appointment) => {
       const key = dayjs(appointment.startTime).format('YYYY-MM-DD');
       const items = grouped.get(key) || [];
@@ -215,7 +215,7 @@ export default function PsychologistDashboard({
           <div>
             <h1 className="flex items-center gap-3 text-3xl font-semibold tracking-tight sm:text-4xl">
               <CalendarOutlined className="text-cyan-300" />
-              <span>Agenda de Psicología</span>
+              <span>Mi Agenda</span>
             </h1>
             <p className="mt-3 text-sm text-slate-300">{todayLabel}</p>
             <p className="mt-1 text-xs text-slate-400">Actualizado: {formatUpdatedAt(lastUpdatedAt)}</p>
@@ -228,8 +228,8 @@ export default function PsychologistDashboard({
             >
               Actualizar
             </Button>
-            <Button type="primary" icon={<CalendarOutlined />} onClick={() => router.push('/app/appointments')}>
-              Ver todas las citas
+            <Button type="primary" icon={<CalendarOutlined />} onClick={() => router.push('/app/calendar')}>
+              Abrir calendario
             </Button>
           </div>
         </div>
@@ -301,7 +301,7 @@ export default function PsychologistDashboard({
 
           <Spin spinning={isLoadingAppointments}>
             <Calendar
-              className="psychologist-calendar"
+              className="staff-calendar"
               fullscreen={Boolean(screens.md)}
               value={calendarValue}
               onChange={setCalendarValue}

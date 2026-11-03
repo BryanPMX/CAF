@@ -73,6 +73,11 @@ const ENTITY_META: Record<string, NotificationEntityMeta> = {
     label: 'Cita',
     actionLabel: 'Ver agenda',
   },
+  calendar_event: {
+    icon: <CalendarOutlined />,
+    label: 'Evento',
+    actionLabel: 'Abrir calendario',
+  },
   payment: {
     icon: <FileTextOutlined />,
     label: 'Pago',
@@ -156,6 +161,9 @@ export function getNotificationEntityMeta(notification: Pick<Notification, 'enti
   if (link.startsWith('/app/appointments')) {
     return ENTITY_META.appointment;
   }
+  if (link.startsWith('/app/calendar')) {
+    return ENTITY_META.calendar_event;
+  }
   if (link.startsWith('/app/users/')) {
     return {
       icon: <BellOutlined />,
@@ -177,6 +185,10 @@ export function getNotificationTitle(notification: Notification): string {
 
   if (notification.entityType === 'appointment') {
     return notification.type === 'success' ? 'Cita confirmada' : 'Actualización de cita';
+  }
+
+  if (notification.entityType === 'calendar_event') {
+    return 'Actualización de calendario';
   }
 
   if (notification.entityType === 'case') {

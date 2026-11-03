@@ -24,6 +24,7 @@ import {
   GlobalOutlined,
   BellOutlined,
   MenuOutlined,
+  ScheduleOutlined,
 } from '@ant-design/icons';
 import ClientOnly from '@/components/ClientOnly';
 import ErrorBoundary from '@/components/ErrorBoundary';
@@ -56,6 +57,7 @@ const ICON_MAP = {
   'HomeOutlined': HomeOutlined,
   'GlobalOutlined': GlobalOutlined,
   'BellOutlined': BellOutlined,
+  'ScheduleOutlined': ScheduleOutlined,
 } as const;
 
 export default function DashboardLayout({ children }: { children: React.ReactNode; }) {
@@ -84,6 +86,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const selectedKey = useMemo<string | null>(() => {
     if (pathname === '/') return 'dashboard';
     if (pathname.startsWith('/app/appointments')) return 'appointments';
+    if (pathname.startsWith('/app/calendar')) return 'calendar';
     if (pathname.startsWith('/app/notifications')) return 'notifications';
     if (pathname.startsWith('/app/cases')) return 'cases';
     if (pathname.startsWith('/app/users')) return 'users';

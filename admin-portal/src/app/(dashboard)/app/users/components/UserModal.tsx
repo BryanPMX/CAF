@@ -2,13 +2,13 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Modal, Form, Input, Select, message, Row, Col } from 'antd';
+import { Alert, Modal, Form, Input, Select, message, Row, Col } from 'antd';
 import { UserOutlined, MailOutlined, PhoneOutlined } from '@ant-design/icons';
 import Cookies from 'js-cookie';
 import { apiClient } from '@/app/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { requiresOffice, getAllRoles, USER_ROLES, type StaffRoleKey } from '@/config/roles';
-import { createPhoneFormRule } from '@/core/validation';
+import { createPhoneFormRule, createStrongPasswordFormRule } from '@/core/validation';
 
 const { Option } = Select;
 
@@ -42,11 +42,13 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
   const [loading, setLoading] = useState(false);
   const [offices, setOffices] = useState<Office[]>([]);
   const [selectedRole, setSelectedRole] = useState<string>('');
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const isEditing = !!user; // A simple boolean flag to determine if we are in "edit" mode.
 
   // This `useEffect` hook runs whenever the modal becomes visible or the user to be edited changes.
   useEffect(() => {
     if (visible) {
+      setSubmitError(null);
       // Fetch offices for admins and office managers - run always when modal opens
       const fetchOffices = async () => {
         try {
@@ -96,6 +98,7 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
   const handleOk = async () => {
     const messageKey = isEditing ? 'updateUser' : 'createUser';
     try {
+      setSubmitError(null);
       const values = await form.validateFields(); // Ensure all form fields are valid.
       setLoading(true);
       message.loading({ content: 'Guardando...', key: messageKey });
@@ -128,9 +131,15 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
       message.success({ content: `¡Usuario ${isEditing ? 'actualizado' : 'creado'} exitosamente!`, key: messageKey });
       onSuccess(); // Trigger the callback to refresh the user list on the parent page.
       onClose(); // Close the modal.
-    } catch (error: any) {
-      // If the API returns an error, display it to the user.
-      const errorMessage = error.response?.data?.error || 'Ocurrió un error.';
+    } catch (error: unknown) {
+      const validationError = typeof error === 'object' && error && 'errorFields' in error;
+      const apiError = typeof error === 'object' && error && 'response' in error
+        ? (error as { response?: { data?: { error?: string } } }).response?.data?.error
+        : undefined;
+      const errorMessage = validationError
+        ? 'Revise los campos marcados antes de guardar.'
+        : apiError || 'No fue posible guardar el usuario.';
+      setSubmitError(errorMessage);
       message.error({ content: errorMessage, key: messageKey });
     } finally {
       setLoading(false);
@@ -179,6 +188,17 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
       width={560}
     >
       <Form form={form} layout="vertical" className="mt-2">
+        {submitError && (
+          <Alert
+            showIcon
+            closable
+            type="error"
+            className="mb-4"
+            message="No se pudo guardar"
+            description={submitError}
+            onClose={() => setSubmitError(null)}
+          />
+        )}
         <Row gutter={16}>
           <Col xs={24} sm={12}>
             <Form.Item name="firstName" label="Nombre(s)" rules={[{ required: true, message: 'El nombre es requerido' }]}>
@@ -196,12 +216,12 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
           name="email"
           label="Correo Electrónico Organizacional"
           rules={[
-            { required: true, message: 'El correo electrónico es requerido' },
+            { required: selectedRole === USER_ROLES.CLIENT, message: 'El correo electrónico es requerido para clientes' },
             { type: 'email', message: 'Ingrese un correo válido' },
           ]}
           extra={selectedRole && selectedRole !== 'client' ? 'Si se deja vacío se generará uno corporativo automáticamente.' : undefined}
         >
-          <Input prefix={<MailOutlined style={{ color: '#bfbfbf' }} />} placeholder="ejemplo@caf.org" />
+          <Input prefix={<MailOutlined style={{ color: '#bfbfbf' }} />} placeholder="ejemplo@caf-mexico.com" />
         </Form.Item>
 
         <Form.Item
@@ -225,8 +245,13 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
         </Form.Item>
 
         {!isEditing && (
-          <Form.Item name="password" label="Contraseña Temporal" rules={[{ required: true, min: 8, message: 'La contraseña debe tener al menos 8 caracteres' }]}>
-            <Input.Password placeholder="Mínimo 8 caracteres" />
+          <Form.Item
+            name="password"
+            label="Contraseña Temporal"
+            rules={[{ validator: createStrongPasswordFormRule() }]}
+            extra="Mínimo 12 caracteres con mayúscula, minúscula, número y símbolo."
+          >
+            <Input.Password maxLength={72} placeholder="Contraseña temporal segura" />
           </Form.Item>
         )}
 

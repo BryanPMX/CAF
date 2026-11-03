@@ -43,6 +43,7 @@ The CAF System uses a custom migration system that:
 - **0058_create_payment_records.sql**: Persist Stripe payment lifecycle records
 - **0059_disable_insecure_default_admin.sql**: Disable the untouched development administrator account
 - **0060_clear_legacy_notifications.sql**: Clear existing legacy notification rows once so the actionable inbox starts empty
+- **0061_create_employee_calendar.sql**: Internal employee meetings, attendee invitations, response state, and calendar indexes
 
 ## Adding New Migrations
 

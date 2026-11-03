@@ -28,6 +28,24 @@ type CreateUserInput struct {
 	PersonalAddress *string `json:"personalAddress"`
 }
 
+func normalizeCreateUserInput(input *CreateUserInput) {
+	input.FirstName = strings.TrimSpace(input.FirstName)
+	input.LastName = strings.TrimSpace(input.LastName)
+	input.Email = strings.ToLower(strings.TrimSpace(input.Email))
+	input.Phone = strings.TrimSpace(input.Phone)
+	if input.PersonalAddress != nil {
+		trimmed := strings.TrimSpace(*input.PersonalAddress)
+		input.PersonalAddress = &trimmed
+	}
+}
+
+func validateCreateUserEmail(input CreateUserInput) string {
+	if input.Role == "client" && input.Email == "" {
+		return "El correo electrónico es requerido para clientes."
+	}
+	return ""
+}
+
 // CreateUser handles the creation of a new user by an administrator.
 func CreateUser(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -36,10 +54,15 @@ func CreateUser(db *gorm.DB) gin.HandlerFunc {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
+		normalizeCreateUserInput(&input)
 
 		// Validate the provided role against our centralized role configuration
 		if err := config.ValidateRole(input.Role); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		if validationError := validateCreateUserEmail(input); validationError != "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": validationError})
 			return
 		}
 
@@ -56,12 +79,12 @@ func CreateUser(db *gorm.DB) gin.HandlerFunc {
 				return
 			}
 			base := generateCorpEmailLocalPart(input.FirstName, input.LastName)
-			domain := "@caf.org"
+			domain := "@caf-mexico.com"
 			email := base + domain
 			suffix := 1
 			for {
 				var exists models.User
-				if err := db.Unscoped().Where("email = ?", email).First(&exists).Error; err == gorm.ErrRecordNotFound {
+				if err := db.Unscoped().Where("LOWER(email) = ?", email).First(&exists).Error; err == gorm.ErrRecordNotFound {
 					break
 				}
 				email = base + strconv.Itoa(suffix) + domain
@@ -91,7 +114,7 @@ func CreateUser(db *gorm.DB) gin.HandlerFunc {
 
 		// Check if a soft-deleted user with the same email exists
 		var existingUser models.User
-		if err := db.Unscoped().Where("email = ?", input.Email).First(&existingUser).Error; err == nil {
+		if err := db.Unscoped().Where("LOWER(email) = ?", input.Email).First(&existingUser).Error; err == nil {
 			// User exists but might be soft-deleted
 			if existingUser.DeletedAt.Valid {
 				// Reactivate the soft-deleted user
@@ -139,6 +162,7 @@ func CreateUserScoped(db *gorm.DB) gin.HandlerFunc {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
+		normalizeCreateUserInput(&input)
 
 		// Get the office manager's office from middleware (stored as uint, not *uint)
 		managerOfficeIDVal, hasOffice := c.Get("officeScopeID")
@@ -146,6 +170,10 @@ func CreateUserScoped(db *gorm.DB) gin.HandlerFunc {
 		// Validate the provided role against our centralized role configuration
 		if err := config.ValidateRole(input.Role); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		if validationError := validateCreateUserEmail(input); validationError != "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": validationError})
 			return
 		}
 
@@ -183,12 +211,12 @@ func CreateUserScoped(db *gorm.DB) gin.HandlerFunc {
 				return
 			}
 			base := generateCorpEmailLocalPart(input.FirstName, input.LastName)
-			domain := "@caf.org"
+			domain := "@caf-mexico.com"
 			email := base + domain
 			suffix := 1
 			for {
 				var exists models.User
-				if err := db.Unscoped().Where("email = ?", email).First(&exists).Error; err == gorm.ErrRecordNotFound {
+				if err := db.Unscoped().Where("LOWER(email) = ?", email).First(&exists).Error; err == gorm.ErrRecordNotFound {
 					break
 				}
 				email = base + strconv.Itoa(suffix) + domain
@@ -218,7 +246,7 @@ func CreateUserScoped(db *gorm.DB) gin.HandlerFunc {
 
 		// Check if a soft-deleted user with the same email exists
 		var existingUser models.User
-		if err := db.Unscoped().Where("email = ?", input.Email).First(&existingUser).Error; err == nil {
+		if err := db.Unscoped().Where("LOWER(email) = ?", input.Email).First(&existingUser).Error; err == nil {
 			if existingUser.DeletedAt.Valid {
 				// Reactivate the soft-deleted user
 				existingUser.FirstName = input.FirstName

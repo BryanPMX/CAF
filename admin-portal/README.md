@@ -20,7 +20,7 @@ admin-portal/
 │   │   │   │   ├── DashboardMetricCard.tsx
 │   │   │   │   ├── StatusDistributionChart.tsx
 │   │   │   │   ├── OperationalAlerts.tsx
-│   │   │   │   ├── PsychologistDashboard.tsx # Calendar-first psychologist workspace
+│   │   │   │   ├── StaffCalendarDashboard.tsx # Calendar-first staff workspace
 │   │   │   │   ├── useDashboardSummary.ts # Typed data loading and refresh
 │   │   │   │   ├── AppointmentModal.tsx # Multi-step appointment creation wizard
 │   │   │   │   ├── EditAppointmentModal.tsx
@@ -29,6 +29,7 @@ admin-portal/
 │   │   │   └── app/                # Main application pages
 │   │   │       ├── cases/          # Expedientes - Case management with pagination
 │   │   │       ├── appointments/   # Citas - Appointment scheduling with filters
+│   │   │       ├── calendar/       # Calendario - Employee meetings + assigned client appointments
 │   │   │       ├── users/          # Usuarios - User management (admin/manager)
 │   │   │       ├── offices/        # Oficinas - Office management with staff detail drawer
 │   │   │       ├── web-content/    # Gestión de Contenido Web - CMS for marketing site
@@ -40,6 +41,7 @@ admin-portal/
 │   │   │   ├── api.ts              # Axios HTTP client with JWT interceptors
 │   │   │   ├── config.ts           # Centralized app configuration
 │   │   │   ├── types.ts            # TypeScript type definitions
+│   │   │   ├── calendar.ts         # Shared employee calendar contracts
 │   │   │   └── caseTaxonomy.ts     # Case type→department mapping
 │   │   ├── components/             # Global components (ErrorBoundary, ClientOnly)
 │   │   ├── layout.tsx              # Root layout
@@ -57,6 +59,7 @@ admin-portal/
 │   ├── services/                   # Service layer (role-based API routing)
 │   │   ├── caseService.ts          # Case CRUD with endpoint resolution
 │   │   ├── appointmentService.ts   # Appointment CRUD
+│   │   ├── calendarService.ts      # Internal event and attendee API boundary
 │   │   ├── recordService.ts        # Archive operations (stats, restore, delete)
 │   │   ├── officeService.ts        # Office CRUD
 │   │   ├── userService.ts          # User management
@@ -87,13 +90,20 @@ admin-portal/
 The protected root route (`/`) is a role-aware operations dashboard backed exclusively by live summary APIs:
 
 - Admin and office-manager views use `GET /api/v1/dashboard-summary`; staff views use `GET /api/v1/staff/dashboard-summary`.
-- Psychologists receive a calendar-first dashboard backed by `GET /api/v1/appointments/my`, with month navigation, status filtering, day selection, and a selected-day agenda.
-- Psychologist navigation is intentionally limited to Dashboard, Expedientes, Citas, and Notificaciones. Usuarios, Oficinas, Reportes, and the management archive (`Archivos`) remain hidden; active case documents stay available inside each authorized expediente.
+- Non-management staff roles receive the same calendar-first dashboard backed by `GET /api/v1/appointments/my`, with month navigation, status filtering, day selection, and a selected-day agenda. This is the temporary shared workflow until each professional role is defined in more detail.
+- Staff navigation is intentionally focused on Dashboard, Expedientes, Citas, Calendario, and Notificaciones. Usuarios, Oficinas, Reportes, and the management archive (`Archivos`) remain hidden; active case documents stay available inside each authorized expediente.
 - Summary cards link to the corresponding workflows and distribution charts visualize current case and appointment states without mock data.
 - Operational alerts are derived from pending tasks, today's appointments, and unread notifications.
 - Admin office filtering is applied server-side and includes an explicit "Todas las oficinas" option. Office-manager scope remains enforced by the API.
 - Data refreshes every 30 seconds and can be refreshed manually. The UI differentiates initial loading from background synchronization.
 - Reusable dashboard components keep presentation, data access, normalization, and alert derivation separate.
+
+### Employee Calendar
+
+- `Calendario` is available to every authenticated employee, including administrators and office managers; client accounts are excluded.
+- The unified month view combines assigned case appointments from `GET /api/v1/appointments/my` with internal meetings from `GET /api/v1/calendar/events`.
+- Internal events are separate from client appointments and support multiple attendees, organizer-only editing/cancellation, invitation responses, responsive month/day views, and real-time notification links.
+- `calendarService.ts` owns the API boundary while shared calendar contracts live in `src/app/lib/calendar.ts`.
 
 ### Notifications
 
@@ -101,6 +111,12 @@ The protected root route (`/`) is a role-aware operations dashboard backed exclu
 - Case and appointment CRUD activity remains in its corresponding timeline and is not duplicated in the notification inbox.
 - Historical case/appointment audit notifications are excluded by their deduplication keys without deleting database records.
 - The page uses the same header, compact statistics, filters, and card hierarchy as the other administrative sections.
+
+### User Provisioning
+
+- The user form mirrors the API password policy: 12–72 bytes with uppercase, lowercase, number, and symbol, while known insecure defaults are rejected.
+- Staff email is optional during creation and is generated under `@caf-mexico.com`; client email remains required.
+- API validation failures remain visible inside the modal in addition to the transient notification, so a rejected save cannot appear to do nothing.
 
 ### 2. Authentication System (`src/context/AuthContext.tsx`)
 

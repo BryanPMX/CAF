@@ -161,6 +161,9 @@ export const getNavigationItemsForRole = (role: string) => {
     { key: 'dashboard', label: 'Panel de Control', path: '/', icon: 'DashboardOutlined' },
     { key: 'cases', label: 'Expedientes', path: '/app/cases', icon: 'FileTextOutlined' },
     { key: 'appointments', label: 'Citas', path: '/app/appointments', icon: 'CalendarOutlined' },
+    ...(role !== USER_ROLES.CLIENT
+      ? [{ key: 'calendar', label: 'Calendario', path: '/app/calendar', icon: 'ScheduleOutlined' }]
+      : []),
     { key: 'notifications', label: 'Notificaciones', path: '/app/notifications', icon: 'BellOutlined' },
   ];
 

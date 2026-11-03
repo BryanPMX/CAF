@@ -33,6 +33,35 @@ export function createPhoneFormRule(required: boolean) {
   };
 }
 
+const BLOCKED_PASSWORDS = new Set([
+  'admin123',
+  'defaultpassword123',
+  'password123',
+  'password123!',
+  'temppassword123!',
+]);
+
+/** Mirrors the API password policy so invalid temporary credentials never reach the server. */
+export function createStrongPasswordFormRule() {
+  return (_: unknown, value: unknown): Promise<void> => {
+    const password = typeof value === 'string' ? value : '';
+    if (!password) return Promise.reject(new Error('La contraseña temporal es requerida'));
+    if (Array.from(password).length < 12) {
+      return Promise.reject(new Error('Use al menos 12 caracteres'));
+    }
+    if (new TextEncoder().encode(password).length > 72) {
+      return Promise.reject(new Error('La contraseña no puede exceder 72 bytes'));
+    }
+    if (BLOCKED_PASSWORDS.has(password.trim().toLowerCase())) {
+      return Promise.reject(new Error('Esta contraseña temporal es insegura; elija otra'));
+    }
+    if (!/\p{Ll}/u.test(password) || !/\p{Lu}/u.test(password) || !/\p{N}/u.test(password) || !/[\p{P}\p{S}]/u.test(password)) {
+      return Promise.reject(new Error('Incluya mayúscula, minúscula, número y símbolo'));
+    }
+    return Promise.resolve();
+  };
+}
+
 // Common Validation Rules
 export const ValidationRules = {
   required: (message = 'This field is required'): ValidationRule => ({

@@ -99,7 +99,8 @@ admin-portal/src/
 - **Login Page**: Split-panel design with CAF branding and indigo/violet gradient  
 - **Sidebar**: Full organization name "Centro de Apoyo para la Familia A.C." with logo; clicking the logo goes to the profile page; **Notificaciones** in the header for all roles  
 - **Profile**: Account view at `/app/profile` with circular avatar (initials), name, email, role, and office in a clear layout; reached via the sidebar logo or notification links  
-- **Dashboard**: Role-aware operational dashboard with live summary cards, accessible case/appointment distribution graphs, explicit office filtering, quick actions, and alerts derived from real tasks, appointments, and notifications
+- **Dashboard**: Role-aware operational dashboard with live summary cards, a shared calendar-first workspace for non-management staff, accessible case/appointment distribution graphs, explicit office filtering, quick actions, and alerts derived from real tasks, appointments, and notifications
+- **Employee Calendar**: Unified personal agenda for every employee, combining assigned client appointments with participant-scoped internal meetings, invitation responses, and notification-driven updates
 - **Notifications**: Actionable inbox for contact inquiries, client messages, assigned tasks, and payments, with search, filters, WebSocket refresh, a header popover, and a persistent left-navigation entry; routine case and appointment edits stay in their own timelines
 - **CMS Image Upload**: Local file upload to server for "Sitio Web" gallery management
 
@@ -455,6 +456,14 @@ curl http://localhost:3000/api/health
 
 ### Dashboard
 - `GET /api/v1/dashboard-summary` - Dashboard statistics
+
+### Employee Calendar
+- `GET /api/v1/calendar/staff` - Active employee invitation directory
+- `GET /api/v1/calendar/events` - Current employee's internal meetings
+- `POST /api/v1/calendar/events` - Create an internal meeting
+- `PATCH /api/v1/calendar/events/:id` - Update an organized meeting
+- `PATCH /api/v1/calendar/events/:id/response` - Respond to an invitation
+- `DELETE /api/v1/calendar/events/:id` - Cancel an organized meeting
 
 ### Cases Management
 - `GET /api/v1/cases` - List cases
