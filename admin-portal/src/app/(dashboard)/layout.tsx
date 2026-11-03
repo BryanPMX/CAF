@@ -7,6 +7,7 @@ import { Layout, Menu, Spin, Button, Alert, Badge, Drawer } from 'antd';
 import type { MenuProps } from 'antd';
 import { LogoutOutlined } from '@ant-design/icons';
 import SidebarBrand from './components/SidebarBrand';
+import SidebarAccount from './components/SidebarAccount';
 import { useAuth } from '@/context/AuthContext';
 import {
   getNavigationItemsForRole,
@@ -60,6 +61,24 @@ const ICON_MAP = {
   'ScheduleOutlined': ScheduleOutlined,
 } as const;
 
+const NAVIGATION_GROUPS = [
+  {
+    key: 'workspace',
+    label: 'Trabajo',
+    itemKeys: ['dashboard', 'cases', 'appointments', 'calendar', 'notifications'],
+  },
+  {
+    key: 'management',
+    label: 'Administración',
+    itemKeys: ['users', 'offices', 'web-content'],
+  },
+  {
+    key: 'insights',
+    label: 'Información',
+    itemKeys: ['records', 'reports'],
+  },
+] as const;
+
 export default function DashboardLayout({ children }: { children: React.ReactNode; }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -104,27 +123,35 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, [user?.role]);
 
   // Filter menu items based on user role using centralized role configuration
-  const filteredMenuItems = useMemo(() => {
-     return navigationItems.map(item => {
-       const IconComponent = ICON_MAP[item.icon as keyof typeof ICON_MAP] || HomeOutlined;
-       const icon = React.createElement(IconComponent);
-       return {
-         key: item.key,
-         icon: item.key === 'notifications' && unreadCount > 0
-           ? <Badge dot color="#38bdf8" offset={[2, 0]}>{icon}</Badge>
-           : icon,
-         label: (
-           <span className="flex items-center justify-between gap-3">
-             <span>{item.label}</span>
-             {item.key === 'notifications' && unreadCount > 0 && (
-               <span className="min-w-6 rounded-full bg-sky-400/20 px-2 py-0.5 text-center text-[11px] font-semibold text-sky-100">
-                 {unreadCount > 99 ? '99+' : unreadCount}
-               </span>
-             )}
-           </span>
-         ),
-       };
-     });
+  const filteredMenuItems = useMemo<MenuProps['items']>(() => {
+    const itemMap = new Map(navigationItems.map((item) => [item.key, item]));
+
+    return NAVIGATION_GROUPS.map((group) => {
+      const children = group.itemKeys.flatMap((itemKey) => {
+        const item = itemMap.get(itemKey);
+        if (!item) return [];
+        const IconComponent = ICON_MAP[item.icon as keyof typeof ICON_MAP] || HomeOutlined;
+        const icon = React.createElement(IconComponent);
+        return [{
+          key: item.key,
+          icon: item.key === 'notifications' && unreadCount > 0
+            ? <Badge dot color="#67e8f9" offset={[2, 0]}>{icon}</Badge>
+            : icon,
+          label: (
+            <span className="admin-nav-item-label">
+              <span>{item.label}</span>
+              {item.key === 'notifications' && unreadCount > 0 && (
+                <span className="admin-nav-count">{unreadCount > 99 ? '99+' : unreadCount}</span>
+              )}
+            </span>
+          ),
+        }];
+      });
+
+      return children.length > 0
+        ? { type: 'group' as const, key: group.key, label: group.label, children }
+        : null;
+    }).filter((group): group is NonNullable<typeof group> => group !== null);
   }, [navigationItems, unreadCount]);
 
   const handleNavigationClick = useCallback<NonNullable<MenuProps['onClick']>>(({ key }) => {
@@ -138,6 +165,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     handleNavigationClick(info);
     setMobileNavOpen(false);
   }, [handleNavigationClick]);
+
+  const handleProfileNavigation = useCallback(() => {
+    router.push('/app/profile');
+  }, [router]);
+
+  const handleMobileProfileNavigation = useCallback(() => {
+    setMobileNavOpen(false);
+    router.push('/app/profile');
+  }, [router]);
+
+  const handleMobileLogout = useCallback(() => {
+    setMobileNavOpen(false);
+    logout();
+  }, [logout]);
 
   // Get role display configuration using centralized role definitions
   const roleDisplay = useMemo(() => {
@@ -202,15 +243,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <Layout style={{ minHeight: '100vh' }} className="dashboard-shell">
           <Sider
             collapsible
-            width={272}
-            collapsedWidth={88}
+            width={284}
+            collapsedWidth={84}
             collapsed={collapsed}
             onCollapse={(nextCollapsed) => setCollapsed(nextCollapsed)}
             className="admin-sider"
           >
             <div className="admin-sider-inner">
               <SidebarBrand />
-              {!collapsed && <p className="admin-sider-section-label">Navegación</p>}
               <Menu
                 theme="dark"
                 className="admin-nav-menu"
@@ -218,6 +258,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 mode="inline"
                 items={filteredMenuItems}
                 onClick={handleNavigationClick}
+              />
+              <SidebarAccount
+                collapsed={collapsed}
+                roleLabel={roleDisplay?.label || 'Usuario'}
+                onProfile={handleProfileNavigation}
+                onLogout={logout}
               />
             </div>
           </Sider>
@@ -236,7 +282,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           >
             <div className="admin-sider-inner">
               <SidebarBrand />
-              <p className="admin-sider-section-label">Navegación</p>
               <Menu
                 theme="dark"
                 className="admin-nav-menu"
@@ -244,6 +289,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 mode="inline"
                 items={filteredMenuItems}
                 onClick={handleMobileNavigationClick}
+              />
+              <SidebarAccount
+                roleLabel={roleDisplay?.label || 'Usuario'}
+                onProfile={handleMobileProfileNavigation}
+                onLogout={handleMobileLogout}
               />
             </div>
           </Drawer>

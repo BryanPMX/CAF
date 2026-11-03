@@ -1,64 +1,37 @@
-// admin-portal/src/app/(dashboard)/components/SidebarBrand.tsx
-// Sidebar brand: user avatar when set, otherwise organization logo. Click goes to profile.
 'use client';
 
-import React, { useEffect } from 'react';
-import Link from 'next/link';
+import { useState } from 'react';
 import Image from 'next/image';
-import { useAuth } from '@/context/AuthContext';
-import AuthAvatar from './AuthAvatar';
+import Link from 'next/link';
 
 export default function SidebarBrand() {
-  const [logoError, setLogoError] = React.useState(false);
-  const [avatarLoadError, setAvatarLoadError] = React.useState(false);
-  const { user } = useAuth();
-  const hasAvatar = Boolean(user?.avatarUrl) && !avatarLoadError;
-  const profileLabel = user?.firstName ? `Hola, ${user.firstName}` : 'Centro de Apoyo para la Familia';
-
-  useEffect(() => {
-    setAvatarLoadError(false);
-  }, [user?.avatarUrl]);
+  const [logoError, setLogoError] = useState(false);
 
   return (
     <Link
-      href="/app/profile"
-      className="sidebar-brand group flex items-center gap-3 px-4 py-5 w-full transition-colors"
-      aria-label="Ir a mi perfil"
+      href="/"
+      className="sidebar-brand group flex w-full items-center gap-3 px-3 py-3.5"
+      aria-label="Ir al panel de control"
     >
-      <div
-        className={`sidebar-brand-logo relative flex-shrink-0 flex items-center justify-center w-16 h-16 ${
-          hasAvatar ? 'sidebar-brand-logo-avatar' : 'overflow-hidden rounded-2xl'
-        }`}
-      >
-        {hasAvatar ? (
-          <AuthAvatar
-            avatarUrl={user!.avatarUrl}
-            alt="Mi perfil"
-            size={64}
-            className="sidebar-brand-img object-cover w-full h-full"
-            onError={() => setAvatarLoadError(true)}
-          />
-        ) : !logoError ? (
+      <span className="sidebar-brand-logo relative flex h-12 w-12 flex-shrink-0 items-center justify-center overflow-hidden rounded-2xl">
+        {!logoError ? (
           <Image
             src="/logo.png"
-            alt="CAF - Centro de Apoyo para la Familia"
-            width={64}
-            height={64}
-            className="object-contain sidebar-brand-img w-full h-full"
+            alt="CAF"
+            width={38}
+            height={46}
+            className="sidebar-brand-img h-10 w-8 object-cover"
             onError={() => setLogoError(true)}
             priority
-            style={{ maxWidth: '100%', maxHeight: '100%', width: 'auto', height: 'auto' }}
           />
         ) : (
-          <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
-            <span className="text-base font-bold text-white">C</span>
-          </div>
+          <span className="text-base font-bold text-white">CAF</span>
         )}
-      </div>
-      <div className="sidebar-brand-copy min-w-0">
-        <p className="sidebar-brand-title">CAF Admin</p>
-        <p className="sidebar-brand-subtitle truncate">{profileLabel}</p>
-      </div>
+      </span>
+      <span className="sidebar-brand-copy min-w-0">
+        <span className="sidebar-brand-title block">CAF</span>
+        <span className="sidebar-brand-subtitle block truncate">Administración</span>
+      </span>
     </Link>
   );
 }

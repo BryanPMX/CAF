@@ -83,7 +83,8 @@ admin-portal/
 - Root layout provides global context and styling
 - Dashboard layout includes navigation and authentication guards
 - Nested layouts for section-specific UI
-- The left navigation exposes the notification center for every portal role and displays the shared unread count
+- The left navigation groups permitted routes by workflow, management, and information; it exposes the notification center for every portal role and displays the shared unread count
+- The responsive sidebar keeps organization branding separate from the signed-in account, preserves navigation in compact mode, and provides persistent profile and logout actions
 
 ### Operational Dashboard
 
@@ -166,7 +167,7 @@ The protected root route (`/`) is a role-aware operations dashboard backed exclu
 - Server-state management with SWR/React Query (future)
 
 **Authentication Flow**:
-1. Login form collects credentials
+1. The minimal institutional login form collects credentials using password-manager-compatible fields and accessible inline feedback
 2. API call validates credentials
 3. JWT token stored in localStorage
 4. AuthContext updated with user data
