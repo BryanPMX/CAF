@@ -33,6 +33,7 @@
     linear-gradient(90deg, rgba(148, 163, 184, 0.08) 1px, transparent 1px);
   background-size: 40px 40px;
   mask-image: linear-gradient(to bottom, black, transparent 86%);
+  animation: gridDrift 28s linear infinite;
 }
 
 .ambientTop,
@@ -42,6 +43,7 @@
   border-radius: 999px;
   filter: blur(2px);
   pointer-events: none;
+  will-change: transform, opacity;
 }
 
 .ambientTop {
@@ -50,6 +52,7 @@
   top: -330px;
   right: -160px;
   background: radial-gradient(circle, rgba(47, 143, 131, 0.2), rgba(47, 143, 131, 0));
+  animation: ambientFloatTop 16s ease-in-out infinite alternate;
 }
 
 .ambientBottom {
@@ -58,6 +61,7 @@
   bottom: -390px;
   left: -210px;
   background: radial-gradient(circle, rgba(23, 107, 135, 0.16), rgba(23, 107, 135, 0));
+  animation: ambientFloatBottom 20s ease-in-out infinite alternate;
 }
 
 .card {
@@ -253,6 +257,37 @@
   }
 }
 
+@keyframes gridDrift {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 40px 40px;
+  }
+}
+
+@keyframes ambientFloatTop {
+  from {
+    opacity: 0.72;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(-72px, 54px, 0) scale(1.12);
+  }
+}
+
+@keyframes ambientFloatBottom {
+  from {
+    opacity: 0.68;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    opacity: 0.96;
+    transform: translate3d(84px, -62px, 0) scale(1.1);
+  }
+}
+
 @media (max-width: 520px) {
   .page {
     align-items: start;
@@ -275,6 +310,9 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .page::before,
+  .ambientTop,
+  .ambientBottom,
   .card,
   .submit:global(.ant-btn) {
     animation: none;
