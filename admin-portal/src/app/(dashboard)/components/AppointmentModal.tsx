@@ -3,20 +3,22 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { Modal, Form, Input, Button, message, Select, DatePicker, Radio, AutoComplete, Steps, Spin, Typography } from 'antd';
-import { apiClient } from '@/app/lib/api';
 import { CASE_TYPES, findDepartmentByCaseType } from '@/app/lib/caseTaxonomy';
-import { USER_ROLES, getRoleDisplayName, isAdminRole, getRolesForCaseCategory, StaffRoleKey } from '@/config/roles';
-import { APPOINTMENT_STATUSES, APPOINTMENT_STATUS_DISPLAY_NAMES, APPOINTMENT_STATUS_OPTIONS } from '@/config/statuses';
+import { getRoleDisplayName, isAdminRole, getRolesForCaseCategory, StaffRoleKey } from '@/config/roles';
+import { APPOINTMENT_STATUSES, APPOINTMENT_STATUS_OPTIONS } from '@/config/statuses';
 import { useAuth } from '@/context/AuthContext';
+import {
+  WorkflowService,
+  type WorkflowCase,
+  type WorkflowOffice,
+  type WorkflowUser,
+} from '@/services/workflowService';
 import dayjs from 'dayjs';
 
 const { Option } = Select;
 const { Text } = Typography;
 
 // --- TypeScript Interfaces for data clarity ---
-interface Case { id: number; title: string; status?: string; }
-interface StaffMember { id: number; firstName: string; lastName: string; role: string; department?: string; email: string; }
-interface Office { id: number; name: string; }
 interface ClientSearchResult { value: string; label: string; key: number; }
 
 interface AppointmentModalProps {
@@ -38,9 +40,9 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ visible, onClose, o
   const { user } = useAuth();
   
   // --- State for data fetched from the API ---
-  const [cases, setCases] = useState<Case[]>([]);
-  const [staffList, setStaffList] = useState<StaffMember[]>([]);
-  const [offices, setOffices] = useState<Office[]>([]);
+  const [cases, setCases] = useState<WorkflowCase[]>([]);
+  const [staffList, setStaffList] = useState<WorkflowUser[]>([]);
+  const [offices, setOffices] = useState<WorkflowOffice[]>([]);
   const [clientOptions, setClientOptions] = useState<ClientSearchResult[]>([]);
   const [recentClients, setRecentClients] = useState<ClientSearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -57,24 +59,28 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ visible, onClose, o
     if (visible && user?.role) {
       const fetchData = async () => {
         try {
-          const base = user.role === 'office_manager' ? '/manager' : '/admin';
-          const [staffRes, officesRes] = await Promise.all([
-            apiClient.get(`${base}/users`),
-            apiClient.get(`${base}/offices`),
+          const [availableStaff, availableOffices, availableClients] = await Promise.all([
+            WorkflowService.listStaff(user.role),
+            WorkflowService.listOffices(user.role),
+            WorkflowService.listClients(user.role, '', 10),
           ]);
-          const staffPayload = Array.isArray(staffRes.data)
-            ? staffRes.data
-            : (staffRes.data?.data || staffRes.data?.users || []);
-          const filteredStaff = staffPayload.filter((user: any) => user.role !== 'client');
-          setStaffList(filteredStaff);
-          setOffices(officesRes.data);
+          setStaffList(availableStaff);
+          setOffices(user.role === 'admin'
+            ? availableOffices
+            : availableOffices.filter((office) => office.id === user.officeId));
+          const formattedClients = availableClients.map((client) => ({
+            value: `${client.firstName} ${client.lastName} (${client.email})`,
+            label: `${client.firstName} ${client.lastName} (${client.email})`,
+            key: client.id,
+          }));
+          setRecentClients(formattedClients);
+          setClientOptions(formattedClients);
         } catch (error) {
           console.error('Failed to load staff/offices:', error);
           message.error('No se pudieron cargar los datos necesarios.');
         }
       };
       fetchData();
-      loadRecentClients();
       // Reset all state variables when the modal opens for a clean slate.
       setCurrentStep(0);
       setClientMode('existing');
@@ -85,12 +91,9 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ visible, onClose, o
       setCases([]);
       form.resetFields();
 
-      // Prefill office for office managers (and any user with stored office)
-      if (typeof window !== 'undefined') {
-        const officeId = localStorage.getItem('userOfficeId');
-        if (officeId) {
-          form.setFieldsValue({ officeId: Number(officeId) });
-        }
+      // Every non-admin employee creates records only within their assigned office.
+      if (user.role !== 'admin' && user.officeId) {
+        form.setFieldsValue({ officeId: user.officeId });
       }
 
       // If we have an existing appointment, pre-select the client and case
@@ -107,11 +110,8 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ visible, onClose, o
     if (clientId) {
       (async () => {
         try {
-          const base = user?.role === 'office_manager' ? '/manager' : '/admin';
-          
-          const response = await apiClient.get(`${base}/clients/${clientId}/cases-for-appointment`);
-          const data = response.data;
-          const list = Array.isArray(data) ? data : (data?.cases || []);
+          if (!user) return;
+          const list = await WorkflowService.listClientCases(user.role, clientId);
           setCases(list);
           
           if (list.length === 0) {
@@ -131,7 +131,7 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ visible, onClose, o
       setCases([]);
       form.setFieldsValue({ caseId: undefined });
     }
-  }, [watchedClientId, form]);
+  }, [watchedClientId, form, user]);
 
   // Handle live searching for clients as the user types
   const handleClientSearch = async (searchText: string) => {
@@ -142,12 +142,11 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ visible, onClose, o
       return; 
     }
     
+    if (!user) return;
     setIsSearching(true);
     try {
-      const base = user?.role === 'office_manager' ? '/manager' : '/admin';
-      const response = await apiClient.get(`${base}/users/search?q=${searchText}`);
-      const data = Array.isArray(response.data) ? response.data : (response.data?.users || response.data?.data || []);
-      const formattedOptions = data.map((client: any) => ({
+      const clients = await WorkflowService.listClients(user.role, searchText, 10);
+      const formattedOptions = clients.map((client) => ({
         value: `${client.firstName} ${client.lastName} (${client.email})`,
         label: `${client.firstName} ${client.lastName} (${client.email})`,
         key: client.id,
@@ -166,26 +165,6 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ visible, onClose, o
   const handleClientFocus = () => {
     if (!clientInputValue && recentClients.length > 0) {
       setClientOptions(recentClients);
-    }
-  };
-
-  // Load recent clients on modal open
-  const loadRecentClients = async () => {
-    try {
-      const base = user?.role === 'office_manager' ? '/manager' : '/admin';
-      const response = await apiClient.get(`${base}/users?limit=10&role=client`);
-      const recentClientsPayload = Array.isArray(response.data)
-        ? response.data
-        : (response.data?.users || []);
-      const formattedOptions = recentClientsPayload.map((client: any) => ({
-        value: `${client.firstName} ${client.lastName} (${client.email})`,
-        label: `${client.firstName} ${client.lastName} (${client.email})`,
-        key: client.id,
-      }));
-      setRecentClients(formattedOptions);
-      setClientOptions(formattedOptions);
-    } catch (error) {
-      console.error('Failed to load recent clients:', error);
     }
   };
 
@@ -250,6 +229,7 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ visible, onClose, o
   // Handle the final submission of the multi-step form
   const handleOk = async () => {
     try {
+      if (!user) throw new Error('Usuario no autenticado.');
       const validationFields: string[] = ['staffId', 'title', 'startTime', 'endTime', 'status'];
       
       if (clientMode === 'existing') {
@@ -310,8 +290,7 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ visible, onClose, o
         payload.newCase = { title: values.newCaseTitle, description: values.newCaseDescription, officeId: values.officeId };
       }
 
-      const base = user?.role === 'office_manager' ? '/manager' : '/admin';
-      await apiClient.post(`${base}/appointments`, payload);
+      await WorkflowService.createAppointment(user.role, payload);
       
       message.success({ content: '¡Cita creada exitosamente!', key: 'appt' });
       onSuccess();
@@ -455,17 +434,16 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ visible, onClose, o
                 <Form.Item name="officeId" label="Oficina" rules={[{ required: true, message: 'Debe seleccionar una oficina' }]}>
                   <Select
                     placeholder="Seleccione una oficina"
-                    disabled={user?.role === 'office_manager'}
+                    disabled={user?.role !== 'admin'}
                   >
                     {offices && offices.length > 0 && offices.map((o) => (
                       <Option key={o.id} value={o.id}>
                         {o.name}
                       </Option>
                     ))}
-                    {user?.role === 'office_manager' && (() => {
-                      const officeId = localStorage.getItem('userOfficeId');
-                      return officeId ? <Option key={officeId} value={Number(officeId)}>Mi Oficina</Option> : null;
-                    })()}
+                    {user?.role !== 'admin' && user?.officeId && offices.length === 0 && (
+                      <Option key={user.officeId} value={user.officeId}>Mi Oficina</Option>
+                    )}
                   </Select>
                 </Form.Item>
                 <Form.Item name="newCaseDescription" label="Descripción Adicional">

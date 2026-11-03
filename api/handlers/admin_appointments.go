@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/BryanPMX/CAF/api/config"
@@ -57,6 +58,38 @@ type SmartAppointmentInput struct {
 	Category   string `json:"category" binding:"required"`   // Category for appointment classification
 }
 
+func validateSmartAppointmentInput(input *SmartAppointmentInput) error {
+	input.Title = strings.TrimSpace(input.Title)
+	if input.Title == "" || !input.EndTime.After(input.StartTime) {
+		return fmt.Errorf("a title and a valid appointment time range are required")
+	}
+	if !config.IsValidAppointmentStatus(input.Status) {
+		return fmt.Errorf("invalid appointment status")
+	}
+	if (input.ClientID == nil) == (input.NewClient == nil) {
+		return fmt.Errorf("provide exactly one existing or new client")
+	}
+	if (input.CaseID == nil) == (input.NewCase == nil) {
+		return fmt.Errorf("provide exactly one existing or new case")
+	}
+	if input.NewClient != nil {
+		input.NewClient.FirstName = strings.TrimSpace(input.NewClient.FirstName)
+		input.NewClient.LastName = strings.TrimSpace(input.NewClient.LastName)
+		input.NewClient.Email = strings.ToLower(strings.TrimSpace(input.NewClient.Email))
+		if input.NewClient.FirstName == "" || input.NewClient.LastName == "" || input.NewClient.Email == "" {
+			return fmt.Errorf("new client name and email are required")
+		}
+	}
+	if input.NewCase != nil {
+		input.NewCase.Title = strings.TrimSpace(input.NewCase.Title)
+		input.NewCase.Description = strings.TrimSpace(input.NewCase.Description)
+		if input.NewCase.Title == "" {
+			return fmt.Errorf("new case title is required")
+		}
+	}
+	return nil
+}
+
 // CreateAppointmentSmart is the new, intelligent handler for creating appointments.
 // It handles the complex logic of creating clients and cases as needed.
 func CreateAppointmentSmart(db *gorm.DB) gin.HandlerFunc {
@@ -64,6 +97,16 @@ func CreateAppointmentSmart(db *gorm.DB) gin.HandlerFunc {
 		var input SmartAppointmentInput
 		if err := c.ShouldBindJSON(&input); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		if err := validateSmartAppointmentInput(&input); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		actorValue, exists := c.Get("currentUser")
+		actor, validActor := actorValue.(models.User)
+		if !exists || !validActor || actor.ID == 0 || actor.Role == "client" {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Authenticated employee context is required."})
 			return
 		}
 
@@ -86,30 +129,74 @@ func CreateAppointmentSmart(db *gorm.DB) gin.HandlerFunc {
 		var client models.User
 		hasClient := false
 		var caseRecord models.Case
+		var assignedStaff models.User
+		if err := tx.Where("id = ? AND role <> ? AND is_active = ?", input.StaffID, "client", true).First(&assignedStaff).Error; err != nil {
+			tx.Rollback()
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Selected staff member is not available."})
+			return
+		}
+		if actor.Role != config.RoleAdmin {
+			if actor.OfficeID == nil || *actor.OfficeID == 0 {
+				tx.Rollback()
+				c.JSON(http.StatusForbidden, gin.H{"error": "Staff member must be assigned to an office."})
+				return
+			}
+			if assignedStaff.OfficeID == nil || *assignedStaff.OfficeID != *actor.OfficeID {
+				tx.Rollback()
+				c.JSON(http.StatusForbidden, gin.H{"error": "Appointments can only be assigned within your office."})
+				return
+			}
+			if input.NewCase != nil {
+				if input.NewCase.OfficeID != 0 && input.NewCase.OfficeID != *actor.OfficeID {
+					tx.Rollback()
+					c.JSON(http.StatusForbidden, gin.H{"error": "Cases can only be created in your assigned office."})
+					return
+				}
+				input.NewCase.OfficeID = *actor.OfficeID
+			}
+			if input.CaseID != nil {
+				if err := tx.Select("id, client_id, office_id, category").First(&caseRecord, *input.CaseID).Error; err != nil {
+					tx.Rollback()
+					c.JSON(http.StatusBadRequest, gin.H{"error": "Selected case not found."})
+					return
+				}
+				if caseRecord.OfficeID != *actor.OfficeID {
+					tx.Rollback()
+					c.JSON(http.StatusForbidden, gin.H{"error": "Selected case belongs to a different office."})
+					return
+				}
+			}
+		}
 
 		// --- Step 1: Determine the Client ---
 		if input.ClientID != nil {
-			// Scenario: Use an existing client. If not found, try falling back to case's client (if provided). If still not found, continue without client.
-			if err := tx.First(&client, *input.ClientID).Error; err == nil {
+			// Scenario: Use an existing active client.
+			if err := tx.Where("id = ? AND role = ? AND is_active = ?", *input.ClientID, "client", true).First(&client).Error; err == nil {
 				hasClient = true
-			} else if input.CaseID != nil {
-				if err := tx.First(&caseRecord, *input.CaseID).Error; err == nil && caseRecord.ClientID != nil {
-					if err := tx.First(&client, *caseRecord.ClientID).Error; err == nil {
-						hasClient = true
-					}
-				}
-				// If client still not found, proceed without client
+			} else {
+				tx.Rollback()
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Selected client was not found or is inactive."})
+				return
 			}
 		} else if input.NewClient != nil {
 			// Scenario: Create a new client, but first check if ANY user already exists with the same email (including soft-deleted ones).
 			var existingUser models.User
-			if err := tx.Unscoped().Where("email = ?", input.NewClient.Email).First(&existingUser).Error; err == nil {
+			if err := tx.Unscoped().Where("LOWER(email) = ?", input.NewClient.Email).First(&existingUser).Error; err == nil {
 				// A user with this email already exists (possibly soft-deleted)
+				if existingUser.Role != "client" {
+					tx.Rollback()
+					c.JSON(http.StatusBadRequest, gin.H{"error": "This email belongs to a non-client account."})
+					return
+				}
 				if existingUser.DeletedAt.Valid {
 					// User is soft-deleted, restore them for the appointment
 					existingUser.DeletedAt = gorm.DeletedAt{}          // Clear the soft delete
 					existingUser.FirstName = input.NewClient.FirstName // Update with provided info
 					existingUser.LastName = input.NewClient.LastName
+					existingUser.IsActive = true
+					if actor.Role != config.RoleAdmin {
+						existingUser.OfficeID = actor.OfficeID
+					}
 					if err := tx.Unscoped().Save(&existingUser).Error; err != nil {
 						tx.Rollback()
 						c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to restore existing user: " + err.Error()})
@@ -146,6 +233,10 @@ func CreateAppointmentSmart(db *gorm.DB) gin.HandlerFunc {
 					Email:     input.NewClient.Email,
 					Password:  hashedPassword,
 					Role:      "client",
+					IsActive:  true,
+				}
+				if actor.Role != config.RoleAdmin {
+					client.OfficeID = actor.OfficeID
 				}
 				if err := tx.Create(&client).Error; err != nil {
 					tx.Rollback()
@@ -159,16 +250,10 @@ func CreateAppointmentSmart(db *gorm.DB) gin.HandlerFunc {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to check for existing user: " + err.Error()})
 				return
 			}
-		} else if input.CaseID != nil {
-			// No client provided, but an existing case might reference one. If not found, continue without client.
-			if err := tx.First(&caseRecord, *input.CaseID).Error; err == nil && caseRecord.ClientID != nil {
-				if err := tx.First(&client, *caseRecord.ClientID).Error; err == nil {
-					hasClient = true
-				}
-			}
-		} else {
+		}
+		if hasClient && actor.Role != config.RoleAdmin && client.OfficeID != nil && *client.OfficeID != *actor.OfficeID {
 			tx.Rollback()
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Client information (either clientId or newClient) is required."})
+			c.JSON(http.StatusForbidden, gin.H{"error": "Selected client belongs to a different office."})
 			return
 		}
 
@@ -212,10 +297,6 @@ func CreateAppointmentSmart(db *gorm.DB) gin.HandlerFunc {
 				}
 			}
 
-			// Get current user ID for CreatedBy field
-			userID, _ := c.Get("userID")
-			userIDUint, _ := strconv.ParseUint(userID.(string), 10, 32)
-
 			caseRecord = models.Case{
 				ClientID: func() *uint {
 					if hasClient {
@@ -234,26 +315,42 @@ func CreateAppointmentSmart(db *gorm.DB) gin.HandlerFunc {
 					}
 					return "intake"
 				}(),
-				CreatedBy: uint(userIDUint),
+				CreatedBy:      actor.ID,
+				PrimaryStaffID: &input.StaffID,
 			}
 			if err := tx.Create(&caseRecord).Error; err != nil {
 				tx.Rollback()
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create new case: " + err.Error()})
 				return
 			}
-			// If we created a new client in this flow, ensure their office is set to the case office
-			if hasClient && client.OfficeID == nil {
-				client.OfficeID = &caseRecord.OfficeID
-				if err := tx.Model(&client).Update("office_id", caseRecord.OfficeID).Error; err != nil {
-					tx.Rollback()
-					c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update client office: " + err.Error()})
-					return
-				}
-			}
 		} else {
 			tx.Rollback()
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Case information (either caseId or newCase) is required."})
 			return
+		}
+
+		if hasClient {
+			if caseRecord.ClientID != nil && *caseRecord.ClientID != client.ID {
+				tx.Rollback()
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Selected case does not belong to the selected client."})
+				return
+			}
+			if caseRecord.ClientID == nil {
+				caseRecord.ClientID = &client.ID
+				if err := tx.Model(&caseRecord).Update("client_id", client.ID).Error; err != nil {
+					tx.Rollback()
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to assign client to case."})
+					return
+				}
+			}
+			if client.OfficeID == nil {
+				client.OfficeID = &caseRecord.OfficeID
+				if err := tx.Model(&client).Update("office_id", caseRecord.OfficeID).Error; err != nil {
+					tx.Rollback()
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update client office."})
+					return
+				}
+			}
 		}
 
 		// --- Step 3: Create the Appointment ---

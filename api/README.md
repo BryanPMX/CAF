@@ -57,6 +57,8 @@ Internal calendar endpoints (all authenticated non-client employees):
 
 Internal meetings are intentionally stored separately from case appointments. Event visibility is participant-scoped, attendee IDs are validated against active non-client accounts, and invite/update/cancellation notifications link back to `/app/calendar`.
 
+All non-client employee roles may create cases and client appointments through their role route group. Non-admin creation is office-scoped: submitted office IDs cannot escape the authenticated employee's office, target staff must belong to that office, and newly created staff cases are assigned to their creator.
+
 ### Client Mobile Portal (`/api/v1/client`)  [NEW]
 
 Client-safe endpoints for the Flutter app:

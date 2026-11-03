@@ -615,7 +615,7 @@ func main() {
 		staff.DELETE("/appointments/:id", middleware.AppointmentAccessControl(database), handlers.DeleteAppointmentEnhanced(database))
 
 		// Client cases for appointment creation
-		staff.GET("/clients/:clientId/cases-for-appointment", handlers.GetClientCasesForAppointment(database))
+		staff.GET("/clients/:clientId/cases-for-appointment", handlers.GetClientCasesForAppointmentScoped(database))
 		// Client cases endpoint
 		staff.GET("/clients/:clientId/cases", handlers.GetCasesForClient(database))
 

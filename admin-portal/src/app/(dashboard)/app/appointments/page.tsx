@@ -2,18 +2,16 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Table, Tag, message, Spin, Button, Popconfirm, Card, Statistic, Row, Col, Select, Space } from 'antd';
+import { Table, Tag, message, Spin, Button, Popconfirm, Card, Statistic, Row, Col } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, CalendarOutlined, UserOutlined, ClockCircleOutlined } from '@ant-design/icons';
 import { AppointmentService } from '@/services/appointmentService';
-import { UserService } from '@/services/userService';
 import { Appointment as AppointmentType } from '@/app/lib/types';
 import { useAuth } from '@/context/AuthContext';
-import { APPOINTMENT_STATUS_CONFIG, getValidAppointmentStatuses } from '@/config/statuses';
+import { APPOINTMENT_STATUS_CONFIG } from '@/config/statuses';
 import AppointmentModal from '../../components/AppointmentModal';
 import EditAppointmentModal from '../../components/EditAppointmentModal';
 import SmartSearchBar from '../../components/SmartSearchBar';
 import { APPOINTMENT_STATUS_OPTIONS } from '@/config/statuses';
-import { useHydrationSafe } from '@/hooks/useHydrationSafe';
 import dayjs from 'dayjs';
 import isBetween from 'dayjs/plugin/isBetween';
 
@@ -38,7 +36,6 @@ interface Appointment extends AppointmentType {
 
 const AppointmentsPage = () => {
   // --- State Management ---
-  const isHydrated = useHydrationSafe();
   const { user } = useAuth();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [filteredAppointments, setFilteredAppointments] = useState<Appointment[]>([]);
@@ -48,8 +45,6 @@ const AppointmentsPage = () => {
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
-  const [staffList, setStaffList] = useState<Array<{ id: number; firstName: string; lastName: string; role: string }>>([]);
-  const [clientList, setClientList] = useState<Array<{ id: number; firstName: string; lastName: string; email: string }>>([]);
   const [searchFilters, setSearchFilters] = useState<any>({});
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -61,7 +56,7 @@ const AppointmentsPage = () => {
     }
   }, [user]);
 
-  const fetchAppointments = async (forceRefresh: boolean = false, showLoading: boolean = true) => {
+  const fetchAppointments = React.useCallback(async (forceRefresh: boolean = false, showLoading: boolean = true) => {
     try {
       // Check if user is loaded
       if (!user) {
@@ -105,31 +100,7 @@ const AppointmentsPage = () => {
         setLoading(false);
       }
     }
-  };
-
-  const fetchSupportingData = async () => {
-    try {
-      // Wait for user to be loaded before fetching
-      // User role is guaranteed to be available by the parent layout
-      // No need to check for user?.role since the dashboard layout ensures it exists
-
-      // User role is guaranteed to be available by the parent layout
-      const role = user!.role;
-      
-      // Only fetch users if user has permission
-      if (role === 'admin' || role === 'office_manager') {
-        const [staffData, clientsData] = await Promise.all([
-          UserService.fetchUsers(role, { page: 1, pageSize: 1000 }),
-          UserService.fetchUsers(role, { page: 1, pageSize: 1000, filters: { role: 'client' } })
-        ]);
-
-        setStaffList(staffData.data.filter((user: any) => user.role !== 'client'));
-        setClientList(clientsData.data);
-      }
-    } catch (error) {
-      console.error('Failed to fetch supporting data:', error);
-    }
-  };
+  }, [user]);
 
   // Apply search text + SmartSearchBar filters to appointments (null-safe).
   const applyAllFilters = React.useCallback(
@@ -176,9 +147,8 @@ const AppointmentsPage = () => {
 
   // Fetch the data when the component first loads or when user changes.
   useEffect(() => {
-    fetchAppointments();
-    fetchSupportingData();
-  }, [user]);
+    void fetchAppointments();
+  }, [fetchAppointments]);
 
   // WebSocket auto-refresh disabled to prevent rate limiting
   // useEffect(() => {
@@ -347,8 +317,7 @@ const AppointmentsPage = () => {
 
   const stats = getStatistics();
 
-  // IMPROVEMENT: Role-based UI check
-  const canManageAppointments = userRole === 'admin' || userRole === 'office_manager';
+  const canCreateAppointments = Boolean(userRole && userRole !== 'client');
 
   return (
     <div>
@@ -360,8 +329,7 @@ const AppointmentsPage = () => {
           </h1>
         </div>
         <div className="flex gap-2">
-          {/* IMPROVEMENT: Button is only shown to authorized roles and is disabled during loading */}
-          {canManageAppointments && (
+          {canCreateAppointments && (
             <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate} disabled={loading}>
               Programar Cita
             </Button>

@@ -92,6 +92,7 @@ The protected root route (`/`) is a role-aware operations dashboard backed exclu
 - Admin and office-manager views use `GET /api/v1/dashboard-summary`; staff views use `GET /api/v1/staff/dashboard-summary`.
 - Non-management staff roles receive the same calendar-first dashboard backed by `GET /api/v1/appointments/my`, with month navigation, status filtering, day selection, and a selected-day agenda. This is the temporary shared workflow until each professional role is defined in more detail.
 - Staff navigation is intentionally focused on Dashboard, Expedientes, Citas, Calendario, and Notificaciones. Usuarios, Oficinas, Reportes, and the management archive (`Archivos`) remain hidden; active case documents stay available inside each authorized expediente.
+- Every non-client employee role can create cases and appointments. Creation requests use the role-specific API group and non-admin employees are restricted to clients, staff, cases, and offices within their assigned office.
 - Summary cards link to the corresponding workflows and distribution charts visualize current case and appointment states without mock data.
 - Operational alerts are derived from pending tasks, today's appointments, and unread notifications.
 - Admin office filtering is applied server-side and includes an explicit "Todas las oficinas" option. Office-manager scope remains enforced by the API.

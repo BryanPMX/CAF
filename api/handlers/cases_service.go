@@ -267,12 +267,49 @@ func (s *CaseService) GetCaseByID(caseID string, light bool) (*models.Case, erro
 	return &caseData, nil
 }
 
-// CreateCase creates a new case
+func applyCaseCreationScope(requestData map[string]interface{}, actor models.User) error {
+	if actor.Role == config.RoleAdmin {
+		return nil
+	}
+	if actor.OfficeID == nil || *actor.OfficeID == 0 {
+		return fmt.Errorf("staff member must be assigned to an office")
+	}
+
+	if rawOfficeID, supplied := requestData["officeId"]; supplied && rawOfficeID != nil {
+		var requestedOfficeID uint
+		switch value := rawOfficeID.(type) {
+		case float64:
+			requestedOfficeID = uint(value)
+		case int:
+			requestedOfficeID = uint(value)
+		case int64:
+			requestedOfficeID = uint(value)
+		case uint:
+			requestedOfficeID = value
+		}
+		if requestedOfficeID != 0 && requestedOfficeID != *actor.OfficeID {
+			return fmt.Errorf("cases can only be created in your assigned office")
+		}
+	}
+
+	requestData["officeId"] = float64(*actor.OfficeID)
+	return nil
+}
+
+// CreateCase creates a new case within the authenticated employee's office scope.
 func (s *CaseService) CreateCase(c *gin.Context) (*models.Case, error) {
 	// Parse request body as map to check for new client data
 	var requestData map[string]interface{}
 	if err := c.ShouldBindJSON(&requestData); err != nil {
 		return nil, fmt.Errorf("invalid request data: %v", err)
+	}
+	actorValue, exists := c.Get("currentUser")
+	actor, validActor := actorValue.(models.User)
+	if !exists || !validActor || actor.ID == 0 || actor.Role == "client" {
+		return nil, fmt.Errorf("authenticated employee context is required")
+	}
+	if err := applyCaseCreationScope(requestData, actor); err != nil {
+		return nil, err
 	}
 
 	// Resolve client: prefer existing clientId; only create new client when no id and new-client data provided
@@ -300,10 +337,10 @@ func (s *CaseService) CreateCase(c *gin.Context) (*models.Case, error) {
 
 	// 2) If no client yet and we have new-client fields, find existing by email or create
 	if clientID == nil && hasFirstName && hasLastName && hasEmail {
-		emailTrim := strings.TrimSpace(email)
+		emailTrim := strings.ToLower(strings.TrimSpace(email))
 		if emailTrim != "" {
 			var existingUser models.User
-			if err := s.db.Where("email = ? AND role = ?", emailTrim, "client").First(&existingUser).Error; err == nil {
+			if err := s.db.Where("LOWER(email) = ? AND role = ?", emailTrim, "client").First(&existingUser).Error; err == nil {
 				// Use existing client with this email
 				clientID = &existingUser.ID
 				requestData["clientId"] = float64(existingUser.ID)
@@ -331,6 +368,19 @@ func (s *CaseService) CreateCase(c *gin.Context) (*models.Case, error) {
 				clientID = &newClient.ID
 				requestData["clientId"] = float64(newClient.ID)
 			}
+		}
+	}
+
+	if clientID != nil && actor.Role != config.RoleAdmin {
+		var selectedClient models.User
+		if err := s.db.Select("id, role, office_id").First(&selectedClient, *clientID).Error; err != nil {
+			return nil, fmt.Errorf("client not found")
+		}
+		if selectedClient.Role != "client" {
+			return nil, fmt.Errorf("selected user is not a client")
+		}
+		if selectedClient.OfficeID != nil && *selectedClient.OfficeID != *actor.OfficeID {
+			return nil, fmt.Errorf("client belongs to a different office")
 		}
 	}
 
@@ -362,6 +412,9 @@ func (s *CaseService) CreateCase(c *gin.Context) (*models.Case, error) {
 
 	// Set client ID
 	caseData.ClientID = clientID
+	if actor.Role != config.RoleAdmin && actor.Role != config.RoleOfficeManager {
+		caseData.PrimaryStaffID = &actor.ID
+	}
 
 	// Set default values
 	if caseData.Status == "" {

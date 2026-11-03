@@ -2,26 +2,14 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Modal, Form, Input, Button, message, Select, Radio, Spin, AutoComplete, InputNumber } from 'antd';
-import Cookies from 'js-cookie';
-import { apiClient } from '@/app/lib/api';
+import { Modal, Form, Input, Button, message, Select, Radio, AutoComplete, InputNumber } from 'antd';
 import { CASE_TYPES, findDepartmentByCaseType } from '@/app/lib/caseTaxonomy';
+import { useAuth } from '@/context/AuthContext';
+import { WorkflowService, type WorkflowOffice } from '@/services/workflowService';
 
 const { Option } = Select;
 
 // taxonomy imported from shared module
-
-interface Office {
-  id: number;
-  name: string;
-}
-
-interface Client {
-  id: number;
-  firstName: string;
-  lastName: string;
-  email: string;
-}
 
 interface CreateCaseModalProps {
   visible: boolean;
@@ -33,23 +21,20 @@ const CreateCaseModal: React.FC<CreateCaseModalProps> = ({ visible, onClose, onS
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [clientMode, setClientMode] = useState('existing');
-  const [offices, setOffices] = useState<Office[]>([]);
+  const [offices, setOffices] = useState<WorkflowOffice[]>([]);
   const [clientOptions, setClientOptions] = useState<{ value: string; label: string; key: number }[]>([]);
   const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
-
-  // Get role-based API endpoint
-  const getBaseEndpoint = () => {
-    const role = typeof window !== 'undefined' ? Cookies.get('userRole') : 'admin';
-    return role === 'office_manager' ? '/manager' : '/admin';
-  };
+  const { user } = useAuth();
 
   useEffect(() => {
     if (visible) {
       const fetchOffices = async () => {
+        if (!user) return;
         try {
-          const base = getBaseEndpoint();
-          const response = await apiClient.get(`${base}/offices`);
-          setOffices(response.data);
+          const availableOffices = await WorkflowService.listOffices(user.role);
+          setOffices(user.role === 'admin'
+            ? availableOffices
+            : availableOffices.filter((office) => office.id === user.officeId));
         } catch (error) {
           message.error('No se pudieron cargar las oficinas.');
         }
@@ -60,27 +45,21 @@ const CreateCaseModal: React.FC<CreateCaseModalProps> = ({ visible, onClose, onS
       setSelectedClientId(null);
       // Reset form fields
       form.resetFields();
-      // Prefill office for office managers
-      if (typeof window !== 'undefined') {
-        const officeId = localStorage.getItem('userOfficeId');
-        if (officeId) {
-          form.setFieldsValue({ officeId: Number(officeId) });
-        }
+      // Every non-admin employee creates records only within their assigned office.
+      if (user?.role !== 'admin' && user?.officeId) {
+        form.setFieldsValue({ officeId: user.officeId });
       }
     }
-  }, [visible, form]);
+  }, [visible, form, user]);
 
   const handleClientSearch = async (searchText: string) => {
     if (!searchText || searchText.length < 2) {
       setClientOptions([]);
       return;
     }
+    if (!user) return;
     try {
-      // Use role-based client search endpoint
-      const base = getBaseEndpoint();
-      const response = await apiClient.get(`${base}/users/search?q=${encodeURIComponent(searchText)}`);
-      
-      const clients: Client[] = Array.isArray(response.data) ? response.data : [];
+      const clients = await WorkflowService.listClients(user.role, searchText, 10);
       const clientOptions = clients.map(client => ({
         value: `${client.firstName} ${client.lastName} (${client.email})`,
         label: `${client.firstName} ${client.lastName} (${client.email})`,
@@ -99,6 +78,7 @@ const CreateCaseModal: React.FC<CreateCaseModalProps> = ({ visible, onClose, onS
 
   const handleCreateCase = async () => {
     try {
+      if (!user) throw new Error('Usuario no autenticado.');
       const values = await form.validateFields();
       setLoading(true);
       message.loading({ content: 'Creando caso...', key: 'createCase' });
@@ -133,15 +113,14 @@ const CreateCaseModal: React.FC<CreateCaseModalProps> = ({ visible, onClose, onS
         payload.email = values.email;
       }
       
-      const base = getBaseEndpoint();
-      await apiClient.post(`${base}/cases`, payload);
+      await WorkflowService.createCase(user.role, payload);
       
       message.success({ content: '¡Caso creado exitosamente!', key: 'createCase' });
       onSuccess();
       onClose();
       form.resetFields();
     } catch (error: any) {
-      const errorMessage = error.response?.data?.error || error.message || 'Ocurrió un error.';
+      const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message || 'Ocurrió un error.';
       message.error({ content: errorMessage, key: 'createCase' });
     } finally {
       setLoading(false);
@@ -252,15 +231,14 @@ const CreateCaseModal: React.FC<CreateCaseModalProps> = ({ visible, onClose, onS
         <Form.Item name="officeId" label="Asignar a Oficina" rules={[{ required: true, message: 'Por favor, seleccione una oficina' }]}>
           <Select
             placeholder="Seleccione una oficina"
-            disabled={typeof window !== 'undefined' && localStorage.getItem('userRole') === 'office_manager'}
+            disabled={user?.role !== 'admin'}
           >
             {offices && offices.length > 0 && offices.map(office => (
               <Option key={office.id} value={office.id}>{office.name}</Option>
             ))}
-            {typeof window !== 'undefined' && localStorage.getItem('userRole') === 'office_manager' && (() => {
-              const officeId = localStorage.getItem('userOfficeId');
-              return officeId ? <Option key={officeId} value={Number(officeId)}>Mi Oficina</Option> : null;
-            })()}
+            {user?.role !== 'admin' && user?.officeId && offices.length === 0 && (
+              <Option key={user.officeId} value={user.officeId}>Mi Oficina</Option>
+            )}
           </Select>
         </Form.Item>
         <Form.Item name="description" label="Descripción Inicial" rules={[{ required: true, message: 'La descripción es obligatoria' }]}>

@@ -167,6 +167,8 @@ export function hasPermission(role: string, permission: string): boolean {
     lawyer: [
       'read_assigned_cases',
       'read_assigned_appointments',
+      'create_cases',
+      'create_appointments',
       'update_assigned_cases',
       'update_assigned_appointments',
       'create_case_notes',
@@ -174,6 +176,8 @@ export function hasPermission(role: string, permission: string): boolean {
     psychologist: [
       'read_assigned_cases',
       'read_assigned_appointments',
+      'create_cases',
+      'create_appointments',
       'update_assigned_cases',
       'update_assigned_appointments',
       'create_case_notes',
@@ -181,12 +185,15 @@ export function hasPermission(role: string, permission: string): boolean {
     receptionist: [
       'read_cases',
       'read_appointments',
+      'create_cases',
       'create_appointments',
       'update_appointments',
       'read_clients',
     ],
     event_coordinator: [
+      'read_cases',
       'read_appointments',
+      'create_cases',
       'create_appointments',
       'update_appointments',
       'manage_events',
@@ -194,7 +201,6 @@ export function hasPermission(role: string, permission: string): boolean {
     client: [
       'read_own_cases',
       'read_own_appointments',
-      'create_appointments',
     ],
   };
 
