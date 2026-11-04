@@ -44,24 +44,7 @@ func validateSchedulingTime(start, end, now time.Time, zone string) error {
 	if !start.After(now) || !end.After(start) {
 		return fmt.Errorf("Seleccione un horario futuro válido")
 	}
-	location := start.Location()
-	if zone != "" {
-		var err error
-		location, err = time.LoadLocation(zone)
-		if err != nil {
-			return fmt.Errorf("Zona horaria inválida")
-		}
-	}
-	localStart, localEnd := start.In(location), end.In(location)
-	open := time.Date(localStart.Year(), localStart.Month(), localStart.Day(), 9, 0, 0, 0, location)
-	close := open.Add(9 * time.Hour)
-	if localStart.Weekday() == time.Saturday || localStart.Weekday() == time.Sunday || start.Before(open) || end.After(close) {
-		return fmt.Errorf("Seleccione un horario de lunes a viernes entre 09:00 y 18:00")
-	}
-	if localEnd.YearDay() != localStart.YearDay() {
-		return fmt.Errorf("La cita debe terminar el mismo día")
-	}
-	return nil
+	return validateWorkingHours(start, end, zone, clientSchedule)
 }
 
 func GetAppointmentAvailability(db *gorm.DB) gin.HandlerFunc {

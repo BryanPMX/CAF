@@ -8,6 +8,7 @@ import dayjs, { type Dayjs } from 'dayjs';
 import 'dayjs/locale/es';
 import { availableAppointmentSlots, loadEmployeeAvailability, type AppointmentSlot, type BusyInterval } from '@/services/appointmentAvailability';
 import styles from './AppointmentAvailabilityPicker.module.css';
+import { SCHEDULE_LABELS } from '@/app/lib/schedulingHours';
 
 interface Props {
   staffId?: number;
@@ -56,7 +57,7 @@ export default function AppointmentAvailabilityPicker({ staffId, employeeName, v
       <div className={styles.heading}>
         <div>
           <h3>{employeeName ? `Agenda de ${employeeName}` : 'Disponibilidad'}</h3>
-          <p>Lunes a Viernes · 09:00–18:00</p>
+          <p>{SCHEDULE_LABELS.client}</p>
           <p>Zona horaria: {timeZone}</p>
         </div>
         <Select
@@ -77,7 +78,7 @@ export default function AppointmentAvailabilityPicker({ staffId, employeeName, v
                 locale={esES}
                 value={date}
                 onSelect={(next, info) => { if (info.source === 'date') changeDate(next); }}
-                disabledDate={(day) => !ready || day.isBefore(dayjs(), 'day') || day.day() === 0 || day.day() === 6 || availableAppointmentSlots(day, duration, result?.busy || []).length === 0}
+                disabledDate={(day) => !ready || day.isBefore(dayjs(), 'day') || availableAppointmentSlots(day, duration, result?.busy || []).length === 0}
                 headerRender={() => (
                   <div className={styles.monthHeader}>
                     <Button type="text" icon={<LeftOutlined />} aria-label="Mes anterior" disabled={date.startOf('month').isBefore(dayjs().startOf('month').add(1, 'month'))} onClick={() => changeDate(date.subtract(1, 'month').startOf('month'))} />

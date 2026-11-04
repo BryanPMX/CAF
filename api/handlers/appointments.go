@@ -206,6 +206,10 @@ func CreateAppointmentEnhanced(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		// Get current user context
+		if err := validateSchedulingTime(input.StartTime, input.EndTime, time.Now(), input.TimeZone); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
 		currentUser, _ := c.Get("currentUser")
 		user := currentUser.(models.User)
 
@@ -349,6 +353,19 @@ func UpdateAppointmentEnhanced(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		// Update the appointment
+		if !input.StartTime.IsZero() || !input.EndTime.IsZero() {
+			start, end := appointment.StartTime, appointment.EndTime
+			if !input.StartTime.IsZero() {
+				start = input.StartTime
+			}
+			if !input.EndTime.IsZero() {
+				end = input.EndTime
+			}
+			if err := validateSchedulingTime(start, end, time.Now(), input.TimeZone); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+				return
+			}
+		}
 		updates := make(map[string]interface{})
 		if input.Title != "" {
 			updates["title"] = input.Title
@@ -599,6 +616,7 @@ func GetMyAppointments(db *gorm.DB) gin.HandlerFunc {
 
 // CreateAppointmentEnhancedInput defines the structure for creating appointments
 type CreateAppointmentEnhancedInput struct {
+	TimeZone   string             `json:"timeZone"`
 	CaseID     uint               `json:"caseId" binding:"required"`
 	StaffID    uint               `json:"staffId" binding:"required"`
 	Title      string             `json:"title" binding:"required"`
@@ -619,6 +637,7 @@ type CreateClientInput struct {
 
 // UpdateAppointmentInput defines the structure for updating appointments
 type UpdateAppointmentInput struct {
+	TimeZone   string    `json:"timeZone,omitempty"`
 	Title      string    `json:"title,omitempty"`
 	StartTime  time.Time `json:"startTime,omitempty"`
 	EndTime    time.Time `json:"endTime,omitempty"`

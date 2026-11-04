@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Modal, Form, Input, Select, DatePicker, TimePicker, Button, message, Space, Alert, Tag, Divider } from 'antd';
+import { SCHEDULE_LABELS, withinSchedulingHours } from '@/app/lib/schedulingHours';
 import { EditOutlined, SaveOutlined, CloseOutlined, CheckCircleOutlined, CalendarOutlined, UserOutlined } from '@ant-design/icons';
 import Cookies from 'js-cookie';
 import { apiClient } from '@/app/lib/api';
@@ -160,8 +161,14 @@ const EditAppointmentModal: React.FC<EditAppointmentModalProps> = ({
             // Calculate new end time maintaining the same duration
             const newEndTime = newStartTime.add(currentDuration, 'minutes');
 
+            if (!withinSchedulingHours(newStartTime, newEndTime, 'client')) {
+              message.error(`Horario para clientes: ${SCHEDULE_LABELS.client}.`);
+              return;
+            }
+
             updateData.startTime = newStartTime.toISOString();
             updateData.endTime = newEndTime.toISOString();
+            updateData.timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
           } else {
             message.warning('La nueva fecha y hora debe ser en el futuro.');
             setLoading(false);
@@ -493,4 +500,4 @@ const EditAppointmentModal: React.FC<EditAppointmentModalProps> = ({
   );
 };
 
-export default EditAppointmentModal; 
+export default EditAppointmentModal;

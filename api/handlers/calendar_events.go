@@ -27,6 +27,7 @@ var validCalendarResponses = map[string]struct{}{
 }
 
 type calendarEventInput struct {
+	TimeZone    string    `json:"timeZone"`
 	Title       string    `json:"title"`
 	Description string    `json:"description"`
 	Location    string    `json:"location"`
@@ -36,6 +37,7 @@ type calendarEventInput struct {
 }
 
 type updateCalendarEventInput struct {
+	TimeZone    *string    `json:"timeZone"`
 	Title       *string    `json:"title"`
 	Description *string    `json:"description"`
 	Location    *string    `json:"location"`
@@ -285,6 +287,10 @@ func CreateCalendarEvent(db *gorm.DB) gin.HandlerFunc {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
+		if err := validateWorkingHours(normalized.StartTime, normalized.EndTime, normalized.TimeZone, internalSchedule); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
 		if err := validateCalendarEmployees(db, normalized.AttendeeIDs); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
@@ -359,6 +365,16 @@ func UpdateCalendarEvent(db *gorm.DB) gin.HandlerFunc {
 		}
 		if patch.EndTime != nil {
 			input.EndTime = *patch.EndTime
+		}
+		if patch.TimeZone != nil {
+			input.TimeZone = *patch.TimeZone
+		}
+		// Metadata-only edits preserve older events even when they predate this policy.
+		if patch.StartTime != nil || patch.EndTime != nil {
+			if err := validateWorkingHours(input.StartTime, input.EndTime, input.TimeZone, internalSchedule); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+				return
+			}
 		}
 		if patch.AttendeeIDs != nil {
 			input.AttendeeIDs = *patch.AttendeeIDs

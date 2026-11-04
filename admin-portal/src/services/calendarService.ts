@@ -28,7 +28,7 @@ export const CalendarService = {
     return response.data;
   },
 
-  async updateEvent(eventId: number, payload: CalendarEventPayload): Promise<EmployeeCalendarEvent> {
+  async updateEvent(eventId: number, payload: Partial<CalendarEventPayload>): Promise<EmployeeCalendarEvent> {
     const response = await apiClient.patch<EmployeeCalendarEvent>(`/calendar/events/${eventId}`, payload);
     return response.data;
   },

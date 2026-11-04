@@ -102,7 +102,9 @@ The protected root route (`/`) is a role-aware operations dashboard backed exclu
 
 ### Employee Calendar
 
-The third step of `Programar Cita` uses `AppointmentAvailabilityPicker` and `appointmentAvailability.ts` to display the assigned employee's available dates and times. Working hours are currently Monday–Friday 09:00–18:00 in the browser's displayed time zone, with 30-minute start increments and 30/60/90/120-minute durations. Past times, weekends, and occupied intervals are excluded. Switching employees clears the selection; availability refreshes every minute and is checked again before submission. Loading and request failures never imply free time. API conflicts clear the selection and reload availability. The smart creation API performs the final overlap check.
+The third step of `Programar Cita` uses `AppointmentAvailabilityPicker` and `appointmentAvailability.ts` to display the assigned employee's available dates and times. Client appointments use Monday–Friday 09:00–18:00 and Saturday 08:00–15:00 in the browser's displayed time zone, with 30-minute start increments and 30/60/90/120-minute durations. Past times, Sundays, and occupied intervals are excluded. Switching employees clears the selection; availability refreshes every minute and is checked again before submission. Loading and request failures never imply free time. API conflicts clear the selection and reload availability. The smart creation API performs the final overlap check.
+
+Internal employee events and meetings follow a separate schedule: Monday–Friday 07:00–20:00 and Saturday 08:00–15:00, with Sunday closed. Start and end must fit within the same day. Shared frontend scheduling helpers centralize both policies for slot generation, forms, and default meeting times. The API independently enforces the matching policies on creation and rescheduling; unchanged historical meeting times do not block metadata edits. Meeting forms show the local IANA time zone and send it with scheduled times.
 
 Run slot boundary tests with `node --test testing/appointment-availability.test.cjs` from the repository root, and API scheduling tests with `go test ./...` from `api`.
 

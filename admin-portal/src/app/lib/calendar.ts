@@ -35,6 +35,7 @@ export interface EmployeeCalendarEvent {
 }
 
 export interface CalendarEventPayload {
+  timeZone?: string;
   title: string;
   description: string;
   location: string;
