@@ -102,6 +102,10 @@ The protected root route (`/`) is a role-aware operations dashboard backed exclu
 
 ### Employee Calendar
 
+The third step of `Programar Cita` uses `AppointmentAvailabilityPicker` and `appointmentAvailability.ts` to display the assigned employee's available dates and times. Working hours are currently Monday–Friday 09:00–18:00 in the browser's displayed time zone, with 30-minute start increments and 30/60/90/120-minute durations. Past times, weekends, and occupied intervals are excluded. Switching employees clears the selection; availability refreshes every minute and is checked again before submission. Loading and request failures never imply free time. API conflicts clear the selection and reload availability. The smart creation API performs the final overlap check.
+
+Run slot boundary tests with `node --test testing/appointment-availability.test.cjs` from the repository root, and API scheduling tests with `go test ./...` from `api`.
+
 - `Calendario` is available to every authenticated employee, including administrators and office managers; client accounts are excluded.
 - The unified month view combines assigned case appointments from `GET /api/v1/appointments/my` with internal meetings from `GET /api/v1/calendar/events`.
 - Internal events are separate from client appointments and support multiple attendees, organizer-only editing/cancellation, invitation responses, responsive month/day views, and real-time notification links.

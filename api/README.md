@@ -59,6 +59,14 @@ Internal meetings are intentionally stored separately from case appointments. Ev
 
 All non-client employee roles may create cases and client appointments through their role route group. Non-admin creation is office-scoped: submitted office IDs cannot escape the authenticated employee's office, target staff must belong to that office, and newly created staff cases are assigned to their creator.
 
+Appointment scheduling availability:
+
+- `GET /appointment-availability?staffId=<id>&from=<RFC3339>&to=<RFC3339>` returns `{staffId,busy:[{startTime,endTime}]}` for a range of at most 45 days. Administrators may query any active employee; other employees may query only their own office. No appointment titles, clients, or meeting details are returned.
+- Busy intervals include non-cancelled, non-deleted appointments and internal meetings organized by the employee or invitations that have not been declined. Overlap uses half-open intervals, permitting back-to-back appointments.
+- The portal's smart creation routes accept an optional IANA `timeZone` and enforce future appointments within Monday–Friday 09:00–18:00. Without `timeZone`, the supplied start-time offset is used for compatibility.
+- Smart creation locks the assigned employee row and rechecks commitments inside the creation transaction, returning `409` if occupied before creating clients/cases. This serializes concurrent smart appointment creations for that employee. Other scheduling writers (legacy edits and internal meeting writes) do not acquire this lock; availability is a snapshot, not a reservation across those workflows.
+- Deploy the API together with the portal; no database migration is needed.
+
 ### Client Mobile Portal (`/api/v1/client`)  [NEW]
 
 Client-safe endpoints for the Flutter app:

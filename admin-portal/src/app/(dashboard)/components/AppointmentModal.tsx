@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Modal, Form, Input, Button, message, Select, DatePicker, Radio, AutoComplete, Steps, Spin, Typography } from 'antd';
+import { Modal, Form, Input, Button, message, Select, Radio, AutoComplete, Steps, Spin, Typography } from 'antd';
 import { CASE_TYPES, findDepartmentByCaseType } from '@/app/lib/caseTaxonomy';
 import { getRoleDisplayName, isAdminRole, getRolesForCaseCategory, StaffRoleKey } from '@/config/roles';
 import { APPOINTMENT_STATUSES, APPOINTMENT_STATUS_OPTIONS } from '@/config/statuses';
@@ -13,7 +13,8 @@ import {
   type WorkflowOffice,
   type WorkflowUser,
 } from '@/services/workflowService';
-import dayjs from 'dayjs';
+import AppointmentAvailabilityPicker from './AppointmentAvailabilityPicker';
+import { availableAppointmentSlots, loadEmployeeAvailability, type AppointmentSlot } from '@/services/appointmentAvailability';
 
 const { Option } = Select;
 const { Text } = Typography;
@@ -35,8 +36,10 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ visible, onClose, o
   const [form] = Form.useForm();
   const watchedClientId = Form.useWatch('clientId', form);
   const watchedDepartment = Form.useWatch('department', form);
+  const watchedStaffId = Form.useWatch('staffId', form) as number | undefined;
   const [loading, setLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
+  const [availabilityRevision, setAvailabilityRevision] = useState(0);
   const { user } = useAuth();
   
   // --- State for data fetched from the API ---
@@ -53,6 +56,10 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ visible, onClose, o
   const [selectedClientLabel, setSelectedClientLabel] = useState<string>('');
   const [clientInputValue, setClientInputValue] = useState<string>('');
   const [selectedCaseCategory, setSelectedCaseCategory] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (visible && currentStep === 2) form.setFieldsValue({ schedule: undefined });
+  }, [watchedStaffId, form, visible, currentStep]);
 
   // Fetch initial data (staff, offices) for the dropdowns when the modal opens
   useEffect(() => {
@@ -98,7 +105,7 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ visible, onClose, o
 
       // If we have an existing appointment, pre-select the client and case
       if (existingAppointment) {
-        form.setFieldsValue({ clientId: existingAppointment.clientId });
+        form.setFieldsValue({ clientId: existingAppointment.clientId, caseId: existingAppointment.caseId });
         setCurrentStep(2); // Skip to appointment details
       }
     }
@@ -228,9 +235,10 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ visible, onClose, o
 
   // Handle the final submission of the multi-step form
   const handleOk = async () => {
+    setLoading(true);
     try {
       if (!user) throw new Error('Usuario no autenticado.');
-      const validationFields: string[] = ['staffId', 'title', 'startTime', 'endTime', 'status'];
+      const validationFields: string[] = ['staffId', 'title', 'schedule', 'status'];
       
       if (clientMode === 'existing') {
         validationFields.push('clientSearch');
@@ -245,18 +253,19 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ visible, onClose, o
       }
       
       const values = await form.validateFields(validationFields);
+      const schedule = values.schedule as AppointmentSlot;
       const clientId = form.getFieldValue('clientId');
       if (clientMode === 'existing' && !clientId) {
         throw new Error('Por favor, seleccione un cliente de la lista.');
       }
-      setLoading(true);
       message.loading({ content: 'Guardando...', key: 'appt' });
 
       const payload: any = {
         staffId: values.staffId,
         title: values.title,
-        startTime: values.startTime.toISOString(),
-        endTime: values.endTime.toISOString(),
+        startTime: schedule.startTime.toISOString(),
+        endTime: schedule.endTime.toISOString(),
+        timeZone: schedule.timeZone,
         status: values.status,
       };
 
@@ -296,6 +305,11 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ visible, onClose, o
       onSuccess();
       onClose();
     } catch (error: any) {
+      if (error.errorFields) return; // Ant Design renders field-level validation inline.
+      if (error.response?.status === 409) {
+        form.setFieldsValue({ schedule: undefined });
+        setAvailabilityRevision((previous) => previous + 1);
+      }
       console.error('Appointment creation error:', error);
       const errorMessage = error.response?.data?.error || error.message || 'Ocurrió un error al crear la cita.';
       message.error({ content: errorMessage, key: 'appt' });
@@ -470,22 +484,28 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ visible, onClose, o
                 ))}
               </Select>
             </Form.Item>
-            <Form.Item name="startTime" label="Fecha y Hora de Inicio" rules={[{ required: true, message: 'Debe seleccionar la fecha y hora de inicio' }]}>
-              <DatePicker
-                showTime={{ format: 'HH:mm' }}
-                format="DD/MM/YYYY HH:mm"
-                style={{ width: '100%' }}
-                placeholder="Seleccione fecha y hora"
-                disabledDate={(current) => current && current < dayjs().startOf('day')}
-              />
-            </Form.Item>
-            <Form.Item name="endTime" label="Fecha y Hora de Fin" rules={[{ required: true, message: 'Debe seleccionar la fecha y hora de fin' }]}>
-              <DatePicker
-                showTime={{ format: 'HH:mm' }}
-                format="DD/MM/YYYY HH:mm"
-                style={{ width: '100%' }}
-                placeholder="Seleccione fecha y hora"
-                disabledDate={(current) => current && current < dayjs().startOf('day')}
+            <Form.Item name="schedule" label="Fecha y Horario" rules={[
+              { required: true, message: 'Seleccione un horario disponible en la agenda.' },
+              { validator: async (_, schedule?: AppointmentSlot) => {
+                if (!schedule) return;
+                const staffId = form.getFieldValue('staffId');
+                let busy;
+                try {
+                  busy = await loadEmployeeAvailability(staffId, schedule.startTime.startOf('day'), schedule.startTime.add(1, 'day').startOf('day'));
+                } catch {
+                  throw new Error('No se pudo verificar la disponibilidad. Intente nuevamente.');
+                }
+                const duration = schedule.endTime.diff(schedule.startTime, 'minute');
+                if (!availableAppointmentSlots(schedule.startTime, duration, busy).some((slot) => slot.valueOf() === schedule.startTime.valueOf())) {
+                  setAvailabilityRevision((previous) => previous + 1);
+                  throw new Error('Este horario ya no está disponible. Actualice la agenda y seleccione otro.');
+                }
+              } },
+            ]} validateTrigger={[]}>
+              <AppointmentAvailabilityPicker
+                key={`${watchedStaffId || 'unassigned'}:${availabilityRevision}`}
+                staffId={watchedStaffId}
+                employeeName={staffList.filter((member) => member.id === watchedStaffId).map((member) => `${member.firstName} ${member.lastName}`).join('')}
               />
             </Form.Item>
             <Form.Item name="status" label="Estado" rules={[{ required: true }]} initialValue={APPOINTMENT_STATUSES.CONFIRMED}>
@@ -520,7 +540,9 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ visible, onClose, o
       title="Programar Cita"
       open={visible}
       onCancel={onClose}
-      width={700}
+      width={820}
+      centered
+      styles={{ body: { maxHeight: 'calc(100dvh - 180px)', overflowY: 'auto', paddingRight: 4 } }}
       footer={
         <div className="flex justify-between">
           <div>
@@ -556,7 +578,7 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ visible, onClose, o
             )}
             {currentStep === 2 && (
               <Button type="primary" loading={loading} onClick={handleOk}>
-                ✅ Programar Cita
+                Programar Cita
               </Button>
             )}
           </div>
@@ -564,9 +586,9 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ visible, onClose, o
       }
     >
       <Steps current={currentStep} className="mb-8">
-        <Steps.Step title="👤 Cliente" description="Seleccionar o crear cliente" />
-        <Steps.Step title="📋 Caso" description="Seleccionar o crear caso" />
-        <Steps.Step title="📅 Cita" description="Detalles de la cita" />
+        <Steps.Step title="Cliente" description="Seleccionar o crear cliente" />
+        <Steps.Step title="Caso" description="Seleccionar o crear caso" />
+        <Steps.Step title="Cita" description="Detalles de la cita" />
       </Steps>
       <Form form={form} layout="vertical">
         {renderStepContent()}

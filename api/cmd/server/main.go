@@ -351,6 +351,7 @@ func main() {
 		protected.DELETE("/cases/:id", middleware.CaseAccessControl(database), handlers.DeleteCase(database))
 
 		// Enhanced Appointment Management with Access Control
+		protected.GET("/appointment-availability", handlers.GetAppointmentAvailability(database))
 		protected.GET("/appointments", middleware.AppointmentAccessControl(database), handlers.GetAppointmentsEnhanced(database))
 		protected.GET("/appointments/:id", middleware.AppointmentAccessControl(database), handlers.GetAppointmentByIDEnhanced(database))
 		protected.GET("/appointments/my", middleware.AppointmentAccessControl(database), handlers.GetMyAppointments(database))

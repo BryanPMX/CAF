@@ -15,6 +15,7 @@ import (
 	securityutil "github.com/BryanPMX/CAF/api/security"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 // validAppointmentStatuses strictly limits appointment statuses allowed in the system
@@ -52,6 +53,7 @@ type SmartAppointmentInput struct {
 	StartTime time.Time `json:"startTime" binding:"required"`
 	EndTime   time.Time `json:"endTime" binding:"required"`
 	Status    string    `json:"status" binding:"required"`
+	TimeZone  string    `json:"timeZone"`
 
 	// --- Department and Category Information ---
 	Department string `json:"department" binding:"required"` // Department for case creation and appointment categorization
@@ -109,6 +111,10 @@ func CreateAppointmentSmart(db *gorm.DB) gin.HandlerFunc {
 			c.JSON(http.StatusForbidden, gin.H{"error": "Authenticated employee context is required."})
 			return
 		}
+		if err := validateSchedulingTime(input.StartTime, input.EndTime, time.Now(), input.TimeZone); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
 
 		// CRITICAL FIX: Wrap entire operation in a database transaction
 		// This ensures atomicity - either all operations succeed or all fail
@@ -130,7 +136,7 @@ func CreateAppointmentSmart(db *gorm.DB) gin.HandlerFunc {
 		hasClient := false
 		var caseRecord models.Case
 		var assignedStaff models.User
-		if err := tx.Where("id = ? AND role <> ? AND is_active = ?", input.StaffID, "client", true).First(&assignedStaff).Error; err != nil {
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ? AND role <> ? AND is_active = ?", input.StaffID, "client", true).First(&assignedStaff).Error; err != nil {
 			tx.Rollback()
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Selected staff member is not available."})
 			return
@@ -169,6 +175,17 @@ func CreateAppointmentSmart(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		// --- Step 1: Determine the Client ---
+		busy, err := employeeBusyIntervals(tx, input.StaffID, input.StartTime, input.EndTime)
+		if err != nil {
+			tx.Rollback()
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo verificar la disponibilidad"})
+			return
+		}
+		if len(busy) > 0 {
+			tx.Rollback()
+			c.JSON(http.StatusConflict, gin.H{"error": "El empleado ya tiene un compromiso en ese horario. Seleccione otro horario."})
+			return
+		}
 		if input.ClientID != nil {
 			// Scenario: Use an existing active client.
 			if err := tx.Where("id = ? AND role = ? AND is_active = ?", *input.ClientID, "client", true).First(&client).Error; err == nil {
