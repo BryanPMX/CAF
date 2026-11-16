@@ -23,7 +23,7 @@ import {
 } from '@ant-design/icons';
 import { apiClient } from '@/app/lib/api';
 import { useAuth } from '@/context/AuthContext';
-import { getRoleDisplayName } from '@/config/roles';
+import { getRoleDisplayName, canManageUser, canAccessAllOffices } from '@/config/roles';
 
 const { Title, Text } = Typography;
 
@@ -96,7 +96,9 @@ export default function UserProfilePage() {
   }, [userId, base]);
 
   const handleBack = () => router.push('/app/users');
-  const handleEdit = () => router.push(`/app/users?edit=${userId}`);
+  const handleEdit = () => {
+    if (canManageUser(authUser, data?.user)) router.push(`/app/users?edit=${userId}`);
+  };
 
   if (!userId) {
     return (
@@ -143,7 +145,7 @@ export default function UserProfilePage() {
         <Button type="text" icon={<ArrowLeftOutlined />} onClick={handleBack}>
           Volver a usuarios
         </Button>
-        {((authUser?.role === 'executive_director' || authUser?.role === 'admin') || authUser?.role === 'office_manager') && (
+        {canManageUser(authUser, u) && (
           <Button type="primary" icon={<FormOutlined />} onClick={handleEdit}>
             Editar usuario
           </Button>
@@ -202,15 +204,17 @@ export default function UserProfilePage() {
               <p className="!mb-0 font-medium text-gray-900">{getRoleDisplayName(u.role)}</p>
             </div>
           </div>
-          <div className="flex items-start gap-3">
-            <span className="flex items-center justify-center w-9 h-9 rounded-lg bg-gray-100 text-gray-600 shrink-0">
-              <BankOutlined />
-            </span>
-            <div className="min-w-0">
-              <Text type="secondary" className="text-xs uppercase tracking-wide">Oficina</Text>
-              <p className="!mb-0 font-medium text-gray-900">{officeName}</p>
+          {!canAccessAllOffices(u.role) && (
+            <div className="flex items-start gap-3">
+              <span className="flex items-center justify-center w-9 h-9 rounded-lg bg-gray-100 text-gray-600 shrink-0">
+                <BankOutlined />
+              </span>
+              <div className="min-w-0">
+                <Text type="secondary" className="text-xs uppercase tracking-wide">Oficina</Text>
+                <p className="!mb-0 font-medium text-gray-900">{officeName}</p>
+              </div>
             </div>
-          </div>
+          )}
           {u.phone && (
             <div className="flex items-start gap-3">
               <span className="flex items-center justify-center w-9 h-9 rounded-lg bg-gray-100 text-gray-600 shrink-0">

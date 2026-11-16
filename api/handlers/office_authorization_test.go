@@ -160,11 +160,16 @@ func TestOfficeAuthorizationPreview(t *testing.T) {
 		t.Skip("Enabled only for local role E2E checks")
 	}
 	f := authorizationSetup(t)
+	// Match a promoted administrator: the executive retains an old office ID,
+	// so office-local user lists contain this protected account.
+	if err := f.db.Model(&models.User{}).Where("id = ?", f.director.ID).Updates(map[string]interface{}{"id": 18, "office_id": *f.admin.OfficeID}).Error; err != nil {
+		t.Fatal(err)
+	}
 	hash, err := security.HashPassword("Synthetic-E2E-Password123!")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := f.db.Model(&models.User{}).Where("id IN ?", []uint{1, 2, 3}).Update("password", hash).Error; err != nil {
+	if err := f.db.Model(&models.User{}).Where("id IN ?", []uint{18, 2, 3}).Update("password", hash).Error; err != nil {
 		t.Fatal(err)
 	}
 	t.Log("Synthetic role preview listening on 127.0.0.1:8080")
@@ -378,5 +383,46 @@ func TestSmartAppointmentsCannotClaimOtherOfficeClients(t *testing.T) {
 		if w.Code != 403 {
 			t.Errorf("client office bypass: %d %s", w.Code, w.Body.String())
 		}
+	}
+}
+
+func TestExecutiveInAdministratorsOfficeCannotBeModified(t *testing.T) {
+	f := authorizationSetup(t)
+	executive := f.director
+	executive.ID = 18
+	executive.Email = "protected-executive@example.test"
+	executive.OfficeID = f.admin.OfficeID
+	if err := f.db.Create(&executive).Error; err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct{ method, path, body string }{
+		{"GET", "/api/v1/admin/users/18", ""},
+		{"PATCH", "/api/v1/admin/users/18", `{"firstName":"Changed","lastName":"CAF","email":"ceo@example.test","role":"admin","officeId":1,"phone":"1234567890"}`},
+		{"PATCH", "/api/v1/admin/users/18", `{"firstName":"Changed","lastName":"CAF","email":"changed@example.test","role":"executive_director","officeId":1,"phone":"1234567890"}`},
+		{"DELETE", "/api/v1/admin/users/18", ""},
+	} {
+		w := f.request(t, f.admin, tc.method, tc.path, tc.body)
+		if w.Code != http.StatusForbidden {
+			t.Errorf("%s %s: got %d: %s", tc.method, tc.path, w.Code, w.Body.String())
+		}
+	}
+	// The handler's database-backed check must also reject a demotion payload,
+	// independently of the administrative route middleware.
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Params = gin.Params{{Key: "id", Value: "18"}}
+	c.Set("currentUser", f.admin)
+	c.Request = httptest.NewRequest("PATCH", "/users/18", strings.NewReader(`{"firstName":"Changed","lastName":"CAF","email":"ceo@example.test","role":"admin","officeId":1,"phone":"1234567890"}`))
+	c.Request.Header.Set("Content-Type", "application/json")
+	UpdateUser(f.db)(c)
+	if w.Code != http.StatusForbidden {
+		t.Errorf("handler accepted executive edit: %d %s", w.Code, w.Body.String())
+	}
+	var unchanged models.User
+	if err := f.db.First(&unchanged, executive.ID).Error; err != nil {
+		t.Fatal(err)
+	}
+	if unchanged.Role != config.RoleExecutiveDirector || unchanged.FirstName != executive.FirstName || unchanged.Email != executive.Email {
+		t.Fatalf("executive account was changed: %#v", unchanged)
 	}
 }

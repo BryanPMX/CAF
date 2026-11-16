@@ -48,3 +48,22 @@ test('office administrators retain their operational navigation and API workflow
   assert.equal(endpoints.getEndpointGroup('office_manager'), 'manager');
   assert.equal(endpoints.getEndpointGroup('psychologist'), 'staff');
 });
+
+test('management of a user depends on the actor and the target account', () => {
+  const executive = { role: 'executive_director', officeId: 1 };
+  const admin = { role: 'admin', officeId: 1 };
+  const manager = { role: 'office_manager', officeId: 1 };
+  const employee = { role: 'lawyer', officeId: 1 };
+  assert.equal(roles.canManageUser(admin, executive), false);
+  assert.equal(roles.canManageUser(manager, executive), false);
+  assert.equal(roles.canManageUser(manager, admin), false);
+  assert.equal(roles.canManageUser(admin, employee), true);
+  assert.equal(roles.canManageUser(manager, employee), true);
+  assert.equal(roles.canManageUser(admin, { ...employee, officeId: 2 }), false);
+  assert.equal(roles.canManageUser({ role: 'admin' }, employee), false);
+  assert.equal(roles.canManageUser(employee, admin), false);
+  assert.equal(roles.canManageUser(null, executive), false);
+  assert.equal(roles.canManageUser(admin, null), false);
+  assert.equal(roles.canManageUser(executive, executive), true);
+  assert.equal(roles.canManageUser(executive, { ...employee, officeId: 2 }), true);
+});

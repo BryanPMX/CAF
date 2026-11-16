@@ -380,7 +380,10 @@ The preview binds only `127.0.0.1:8080`. It uses generated in-memory records and
 synthetic test credentials; it never reads production environment files or data.
 Keep these tests on loopback. The browser checks sign-in, role labels, dashboard
 office filters, sidebar entries, direct CMS denial, API case scope, and user-role
-choices for both Director Ejecutivo and Administrador. Screenshots are written
+choices for both Director Ejecutivo and Administrador. It also checks protected
+CEO rows with legacy office assignments, blank executive office cells, hidden
+executive office fields, denied direct edit links, and stale rows after promotion.
+Screenshots are written
 to `/tmp/caf-rbac-e2e` (override with `CAF_E2E_ARTIFACT_DIR`). Stop both preview
 processes with Ctrl-C when finished.
 

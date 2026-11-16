@@ -4,10 +4,9 @@
 import React, { useState, useEffect } from 'react';
 import { Alert, Modal, Form, Input, Select, message, Row, Col } from 'antd';
 import { UserOutlined, MailOutlined, PhoneOutlined } from '@ant-design/icons';
-import Cookies from 'js-cookie';
 import { apiClient } from '@/app/lib/api';
 import { useAuth } from '@/context/AuthContext';
-import { requiresOffice, getAllRoles, USER_ROLES, type StaffRoleKey } from '@/config/roles';
+import { requiresOffice, getAllRoles, USER_ROLES, type StaffRoleKey, canManageUser, canAccessAllOffices, isManagementRole, USER_MANAGEMENT_DENIED_MESSAGE } from '@/config/roles';
 import { createPhoneFormRule, createStrongPasswordFormRule } from '@/core/validation';
 
 const { Option } = Select;
@@ -43,19 +42,20 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
   const [offices, setOffices] = useState<Office[]>([]);
   const [selectedRole, setSelectedRole] = useState<string>('');
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const currentUserRole = currentUser?.role;
+  const currentUserOfficeId = currentUser?.officeId;
+  const isAuthorized = user ? canManageUser(currentUser, user) : isManagementRole(currentUserRole ?? '');
   const isEditing = !!user; // A simple boolean flag to determine if we are in "edit" mode.
 
   // This `useEffect` hook runs whenever the modal becomes visible or the user to be edited changes.
   useEffect(() => {
-    if (visible) {
+    if (visible && isAuthorized) {
       setSubmitError(null);
       // Fetch offices for admins and office managers - run always when modal opens
       const fetchOffices = async () => {
         try {
-          // Get role from cookie (not localStorage) as set by AuthContext
-          const role = typeof window !== 'undefined' ? Cookies.get('userRole') : 'admin';
-          // Check if the current user can manage users (admin or office_manager)
-          if ((role === 'executive_director' || role === 'admin') || role === 'office_manager') {
+          // Use the same authenticated actor as the target-account policy.
+          if (currentUserRole && isManagementRole(currentUserRole)) {
             const response = await apiClient.get('/offices');
             setOffices(response.data);
           } else {
@@ -82,20 +82,19 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
         // If we are creating a new user, ensure the form is empty.
         form.resetFields();
         setSelectedRole('');
-        // Prefill office for office managers creating staff
-        if (typeof window !== 'undefined') {
-          const role = Cookies.get('userRole');
-          const officeId = Cookies.get('userOfficeId');
-          if (role !== 'executive_director' && officeId) {
-            form.setFieldsValue({ officeId: Number(officeId) });
-          }
+        if (currentUserRole !== 'executive_director' && currentUserOfficeId) {
+          form.setFieldsValue({ officeId: currentUserOfficeId });
         }
       }
     }
-  }, [visible, user, form, isEditing]);
+  }, [visible, user, form, isEditing, isAuthorized, currentUserRole, currentUserOfficeId]);
 
   // This function is called when the user clicks the "OK" button in the modal footer.
   const handleOk = async () => {
+    if (!isAuthorized) {
+      message.error(USER_MANAGEMENT_DENIED_MESSAGE);
+      return;
+    }
     const messageKey = isEditing ? 'updateUser' : 'createUser';
     try {
       setSubmitError(null);
@@ -104,7 +103,7 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
       message.loading({ content: 'Guardando...', key: messageKey });
 
       // Determine the base endpoint based on user role
-      const role = typeof window !== 'undefined' ? Cookies.get('userRole') : 'admin';
+      const role = currentUserRole;
       const base = role === 'office_manager' ? '/manager' : '/admin';
 
       if (isEditing) {
@@ -124,7 +123,7 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
         }
       } else {
         // If creating, send a POST request to the create endpoint.
-        // Office managers: can create clients for any office, staff only for their office
+        // The API enforces the requesting manager's office and role boundaries.
         await apiClient.post(`${base}/users`, values);
       }
 
@@ -146,13 +145,14 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
     }
   };
 
-  // Get current user role
-  const currentUserRole = typeof window !== 'undefined' ? Cookies.get('userRole') : 'admin';
-  const currentUserOfficeId = typeof window !== 'undefined' ? Cookies.get('userOfficeId') : undefined;
 
   // Handle role selection change
   const handleRoleChange = (roleValue: string) => {
     setSelectedRole(roleValue);
+    if (canAccessAllOffices(roleValue)) {
+      form.setFieldsValue({ officeId: undefined });
+      return;
+    }
     
     // For office managers creating/editing to staff role: auto-set their office
     // This is needed because the office dropdown is disabled for staff roles
@@ -176,6 +176,8 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
     }
     return allRoles;
   };
+
+  if (!isAuthorized) return null;
 
   return (
     <Modal
@@ -265,31 +267,33 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
               </Select>
             </Form.Item>
           </Col>
-          <Col xs={24} sm={12}>
-            <Form.Item
-              name="officeId"
-              label="Oficina"
-              rules={
-                selectedRole && requiresOffice(selectedRole as StaffRoleKey) && currentUserRole === 'executive_director'
-                  ? [{ required: true, message: 'Debe asignar una oficina al personal' }]
-                  : []
-              }
-            >
-              <Select
-                placeholder={selectedRole ? 'Seleccione una oficina' : 'Primero seleccione un rol'}
-                allowClear={selectedRole === USER_ROLES.CLIENT}
-                disabled={!selectedRole || currentUserRole !== 'executive_director'}
-                showSearch
-                filterOption={(input, option) =>
-                  (option?.children?.toString() ?? '').toLowerCase().includes(input.toLowerCase())
+          {!canAccessAllOffices(selectedRole) && (
+            <Col xs={24} sm={12}>
+              <Form.Item
+                name="officeId"
+                label="Oficina"
+                rules={
+                  selectedRole && requiresOffice(selectedRole as StaffRoleKey) && currentUserRole === 'executive_director'
+                    ? [{ required: true, message: 'Debe asignar una oficina al personal' }]
+                    : []
                 }
               >
-                {offices.map(office => (
-                  <Option key={office.id} value={office.id}>{office.name}</Option>
-                ))}
-              </Select>
-            </Form.Item>
-          </Col>
+                <Select
+                  placeholder={selectedRole ? 'Seleccione una oficina' : 'Primero seleccione un rol'}
+                  allowClear={selectedRole === USER_ROLES.CLIENT}
+                  disabled={!selectedRole || currentUserRole !== 'executive_director'}
+                  showSearch
+                  filterOption={(input, option) =>
+                    (option?.children?.toString() ?? '').toLowerCase().includes(input.toLowerCase())
+                  }
+                >
+                  {offices.map(office => (
+                    <Option key={office.id} value={office.id}>{office.name}</Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            </Col>
+          )}
         </Row>
 
         {currentUserRole === 'office_manager' && selectedRole && selectedRole !== USER_ROLES.CLIENT && (
@@ -302,7 +306,7 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
             ℹ️ Seleccione un rol primero para asignar una oficina
           </div>
         )}
-        {offices.length === 0 && (
+        {!canAccessAllOffices(selectedRole) && offices.length === 0 && (
           <div style={{ color: '#ff4d4f', fontSize: '12px', marginTop: -8, marginBottom: 8 }}>
             ⚠️ No hay oficinas disponibles. Contacte al administrador.
           </div>

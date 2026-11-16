@@ -46,6 +46,26 @@ export const isManagementRole = (role: string): boolean => {
   return isAdminRole(role) || role === USER_ROLES.OFFICE_MANAGER;
 };
 
+interface UserManagementSubject {
+  role: string;
+  officeId?: number | null;
+}
+
+export const USER_MANAGEMENT_DENIED_MESSAGE = 'No tiene permisos para modificar esta cuenta.';
+
+// Match the API's actor/target policy, including executives who still have an
+// office assigned from before their promotion.
+export const canManageUser = (
+  actor: UserManagementSubject | null | undefined,
+  target: UserManagementSubject | null | undefined,
+): boolean => {
+  if (!actor || !target || !isManagementRole(actor.role)) return false;
+  if (canAccessAllOffices(actor.role)) return true;
+  if (target.role === USER_ROLES.EXECUTIVE_DIRECTOR) return false;
+  if (actor.role === USER_ROLES.OFFICE_MANAGER && target.role === USER_ROLES.ADMIN) return false;
+  return Boolean(actor.officeId && target.officeId === actor.officeId);
+};
+
 export const isProfessionalRole = (role: string): boolean => {
   return role === USER_ROLES.LAWYER || role === USER_ROLES.PSYCHOLOGIST;
 };

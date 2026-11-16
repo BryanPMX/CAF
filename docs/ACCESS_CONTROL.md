@@ -21,6 +21,13 @@ reactivation follow the same scope and role checks. Office managers also use
 the shared user-management implementation and cannot assign administrative or
 executive roles. Staff and client assignment/ownership rules remain in force.
 
+User-management actions also check the target account. An executive account is
+read-only to Administradores and office managers, even if it retains a legacy
+office assignment. Edit links refresh the target from the API before opening the
+form; direct edit URLs follow the same rule. Executive rows show an empty Oficina
+cell, and executive profiles/edit forms omit office-specific fields because the
+role has organization-wide access.
+
 Employees retain participant-based calendar visibility. Management visibility
 follows the organizer's current office, because calendar events do not store a
 separate office. Existing cross-office meetings remain visible to their employee

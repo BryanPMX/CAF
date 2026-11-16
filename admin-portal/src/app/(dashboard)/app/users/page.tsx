@@ -1,12 +1,12 @@
 // admin-portal/src/app/(dashboard)/admin/users/page.tsx
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Button, Table, message, Spin, Tag, Popconfirm, Select, Tooltip } from 'antd';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Button, Table, message, Spin, Tag, Popconfirm, Select, Tooltip, Alert } from 'antd';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { PlusOutlined, EditOutlined, DeleteOutlined, UserOutlined } from '@ant-design/icons';
 import { isAxiosError } from 'axios';
-import { STAFF_ROLES, PERMISSIONS, getAllRoles } from '@/config/roles';
+import { STAFF_ROLES, PERMISSIONS, getAllRoles, canManageUser, canAccessAllOffices, USER_MANAGEMENT_DENIED_MESSAGE } from '@/config/roles';
 import { useHydrationSafe } from '@/hooks/useHydrationSafe';
 import { useAuth } from '@/context/AuthContext';
 import { apiClient } from '@/app/lib/api';
@@ -58,6 +58,7 @@ const UserManagementPage = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   // `editingUser`: Holds the data of the user being edited. If it's null, the modal is in "create" mode.
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [userManagementError, setUserManagementError] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [offices, setOffices] = useState<Office[]>([]);
   const [selectedOfficeId, setSelectedOfficeId] = useState<number | undefined>(undefined);
@@ -182,47 +183,44 @@ const UserManagementPage = () => {
     return () => clearTimeout(t);
   }, [q]);
 
-  // Open edit modal when navigating from user profile (e.g. /app/users?edit=123)
+  // Refresh the target before opening an editor; a cached row may have been
+  // promoted since the list was loaded. The API remains the authorization boundary.
+  const loadUserForEditing = useCallback(async (userId: string | number) => {
+    if (!user) return;
+    setUserManagementError(null);
+    const base = user.role === 'office_manager' ? '/manager' : '/admin';
+    try {
+      const res = await apiClient.get(`${base}/users/${userId}`);
+      const target = res.data?.user;
+      if (!canManageUser(user, target)) {
+        setUserManagementError(USER_MANAGEMENT_DENIED_MESSAGE);
+        return;
+      }
+      setEditingUser(target);
+      setIsModalVisible(true);
+    } catch {
+      setUserManagementError(USER_MANAGEMENT_DENIED_MESSAGE);
+    }
+  }, [user]);
+
   useEffect(() => {
     const editId = searchParams.get('edit');
     if (!editId || !user?.role) return;
-    const base = user.role === 'office_manager' ? '/manager' : '/admin';
-    (async () => {
-      try {
-        const res = await apiClient.get(`${base}/users/${editId}`);
-        const u = res.data?.user;
-        if (u) {
-          setEditingUser({
-            id: u.id,
-            firstName: u.firstName,
-            lastName: u.lastName,
-            email: u.email,
-            role: u.role,
-            officeId: u.officeId,
-            office: u.office,
-            phone: u.phone,
-            personalAddress: u.personalAddress,
-          });
-          setIsModalVisible(true);
-        }
-        router.replace('/app/users');
-      } catch {
-        // ignore
-      }
-    })();
-  }, [searchParams, user?.role, router]);
+    void loadUserForEditing(editId).finally(() => router.replace('/app/users'));
+  }, [searchParams, user?.role, router, loadUserForEditing]);
 
   // --- Event Handlers ---
   // Opens the modal in "create" mode by ensuring `editingUser` is null.
   const handleCreate = () => {
+    setUserManagementError(null);
     setEditingUser(null);
     setIsModalVisible(true);
   };
 
   // Opens the modal in "edit" mode by passing the selected user's data.
-  const handleEdit = (user: User) => {
-    setEditingUser(user);
-    setIsModalVisible(true);
+  const handleEdit = (target: User) => {
+    if (!canManageUser(user, target)) return;
+    void loadUserForEditing(target.id);
   };
 
   // Handles the user deletion after the admin confirms in the pop-up.
@@ -291,7 +289,7 @@ const UserManagementPage = () => {
       title: 'Oficina',
       dataIndex: ['office', 'name'], // Ant Design can access nested data with an array.
       key: 'office',
-      render: (name: string) => name || 'N/A', // Display 'N/A' if no office is assigned.
+      render: (name: string, record: User) => canAccessAllOffices(record.role) ? null : name || 'N/A',
     },
     {
       title: 'Acciones',
@@ -301,11 +299,15 @@ const UserManagementPage = () => {
           return null;
         }
 
+        if (!canManageUser(user, record)) {
+          return <Tooltip title={USER_MANAGEMENT_DENIED_MESSAGE}><Tag>Solo lectura</Tag></Tooltip>;
+        }
+
         const deleteBlockReason = getDeleteBlockReason(record);
 
         return (
           <span className="space-x-2">
-            <Button icon={<EditOutlined />} onClick={() => handleEdit(record)} />
+            <Button aria-label={`Editar a ${record.firstName} ${record.lastName}`} icon={<EditOutlined />} onClick={() => handleEdit(record)} />
             {(userRole === 'executive_director' || userRole === 'admin') && (deleteBlockReason ? (
               <Tooltip title={deleteBlockReason}>
                 <span>
@@ -408,6 +410,9 @@ const UserManagementPage = () => {
           )}
         </div>
       </div>
+      {userManagementError && (
+        <Alert type="error" showIcon closable className="mb-4" message={userManagementError} onClose={() => setUserManagementError(null)} />
+      )}
       <div className="bg-white rounded-lg">
         <Spin spinning={loading}>
           <Table
