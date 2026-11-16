@@ -338,6 +338,7 @@ const CaseManagementPage = () => {
         </Tooltip>
       ),
     },
+    { title:'Maquila',key:'maquila',width:180,render:(_:unknown,record:CaseType)=>record.maquila?.name || '—' },
     {
       title: 'Departamento',
       dataIndex: 'category',

@@ -12,6 +12,7 @@ import (
 	"github.com/BryanPMX/CAF/api/config"
 	"github.com/BryanPMX/CAF/api/models"
 	securityutil "github.com/BryanPMX/CAF/api/security"
+	"github.com/BryanPMX/CAF/api/services"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -19,14 +20,15 @@ import (
 // CreateUserInput defines the structure for an admin creating a new user.
 // Email is optional for staff - it will be auto-generated if not provided.
 type CreateUserInput struct {
-	FirstName       string  `json:"firstName" binding:"required"`
-	LastName        string  `json:"lastName" binding:"required"`
-	Email           string  `json:"email" binding:"omitempty,email"`
-	Password        string  `json:"password" binding:"required,min=12,max=72"`
-	Role            string  `json:"role" binding:"required"`
-	OfficeID        *uint   `json:"officeId"`
-	Phone           string  `json:"phone" binding:"required"`
-	PersonalAddress *string `json:"personalAddress"`
+	Employment      *services.EmploymentInput `json:"employment"`
+	FirstName       string                    `json:"firstName" binding:"required"`
+	LastName        string                    `json:"lastName" binding:"required"`
+	Email           string                    `json:"email" binding:"omitempty,email"`
+	Password        string                    `json:"password" binding:"required,min=12,max=72"`
+	Role            string                    `json:"role" binding:"required"`
+	OfficeID        *uint                     `json:"officeId"`
+	Phone           string                    `json:"phone" binding:"required"`
+	PersonalAddress *string                   `json:"personalAddress"`
 }
 
 func normalizeCreateUserInput(input *CreateUserInput) {
@@ -141,8 +143,13 @@ func createUser(db *gorm.DB) gin.HandlerFunc {
 				existingUser.PersonalAddress = input.PersonalAddress
 				existingUser.DeletedAt = gorm.DeletedAt{} // Clear the soft delete
 
-				if err := db.Unscoped().Save(&existingUser).Error; err != nil {
-					c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to reactivate user."})
+				if err := db.Transaction(func(tx *gorm.DB) error {
+					if err := tx.Unscoped().Save(&existingUser).Error; err != nil {
+						return err
+					}
+					return services.SyncUserOrganizations(tx, c.MustGet("currentUser").(models.User), &existingUser, input.Employment)
+				}); err != nil {
+					organizationFailure(c, err)
 					return
 				}
 				c.JSON(http.StatusOK, existingUser)
@@ -155,8 +162,13 @@ func createUser(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		// Save the new user to the database.
-		if err := db.Create(&user).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user."})
+		if err := db.Transaction(func(tx *gorm.DB) error {
+			if err := tx.Create(&user).Error; err != nil {
+				return err
+			}
+			return services.SaveClientEmployment(tx, c.MustGet("currentUser").(models.User), &user, input.Employment)
+		}); err != nil {
+			organizationFailure(c, err)
 			return
 		}
 
@@ -198,7 +210,7 @@ func GetUsers(db *gorm.DB) gin.HandlerFunc {
 		// Initialize with empty slice to prevent null JSON response
 		users := make([]models.User, 0)
 		// Use Preload to properly load office relationship and ensure nested JSON structure
-		query := db.Preload("Office").Order("users.created_at desc")
+		query := db.Preload("Office").Preload("OrganizationMemberships.Organization").Order("users.created_at desc")
 		countQ := db.Model(&models.User{})
 
 		// Restrict to requester's office for non-admin roles when office scope is available
@@ -304,14 +316,15 @@ func GetUsers(db *gorm.DB) gin.HandlerFunc {
 
 // UpdateUserInput defines the structure for updating a user's details.
 type UpdateUserInput struct {
-	Password        *string `json:"password"`
-	FirstName       string  `json:"firstName" binding:"required"`
-	LastName        string  `json:"lastName" binding:"required"`
-	Email           string  `json:"email" binding:"required,email"`
-	Role            string  `json:"role" binding:"required"`
-	OfficeID        *uint   `json:"officeId"`
-	Phone           string  `json:"phone" binding:"required"`
-	PersonalAddress *string `json:"personalAddress"`
+	Employment      *services.EmploymentInput `json:"employment"`
+	Password        *string                   `json:"password"`
+	FirstName       string                    `json:"firstName" binding:"required"`
+	LastName        string                    `json:"lastName"`
+	Email           string                    `json:"email" binding:"omitempty,email"`
+	Role            string                    `json:"role" binding:"required"`
+	OfficeID        *uint                     `json:"officeId"`
+	Phone           string                    `json:"phone"`
+	PersonalAddress *string                   `json:"personalAddress"`
 }
 
 // UpdateUser handles modifying an existing user's details.
@@ -333,6 +346,13 @@ func updateUser(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
+		input.FirstName = strings.TrimSpace(input.FirstName)
+		input.LastName = strings.TrimSpace(input.LastName)
+		input.Email = strings.ToLower(strings.TrimSpace(input.Email))
+		if input.FirstName == "" || (user.ClientType != models.ClientOrganization && (input.LastName == "" || input.Email == "" || strings.TrimSpace(input.Phone) == "")) {
+			c.JSON(400, gin.H{"error": "Complete nombre, apellidos, correo y teléfono"})
+			return
+		}
 		if !authorizeUserChange(c, &user, input.Role, &input.OfficeID) {
 			return
 		}
@@ -371,7 +391,7 @@ func updateUser(db *gorm.DB) gin.HandlerFunc {
 			}
 		}
 		// Check if email is being changed and if it conflicts with another user
-		if user.Email != input.Email {
+		if user.Email != input.Email && input.Email != "" {
 			var existingUser models.User
 			if err := db.Where("email = ? AND id != ?", input.Email, user.ID).First(&existingUser).Error; err == nil {
 				c.JSON(http.StatusConflict, gin.H{"error": "Email is already in use by another user."})
@@ -389,8 +409,13 @@ func updateUser(db *gorm.DB) gin.HandlerFunc {
 		user.PersonalAddress = input.PersonalAddress
 
 		// Save the changes to the database.
-		if err := db.Save(&user).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update user."})
+		if err := db.Transaction(func(tx *gorm.DB) error {
+			if err := tx.Save(&user).Error; err != nil {
+				return err
+			}
+			return services.SyncUserOrganizations(tx, c.MustGet("currentUser").(models.User), &user, input.Employment)
+		}); err != nil {
+			organizationFailure(c, err)
 			return
 		}
 
@@ -434,6 +459,10 @@ func deleteUser(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		// Protection 2: Prevent deletion of system/protected users (user ID 1 is reserved for system admin)
+		if user.ClientType == models.ClientOrganization {
+			c.JSON(403, gin.H{"error": "La cuenta está vinculada a una constructora y no puede eliminarse desde Usuarios"})
+			return
+		}
 		if user.ID == 1 || user.Role == config.RoleTechnicalSupport {
 			c.JSON(http.StatusForbidden, gin.H{"error": "Cannot delete the system administrator account"})
 			return
@@ -486,7 +515,7 @@ func GetUserByID(db *gorm.DB) gin.HandlerFunc {
 		var user models.User
 
 		// Use Preload to efficiently load user with office and case assignments
-		query := officeScopedQuery(db.Preload("Office"), c, "users.office_id").Where("id = ? AND deleted_at IS NULL", userID)
+		query := officeScopedQuery(db.Preload("Office").Preload("OrganizationMemberships.Organization"), c, "users.office_id").Where("id = ? AND deleted_at IS NULL", userID)
 
 		if err := query.First(&user).Error; err != nil {
 			if err == gorm.ErrRecordNotFound {
@@ -554,6 +583,10 @@ func permanentDeleteUser(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
+		if user.ClientType == models.ClientOrganization {
+			c.JSON(403, gin.H{"error": "La cuenta está vinculada a una constructora y no puede eliminarse desde Usuarios"})
+			return
+		}
 		if user.ID == 1 || user.Role == config.RoleTechnicalSupport {
 			c.JSON(http.StatusForbidden, gin.H{"error": "Cannot delete the system administrator account"})
 			return

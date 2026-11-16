@@ -1,0 +1,58 @@
+package models
+
+import (
+	"time"
+
+	"gorm.io/gorm"
+)
+
+const (
+	OrganizationMaquila    = "maquila"
+	OrganizationContractor = "constructora"
+	ClientPerson           = "person"
+	ClientOrganization     = "organization"
+)
+
+// Organization is an office-owned factory or construction-company record.
+// A constructor has a canonical client account; its contacts are regular clients.
+type Organization struct {
+	ID                  uint           `gorm:"primaryKey" json:"id"`
+	Kind                string         `gorm:"size:20;not null;index" json:"kind"`
+	OfficeID            uint           `gorm:"not null;index" json:"officeId"`
+	Office              *Office        `gorm:"foreignKey:OfficeID" json:"office,omitempty"`
+	Name                string         `gorm:"size:255;not null" json:"name"`
+	LegalRepresentative string         `gorm:"size:255" json:"legalRepresentative"`
+	LegalAddress        string         `gorm:"size:1000" json:"legalAddress"`
+	BoardPresident      string         `gorm:"size:255" json:"boardPresident"`
+	Neighborhood        string         `gorm:"size:255" json:"neighborhood"`
+	AccountClientID     *uint          `gorm:"uniqueIndex" json:"accountClientId"`
+	CreatedAt           time.Time      `json:"createdAt"`
+	UpdatedAt           time.Time      `json:"updatedAt"`
+	DeletedAt           gorm.DeletedAt `gorm:"index" json:"-"`
+}
+
+// EmploymentDetails is used for the current client membership and case snapshots.
+// Optional hours may cross midnight; they describe work shifts, not CAF availability.
+type EmploymentDetails struct {
+	EmployeeNumber string `gorm:"size:100" json:"employeeNumber"`
+	ShiftName      string `gorm:"size:100" json:"shiftName"`
+	ShiftStart     string `gorm:"size:5" json:"shiftStart"`
+	ShiftEnd       string `gorm:"size:5" json:"shiftEnd"`
+}
+
+type OrganizationClient struct {
+	ID                uint          `gorm:"primaryKey" json:"id"`
+	OrganizationID    uint          `gorm:"not null;uniqueIndex:idx_organization_client;index" json:"organizationId"`
+	Organization      *Organization `gorm:"foreignKey:OrganizationID" json:"organization,omitempty"`
+	ClientID          uint          `gorm:"not null;uniqueIndex:idx_organization_client;index" json:"clientId"`
+	EmploymentDetails `gorm:"embedded"`
+	CreatedAt         time.Time `json:"createdAt"`
+	UpdatedAt         time.Time `json:"updatedAt"`
+}
+
+type CalendarEventClient struct {
+	ID       uint  `gorm:"primaryKey" json:"id"`
+	EventID  uint  `gorm:"not null;uniqueIndex:idx_calendar_event_client" json:"eventId"`
+	ClientID uint  `gorm:"not null;uniqueIndex:idx_calendar_event_client;index" json:"clientId"`
+	Client   *User `gorm:"foreignKey:ClientID" json:"client,omitempty"`
+}

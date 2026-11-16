@@ -11,10 +11,13 @@ type User struct {
 	ID           uint   `gorm:"primaryKey" json:"id"`
 	FirstName    string `gorm:"size:255;not null" json:"firstName"`
 	LastName     string `gorm:"size:255;not null" json:"lastName"`
-	Email        string `gorm:"size:255;not null;unique" json:"email"`
+	Email        string `gorm:"size:255;not null;uniqueIndex:idx_users_email_present,where:email <> ''" json:"email"`
 	Password     string `gorm:"size:255;not null" json:"-"`
 	TokenVersion uint   `gorm:"not null;default:0" json:"-"`
 	Role         string `gorm:"size:50;not null" json:"role"`
+
+	ClientType              string               `gorm:"size:20;not null;default:person" json:"clientType"`
+	OrganizationMemberships []OrganizationClient `gorm:"foreignKey:ClientID" json:"organizationMemberships,omitempty"`
 
 	OfficeID *uint   `json:"officeId,omitempty"`
 	Office   *Office `gorm:"foreignKey:OfficeID" json:"office,omitempty"`

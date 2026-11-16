@@ -3,13 +3,15 @@
 
 import { isAdminRole } from '@/config/roles';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Table, Tag, message, Spin, Button, Popconfirm, Card, Statistic, Row, Col } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, CalendarOutlined, UserOutlined, ClockCircleOutlined } from '@ant-design/icons';
 import { AppointmentService } from '@/services/appointmentService';
 import { Appointment as AppointmentType } from '@/app/lib/types';
 import { useAuth } from '@/context/AuthContext';
 import { APPOINTMENT_STATUS_CONFIG } from '@/config/statuses';
+import DirectClientAppointmentModal from '@/components/organizations/DirectClientAppointmentModal';
+import { ORGANIZATION_TEXT } from '@/config/organizations';
 import AppointmentModal from '../../components/AppointmentModal';
 import EditAppointmentModal from '../../components/EditAppointmentModal';
 import SmartSearchBar from '../../components/SmartSearchBar';
@@ -39,10 +41,17 @@ interface Appointment extends AppointmentType {
 const AppointmentsPage = () => {
   // --- State Management ---
   const { user } = useAuth();
+  const requestVersion = useRef(0);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [filteredAppointments, setFilteredAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchLoading, setSearchLoading] = useState(false);
+  const [directAppointmentOpen, setDirectAppointmentOpen] = useState(false);
+  const [relatedClientId, setRelatedClientId] = useState<number | undefined>();
+  useEffect(() => {
+    const id = Number(new URLSearchParams(window.location.search).get('clientId'));
+    if (Number.isInteger(id) && id > 0) setRelatedClientId(id);
+  }, []);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
@@ -59,6 +68,7 @@ const AppointmentsPage = () => {
   }, [user]);
 
   const fetchAppointments = React.useCallback(async (forceRefresh: boolean = false, showLoading: boolean = true) => {
+    const version = ++requestVersion.current;
     try {
       // Check if user is loaded
       if (!user) {
@@ -74,6 +84,7 @@ const AppointmentsPage = () => {
       const data = await AppointmentService.fetchAppointments(
         user.role,
         {
+          clientId: relatedClientId,
           page: 1,
           pageSize: 1000, // Get all appointments for now
           // Add cache-busting timestamp if force refresh
@@ -81,6 +92,7 @@ const AppointmentsPage = () => {
         }
       );
 
+      if (version !== requestVersion.current) return;
       // Appointments loaded successfully
       setAppointments(data.data);
       // Filtered list will be updated by useEffect when appointments/searchQuery/searchFilters change
@@ -93,16 +105,16 @@ const AppointmentsPage = () => {
     } catch (error: any) {
       console.error('Failed to fetch appointments:', error);
       // Only show error messages for manual operations, not auto-refresh
-      if (showLoading) {
+      if (version === requestVersion.current && showLoading) {
         const errorMessage = error.response?.data?.error || error.message || 'No se pudieron cargar las citas.';
         message.error(`Error: ${errorMessage}`);
       }
     } finally {
-      if (showLoading) {
+      if (version === requestVersion.current && showLoading) {
         setLoading(false);
       }
     }
-  }, [user]);
+  }, [user, relatedClientId]);
 
   // Apply search text + SmartSearchBar filters to appointments (null-safe).
   const applyAllFilters = React.useCallback(
@@ -118,7 +130,8 @@ const AppointmentsPage = () => {
           const title = (a.title || '').toLowerCase();
           const caseTitle = (a.case?.title || '').toLowerCase();
           const staffName = `${a.staff?.firstName || ''} ${a.staff?.lastName || ''}`.toLowerCase();
-          return title.includes(q) || caseTitle.includes(q) || staffName.includes(q);
+          const clientName = `${a.client?.firstName || a.case?.client?.firstName || ''} ${a.client?.lastName || a.case?.client?.lastName || ''}`.toLowerCase();
+          return title.includes(q) || caseTitle.includes(q) || staffName.includes(q) || clientName.includes(q);
         });
       }
       if (filters.status) {
@@ -244,8 +257,8 @@ const AppointmentsPage = () => {
       title: 'Cliente',
       key: 'client',
       render: (_: any, record: Appointment) =>
-        record.case?.client
-          ? `${record.case.client.firstName} ${record.case.client.lastName}`
+        (record.client || record.case?.client)
+          ? `${(record.client || record.case?.client)?.firstName} ${(record.client || record.case?.client)?.lastName || ''}`
           : 'Cliente eliminado',
     },
     {
@@ -256,12 +269,12 @@ const AppointmentsPage = () => {
     {
       title: 'Departamento',
       key: 'department',
-      render: (_: any, record: Appointment) => record.case?.title ? mapCaseTypeToDepartment(record.case.title) : 'N/A',
+      render: (_: any, record: Appointment) => record.case?.title ? mapCaseTypeToDepartment(record.case.title) : record.department || 'N/A',
     },
     {
       title: 'Tipo de Caso',
       key: 'caseType',
-      render: (_: any, record: Appointment) => record.case?.title || record.title || 'N/A',
+      render: (_: any, record: Appointment) => record.clientId ? ORGANIZATION_TEXT.noCase : record.case?.title || record.title || 'N/A',
     },
     {
       title: 'Fecha y Hora',
@@ -330,7 +343,8 @@ const AppointmentsPage = () => {
             <span>Gestión de Citas</span>
           </h1>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          {canCreateAppointments && <Button onClick={() => setDirectAppointmentOpen(true)}>{ORGANIZATION_TEXT.directAppointment}</Button>}
           {canCreateAppointments && (
             <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate} disabled={loading}>
               Programar Cita
@@ -422,6 +436,13 @@ const AppointmentsPage = () => {
       </Spin>
 
       {/* Modals */}
+      {relatedClientId && (
+        <Tag closable onClose={() => {
+          setRelatedClientId(undefined);
+          window.history.replaceState(null, '', '/app/appointments');
+        }}>{ORGANIZATION_TEXT.clientFilter}</Tag>
+      )}
+      <DirectClientAppointmentModal open={directAppointmentOpen} onClose={() => setDirectAppointmentOpen(false)} onSaved={() => void fetchAppointments(true)} />
       <AppointmentModal
         visible={isModalVisible}
         onClose={() => setIsModalVisible(false)}

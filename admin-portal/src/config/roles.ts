@@ -1,3 +1,4 @@
+import { ORGANIZATION_TEXT } from '@/config/organizations';
 // admin-portal/src/config/roles.ts
 // Centralized role configuration - single source of truth for frontend
 
@@ -203,6 +204,10 @@ export const getNavigationItemsForRole = (role: string) => {
     ...(role !== USER_ROLES.CLIENT
       ? [{ key: 'calendar', label: 'Calendario', path: '/app/calendar', icon: 'ScheduleOutlined' }]
       : []),
+    ...(role !== USER_ROLES.CLIENT ? [
+      { key: 'maquilas', label: ORGANIZATION_TEXT.maquila.title, path: '/app/maquilas', icon: 'BuildOutlined' },
+      { key: 'constructoras', label: ORGANIZATION_TEXT.constructora.title, path: '/app/constructoras', icon: 'ToolOutlined' },
+    ] : []),
     { key: 'notifications', label: 'Notificaciones', path: '/app/notifications', icon: 'BellOutlined' },
   ];
 

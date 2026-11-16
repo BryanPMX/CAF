@@ -9,6 +9,7 @@ import type { ProfileOffice, UserProfile } from '@/app/lib/profile';
 import { useAuth } from '@/context/AuthContext';
 import { canManageUser } from '@/config/roles';
 import { PROFILE_TEXT as text } from '@/config/profile';
+import OrganizationLinks from '@/components/organizations/OrganizationLinks';
 import ProfileCard from '@/components/profile/ProfileCard';
 
 interface ContactSubmission {
@@ -58,7 +59,7 @@ export default function UserProfilePage() {
       {!userID && <Alert type="error" message={text.invalidId} showIcon />}
       {error && <Alert type="error" message={text.loadError} showIcon action={<Button size="small" onClick={() => setRevision(value => value + 1)}>{text.retry}</Button>} />}
       {userID && loading && <div role="status" aria-label={text.loading} className="flex min-h-64 items-center justify-center"><Spin size="large" /></div>}
-      {profile && <ProfileCard profile={profile} />}
+      {profile && <ProfileCard profile={profile}><OrganizationLinks memberships={profile.organizationMemberships}/></ProfileCard>}
       {profile?.role === 'client' && messages.length > 0 && (
         <Card title={text.messages.title}>
           <Table dataSource={messages} rowKey="id" pagination={{ pageSize: 5, hideOnSinglePage: true }} size="small" columns={[

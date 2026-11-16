@@ -1,3 +1,4 @@
+import type { ClientOption } from './organizations';
 import type { UserRole } from './types';
 
 export type CalendarResponseStatus = 'pending' | 'accepted' | 'tentative' | 'declined';
@@ -21,6 +22,7 @@ export interface CalendarEventAttendee {
 }
 
 export interface EmployeeCalendarEvent {
+  relatedClients?: { id:number; clientId:number; client?:ClientOption }[];
   id: number;
   organizerId: number;
   organizer: CalendarStaffMember;
@@ -35,6 +37,7 @@ export interface EmployeeCalendarEvent {
 }
 
 export interface CalendarEventPayload {
+  relatedClientIds?: number[];
   timeZone?: string;
   title: string;
   description: string;

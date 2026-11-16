@@ -62,6 +62,12 @@ export interface LoginFormData {
 
 // Case interface
 export interface Case {
+  maquilaId?: number | null;
+  maquila?: {id:number;name:string};
+  employeeNumber?: string;
+  shiftName?: string;
+  shiftStart?: string;
+  shiftEnd?: string;
   id: number;
   title: string;
   description: string;
@@ -91,6 +97,8 @@ export interface CaseDetails extends Case {
 
 // Appointment interface
 export interface Appointment {
+  clientId?: number;
+  client?: {id:number;firstName:string;lastName:string;clientType?:string};
   id: number;
   title: string;
   startTime: string;

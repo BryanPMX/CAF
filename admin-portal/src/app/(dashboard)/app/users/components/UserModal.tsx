@@ -7,6 +7,9 @@ import { UserOutlined, MailOutlined, PhoneOutlined } from '@ant-design/icons';
 import { apiClient } from '@/app/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { requiresOffice, getAssignableRoles, canResetPasswords, USER_ROLES, type StaffRoleKey, canManageUser, canAccessAllOffices, isManagementRole, USER_MANAGEMENT_DENIED_MESSAGE } from '@/config/roles';
+import EmploymentFields from '@/components/organizations/EmploymentFields';
+import { employmentFromMemberships, type OrganizationMembership } from '@/app/lib/organizations';
+import { ORGANIZATION_TEXT } from '@/config/organizations';
 import { createPhoneFormRule, createStrongPasswordFormRule } from '@/core/validation';
 
 const { Option } = Select;
@@ -17,6 +20,8 @@ interface Office {
   name: string;
 }
 interface User {
+  clientType?: string;
+  organizationMemberships?: OrganizationMembership[];
   id: number;
   firstName: string;
   lastName: string;
@@ -45,6 +50,7 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
   const currentUserRole = currentUser?.role;
   const currentUserOfficeId = currentUser?.officeId;
   const isAuthorized = user ? canManageUser(currentUser, user) : isManagementRole(currentUserRole ?? '');
+  const selectedOfficeId = Form.useWatch('officeId',form);
   const isEditing = !!user; // A simple boolean flag to determine if we are in "edit" mode.
 
   // This `useEffect` hook runs whenever the modal becomes visible or the user to be edited changes.
@@ -74,6 +80,7 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
       if (isEditing) {
         form.setFieldsValue({
           ...user,
+          employment: employmentFromMemberships(user.organizationMemberships),
           officeId: user.officeId,
           phone: user.phone ?? '',
           personalAddress: user.personalAddress ?? '',
@@ -99,6 +106,7 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
     try {
       setSubmitError(null);
       const values = await form.validateFields();
+      if (values.role !== USER_ROLES.CLIENT || user?.clientType === 'organization') delete values.employment;
       if (isEditing && !values.password) delete values.password;
       setLoading(true);
       message.loading({ content: 'Guardando...', key: messageKey });
@@ -208,8 +216,8 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
               <Input prefix={<UserOutlined style={{ color: '#bfbfbf' }} />} placeholder="Ej. María" />
             </Form.Item>
           </Col>
-          <Col xs={24} sm={12}>
-            <Form.Item name="lastName" label="Apellidos" rules={[{ required: true, message: 'El apellido es requerido' }]}>
+          <Col xs={24} sm={12} hidden={user?.clientType === 'organization'}>
+            <Form.Item name="lastName" label="Apellidos" rules={[{ required: user?.clientType !== 'organization', message: 'El apellido es requerido' }]}>
               <Input prefix={<UserOutlined style={{ color: '#bfbfbf' }} />} placeholder="Ej. García López" />
             </Form.Item>
           </Col>
@@ -219,7 +227,7 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
           name="email"
           label="Correo Electrónico Organizacional"
           rules={[
-            { required: isEditing || selectedRole === USER_ROLES.CLIENT, message: 'El correo electrónico es requerido' },
+            { required: user?.clientType !== 'organization' && (isEditing || selectedRole === USER_ROLES.CLIENT), message: 'El correo electrónico es requerido' },
             { type: 'email', message: 'Ingrese un correo válido' },
           ]}
           extra={!isEditing && selectedRole && selectedRole !== 'client' ? 'Si se deja vacío se generará uno corporativo automáticamente.' : undefined}
@@ -230,7 +238,7 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
         <Form.Item
           name="phone"
           label="Número de Teléfono"
-          rules={[{ required: true, message: 'El teléfono es requerido' }, { validator: createPhoneFormRule(true) }]}
+          rules={[{ required: user?.clientType !== 'organization', message: 'El teléfono es requerido' }, { validator: createPhoneFormRule(user?.clientType !== 'organization') }]}
         >
           <Input prefix={<PhoneOutlined style={{ color: '#bfbfbf' }} />} placeholder="+52 656 123 4567" />
         </Form.Item>
@@ -261,7 +269,7 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
         <Row gutter={16}>
           <Col xs={24} sm={12}>
             <Form.Item name="role" label="Rol" rules={[{ required: true, message: 'Seleccione un rol' }]}>
-              <Select disabled={user?.role === USER_ROLES.TECHNICAL_SUPPORT} placeholder="Asignar un rol" onChange={handleRoleChange}>
+              <Select disabled={user?.role === USER_ROLES.TECHNICAL_SUPPORT || user?.clientType === 'organization'} placeholder="Asignar un rol" onChange={handleRoleChange}>
                 {getAvailableRoles().map((role) => (
                   <Option key={role.value} value={role.value}>{role.label}</Option>
                 ))}
@@ -282,7 +290,7 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
                 <Select
                   placeholder={selectedRole ? 'Seleccione una oficina' : 'Primero seleccione un rol'}
                   allowClear={selectedRole === USER_ROLES.CLIENT}
-                  disabled={!selectedRole || !canAccessAllOffices(currentUserRole ?? '')}
+                  disabled={!selectedRole || !canAccessAllOffices(currentUserRole ?? '') || user?.clientType === 'organization'}
                   showSearch
                   filterOption={(input, option) =>
                     (option?.children?.toString() ?? '').toLowerCase().includes(input.toLowerCase())
@@ -297,6 +305,8 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
           )}
         </Row>
 
+        {selectedRole === USER_ROLES.CLIENT && user?.clientType !== 'organization' && <EmploymentFields officeId={selectedOfficeId} />}
+        {user?.clientType === 'organization' && <p className="text-sm text-slate-500">{ORGANIZATION_TEXT.companyHint}</p>}
         {currentUserRole === 'office_manager' && selectedRole && selectedRole !== USER_ROLES.CLIENT && (
           <div style={{ color: '#1890ff', fontSize: '12px', marginTop: -8, marginBottom: 8 }}>
             ℹ️ El personal se asignará automáticamente a su oficina

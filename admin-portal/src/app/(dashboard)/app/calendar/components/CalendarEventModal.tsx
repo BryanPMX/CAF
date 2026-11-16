@@ -5,13 +5,19 @@ import { DatePicker, Form, Input, Modal, Select, message } from 'antd';
 import dayjs, { type Dayjs } from 'dayjs';
 import type { CalendarEventPayload, CalendarStaffMember, EmployeeCalendarEvent } from '@/app/lib/calendar';
 import { getRoleDisplayName } from '@/config/roles';
+import ClientSelect from '@/components/organizations/ClientSelect';
+import type { ClientOption } from '@/app/lib/organizations';
+import { ORGANIZATION_TEXT } from '@/config/organizations';
 import { CalendarService } from '@/services/calendarService';
 import { defaultInternalRange, schedulingHours, SCHEDULE_LABELS, withinSchedulingHours } from '@/app/lib/schedulingHours';
 
 const { RangePicker } = DatePicker;
 const { TextArea } = Input;
 
+const EMPTY_CLIENTS: ClientOption[] = [];
+
 interface CalendarEventFormValues {
+  relatedClientIds?: number[];
   title: string;
   description?: string;
   location?: string;
@@ -20,6 +26,7 @@ interface CalendarEventFormValues {
 }
 
 interface CalendarEventModalProps {
+  initialClients?: ClientOption[];
   open: boolean;
   event: EmployeeCalendarEvent | null;
   staff: CalendarStaffMember[];
@@ -39,6 +46,7 @@ function getErrorMessage(error: unknown): string {
 
 export default function CalendarEventModal({
   open,
+  initialClients = EMPTY_CLIENTS,
   event,
   staff,
   currentUserId,
@@ -61,6 +69,7 @@ export default function CalendarEventModal({
     if (!open) return;
     if (event) {
       form.setFieldsValue({
+        relatedClientIds: event.relatedClients?.map(link => link.clientId) || [],
         title: event.title,
         description: event.description,
         location: event.location,
@@ -72,12 +81,13 @@ export default function CalendarEventModal({
       return;
     }
     form.resetFields();
-    form.setFieldsValue({ range: defaultInternalRange(initialDate), attendeeIds: [] });
-  }, [event, form, initialDate, open]);
+    form.setFieldsValue({ range: defaultInternalRange(initialDate), attendeeIds: [], relatedClientIds: initialClients.map(client => client.id) });
+  }, [event, form, initialDate, open, initialClients]);
 
   const handleSubmit = async (values: CalendarEventFormValues) => {
     setSubmitting(true);
     const payload: CalendarEventPayload = {
+      relatedClientIds: values.relatedClientIds || [],
       title: values.title.trim(),
       description: values.description?.trim() || '',
       location: values.location?.trim() || '',
@@ -179,6 +189,10 @@ export default function CalendarEventModal({
 
         <Form.Item name="location" label="Ubicación">
           <Input maxLength={255} placeholder="Sala, oficina o enlace de videollamada" />
+        </Form.Item>
+
+        <Form.Item name="relatedClientIds" label={ORGANIZATION_TEXT.relatedClients} extra={ORGANIZATION_TEXT.relatedHint}>
+          <ClientSelect multiple initialClients={event ? (event.relatedClients || []).flatMap(link => link.client ? [link.client] : []) : initialClients} />
         </Form.Item>
 
         <Form.Item

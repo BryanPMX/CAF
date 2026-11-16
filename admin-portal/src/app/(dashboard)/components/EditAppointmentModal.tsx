@@ -8,6 +8,8 @@ import { SCHEDULE_LABELS, withinSchedulingHours } from '@/app/lib/schedulingHour
 import { EditOutlined, SaveOutlined, CloseOutlined, CheckCircleOutlined, CalendarOutlined, UserOutlined } from '@ant-design/icons';
 import Cookies from 'js-cookie';
 import { apiClient } from '@/app/lib/api';
+import { WorkflowService, type WorkflowUser } from '@/services/workflowService';
+import type { UserRole } from '@/config/roles';
 import { Appointment, User } from '@/app/lib/types';
 import dayjs from 'dayjs';
 
@@ -16,6 +18,7 @@ const { TextArea } = Input;
 
 // Extended appointment interface with preloaded relationships
 interface AppointmentWithDetails extends Appointment {
+  client?: { id: number; firstName: string; lastName: string };
   case?: {
     title: string;
     category?: string;
@@ -57,13 +60,13 @@ const EditAppointmentModal: React.FC<EditAppointmentModalProps> = ({
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [completingAppointment, setCompletingAppointment] = useState(false);
-  const [staffList, setStaffList] = useState<User[]>([]);
+  const [staffList, setStaffList] = useState<WorkflowUser[]>([]);
   const [clients, setClients] = useState<User[]>([]);
   const [currentDuration, setCurrentDuration] = useState<number>(60); // Default 60 minutes
 
   useEffect(() => {
     if (visible) {
-      fetchSupportingData();
+      fetchSupportingData(appointment?.clientId ? appointment.officeId : undefined);
       if (appointment) {
         // Calculate current duration from appointment data
         let duration = 60; // Default fallback duration
@@ -95,25 +98,15 @@ const EditAppointmentModal: React.FC<EditAppointmentModalProps> = ({
     }
   }, [visible, appointment, form]);
 
-  const fetchSupportingData = async () => {
+  const fetchSupportingData = async (companyOfficeId?: number) => {
     try {
       const role = typeof window !== 'undefined' ? Cookies.get('userRole') : 'admin';
 
       // For editing appointments, we only need staff list for reassignment
       // Try to get staff list, but don't fail if we can't access it
       try {
-        let staffEndpoint: string;
-        if (isAdminRole(role ?? '')) {
-          staffEndpoint = '/admin/users';
-        } else if (role === 'office_manager') {
-          staffEndpoint = '/manager/users';
-        } else {
-          staffEndpoint = '/users'; // fallback for other roles
-        }
-
-        const staffRes = await apiClient.get(staffEndpoint);
-        const staffPayload = Array.isArray(staffRes.data) ? staffRes.data : (staffRes.data?.users || []);
-        setStaffList(staffPayload.filter((user: User) => user.role !== 'client'));
+        const rows = await WorkflowService.listStaff(role as UserRole);
+        setStaffList(rows.filter(member => companyOfficeId === undefined || member.officeId === companyOfficeId));
       } catch (staffError) {
         console.warn('Could not load staff list:', staffError);
         // Set empty staff list - user can still edit title/notes but not reassign
@@ -183,6 +176,10 @@ const EditAppointmentModal: React.FC<EditAppointmentModalProps> = ({
         }
       }
 
+      if (values.staffId && values.staffId !== appointment.staffId) {
+        updateData.staffId = values.staffId;
+      }
+
       // Only include status if appointment is not completed
       if (values.status && appointment.status !== 'completed') {
         updateData.status = values.status;
@@ -221,8 +218,8 @@ const EditAppointmentModal: React.FC<EditAppointmentModalProps> = ({
     if (!appointment) return 'Cliente no disponible';
 
     // Check if the appointment has preloaded case and client data
-    if (appointment.case?.client) {
-      const client = appointment.case.client;
+    if (appointment.client || appointment.case?.client) {
+      const client = (appointment.client || appointment.case?.client)!;
       return `${client.firstName} ${client.lastName}`;
     }
 

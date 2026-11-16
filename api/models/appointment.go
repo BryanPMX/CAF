@@ -8,13 +8,15 @@ import (
 	"gorm.io/gorm"
 )
 
-// Appointment represents a scheduled event for a specific case.
+// Appointment schedules either a case or a construction-company client.
 type Appointment struct {
 	ID uint `gorm:"primaryKey" json:"id"`
 
-	// UPDATED: An appointment now belongs to a Case, not directly to a User.
-	CaseID uint `gorm:"not null;index" json:"caseId"`
-	Case   Case `gorm:"foreignKey:CaseID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE" json:"case"`
+	// CaseID is nullable for direct construction-company appointments.
+	CaseID   uint  `gorm:"default:null;index" json:"caseId"`
+	Case     Case  `gorm:"foreignKey:CaseID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE" json:"case"`
+	ClientID *uint `gorm:"index" json:"clientId,omitempty"`
+	Client   *User `gorm:"foreignKey:ClientID" json:"client,omitempty"`
 	// Staff member assigned to the appointment (e.g., the lawyer or psychologist).
 	StaffID uint `gorm:"not null;index" json:"staffId"`
 	Staff   User `gorm:"foreignKey:StaffID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT" json:"staff"`
@@ -37,4 +39,12 @@ type Appointment struct {
 	CreatedAt time.Time      `json:"createdAt"`
 	UpdatedAt time.Time      `json:"updatedAt"`
 	DeletedAt gorm.DeletedAt `gorm:"index;type:timestamp" json:"-"`
+}
+
+// RelatedClient resolves the canonical client for both appointment workflows.
+func (a Appointment) RelatedClient() *User {
+	if a.Client != nil {
+		return a.Client
+	}
+	return a.Case.Client
 }

@@ -10,10 +10,15 @@ import { isAdminRole, STAFF_ROLES, PERMISSIONS, getAllRoles, canManageUser, canA
 import { useHydrationSafe } from '@/hooks/useHydrationSafe';
 import { useAuth } from '@/context/AuthContext';
 import { apiClient } from '@/app/lib/api';
+import Link from 'next/link';
+import { ORGANIZATION_TEXT } from '@/config/organizations';
+import type { OrganizationMembership } from '@/app/lib/organizations';
 import UserModal from './components/UserModal'; // Import our reusable modal
 
 // Define the TypeScript interface for a User object to ensure type safety.
 interface User {
+  clientType?: string;
+  organizationMemberships?: OrganizationMembership[];
   id: number;
   firstName: string;
   lastName: string;
@@ -243,6 +248,7 @@ const UserManagementPage = () => {
       return 'No puede eliminar la cuenta que está usando actualmente.';
     }
 
+    if (record.clientType === 'organization') return ORGANIZATION_TEXT.companyProtected;
     if (record.id === 1 || record.role === 'technical_support') {
       return 'La cuenta del administrador del sistema está protegida.';
     }
@@ -291,6 +297,21 @@ const UserManagementPage = () => {
       dataIndex: ['office', 'name'], // Ant Design can access nested data with an array.
       key: 'office',
       render: (name: string, record: User) => canAccessAllOffices(record.role) ? null : name || 'N/A',
+    },
+    {
+      title: ORGANIZATION_TEXT.organizations,
+      key: 'organizations',
+      render: (_: unknown, record: User) => (
+        <div className="flex flex-wrap gap-1">
+          {record.organizationMemberships?.map(member => member.organization && (
+            <Tag key={member.id}>
+              <Link href={`/app/${member.organization.kind === 'maquila' ? 'maquilas' : 'constructoras'}?organizationId=${member.organizationId}`}>
+                {member.organization.name}
+              </Link>
+            </Tag>
+          ))}
+        </div>
+      ),
     },
     {
       title: 'Acciones',

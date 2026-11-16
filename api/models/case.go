@@ -2,6 +2,7 @@
 package models
 
 import (
+	"errors"
 	"time"
 
 	"gorm.io/gorm"
@@ -22,6 +23,10 @@ type Case struct {
 	Category       string  `json:"category"`
 	Priority       string  `json:"priority" gorm:"default:'medium'"`
 	PrimaryStaffID *uint   `json:"primaryStaffId" gorm:"column:primary_staff_id"`
+
+	MaquilaID         *uint         `gorm:"index" json:"maquilaId"`
+	Maquila           *Organization `gorm:"foreignKey:MaquilaID" json:"maquila,omitempty"`
+	EmploymentDetails `gorm:"embedded"`
 
 	// Completion and Archiving Fields
 	IsCompleted    bool       `json:"isCompleted" gorm:"column:is_completed;default:false"`
@@ -103,4 +108,19 @@ func (c *Case) IsCompletedAndArchived() bool {
 // TableName specifies the table name
 func (Case) TableName() string {
 	return "cases"
+}
+
+// Construction organizations are contacts, never fabricated legal cases.
+func (c *Case) BeforeCreate(tx *gorm.DB) error {
+	if c.ClientID == nil {
+		return nil
+	}
+	var client User
+	if err := tx.Select("id, client_type").First(&client, *c.ClientID).Error; err != nil {
+		return err
+	}
+	if client.ClientType == ClientOrganization {
+		return errors.New("Una constructora no requiere expediente; registre una cita directa")
+	}
+	return nil
 }

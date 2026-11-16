@@ -2,6 +2,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
@@ -10,6 +11,7 @@ import (
 	"github.com/BryanPMX/CAF/api/config"
 	"github.com/BryanPMX/CAF/api/models"
 	securityutil "github.com/BryanPMX/CAF/api/security"
+	"github.com/BryanPMX/CAF/api/services"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -32,7 +34,7 @@ type CaseQueryBuilder struct {
 // NewCaseQueryBuilder creates a new query builder
 func (s *CaseService) NewCaseQueryBuilder() *CaseQueryBuilder {
 	return &CaseQueryBuilder{
-		query: s.db.Preload("Client").Preload("Office").Preload("PrimaryStaff"),
+		query: s.db.Preload("Client").Preload("Office").Preload("PrimaryStaff").Preload("Maquila"),
 	}
 }
 
@@ -248,7 +250,7 @@ func (s *CaseService) GetCaseByID(caseID string, light bool) (*models.Case, erro
 		return cached, nil
 	}
 
-	query := s.db.Preload("Client").Preload("Office").Preload("PrimaryStaff").Preload("Tasks.AssignedTo", func(db *gorm.DB) *gorm.DB {
+	query := s.db.Preload("Client").Preload("Office").Preload("PrimaryStaff").Preload("Maquila").Preload("Tasks.AssignedTo", func(db *gorm.DB) *gorm.DB {
 		return db.Order("created_at DESC")
 	})
 
@@ -300,6 +302,16 @@ func applyCaseCreationScope(requestData map[string]interface{}, actor models.Use
 
 // CreateCase creates a new case within the authenticated employee's office scope.
 func (s *CaseService) CreateCase(c *gin.Context) (*models.Case, error) {
+	var result *models.Case
+	err := s.db.Transaction(func(tx *gorm.DB) error {
+		var err error
+		result, err = NewCaseService(tx).createCase(c)
+		return err
+	})
+	return result, err
+}
+
+func (s *CaseService) createCase(c *gin.Context) (*models.Case, error) {
 	// Parse request body as map to check for new client data
 	var requestData map[string]interface{}
 	if err := c.ShouldBindJSON(&requestData); err != nil {
@@ -320,6 +332,7 @@ func (s *CaseService) CreateCase(c *gin.Context) (*models.Case, error) {
 	email, hasEmail := requestData["email"].(string)
 
 	var clientID *uint
+	clientCreated := false
 
 	// 1) Prefer existing client when clientId is present and non-zero (avoids duplicate when UI sends both id and name/email)
 	if idVal, ok := requestData["clientId"]; ok && idVal != nil {
@@ -368,6 +381,7 @@ func (s *CaseService) CreateCase(c *gin.Context) (*models.Case, error) {
 					return nil, fmt.Errorf("failed to create client: %v", err)
 				}
 				clientID = &newClient.ID
+				clientCreated = true
 				requestData["clientId"] = float64(newClient.ID)
 			}
 		}
@@ -443,13 +457,39 @@ func (s *CaseService) CreateCase(c *gin.Context) (*models.Case, error) {
 	caseData.CreatedBy = uint(userIDUint)
 	caseData.UpdatedBy = &[]uint{uint(userIDUint)}[0]
 
+	// Snapshot the selected client's employment in the case transaction.
+	var employment *services.EmploymentInput
+	if raw, supplied := requestData["employment"]; supplied {
+		employment = &services.EmploymentInput{}
+		if raw != nil {
+			encoded, err := json.Marshal(raw)
+			if err != nil {
+				return nil, err
+			}
+			if err := json.Unmarshal(encoded, employment); err != nil {
+				return nil, fmt.Errorf("datos laborales no válidos")
+			}
+		}
+	}
+	if clientCreated && employment != nil && clientID != nil {
+		var client models.User
+		if err := s.db.First(&client, *clientID).Error; err != nil {
+			return nil, err
+		}
+		if err := services.SaveClientEmployment(s.db, actor, &client, employment); err != nil {
+			return nil, err
+		}
+	}
+	if err := services.ApplyCaseEmployment(s.db, actor, &caseData, employment); err != nil {
+		return nil, err
+	}
 	// Create the case
 	if err := s.db.Create(&caseData).Error; err != nil {
 		return nil, fmt.Errorf("failed to create case: %v", err)
 	}
 
 	// Load relationships
-	if err := s.db.Preload("Client").Preload("Office").Preload("PrimaryStaff").First(&caseData, caseData.ID).Error; err != nil {
+	if err := s.db.Preload("Client").Preload("Office").Preload("PrimaryStaff").Preload("Maquila").First(&caseData, caseData.ID).Error; err != nil {
 		return nil, fmt.Errorf("failed to load case relationships: %v", err)
 	}
 
@@ -471,6 +511,24 @@ func (s *CaseService) UpdateCase(caseID string, c *gin.Context) (*models.Case, e
 		return nil, fmt.Errorf("invalid request data: %v", err)
 	}
 
+	var employment *services.EmploymentInput
+	if raw, supplied := updateData["employment"]; supplied {
+		employment = &services.EmploymentInput{}
+		if raw != nil {
+			encoded, err := json.Marshal(raw)
+			if err != nil {
+				return nil, err
+			}
+			if err := json.Unmarshal(encoded, employment); err != nil {
+				return nil, fmt.Errorf("datos laborales no válidos")
+			}
+		}
+		actor := c.MustGet("currentUser").(models.User)
+		if err := services.ApplyCaseEmployment(s.db, actor, &caseData, employment); err != nil {
+			return nil, err
+		}
+		delete(updateData, "employment")
+	}
 	// Set audit fields
 	userID, _ := c.Get("userID")
 	userIDUint, err := strconv.ParseUint(userID.(string), 10, 32)
@@ -496,6 +554,13 @@ func (s *CaseService) UpdateCase(caseID string, c *gin.Context) (*models.Case, e
 		}
 	}
 
+	if employment != nil {
+		mappedUpdateData["maquila_id"] = caseData.MaquilaID
+		mappedUpdateData["employee_number"] = caseData.EmployeeNumber
+		mappedUpdateData["shift_name"] = caseData.ShiftName
+		mappedUpdateData["shift_start"] = caseData.ShiftStart
+		mappedUpdateData["shift_end"] = caseData.ShiftEnd
+	}
 	// Update only the provided fields with correct column names
 	if err := s.db.Model(&caseData).Updates(mappedUpdateData).Error; err != nil {
 		return nil, fmt.Errorf("failed to update case: %v", err)
@@ -505,7 +570,7 @@ func (s *CaseService) UpdateCase(caseID string, c *gin.Context) (*models.Case, e
 	invalidateCache(caseID)
 
 	// Load relationships for response
-	if err := s.db.Preload("Client").Preload("Office").Preload("PrimaryStaff").First(&caseData, caseData.ID).Error; err != nil {
+	if err := s.db.Preload("Client").Preload("Office").Preload("PrimaryStaff").Preload("Maquila").First(&caseData, caseData.ID).Error; err != nil {
 		return nil, fmt.Errorf("failed to load case relationships: %v", err)
 	}
 	return &caseData, nil
@@ -561,7 +626,7 @@ func (s *CaseService) GetMyCases(c *gin.Context) ([]models.Case, int64, error) {
 	var cases []models.Case
 	var total int64
 
-	query := s.db.Preload("Client").Preload("Office").Preload("PrimaryStaff")
+	query := s.db.Preload("Client").Preload("Office").Preload("PrimaryStaff").Preload("Maquila")
 
 	if userRole == "client" {
 		// Clients see their own cases

@@ -5,7 +5,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { Layout, Menu, Spin, Button, Alert, Badge, Drawer } from 'antd';
 import type { MenuProps } from 'antd';
-import { LogoutOutlined } from '@ant-design/icons';
+import { LogoutOutlined, BuildOutlined, ToolOutlined } from '@ant-design/icons';
 import SidebarAccount from './components/SidebarAccount';
 import { useAuth } from '@/context/AuthContext';
 import {
@@ -49,6 +49,8 @@ const ROLE_DISPLAY_CONFIG = {
 
 // Icon mapping for navigation items
 const ICON_MAP = {
+  'BuildOutlined': BuildOutlined,
+  'ToolOutlined': ToolOutlined,
   'DashboardOutlined': DashboardOutlined,
   'FileTextOutlined': FileTextOutlined,
   'CalendarOutlined': CalendarOutlined,
@@ -66,7 +68,7 @@ const NAVIGATION_GROUPS = [
   {
     key: 'workspace',
     label: 'Trabajo',
-    itemKeys: ['dashboard', 'cases', 'appointments', 'calendar', 'notifications'],
+    itemKeys: ['dashboard', 'cases', 'appointments', 'calendar', 'maquilas', 'constructoras'],
   },
   {
     key: 'management',
@@ -76,7 +78,7 @@ const NAVIGATION_GROUPS = [
   {
     key: 'insights',
     label: 'Información',
-    itemKeys: ['records', 'reports'],
+    itemKeys: ['notifications', 'records', 'reports'],
   },
 ] as const;
 
@@ -110,6 +112,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (pathname.startsWith('/app/notifications')) return 'notifications';
     if (pathname.startsWith('/app/cases')) return 'cases';
     if (pathname.startsWith('/app/users')) return 'users';
+    if (pathname.startsWith('/app/maquilas')) return 'maquilas';
+    if (pathname.startsWith('/app/constructoras')) return 'constructoras';
     if (pathname.startsWith('/app/offices')) return 'offices';
     if (pathname.startsWith('/app/web-content')) return 'web-content';
     if (pathname.startsWith('/app/reports')) return 'reports';

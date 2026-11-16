@@ -25,6 +25,9 @@ test('executives and technical support have organization and website access', ()
     assert.equal(roles.canManageWebContent(role), executive, role);
     assert.equal(roles.getNavigationItemsForRole(role).some(item => item.key === 'web-content'), executive, role);
     assert.equal(roles.PERMISSIONS[role].includes('*'), executive, role);
+    for (const key of ['maquilas', 'constructoras']) {
+      assert.equal(roles.getNavigationItemsForRole(role).some(item => item.key === key), role !== 'client', role);
+    }
   }
   assert.equal(roles.getRoleDisplayName('executive_director'), 'Director Ejecutivo');
   assert.equal(roles.requiresOffice('executive_director'), false);

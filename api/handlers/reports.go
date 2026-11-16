@@ -284,7 +284,7 @@ func (rh *ReportsHandler) GetAppointmentsReport() gin.HandlerFunc {
 		// Base query with office scoping for non-admin roles
 		dbq := reportOfficeQuery(rh.db.Model(&models.Appointment{}), c, "appointments.office_id", query.OfficeID).
 			Preload("Case").
-			Preload("Case.Client").
+			Preload("Client").Preload("Case.Client").
 			Preload("Staff")
 
 		// Apply filters
@@ -308,8 +308,8 @@ func (rh *ReportsHandler) GetAppointmentsReport() gin.HandlerFunc {
 		for _, appointment := range appointments {
 			clientName := ""
 			// Check if Case and Client exist by checking if Case has a valid ID
-			if appointment.Case.ID > 0 && appointment.Case.Client != nil {
-				clientName = fmt.Sprintf("%s %s", appointment.Case.Client.FirstName, appointment.Case.Client.LastName)
+			if client := appointment.RelatedClient(); client != nil {
+				clientName = strings.TrimSpace(client.FirstName + " " + client.LastName)
 			}
 
 			caseTitle := ""
@@ -627,7 +627,7 @@ func (rh *ReportsHandler) generateEnhancedAppointmentsCSV(c *gin.Context, query 
 	dbq := reportOfficeQuery(rh.db.Model(&models.Appointment{}), c, "appointments.office_id", query.OfficeID).
 		Preload("Staff").
 		Preload("Case").
-		Preload("Case.Client").
+		Preload("Client").Preload("Case.Client").
 		Where("start_time BETWEEN ? AND ?", query.DateFrom, query.DateTo)
 
 	// Apply filters
@@ -675,8 +675,8 @@ func (rh *ReportsHandler) generateEnhancedAppointmentsCSV(c *gin.Context, query 
 		}
 
 		clientName := ""
-		if appointment.Case.ID > 0 && appointment.Case.Client != nil {
-			clientName = fmt.Sprintf("%s %s", appointment.Case.Client.FirstName, appointment.Case.Client.LastName)
+		if client := appointment.RelatedClient(); client != nil {
+			clientName = strings.TrimSpace(client.FirstName + " " + client.LastName)
 		}
 
 		staffName := ""

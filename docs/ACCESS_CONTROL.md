@@ -155,3 +155,14 @@ intentionally omitted to keep the view focused. Existing user-detail API scope
 and edit permissions still apply. Photo controls are expandable and available
 only for one's own account. The API supplies MIME types, size and URL limits;
 removal explicitly sends an empty avatar URL and clears the shared avatar state.
+
+## Client organizations
+
+Maquilas and Constructoras use the same global/assigned-office boundary.
+Management can register/edit organizations and link individual clients; other
+employees can read their own office's directory, and clients are denied.
+Factory case lists also apply existing case assignment/category restrictions.
+Construction companies have canonical client accounts and direct appointments
+without cases. Related calendar clients never become attendees or acquire
+calendar access. See [client organizations](CLIENT_ORGANIZATIONS.md) for the
+shared data contract, historical employment behavior and migration `0063`.

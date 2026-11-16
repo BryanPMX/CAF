@@ -431,3 +431,42 @@ Screenshots are saved to `/tmp/caf-profile-e2e` or `CAF_E2E_ARTIFACT_DIR`.
 The Docker script also checks the shared staff/client profile contract against
 PostgreSQL, verifies reads preserve the last-login timestamp, and uploads,
 retrieves and removes a real image through the production API.
+
+### Maquilas and Constructoras
+
+Use the same loopback API preview and portal above. Run role/profile regressions
+before the organization suite, since this suite creates additional synthetic
+clients/cases that change the fixture totals:
+
+```bash
+cd testing
+npm run test:roles
+npm run test:e2e:roles
+npm run test:e2e:profiles
+npm run test:e2e:organizations
+```
+
+The organization browser suite registers a factory, links an individual with a
+leading-zero employee number and overnight shift, opens a case through the
+shared form, confirms historical data survives unlinking, registers a company
+with all five legal fields and no email, links a contact, schedules a direct
+company appointment through live availability and creates a related-client
+event without inviting that client. It checks the normal Usuarios/Citas views,
+staff read-only access and narrow-screen layout. Screenshots go to
+`/tmp/caf-organizations-e2e` or `CAF_E2E_ARTIFACT_DIR`.
+
+Production database/image verification includes these workflows:
+
+```bash
+docker build --platform linux/amd64 -t caf-api:organizations-review ./api
+CAF_TEST_API_IMAGE=caf-api:organizations-review python3 testing/technical-support-docker.py
+```
+
+In addition to the existing support/profile checks, it replays migration `0063`
+twice, tests PostgreSQL uniqueness for named organizations/nonblank emails while
+allowing multiple blank company emails, checks office isolation, case snapshots,
+factory changes, linked individual contacts, SQL NULL case IDs for company
+appointments, no fabricated cases, conflicts and event relationships. Containers
+and temporary storage are removed after the run. `go test -race ./...` inside
+`api` covers further case/contact scope, atomic failures, calendar link privacy,
+hidden-link preservation and direct appointment editing.

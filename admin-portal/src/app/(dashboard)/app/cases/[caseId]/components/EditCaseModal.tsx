@@ -3,7 +3,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { Modal, Form, Input, Button, message, Select } from 'antd';
-import { apiClient } from '@/app/lib/api';
+import EmploymentFields from '@/components/organizations/EmploymentFields';
+import type { EmploymentInput } from '@/app/lib/organizations';
+import { useAuth } from '@/context/AuthContext';
+import { WorkflowService } from '@/services/workflowService';
 import { CASE_TYPES } from '@/app/lib/caseTaxonomy';
 
 const { Option } = Select;
@@ -12,6 +15,8 @@ interface EditCaseModalProps {
   visible: boolean;
   caseId: string;
   caseData: {
+    officeId?: number;
+    employment?: EmploymentInput;
     title: string;
     category: string;
     docketNumber?: string;
@@ -29,12 +34,14 @@ const EditCaseModal: React.FC<EditCaseModalProps> = ({
   onClose, 
   onSuccess 
 }) => {
+  const { user } = useAuth();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (visible && caseData) {
       form.setFieldsValue({
+        employment: caseData.employment,
         title: caseData.title,
         category: caseData.category,
         docketNumber: caseData.docketNumber || '',
@@ -64,7 +71,18 @@ const EditCaseModal: React.FC<EditCaseModalProps> = ({
         payload.court = values.court;
       }
 
-      const response = await apiClient.put(`/admin/cases/${caseId}`, payload);
+      const normalized = (value?: EmploymentInput) => ({
+        maquilaId: value?.maquilaId || null,
+        employeeNumber: value?.employeeNumber || '',
+        shiftName: value?.shiftName || '',
+        shiftStart: value?.shiftStart || '',
+        shiftEnd: value?.shiftEnd || '',
+      });
+      if (JSON.stringify(normalized(values.employment)) !== JSON.stringify(normalized(caseData.employment))) {
+        payload.employment = normalized(values.employment);
+      }
+      if (!user) return;
+      await WorkflowService.updateCase(user.role, caseId, payload);
       
       message.success({ content: '¡Caso actualizado exitosamente!', key: 'updateCase' });
       onSuccess();
@@ -159,6 +177,7 @@ const EditCaseModal: React.FC<EditCaseModalProps> = ({
           <Input placeholder="Ej: 1FXA" />
         </Form.Item>
 
+        <EmploymentFields officeId={caseData.officeId} />
         <Form.Item 
           name="description" 
           label="Descripción" 

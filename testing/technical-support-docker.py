@@ -154,6 +154,53 @@ try:
     assert client_profile['officeId'] == offices[1] and client_profile['avatarPolicy'] == profile['avatarPolicy']
     request('GET', '/api/v1/profile', token=client_token, expected=403)
     print('PASS: shared staff/client profile contract, privacy, read-only login date, photo upload, protected retrieval and removal')
+    # Run the organization migration twice against the actual production schema.
+    registry_migration = (ROOT / 'api/db/migrations/0063_client_organizations.sql').read_text()
+    sql(registry_migration + registry_migration)
+    admin_token = request('POST', '/api/v1/login', {'email': admin['email'], 'password': PASSWORD})['token']
+    factory_data = {'kind': 'maquila', 'name': 'Maquila Uno', 'officeId': offices[0]}
+    factory = request('POST', '/api/v1/organizations', factory_data, admin_token, 201)
+    request('POST', '/api/v1/organizations', factory_data, admin_token, 409)
+    second_factory = request('POST', '/api/v1/organizations', {**factory_data, 'name': 'Maquila Dos'}, admin_token, 201)
+    foreign_factory = request('POST', '/api/v1/organizations', {**factory_data, 'name': 'Otra oficina', 'officeId': offices[1]}, token, 201)
+    request('GET', f"/api/v1/organizations/{foreign_factory['id']}", token=admin_token, expected=404)
+    request('POST', '/api/v1/organizations', {**factory_data, 'name': 'Scope escape', 'officeId': offices[1]}, admin_token, 403)
+    employee = create_user('Employee', 'client', offices[0])
+    employment = {'employeeNumber': '000042', 'shiftName': 'Tercer turno', 'shiftStart': '22:00', 'shiftEnd': '06:00'}
+    request('POST', f"/api/v1/organizations/{factory['id']}/clients", {'clientId': employee['id'], **employment}, admin_token)
+    request('POST', '/api/v1/admin/cases', {'clientId': employee['id'], 'officeId': offices[0], 'title': 'Divorcios', 'category': 'Legal', 'description': 'Synthetic factory case'}, admin_token, 201)
+    assert sql(f"SELECT employee_number || ':' || shift_start || ':' || shift_end FROM cases WHERE client_id={employee['id']};") == '000042:22:00:06:00'
+    request('POST', f"/api/v1/organizations/{second_factory['id']}/clients", {'clientId': employee['id'], **employment, 'employeeNumber': '000099'}, admin_token)
+    history = request('GET', f"/api/v1/organizations/{factory['id']}", token=admin_token)
+    assert history['clientTotal'] == 1 and history['clients'][0]['historical']
+    assert history['cases'][0]['employeeNumber'] == '000042'
+    contractor_data = {'kind': 'constructora', 'name': 'Constructora Uno', 'officeId': offices[0], 'legalRepresentative': 'Representante', 'legalAddress': 'Domicilio legal 123', 'boardPresident': 'Presidente', 'neighborhood': 'Centro'}
+    contractor = request('POST', '/api/v1/organizations', contractor_data, admin_token, 201)
+    second_contractor = request('POST', '/api/v1/organizations', {**contractor_data, 'name': 'Constructora Dos'}, admin_token, 201)
+    assert contractor['accountClientId'] != second_contractor['accountClientId']
+    before_duplicate = sql('SELECT count(*) FROM users;')
+    request('POST', '/api/v1/organizations', {**contractor_data, 'name': 'Duplicate email', 'email': employee['email']}, admin_token, 409)
+    assert sql('SELECT count(*) FROM users;') == before_duplicate
+    assert sql("SELECT count(*) FROM users WHERE client_type='organization' AND email='';") == '2'
+    company_id = contractor['accountClientId']
+    request('POST', f"/api/v1/organizations/{contractor['id']}/clients", {'clientId': employee['id']}, admin_token)
+    assert len(request('GET', f"/api/v1/client-organizations/{employee['id']}", token=admin_token)['data']) == 2
+    before_direct = sql('SELECT count(*) FROM cases;')
+    appointment_data = {'withoutCase': True, 'clientId': company_id, 'officeId': offices[0], 'staffId': admin['id'], 'title': 'Direct company appointment', 'startTime': '2030-01-07T10:00:00Z', 'endTime': '2030-01-07T11:00:00Z', 'timeZone': 'UTC', 'status': 'confirmed', 'category': 'General', 'department': 'General'}
+    appointment = request('POST', '/api/v1/admin/appointments', appointment_data, admin_token, 201)
+    assert sql('SELECT count(*) FROM cases;') == before_direct
+    assert sql(f"SELECT case_id IS NULL FROM appointments WHERE id={appointment['id']};") == 't'
+    request('POST', '/api/v1/admin/appointments', appointment_data, admin_token, 400)
+    appointments = request('GET', f'/api/v1/admin/appointments?clientId={company_id}', token=admin_token)['data']
+    assert len(appointments) == 1 and appointments[0]['client']['firstName'] == contractor['name']
+    request('POST', '/api/v1/admin/cases', {'clientId': company_id, 'officeId': offices[0], 'title': 'Invalid', 'category': 'Legal'}, admin_token, 400)
+    request('DELETE', f'/api/v1/admin/users/{company_id}', token=admin_token, expected=403)
+    event = request('POST', '/api/v1/calendar/events', {'title': 'Company meeting', 'startTime': '2030-01-07T12:00:00Z', 'endTime': '2030-01-07T13:00:00Z', 'timeZone': 'UTC', 'relatedClientIds': [company_id, employee['id']], 'attendeeIds': []}, admin_token, 201)
+    assert {link['clientId'] for link in event['relatedClients']} == {company_id, employee['id']}
+    assert sql(f"SELECT count(*) FROM calendar_event_attendees WHERE user_id={company_id};") == '0'
+    request('GET', '/api/v1/organizations?kind=constructora', token=client_token, expected=403)
+    assert sql("SELECT count(*) FROM migrations WHERE version='0063';") == '1'
+    print('PASS: PostgreSQL organization migration/replay, scoped directories, leading-zero IDs, overnight shifts, case history, shared company accounts, direct appointments and calendar links')
     credential_before = sql('SELECT password FROM users WHERE id=1;')
     docker('restart', API)
     base = 'http://' + docker('port', API, '8080/tcp').splitlines()[0]

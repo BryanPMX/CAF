@@ -309,6 +309,16 @@ func main() {
 		protected.POST("/profile/avatar", handlers.UploadProfileAvatar(database, apiBaseURL))
 		protected.GET("/avatar", handlers.GetProfileAvatar(database))
 
+		// Office-scoped factory and contractor registries share existing clients.
+		protected.GET("/client-options", handlers.ClientOptions(database))
+		protected.GET("/organizations", handlers.ListOrganizations(database))
+		protected.POST("/organizations", handlers.SaveOrganization(database, true))
+		protected.GET("/organizations/:id", handlers.GetOrganization(database))
+		protected.PATCH("/organizations/:id", handlers.SaveOrganization(database, false))
+		protected.POST("/organizations/:id/clients", handlers.LinkOrganizationClient(database, false))
+		protected.DELETE("/organizations/:id/clients/:clientId", handlers.LinkOrganizationClient(database, true))
+		protected.GET("/client-organizations/:clientId", handlers.GetClientOrganizations(database))
+
 		// Offices list available to authenticated staff/managers/admins
 		protected.GET("/offices", handlers.GetOffices(cont.GetOfficeRepository()))
 

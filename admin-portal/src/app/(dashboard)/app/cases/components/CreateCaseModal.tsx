@@ -4,7 +4,11 @@
 import { canAccessAllOffices } from '@/config/roles';
 
 import React, { useState, useEffect } from 'react';
-import { Modal, Form, Input, Button, message, Select, Radio, AutoComplete, InputNumber } from 'antd';
+import { Alert, Modal, Form, Input, Button, message, Select, Radio, AutoComplete, InputNumber } from 'antd';
+import { ORGANIZATION_TEXT } from '@/config/organizations';
+import EmploymentFields from '@/components/organizations/EmploymentFields';
+import { employmentFromMemberships, clientLabel, type ClientOption, type EmploymentInput } from '@/app/lib/organizations';
+import { OrganizationService } from '@/services/organizationService';
 import { CASE_TYPES, findDepartmentByCaseType } from '@/app/lib/caseTaxonomy';
 import { useAuth } from '@/context/AuthContext';
 import { WorkflowService, type WorkflowOffice } from '@/services/workflowService';
@@ -14,14 +18,21 @@ const { Option } = Select;
 // taxonomy imported from shared module
 
 interface CreateCaseModalProps {
+  initialClient?: ClientOption;
+  initialEmployment?: EmploymentInput;
   visible: boolean;
   onClose: () => void;
   onSuccess: () => void;
 }
 
-const CreateCaseModal: React.FC<CreateCaseModalProps> = ({ visible, onClose, onSuccess }) => {
+const CreateCaseModal: React.FC<CreateCaseModalProps> = ({ visible, onClose, onSuccess, initialClient, initialEmployment }) => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
+  const [clientDisplay, setClientDisplay] = useState('');
+  const [employmentError, setEmploymentError] = useState(false);
+  const [employmentRevision, setEmploymentRevision] = useState(0);
+  const [employmentLoading, setEmploymentLoading] = useState(false);
+  const watchedOffice = Form.useWatch('officeId',form);
   const [clientMode, setClientMode] = useState('existing');
   const [offices, setOffices] = useState<WorkflowOffice[]>([]);
   const [clientOptions, setClientOptions] = useState<{ value: string; label: string; key: number }[]>([]);
@@ -44,17 +55,33 @@ const CreateCaseModal: React.FC<CreateCaseModalProps> = ({ visible, onClose, onS
       fetchOffices();
       // Reset state when modal opens
       setClientMode('existing');
-      setSelectedClientId(null);
+      setSelectedClientId(initialClient?.id || null);
+      setClientDisplay(initialClient ? clientLabel(initialClient) : '');
       // Reset form fields
       form.resetFields();
+      if (initialClient) form.setFieldsValue({ officeId:initialClient.officeId,employment:initialEmployment });
       // Every non-admin employee creates records only within their assigned office.
       if (!canAccessAllOffices(user?.role ?? '') && user?.officeId) {
         form.setFieldsValue({ officeId: user.officeId });
       }
     }
-  }, [visible, form, user]);
+  }, [visible, form, user, initialClient, initialEmployment]);
+
+  useEffect(() => {
+    setEmploymentError(false);
+    if (!visible || !selectedClientId || (initialEmployment && selectedClientId === initialClient?.id)) { setEmploymentLoading(false); return; }
+    let active = true;
+    setEmploymentLoading(true);
+    OrganizationService.memberships(selectedClientId)
+      .then(rows => { if (active) form.setFieldValue('employment', employmentFromMemberships(rows)); })
+      .catch(() => { if (active) setEmploymentError(true); })
+      .finally(() => { if (active) setEmploymentLoading(false); });
+    return () => { active = false; };
+  }, [visible, selectedClientId, initialEmployment, initialClient?.id, form, employmentRevision]);
 
   const handleClientSearch = async (searchText: string) => {
+    setClientDisplay(searchText);
+    setSelectedClientId(null);
     if (!searchText || searchText.length < 2) {
       setClientOptions([]);
       return;
@@ -62,7 +89,7 @@ const CreateCaseModal: React.FC<CreateCaseModalProps> = ({ visible, onClose, onS
     if (!user) return;
     try {
       const clients = await WorkflowService.listClients(user.role, searchText, 10);
-      const clientOptions = clients.map(client => ({
+      const clientOptions = clients.filter(client => client.clientType !== 'organization').map(client => ({
         value: `${client.firstName} ${client.lastName} (${client.email})`,
         label: `${client.firstName} ${client.lastName} (${client.email})`,
         key: client.id,
@@ -76,6 +103,7 @@ const CreateCaseModal: React.FC<CreateCaseModalProps> = ({ visible, onClose, onS
 
   const handleClientSelect = (value: string, option: any) => {
     setSelectedClientId(option.key);
+    setClientDisplay(value);
   };
 
   const handleCreateCase = async () => {
@@ -90,6 +118,7 @@ const CreateCaseModal: React.FC<CreateCaseModalProps> = ({ visible, onClose, onS
         title: values.title,
         category: values.category, // Use the category field directly
         description: values.description,
+        employment: values.employment?.maquilaId ? values.employment : {maquilaId:null,employeeNumber:'',shiftName:'',shiftStart:'',shiftEnd:''},
       };
 
       if (values.fee !== undefined) {
@@ -139,12 +168,18 @@ const CreateCaseModal: React.FC<CreateCaseModalProps> = ({ visible, onClose, onS
       width={600}
       footer={[
         <Button key="back" onClick={onClose}>Cancelar</Button>,
-        <Button key="submit" type="primary" loading={loading} onClick={handleCreateCase}>Crear Caso</Button>,
+        <Button key="submit" type="primary" loading={loading || employmentLoading} disabled={employmentError} onClick={handleCreateCase}>Crear Caso</Button>,
       ]}
     >
+      {employmentError && <Alert type="error" showIcon message={ORGANIZATION_TEXT.employmentLoadFailed} action={<Button onClick={() => setEmploymentRevision(value => value + 1)}>{ORGANIZATION_TEXT.retry}</Button>} className="mb-4" />}
       <Form form={form} layout="vertical">
         <Form.Item label="Cliente">
-          <Radio.Group onChange={(e) => setClientMode(e.target.value)} value={clientMode}>
+          <Radio.Group onChange={(e) => {
+            setClientMode(e.target.value);
+            setSelectedClientId(null);
+            setClientDisplay('');
+            form.setFieldValue('employment', undefined);
+          }} value={clientMode}>
             <Radio value="existing">Cliente Existente</Radio>
             <Radio value="new">Cliente Nuevo</Radio>
           </Radio.Group>
@@ -153,6 +188,8 @@ const CreateCaseModal: React.FC<CreateCaseModalProps> = ({ visible, onClose, onS
         {clientMode === 'existing' ? (
           <Form.Item label="Buscar Cliente por Nombre o Correo">
             <AutoComplete
+              value={clientDisplay}
+              onChange={setClientDisplay}
               options={clientOptions}
               onSelect={handleClientSelect}
               onSearch={handleClientSearch}
@@ -243,6 +280,7 @@ const CreateCaseModal: React.FC<CreateCaseModalProps> = ({ visible, onClose, onS
             )}
           </Select>
         </Form.Item>
+        <EmploymentFields officeId={watchedOffice} />
         <Form.Item name="description" label="Descripción Inicial" rules={[{ required: true, message: 'La descripción es obligatoria' }]}>
           <Input.TextArea rows={4} />
         </Form.Item>

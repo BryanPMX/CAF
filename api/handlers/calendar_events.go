@@ -27,23 +27,25 @@ var validCalendarResponses = map[string]struct{}{
 }
 
 type calendarEventInput struct {
-	TimeZone    string    `json:"timeZone"`
-	Title       string    `json:"title"`
-	Description string    `json:"description"`
-	Location    string    `json:"location"`
-	StartTime   time.Time `json:"startTime"`
-	EndTime     time.Time `json:"endTime"`
-	AttendeeIDs []uint    `json:"attendeeIds"`
+	RelatedClientIDs []uint    `json:"relatedClientIds"`
+	TimeZone         string    `json:"timeZone"`
+	Title            string    `json:"title"`
+	Description      string    `json:"description"`
+	Location         string    `json:"location"`
+	StartTime        time.Time `json:"startTime"`
+	EndTime          time.Time `json:"endTime"`
+	AttendeeIDs      []uint    `json:"attendeeIds"`
 }
 
 type updateCalendarEventInput struct {
-	TimeZone    *string    `json:"timeZone"`
-	Title       *string    `json:"title"`
-	Description *string    `json:"description"`
-	Location    *string    `json:"location"`
-	StartTime   *time.Time `json:"startTime"`
-	EndTime     *time.Time `json:"endTime"`
-	AttendeeIDs *[]uint    `json:"attendeeIds"`
+	RelatedClientIDs *[]uint    `json:"relatedClientIds"`
+	TimeZone         *string    `json:"timeZone"`
+	Title            *string    `json:"title"`
+	Description      *string    `json:"description"`
+	Location         *string    `json:"location"`
+	StartTime        *time.Time `json:"startTime"`
+	EndTime          *time.Time `json:"endTime"`
+	AttendeeIDs      *[]uint    `json:"attendeeIds"`
 }
 
 type calendarEventResponseInput struct {
@@ -68,6 +70,10 @@ func currentCalendarUser(c *gin.Context) (models.User, bool) {
 	}
 
 	user, ok := value.(models.User)
+	if ok && user.Role == "client" {
+		c.JSON(403, gin.H{"error": "El calendario interno es exclusivo del personal"})
+		return models.User{}, false
+	}
 	if !ok || user.ID == 0 {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Contexto de usuario inválido"})
 		return models.User{}, false
@@ -191,8 +197,18 @@ func canManageCalendarEvent(db *gorm.DB, user models.User, event models.Calendar
 	return event.OrganizerID == user.ID
 }
 
-func calendarEventPreload(db *gorm.DB) *gorm.DB {
-	return db.
+func calendarEventPreload(db *gorm.DB, actor models.User) *gorm.DB {
+	related := db.Session(&gorm.Session{NewDB: true}).Model(&models.User{}).Select("id")
+	if !config.CanAccessAllOffices(actor.Role) {
+		if actor.OfficeID == nil {
+			related = related.Where("1 = 0")
+		} else {
+			related = related.Where("office_id = ?", *actor.OfficeID)
+		}
+	}
+	return db.Preload("RelatedClients", "client_id IN (?)", related).Preload("RelatedClients.Client", func(query *gorm.DB) *gorm.DB {
+		return query.Select("id, first_name, last_name, client_type, office_id")
+	}).
 		Preload("Organizer", func(query *gorm.DB) *gorm.DB {
 			return query.Select("id, first_name, last_name, email, role, office_id")
 		}).
@@ -302,7 +318,7 @@ func GetCalendarEvents(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		events := make([]models.CalendarEvent, 0)
-		query := scopedCalendarEvents(calendarEventPreload(db.Model(&models.CalendarEvent{})), db, user).
+		query := scopedCalendarEvents(calendarEventPreload(db.Model(&models.CalendarEvent{}), user), db, user).
 			Where("start_time < ? AND end_time > ?", dateTo, dateFrom).
 			Order("start_time ASC").Limit(500)
 		if err := query.Find(&events).Error; err != nil {
@@ -346,6 +362,10 @@ func CreateCalendarEvent(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
+		if err := validateRelatedClients(db, organizer, normalized.RelatedClientIDs); err != nil {
+			c.JSON(400, gin.H{"error": err.Error()})
+			return
+		}
 		event := models.CalendarEvent{
 			OrganizerID: organizer.ID,
 			Title:       normalized.Title, Description: normalized.Description, Location: normalized.Location,
@@ -353,14 +373,17 @@ func CreateCalendarEvent(db *gorm.DB) gin.HandlerFunc {
 			Attendees: buildCalendarAttendees(normalized, organizer.ID, nil),
 		}
 		if err := db.Transaction(func(tx *gorm.DB) error {
-			return tx.Create(&event).Error
+			if err := tx.Create(&event).Error; err != nil {
+				return err
+			}
+			return saveRelatedClients(tx, organizer, event.ID, normalized.RelatedClientIDs)
 		}); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "No fue posible crear el evento"})
 			return
 		}
 
 		notifyCalendarInvitees(db, event, organizer, normalized.AttendeeIDs, "created")
-		if err := calendarEventPreload(db).First(&event, event.ID).Error; err != nil {
+		if err := calendarEventPreload(db, organizer).First(&event, event.ID).Error; err != nil {
 			c.JSON(http.StatusCreated, event)
 			return
 		}
@@ -460,6 +483,12 @@ func UpdateCalendarEvent(db *gorm.DB) gin.HandlerFunc {
 			}
 		}
 
+		if patch.RelatedClientIDs != nil {
+			if err := validateRelatedClients(db, user, *patch.RelatedClientIDs); err != nil {
+				c.JSON(400, gin.H{"error": err.Error()})
+				return
+			}
+		}
 		err = db.Transaction(func(tx *gorm.DB) error {
 			updates := map[string]interface{}{
 				"title": normalized.Title, "description": normalized.Description, "location": normalized.Location,
@@ -467,6 +496,11 @@ func UpdateCalendarEvent(db *gorm.DB) gin.HandlerFunc {
 			}
 			if err := tx.Model(&event).Updates(updates).Error; err != nil {
 				return err
+			}
+			if patch.RelatedClientIDs != nil {
+				if err := saveRelatedClients(tx, user, event.ID, *patch.RelatedClientIDs); err != nil {
+					return err
+				}
 			}
 			if patch.AttendeeIDs != nil {
 				if err := tx.Where("event_id = ?", event.ID).Delete(&models.CalendarEventAttendee{}).Error; err != nil {
@@ -493,7 +527,7 @@ func UpdateCalendarEvent(db *gorm.DB) gin.HandlerFunc {
 		if len(removedAttendeeIDs) > 0 {
 			notifyCalendarInvitees(db, event, user, removedAttendeeIDs, "removed")
 		}
-		if err := calendarEventPreload(db).First(&event, event.ID).Error; err != nil {
+		if err := calendarEventPreload(db, user).First(&event, event.ID).Error; err != nil {
 			c.JSON(http.StatusOK, event)
 			return
 		}
@@ -580,4 +614,61 @@ func DeleteCalendarEvent(db *gorm.DB) gin.HandlerFunc {
 		notifyCalendarInvitees(db, event, user, attendeeIDs, "cancelled")
 		c.Status(http.StatusNoContent)
 	}
+}
+
+// Related clients are record links, never employee invitations or access grants.
+func validateRelatedClients(db *gorm.DB, actor models.User, ids []uint) error {
+	if len(ids) > 50 {
+		return errors.New("El evento admite hasta 50 clientes relacionados")
+	}
+	seen := map[uint]bool{}
+	for _, id := range ids {
+		if id == 0 || seen[id] {
+			return errors.New("Clientes relacionados no válidos")
+		}
+		seen[id] = true
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query := db.Model(&models.User{}).Where("id IN ? AND role = ? AND is_active = ?", ids, "client", true)
+	if !config.CanAccessAllOffices(actor.Role) {
+		if actor.OfficeID == nil {
+			return errors.New("Se requiere oficina")
+		}
+		query = query.Where("office_id = ?", *actor.OfficeID)
+	}
+	var count int64
+	if err := query.Count(&count).Error; err != nil {
+		return err
+	}
+	if count != int64(len(ids)) {
+		return errors.New("Los clientes deben pertenecer a su oficina")
+	}
+	return nil
+}
+func saveRelatedClients(tx *gorm.DB, actor models.User, eventID uint, ids []uint) error {
+	query := tx.Where("event_id = ?", eventID)
+	if !config.CanAccessAllOffices(actor.Role) {
+		if actor.OfficeID == nil {
+			return errors.New("Se requiere oficina")
+		}
+		query = query.Where("client_id IN (?)", tx.Session(&gorm.Session{NewDB: true}).Model(&models.User{}).Unscoped().Select("id").Where("office_id = ?", *actor.OfficeID))
+	}
+	if err := query.Delete(&models.CalendarEventClient{}).Error; err != nil {
+		return err
+	}
+	var retained int64
+	if err := tx.Model(&models.CalendarEventClient{}).Where("event_id = ?", eventID).Count(&retained).Error; err != nil {
+		return err
+	}
+	if retained+int64(len(ids)) > 50 {
+		return errors.New("El evento admite hasta 50 clientes relacionados")
+	}
+	for _, id := range ids {
+		if err := tx.Create(&models.CalendarEventClient{EventID: eventID, ClientID: id}).Error; err != nil {
+			return err
+		}
+	}
+	return nil
 }

@@ -93,8 +93,8 @@ func GetClientAppointments(db *gorm.DB) gin.HandlerFunc {
 		offset := (page - 1) * pageSize
 
 		baseQuery := db.Model(&models.Appointment{}).
-			Joins("INNER JOIN cases ON cases.id = appointments.case_id").
-			Where("cases.client_id = ?", uint(userID))
+			Joins("LEFT JOIN cases ON cases.id = appointments.case_id").
+			Where("(cases.client_id = ? OR appointments.client_id = ?)", uint(userID), uint(userID))
 
 		if status := c.Query("status"); status != "" {
 			baseQuery = baseQuery.Where("appointments.status = ?", status)
@@ -137,8 +137,8 @@ func GetClientAppointments(db *gorm.DB) gin.HandlerFunc {
 			Preload("Case", func(tx *gorm.DB) *gorm.DB {
 				return tx.Preload("Office")
 			}).
-			Joins("INNER JOIN cases ON cases.id = appointments.case_id").
-			Where("cases.client_id = ?", uint(userID)).
+			Joins("LEFT JOIN cases ON cases.id = appointments.case_id").
+			Where("(cases.client_id = ? OR appointments.client_id = ?)", uint(userID), uint(userID)).
 			Order("appointments.start_time DESC").
 			Offset(offset).
 			Limit(pageSize)

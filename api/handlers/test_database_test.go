@@ -26,7 +26,7 @@ func authorizationDatabase(t *testing.T) *gorm.DB {
 	if err := db.Exec(`CREATE TABLE user_case_assignments (id INTEGER PRIMARY KEY, user_id INTEGER, case_id INTEGER, role TEXT, assigned_at DATETIME, created_at DATETIME, updated_at DATETIME, deleted_at DATETIME)`).Error; err != nil {
 		t.Fatal(err)
 	}
-	if err := db.AutoMigrate(&models.Office{}, &models.User{}, &models.Case{}, &models.Appointment{}, &models.Task{}, &models.TaskComment{}, &models.CaseEvent{}, &models.CalendarEvent{}, &models.CalendarEventAttendee{}, &models.ContactSubmission{}, &models.Notification{}); err != nil {
+	if err := db.AutoMigrate(&models.Office{}, &models.User{}, &models.Organization{}, &models.OrganizationClient{}, &models.CalendarEventClient{}, &models.Case{}, &models.Appointment{}, &models.Task{}, &models.TaskComment{}, &models.CaseEvent{}, &models.CalendarEvent{}, &models.CalendarEventAttendee{}, &models.ContactSubmission{}, &models.Notification{}); err != nil {
 		t.Fatal(err)
 	}
 	return db

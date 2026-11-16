@@ -208,7 +208,7 @@ func GetArchivedAppointments(db *gorm.DB) gin.HandlerFunc {
 		// Build the select query with proper joins for relationships
 		selectSQL := `
 			SELECT a.id, a.title, a.start_time, a.end_time, a.status, a.deleted_at,
-			       a.case_id, a.staff_id, a.office_id
+			       a.case_id, a.client_id, a.staff_id, a.office_id
 			FROM appointments a
 			WHERE a.deleted_at IS NOT NULL
 		`
@@ -270,6 +270,13 @@ func GetArchivedAppointments(db *gorm.DB) gin.HandlerFunc {
 							"lastName":  caseRecord.Client.LastName,
 						}
 					}
+				}
+			}
+
+			if appointment.ClientID != nil {
+				var client models.User
+				if err := db.Unscoped().First(&client, *appointment.ClientID).Error; err == nil {
+					transformedAppointment["client"] = gin.H{"firstName": client.FirstName, "lastName": client.LastName}
 				}
 			}
 
@@ -490,7 +497,7 @@ func RestoreAppointment(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		// Load relationships for response
-		if err := db.Preload("Case.Client").Preload("Office").Preload("Staff").Preload("Case").First(&appointment, appointment.ID).Error; err != nil {
+		if err := db.Preload("Client").Preload("Case.Client").Preload("Office").Preload("Staff").Preload("Case").First(&appointment, appointment.ID).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"error":   "Failed to load appointment relationships",
 				"message": err.Error(),

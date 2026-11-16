@@ -20,10 +20,11 @@ type CalendarEvent struct {
 	StartTime time.Time `gorm:"not null;index" json:"startTime"`
 	EndTime   time.Time `gorm:"not null;index" json:"endTime"`
 
-	Attendees []CalendarEventAttendee `gorm:"foreignKey:EventID" json:"attendees"`
-	CreatedAt time.Time               `json:"createdAt"`
-	UpdatedAt time.Time               `json:"updatedAt"`
-	DeletedAt gorm.DeletedAt          `gorm:"index" json:"-"`
+	RelatedClients []CalendarEventClient   `gorm:"foreignKey:EventID" json:"relatedClients"`
+	Attendees      []CalendarEventAttendee `gorm:"foreignKey:EventID" json:"attendees"`
+	CreatedAt      time.Time               `json:"createdAt"`
+	UpdatedAt      time.Time               `json:"updatedAt"`
+	DeletedAt      gorm.DeletedAt          `gorm:"index" json:"-"`
 }
 
 // CalendarEventAttendee stores an employee invitation and their response.

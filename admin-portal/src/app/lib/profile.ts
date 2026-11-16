@@ -1,3 +1,4 @@
+import type { OrganizationMembership } from './organizations';
 export interface ProfileOffice {
   id: number;
   name?: string;
@@ -5,6 +6,7 @@ export interface ProfileOffice {
 
 // Fields shared by /profile, /client/profile and the user in /admin/users/:id.
 export interface UserProfile {
+  organizationMemberships?: OrganizationMembership[];
   firstName: string;
   lastName: string;
   email: string;

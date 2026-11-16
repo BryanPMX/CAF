@@ -80,7 +80,7 @@ function formatUpdatedAt(timestamp: number | null): string {
 }
 
 function getClientName(appointment: StaffAppointment): string {
-  const client = appointment.case?.client;
+  const client = appointment.client || appointment.case?.client;
   if (!client) return 'Cliente no disponible';
   return `${client.firstName} ${client.lastName}`.trim();
 }

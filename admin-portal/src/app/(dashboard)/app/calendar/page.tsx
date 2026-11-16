@@ -40,6 +40,8 @@ import type {
 } from '@/app/lib/calendar';
 import { useAuth } from '@/context/AuthContext';
 import { isAdminRole, isManagementRole } from '@/config/roles';
+import { clientLabel } from '@/app/lib/organizations';
+import { ORGANIZATION_TEXT } from '@/config/organizations';
 import { CalendarService } from '@/services/calendarService';
 import CalendarEventModal from './components/CalendarEventModal';
 
@@ -72,7 +74,7 @@ function capitalize(value: string): string {
 }
 
 function getClientName(appointment: CalendarAppointment): string {
-  const client = appointment.case?.client;
+  const client = appointment.client || appointment.case?.client;
   return client ? `${client.firstName} ${client.lastName}`.trim() : 'Cliente no disponible';
 }
 
@@ -390,6 +392,7 @@ export default function EmployeeCalendarPage() {
                   </div>
                   <p className="mt-3 text-xs font-medium text-slate-600"><ClockCircleOutlined className="mr-2 text-violet-700" />{dayjs(item.startTime).format('HH:mm')}–{dayjs(item.endTime).format('HH:mm')}</p>
                   {item.event.location && <p className="mt-2 text-xs text-slate-500"><EnvironmentOutlined className="mr-2" />{item.event.location}</p>}
+                  {(item.event.relatedClients || []).some(link => link.client) && <div className="mb-2 text-xs text-slate-600">{ORGANIZATION_TEXT.relatedClients}: {(item.event.relatedClients || []).flatMap(link => link.client ? [clientLabel(link.client)] : []).join(', ')}</div>}
                   {item.event.description && <p className="mt-2 text-xs leading-5 text-slate-600">{item.event.description}</p>}
                   <div className="mt-3 flex items-center justify-between gap-3">
                     <Avatar.Group max={{ count: 4 }} size="small">

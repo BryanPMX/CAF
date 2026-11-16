@@ -23,9 +23,13 @@ func canScheduleEmployee(actor, employee models.User) bool {
 		(config.CanAccessAllOffices(actor.Role) || (actor.OfficeID != nil && employee.OfficeID != nil && *actor.OfficeID == *employee.OfficeID))
 }
 
-func employeeBusyIntervals(db *gorm.DB, staffID uint, from, to time.Time) ([]appointmentBusyInterval, error) {
+func employeeBusyIntervals(db *gorm.DB, staffID uint, from, to time.Time, excluded ...uint) ([]appointmentBusyInterval, error) {
 	busy := make([]appointmentBusyInterval, 0)
-	if err := db.Model(&models.Appointment{}).Select("start_time, end_time").
+	query := db.Model(&models.Appointment{})
+	if len(excluded) > 0 {
+		query = query.Where("id NOT IN ?", excluded)
+	}
+	if err := query.Select("start_time, end_time").
 		Where("staff_id = ? AND status <> ? AND start_time < ? AND end_time > ?", staffID, config.StatusCancelled, to, from).
 		Scan(&busy).Error; err != nil {
 		return nil, err

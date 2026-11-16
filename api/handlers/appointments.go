@@ -11,8 +11,10 @@ import (
 	"github.com/BryanPMX/CAF/api/middleware"
 	"github.com/BryanPMX/CAF/api/models"
 	securityutil "github.com/BryanPMX/CAF/api/security"
+	"github.com/BryanPMX/CAF/api/services"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 // GetAppointmentsEnhanced returns appointments based on user permissions and department
@@ -20,7 +22,7 @@ func GetAppointmentsEnhanced(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Initialize with empty slice to prevent null JSON response
 		appointments := make([]models.Appointment, 0)
-		query := db.Order("start_time desc").Limit(100)
+		query := db.Preload("Client").Order("start_time desc").Limit(100)
 
 		// Preload nested data with optimized queries
 		query = query.Preload("Staff", func(db *gorm.DB) *gorm.DB {
@@ -52,11 +54,11 @@ func GetAppointmentsEnhanced(db *gorm.DB) gin.HandlerFunc {
 			// Add office/department scoped appointments
 			if officeScopeID != nil && userDepartment != nil {
 				accessConditions = accessConditions.Or(
-					db.Where("appointments.case_id IN (SELECT id FROM cases WHERE office_id = ?)", officeScopeID).
+					db.Where("appointments.office_id = ?", officeScopeID).
 						Where("appointments.department = ?", userDepartment),
 				)
 			} else if officeScopeID != nil {
-				accessConditions = accessConditions.Or("appointments.case_id IN (SELECT id FROM cases WHERE office_id = ?)", officeScopeID)
+				accessConditions = accessConditions.Or("appointments.office_id = ?", officeScopeID)
 			} else if userDepartment != nil {
 				accessConditions = accessConditions.Or("appointments.department = ?", userDepartment)
 			}
@@ -64,13 +66,16 @@ func GetAppointmentsEnhanced(db *gorm.DB) gin.HandlerFunc {
 			query = query.Where(accessConditions)
 		}
 
+		if clientID := c.Query("clientId"); clientID != "" {
+			query = query.Where("(appointments.client_id = ? OR appointments.case_id IN (SELECT id FROM cases WHERE client_id = ?))", clientID, clientID)
+		}
 		// Apply additional filters from query parameters
 		if status := c.Query("status"); status != "" {
 			query = query.Where("appointments.status = ?", status)
 		}
 		if category := c.Query("category"); category != "" {
 			// Filter by case category since category equals type of case
-			query = query.Joins("INNER JOIN cases ON cases.id = appointments.case_id AND cases.category = ?", category)
+			query = query.Where("(appointments.case_id IN (SELECT id FROM cases WHERE category = ?) OR (appointments.case_id IS NULL AND appointments.category = ?))", category, category)
 		}
 		if department := c.Query("department"); department != "" {
 			query = query.Where("appointments.department = ?", department)
@@ -150,7 +155,7 @@ func GetAppointmentByIDEnhanced(db *gorm.DB) gin.HandlerFunc {
 		appointmentID := c.Param("id")
 		var appointment models.Appointment
 
-		query := db.Preload("Staff").Preload("Case.Client").Preload("Case.Office")
+		query := db.Preload("Staff").Preload("Client").Preload("Case.Client").Preload("Case.Office")
 
 		// Apply access control
 		userRole := c.GetString("userRole")
@@ -171,11 +176,11 @@ func GetAppointmentByIDEnhanced(db *gorm.DB) gin.HandlerFunc {
 
 			if officeScopeID != nil && userDepartment != nil {
 				accessConditions = accessConditions.Or(
-					db.Where("appointments.case_id IN (SELECT id FROM cases WHERE office_id = ?)", officeScopeID).
+					db.Where("appointments.office_id = ?", officeScopeID).
 						Where("appointments.department = ?", userDepartment),
 				)
 			} else if officeScopeID != nil {
-				accessConditions = accessConditions.Or("appointments.case_id IN (SELECT id FROM cases WHERE office_id = ?)", officeScopeID)
+				accessConditions = accessConditions.Or("appointments.office_id = ?", officeScopeID)
 			} else if userDepartment != nil {
 				accessConditions = accessConditions.Or("appointments.department = ?", userDepartment)
 			}
@@ -310,7 +315,7 @@ func CreateAppointmentEnhanced(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		// Load relationships for response
-		if err := db.Preload("Staff").Preload("Case.Client").First(&appointment, appointment.ID).Error; err != nil {
+		if err := db.Preload("Staff").Preload("Client").Preload("Case.Client").First(&appointment, appointment.ID).Error; err != nil {
 			log.Printf("CreateAppointment: Failed to load relationships: %v", err)
 		}
 
@@ -403,11 +408,42 @@ func UpdateAppointmentEnhanced(db *gorm.DB) gin.HandlerFunc {
 				c.JSON(http.StatusForbidden, gin.H{"error": "Staff member is outside your scheduling scope"})
 				return
 			}
+			if appointment.CaseID == 0 && appointment.ClientID != nil && (selectedStaff.OfficeID == nil || *selectedStaff.OfficeID != appointment.OfficeID) {
+				c.JSON(400, gin.H{"error": "El personal debe pertenecer a la oficina de la cita"})
+				return
+			}
 			updates["staff_id"] = input.StaffID
 		}
 
-		if err := db.Model(&appointment).Updates(updates).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update appointment"})
+		err := db.Transaction(func(tx *gorm.DB) error {
+			if appointment.CaseID == 0 && appointment.ClientID != nil && (!input.StartTime.IsZero() || !input.EndTime.IsZero() || input.StaffID != 0) {
+				staffID := appointment.StaffID
+				if input.StaffID != 0 {
+					staffID = input.StaffID
+				}
+				var employee models.User
+				if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&employee, staffID).Error; err != nil {
+					return err
+				}
+				start, end := appointment.StartTime, appointment.EndTime
+				if !input.StartTime.IsZero() {
+					start = input.StartTime
+				}
+				if !input.EndTime.IsZero() {
+					end = input.EndTime
+				}
+				busy, err := employeeBusyIntervals(tx, staffID, start, end, appointment.ID)
+				if err != nil {
+					return err
+				}
+				if len(busy) > 0 {
+					return services.InvalidOrganization("El personal no está disponible en ese horario")
+				}
+			}
+			return tx.Model(&appointment).Updates(updates).Error
+		})
+		if err != nil {
+			organizationFailure(c, err)
 			return
 		}
 		// Reload to get updated fields for notifications
@@ -532,7 +568,7 @@ func GetMyAppointments(db *gorm.DB) gin.HandlerFunc {
 		// Initialize with empty slice to prevent null JSON response
 		appointments := make([]models.Appointment, 0)
 		query := db.Where("staff_id = ?", userIDUint).
-			Preload("Case.Client").
+			Preload("Client").Preload("Case.Client").
 			Preload("Case.Office").
 			Order("start_time desc")
 
@@ -542,7 +578,7 @@ func GetMyAppointments(db *gorm.DB) gin.HandlerFunc {
 		}
 		if category := c.Query("category"); category != "" {
 			// Filter by case category since category equals type of case
-			query = query.Joins("INNER JOIN cases ON cases.id = appointments.case_id AND cases.category = ?", category)
+			query = query.Where("(appointments.case_id IN (SELECT id FROM cases WHERE category = ?) OR (appointments.case_id IS NULL AND appointments.category = ?))", category, category)
 		}
 		// Handle date filtering (single date or date range)
 		if date := c.Query("date"); date != "" {

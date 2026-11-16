@@ -14,7 +14,8 @@
     "test:all": "npm run test:crud && npm run test:quick && npm run test:performance && npm run test:comprehensive",
     "test:roles": "node --test portal-roles.test.cjs appointment-availability.test.cjs",
     "test:e2e:roles": "node --test portal-rbac.e2e.cjs",
-    "test:e2e:profiles": "node --test profile.e2e.cjs"
+    "test:e2e:profiles": "node --test profile.e2e.cjs",
+    "test:e2e:organizations": "node --test organizations.e2e.cjs"
   },
   "dependencies": {
     "axios": "^1.6.0"

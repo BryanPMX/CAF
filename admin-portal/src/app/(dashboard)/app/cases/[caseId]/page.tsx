@@ -13,6 +13,7 @@ import { CaseService } from '@/services/caseService';
 import { TaskService } from '@/services/taskService';
 import { useAuth } from '@/context/AuthContext';
 import { CaseDetails } from '@/app/lib/types';
+import { EmploymentSummary } from '@/components/organizations/OrganizationLinks';
 import CaseTimeline from './components/CaseTimeline';
 import AddCommentForm from './components/AddCommentForm';
 import UploadDocument from './components/UploadDocument';
@@ -463,6 +464,7 @@ const CaseDetailPage = () => {
         )}
       </div>
 
+      <EmploymentSummary employment={caseDetails} maquila={caseDetails.maquila}/>
       <Card className="mb-6">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-semibold">Resumen del Caso #{caseDetails.id}</h2>
@@ -477,7 +479,7 @@ const CaseDetailPage = () => {
                 Completar Caso
               </Button>
             )}
-            {canManageCase && (PERMISSIONS[staffRole as keyof typeof PERMISSIONS]?.includes('manage_users') || PERMISSIONS[staffRole as keyof typeof PERMISSIONS]?.includes('*')) && (
+            {canManageCase && (PERMISSIONS[staffRole as keyof typeof PERMISSIONS]?.includes('cases.write') || PERMISSIONS[staffRole as keyof typeof PERMISSIONS]?.includes('*')) && (
               <Button 
                 type="primary" 
                 icon={<EditOutlined />}
@@ -562,6 +564,8 @@ const CaseDetailPage = () => {
           docketNumber: caseDetails?.docketNumber || '',
           court: caseDetails?.court || '',
           description: caseDetails?.description || '',
+          officeId:caseDetails.officeId,
+          employment:{maquilaId:caseDetails.maquilaId,employeeNumber:caseDetails.employeeNumber || '',shiftName:caseDetails.shiftName || '',shiftStart:caseDetails.shiftStart || '',shiftEnd:caseDetails.shiftEnd || ''},
         }}
       />
 

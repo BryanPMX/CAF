@@ -9,6 +9,7 @@ export interface WorkflowOffice {
 }
 
 export interface WorkflowUser {
+  clientType?: 'person' | 'organization';
   id: number;
   firstName: string;
   lastName: string;
@@ -71,13 +72,18 @@ export const WorkflowService = {
     const response = await apiClient.get(`${rolePrefix(role)}/users`, {
       params: { role: 'client', q: query || undefined, page: 1, pageSize: limit, limit },
     });
-    return listFromResponse<WorkflowUser>(response.data);
+    return listFromResponse<WorkflowUser>(response.data).filter(client => client.clientType !== 'organization');
   },
 
   async listClientCases(role: UserRole, clientId: number): Promise<WorkflowCase[]> {
     assertEmployee(role);
     const response = await apiClient.get(`${rolePrefix(role)}/clients/${clientId}/cases-for-appointment`);
     return listFromResponse<WorkflowCase>(response.data);
+  },
+
+  async updateCase(role: UserRole, id: string, payload: unknown): Promise<void> {
+    assertEmployee(role);
+    await apiClient.put(getCasesEndpoint(role, 'update', id), payload);
   },
 
   async createCase(role: UserRole, payload: unknown): Promise<void> {

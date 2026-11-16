@@ -296,7 +296,7 @@ func (h *PerformanceOptimizedHandler) GetOptimizedAppointmentByID() gin.HandlerF
 		query := h.db.Model(&models.Appointment{}).
 			Preload("Staff").
 			Preload("Case").
-			Preload("Case.Client").
+			Preload("Client").Preload("Case.Client").
 			Where("id = ? AND deleted_at IS NULL", appointmentID)
 
 		// Apply access control

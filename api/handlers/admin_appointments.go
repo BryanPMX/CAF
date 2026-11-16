@@ -13,6 +13,7 @@ import (
 	"github.com/BryanPMX/CAF/api/models"
 	"github.com/BryanPMX/CAF/api/notifications"
 	securityutil "github.com/BryanPMX/CAF/api/security"
+	"github.com/BryanPMX/CAF/api/services"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -31,6 +32,8 @@ var validAppointmentStatuses = map[string]bool{
 // SmartAppointmentInput defines the flexible structure for scheduling an appointment from the admin portal.
 // It uses pointers and nested structs to handle different scenarios gracefully.
 type SmartAppointmentInput struct {
+	WithoutCase bool `json:"withoutCase"`
+	OfficeID    uint `json:"officeId"`
 	// --- Client Information (only one of these should be provided) ---
 	ClientID  *uint     `json:"clientId"` // The ID of an existing client.
 	NewClient *struct { // The details to create a new client on the fly.
@@ -71,7 +74,11 @@ func validateSmartAppointmentInput(input *SmartAppointmentInput) error {
 	if (input.ClientID == nil) == (input.NewClient == nil) {
 		return fmt.Errorf("provide exactly one existing or new client")
 	}
-	if (input.CaseID == nil) == (input.NewCase == nil) {
+	if input.WithoutCase {
+		if input.ClientID == nil || input.NewClient != nil || input.CaseID != nil || input.NewCase != nil || input.OfficeID == 0 {
+			return fmt.Errorf("una cita directa requiere cliente y oficina, sin expediente")
+		}
+	} else if (input.CaseID == nil) == (input.NewCase == nil) {
 		return fmt.Errorf("provide exactly one existing or new case")
 	}
 	if input.NewClient != nil {
@@ -113,6 +120,15 @@ func CreateAppointmentSmart(db *gorm.DB) gin.HandlerFunc {
 		}
 		if err := validateSchedulingTime(input.StartTime, input.EndTime, time.Now(), input.TimeZone); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		if input.WithoutCase {
+			if !config.CanAccessAllOffices(actor.Role) && (actor.OfficeID == nil || *actor.OfficeID != input.OfficeID) {
+				c.JSON(403, gin.H{"error": "Oficina fuera de su alcance"})
+				return
+			}
+			createDirectClientAppointment(db, c, input, actor)
 			return
 		}
 
@@ -280,6 +296,14 @@ func CreateAppointmentSmart(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
+		if hasClient {
+			if err := services.ValidateCaseClient(client); err != nil {
+				tx.Rollback()
+				c.JSON(400, gin.H{"error": err.Error()})
+				return
+			}
+		}
+
 		// --- Step 2: Determine the Case ---
 		if input.CaseID != nil {
 			// Scenario: Use an existing case.
@@ -340,6 +364,11 @@ func CreateAppointmentSmart(db *gorm.DB) gin.HandlerFunc {
 				}(),
 				CreatedBy:      actor.ID,
 				PrimaryStaffID: &input.StaffID,
+			}
+			if err := services.ApplyCaseEmployment(tx, actor, &caseRecord, nil); err != nil {
+				tx.Rollback()
+				c.JSON(400, gin.H{"error": err.Error()})
+				return
 			}
 			if err := tx.Create(&caseRecord).Error; err != nil {
 				tx.Rollback()
@@ -699,7 +728,7 @@ func GetAppointmentByIDAdmin(db *gorm.DB) gin.HandlerFunc {
 		var appointment models.Appointment
 
 		// Use Preload to efficiently load appointment with all related data
-		query := db.Preload("Case").Preload("Case.Client").Preload("Staff").Where("id = ? AND deleted_at IS NULL", appointmentID)
+		query := db.Preload("Case").Preload("Client").Preload("Case.Client").Preload("Staff").Where("id = ? AND deleted_at IS NULL", appointmentID)
 
 		if err := query.First(&appointment).Error; err != nil {
 			if err == gorm.ErrRecordNotFound {
@@ -736,12 +765,12 @@ func GetAppointmentByIDAdmin(db *gorm.DB) gin.HandlerFunc {
 				return gin.H{"id": appointment.StaffID}
 			}(),
 			"client": func() gin.H {
-				if appointment.Case.ID != 0 && appointment.Case.Client != nil {
+				if client := appointment.RelatedClient(); client != nil {
 					return gin.H{
-						"id":        appointment.Case.Client.ID,
-						"firstName": appointment.Case.Client.FirstName,
-						"lastName":  appointment.Case.Client.LastName,
-						"email":     appointment.Case.Client.Email,
+						"id":        client.ID,
+						"firstName": client.FirstName,
+						"lastName":  client.LastName,
+						"email":     client.Email,
 					}
 				}
 				return gin.H{}
