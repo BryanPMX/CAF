@@ -51,11 +51,11 @@ COMMENT ON VIEW deleted_cases IS 'View showing only deleted or archived cases';
 INSERT INTO audit_logs (
     entity_type, entity_id, action, user_id, user_role,
     reason, tags, severity, created_at
-) VALUES (
+) SELECT
     'system', 0, 'migration', 1, 'admin',
     'Migrated legacy migration: Fixed timestamp column types and recreated views',
     ARRAY['migration', 'legacy_consolidation', 'schema_fix', 'views', 'timestamp_fix'], 'info', CURRENT_TIMESTAMP
-);
+WHERE EXISTS (SELECT 1 FROM users WHERE id = 1);
 
 -- Success notification (must be in DO block)
 DO $$

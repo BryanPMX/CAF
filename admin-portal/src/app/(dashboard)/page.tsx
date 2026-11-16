@@ -1,5 +1,7 @@
 'use client';
 
+import { canAccessAllOffices } from '@/config/roles';
+
 import { useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -68,7 +70,7 @@ export default function DashboardPage() {
   const { user } = useAuth();
   const role = user?.role;
   const isStaff = isDashboardStaffRole(role);
-  const isAdmin = role === 'executive_director';
+  const isAdmin = canAccessAllOffices(role ?? '');
   const isManager = role === 'admin' || role === 'office_manager';
 
   const {

@@ -106,11 +106,11 @@ COMMENT ON INDEX idx_user_case_assignments_lookup IS 'Optimizes user-case assign
 INSERT INTO audit_logs (
     entity_type, entity_id, action, user_id, user_role,
     reason, tags, severity, created_at
-) VALUES (
+) SELECT
     'system', 0, 'migration', 1, 'admin',
     'Applied performance optimization indexes for complex queries - expected 70-85% query performance improvement',
     ARRAY['migration', 'performance', 'indexes', 'optimization', 'database'], 'info', CURRENT_TIMESTAMP
-);
+WHERE EXISTS (SELECT 1 FROM users WHERE id = 1);
 
 -- =============================================
 -- SUCCESS NOTIFICATION

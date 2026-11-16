@@ -120,7 +120,7 @@ func (s *UserServiceImpl) ListUsers(ctx context.Context, filter interfaces.UserL
 // CreateUser creates a new user with proper validation
 func (s *UserServiceImpl) CreateUser(ctx context.Context, userData interfaces.CreateUserRequest, requestingUser interfaces.UserContext) (*models.User, error) {
 	// Check permissions - only admins can create users
-	if !config.CanManageUsers(requestingUser.Role) || (!config.CanAccessAllOffices(requestingUser.Role) && (userData.Role == config.RoleExecutiveDirector || requestingUser.OfficeID == nil || *requestingUser.OfficeID != userData.OfficeID)) {
+	if userData.Role == config.RoleTechnicalSupport || !config.CanManageUsers(requestingUser.Role) || (!config.CanAccessAllOffices(requestingUser.Role) && (config.CanAccessAllOffices(userData.Role) || requestingUser.OfficeID == nil || *requestingUser.OfficeID != userData.OfficeID)) {
 		return nil, errors.New("access denied: only administrators can create users")
 	}
 

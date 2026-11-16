@@ -95,11 +95,11 @@ WHERE visibility IS NULL OR visibility = '';
 INSERT INTO audit_logs (
     entity_type, entity_id, action, user_id, user_role,
     reason, tags, severity, created_at
-) VALUES (
+) SELECT
     'system', 0, 'migration', 1, 'admin',
     'Emergency migration: Fixed missing case_events columns (visibility, comment_text, file_name, file_url, file_type)',
     ARRAY['migration', 'emergency', 'schema_fix', 'case_events', 'column_add'], 'critical', CURRENT_TIMESTAMP
-);
+WHERE EXISTS (SELECT 1 FROM users WHERE id = 1);
 
 -- Step 9: Verify the fix
 DO $$

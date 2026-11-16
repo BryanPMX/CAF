@@ -9,7 +9,7 @@ import OfficeModal from './components/OfficeModal';
 import { useHydrationSafe } from '@/hooks/useHydrationSafe';
 import { useAuth } from '@/context/AuthContext';
 import { OfficeService } from '@/services';
-import { getRoleDisplayName } from '@/config/roles';
+import { isAdminRole, canAccessAllOffices, getRoleDisplayName } from '@/config/roles';
 
 const { Text, Title } = Typography;
 
@@ -44,6 +44,7 @@ interface OfficeDetail {
 
 // Role color mapping for consistent badges
 const ROLE_COLORS: Record<string, string> = {
+  technical_support: 'cyan',
   executive_director: 'purple',
   admin: 'red',
   office_manager: 'blue',
@@ -222,8 +223,8 @@ const OfficeManagementPage = () => {
           <Button size="small" onClick={() => handleViewDetail(record)}>
             Ver Detalle
           </Button>
-          {(userRole === 'executive_director' || userRole === 'admin') && <Button icon={<EditOutlined />} size="small" onClick={() => handleEdit(record)} />}
-          {userRole === 'executive_director' && (
+          {(isAdminRole(userRole ?? '')) && <Button icon={<EditOutlined />} size="small" onClick={() => handleEdit(record)} />}
+          {canAccessAllOffices(userRole ?? '') && (
             <>
               <Popconfirm
                 title="Eliminar oficina"
@@ -252,7 +253,7 @@ const OfficeManagementPage = () => {
           </h1>
           <Text type="secondary">Haga clic en el nombre de una oficina para ver su detalle, personal y clientes</Text>
         </div>
-        {userRole === 'executive_director' && (
+        {canAccessAllOffices(userRole ?? '') && (
           <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
             Crear Oficina
           </Button>

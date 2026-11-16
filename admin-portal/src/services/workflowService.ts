@@ -1,3 +1,4 @@
+import { isAdminRole } from '@/config/roles';
 import { apiClient } from '@/app/lib/api';
 import type { UserRole } from '@/app/lib/types';
 import { getAppointmentsEndpoint, getCasesEndpoint, getEndpointGroup } from '@/app/lib/api-endpoints';
@@ -50,7 +51,7 @@ function listFromResponse<T>(payload: unknown): T[] {
 export const WorkflowService = {
   async listOffices(role: UserRole): Promise<WorkflowOffice[]> {
     assertEmployee(role);
-    const endpoint = (role === 'executive_director' || role === 'admin') || role === 'office_manager'
+    const endpoint = (isAdminRole(role ?? '')) || role === 'office_manager'
       ? `${rolePrefix(role)}/offices`
       : '/offices';
     const response = await apiClient.get(endpoint);

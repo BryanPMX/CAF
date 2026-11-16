@@ -1,3 +1,4 @@
+import { isAdminRole } from '@/config/roles';
 // admin-portal/src/services/recordService.ts
 // Centralized Record Data Access Layer
 
@@ -18,7 +19,7 @@ export class RecordService {
     // Determine endpoint based on role
     let endpoint: string;
     
-    if ((userRole === 'executive_director' || userRole === 'admin')) {
+    if (isAdminRole(userRole ?? '')) {
       endpoint = '/admin/records/stats';
     } else if (userRole === 'office_manager') {
       endpoint = '/manager/records/stats';
@@ -62,7 +63,7 @@ export class RecordService {
     // Determine endpoint based on role
     let endpoint: string;
     
-    if ((userRole === 'executive_director' || userRole === 'admin')) {
+    if (isAdminRole(userRole ?? '')) {
       endpoint = `/admin/records/cases?${queryParams}`;
     } else if (userRole === 'office_manager') {
       endpoint = `/manager/records/cases?${queryParams}`;
@@ -106,7 +107,7 @@ export class RecordService {
     // Determine endpoint based on role
     let endpoint: string;
     
-    if ((userRole === 'executive_director' || userRole === 'admin')) {
+    if (isAdminRole(userRole ?? '')) {
       endpoint = `/admin/records/appointments?${queryParams}`;
     } else if (userRole === 'office_manager') {
       endpoint = `/manager/records/appointments?${queryParams}`;
@@ -129,7 +130,7 @@ export class RecordService {
     // Determine endpoint based on role
     let endpoint: string;
     
-    if ((userRole === 'executive_director' || userRole === 'admin')) {
+    if (isAdminRole(userRole ?? '')) {
       endpoint = `/admin/records/cases/${caseId}/restore`;
     } else if (userRole === 'office_manager') {
       endpoint = `/manager/records/cases/${caseId}/restore`;
@@ -150,7 +151,7 @@ export class RecordService {
     // Determine endpoint based on role
     let endpoint: string;
     
-    if ((userRole === 'executive_director' || userRole === 'admin')) {
+    if (isAdminRole(userRole ?? '')) {
       endpoint = `/admin/records/cases/${caseId}`;
     } else if (userRole === 'office_manager') {
       endpoint = `/manager/records/cases/${caseId}`;
@@ -171,7 +172,7 @@ export class RecordService {
     // Determine endpoint based on role
     let endpoint: string;
     
-    if ((userRole === 'executive_director' || userRole === 'admin')) {
+    if (isAdminRole(userRole ?? '')) {
       endpoint = `/admin/records/appointments/${appointmentId}/restore`;
     } else if (userRole === 'office_manager') {
       endpoint = `/manager/records/appointments/${appointmentId}/restore`;
@@ -192,7 +193,7 @@ export class RecordService {
     // Determine endpoint based on role
     let endpoint: string;
     
-    if ((userRole === 'executive_director' || userRole === 'admin')) {
+    if (isAdminRole(userRole ?? '')) {
       endpoint = `/admin/records/appointments/${appointmentId}`;
     } else if (userRole === 'office_manager') {
       endpoint = `/manager/records/appointments/${appointmentId}`;

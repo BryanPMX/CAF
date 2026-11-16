@@ -44,13 +44,13 @@ func (qb *CaseQueryBuilder) ExcludeArchived() *CaseQueryBuilder {
 
 // ApplyAccessControl applies access control based on user context
 func (qb *CaseQueryBuilder) ApplyAccessControl(c *gin.Context) *CaseQueryBuilder {
-	userRole, _ := c.Get("userRole")
+	userRole := c.GetString("userRole")
 	userDepartment, _ := c.Get("userDepartment")
 	officeScopeID, _ := c.Get("officeScopeID")
 	userID, _ := c.Get("userID")
 
 	// Admin users see all cases
-	if userRole == config.RoleExecutiveDirector {
+	if config.CanAccessAllOffices(userRole) {
 		return qb
 	}
 
@@ -270,7 +270,7 @@ func (s *CaseService) GetCaseByID(caseID string, light bool) (*models.Case, erro
 }
 
 func applyCaseCreationScope(requestData map[string]interface{}, actor models.User) error {
-	if actor.Role == config.RoleExecutiveDirector {
+	if config.CanAccessAllOffices(actor.Role) {
 		return nil
 	}
 	if actor.OfficeID == nil || *actor.OfficeID == 0 {
@@ -373,7 +373,7 @@ func (s *CaseService) CreateCase(c *gin.Context) (*models.Case, error) {
 		}
 	}
 
-	if clientID != nil && actor.Role != config.RoleExecutiveDirector {
+	if clientID != nil && !config.CanAccessAllOffices(actor.Role) {
 		var selectedClient models.User
 		if err := s.db.Select("id, role, office_id").First(&selectedClient, *clientID).Error; err != nil {
 			return nil, fmt.Errorf("client not found")
@@ -556,7 +556,7 @@ func (s *CaseService) DeleteCase(caseID string, c *gin.Context) error {
 // GetMyCases retrieves cases assigned to the current user
 func (s *CaseService) GetMyCases(c *gin.Context) ([]models.Case, int64, error) {
 	userID, _ := c.Get("userID")
-	userRole, _ := c.Get("userRole")
+	userRole := c.GetString("userRole")
 
 	var cases []models.Case
 	var total int64

@@ -1,6 +1,8 @@
 // admin-portal/src/app/(dashboard)/admin/cases/[caseId]/components/CaseTimeline.tsx
 'use client';
 
+import { isAdminRole } from '@/config/roles';
+
 import React, { useState, useCallback, useMemo } from 'react';
 import { Timeline, Tag, Button, Popconfirm, message, Space, Dropdown } from 'antd';
 import { CommentOutlined, FilePdfOutlined, FileTextOutlined, PaperClipOutlined, EditOutlined, DeleteOutlined, EyeOutlined, DownloadOutlined, MoreOutlined } from '@ant-design/icons';
@@ -93,7 +95,7 @@ const CaseTimeline: React.FC<CaseTimelineProps> = ({ events, onRefresh }) => {
   // Check if user can delete an item (only admins and office managers)
   const canDeleteItem = useCallback(() => {
     if (!userRole) return false;
-    return (userRole === 'executive_director' || userRole === 'admin') || userRole === 'office_manager';
+    return (isAdminRole(userRole ?? '')) || userRole === 'office_manager';
   }, [userRole]);
 
   // Check if file can be previewed or opened

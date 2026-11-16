@@ -39,7 +39,7 @@ import type {
   EmployeeCalendarEvent,
 } from '@/app/lib/calendar';
 import { useAuth } from '@/context/AuthContext';
-import { isManagementRole } from '@/config/roles';
+import { isAdminRole, isManagementRole } from '@/config/roles';
 import { CalendarService } from '@/services/calendarService';
 import CalendarEventModal from './components/CalendarEventModal';
 
@@ -378,7 +378,7 @@ export default function EmployeeCalendarPage() {
 
               const response = item.event.attendees.find((attendee) => attendee.userId === user?.id)?.responseStatus || 'pending';
               const isOrganizer = item.event.organizerId === user?.id;
-              const canManage = isOrganizer || user?.role === 'executive_director' || user?.role === 'admin';
+              const canManage = isOrganizer || isAdminRole(user?.role ?? '');
               return (
                 <div key={item.key} className="rounded-2xl border border-violet-200 bg-violet-50/50 p-4">
                   <div className="flex items-start justify-between gap-3">

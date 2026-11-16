@@ -32,7 +32,7 @@ func GetAppointmentsEnhanced(db *gorm.DB) gin.HandlerFunc {
 		})
 
 		// Apply access control based on user role and department
-		userRole, _ := c.Get("userRole")
+		userRole := c.GetString("userRole")
 		userDepartment, _ := c.Get("userDepartment")
 		officeScopeID, _ := c.Get("officeScopeID")
 
@@ -40,7 +40,7 @@ func GetAppointmentsEnhanced(db *gorm.DB) gin.HandlerFunc {
 		// Office managers see ALL appointments in their office (they manage the entire office)
 		if userRole == config.RoleOfficeManager || userRole == config.RoleAdmin {
 			query = query.Where("appointments.office_id = ?", officeScopeID)
-		} else if userRole != config.RoleExecutiveDirector && userRole != "client" {
+		} else if !config.CanAccessAllOffices(userRole) && userRole != "client" {
 			// Staff users: build a compound condition for access control
 			// They can see appointments they're assigned to OR appointments from their office/department
 			userID, _ := c.Get("userID")
@@ -153,7 +153,7 @@ func GetAppointmentByIDEnhanced(db *gorm.DB) gin.HandlerFunc {
 		query := db.Preload("Staff").Preload("Case.Client").Preload("Case.Office")
 
 		// Apply access control
-		userRole, _ := c.Get("userRole")
+		userRole := c.GetString("userRole")
 		userDepartment, _ := c.Get("userDepartment")
 		officeScopeID, _ := c.Get("officeScopeID")
 
@@ -161,7 +161,7 @@ func GetAppointmentByIDEnhanced(db *gorm.DB) gin.HandlerFunc {
 		// Office managers can access ALL appointments in their office
 		if userRole == config.RoleOfficeManager || userRole == config.RoleAdmin {
 			query = query.Where("appointments.office_id = ?", officeScopeID)
-		} else if userRole != config.RoleExecutiveDirector && userRole != "client" {
+		} else if !config.CanAccessAllOffices(userRole) && userRole != "client" {
 			// Staff users: they can access appointments assigned to them OR from their office/department
 			userID, _ := c.Get("userID")
 			userIDUint, _ := strconv.ParseUint(userID.(string), 10, 32)

@@ -6,7 +6,7 @@ import { Alert, Modal, Form, Input, Select, message, Row, Col } from 'antd';
 import { UserOutlined, MailOutlined, PhoneOutlined } from '@ant-design/icons';
 import { apiClient } from '@/app/lib/api';
 import { useAuth } from '@/context/AuthContext';
-import { requiresOffice, getAllRoles, USER_ROLES, type StaffRoleKey, canManageUser, canAccessAllOffices, isManagementRole, USER_MANAGEMENT_DENIED_MESSAGE } from '@/config/roles';
+import { requiresOffice, getAssignableRoles, canResetPasswords, USER_ROLES, type StaffRoleKey, canManageUser, canAccessAllOffices, isManagementRole, USER_MANAGEMENT_DENIED_MESSAGE } from '@/config/roles';
 import { createPhoneFormRule, createStrongPasswordFormRule } from '@/core/validation';
 
 const { Option } = Select;
@@ -36,7 +36,7 @@ interface UserModalProps {
 }
 
 const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user }) => {
-  const { user: currentUser, updateUser } = useAuth();
+  const { user: currentUser, updateUser, logout } = useAuth();
   const [form] = Form.useForm(); // Ant Design's hook to control the form state.
   const [loading, setLoading] = useState(false);
   const [offices, setOffices] = useState<Office[]>([]);
@@ -69,6 +69,7 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
       // Always fetch offices when modal opens, regardless of current role selection
       fetchOffices();
 
+      form.resetFields();
       // If we are editing an existing user, populate the form with their data.
       if (isEditing) {
         form.setFieldsValue({
@@ -80,9 +81,8 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
         setSelectedRole(user.role);
       } else {
         // If we are creating a new user, ensure the form is empty.
-        form.resetFields();
         setSelectedRole('');
-        if (currentUserRole !== 'executive_director' && currentUserOfficeId) {
+        if (!canAccessAllOffices(currentUserRole ?? '') && currentUserOfficeId) {
           form.setFieldsValue({ officeId: currentUserOfficeId });
         }
       }
@@ -98,7 +98,8 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
     const messageKey = isEditing ? 'updateUser' : 'createUser';
     try {
       setSubmitError(null);
-      const values = await form.validateFields(); // Ensure all form fields are valid.
+      const values = await form.validateFields();
+      if (isEditing && !values.password) delete values.password;
       setLoading(true);
       message.loading({ content: 'Guardando...', key: messageKey });
 
@@ -111,6 +112,11 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
         const response = await apiClient.patch(`${base}/users/${user.id}`, values);
         const updated = response?.data;
         // If the edited user is the current user, sync auth context so the header "Bienvenido, ..." updates (server response only).
+        if (values.password && updated?.id === currentUser?.id) {
+          onClose();
+          logout();
+          return;
+        }
         if (currentUser && updated && Number(updated.id) === currentUser.id && typeof updated.firstName === 'string' && typeof updated.lastName === 'string') {
           updateUser({
             id: updated.id,
@@ -156,7 +162,7 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
     
     // For office managers creating/editing to staff role: auto-set their office
     // This is needed because the office dropdown is disabled for staff roles
-    if (currentUserRole !== 'executive_director') {
+    if (!canAccessAllOffices(currentUserRole ?? '')) {
       if (currentUserOfficeId) {
         form.setFieldsValue({ officeId: Number(currentUserOfficeId) });
       }
@@ -169,12 +175,7 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
 
   // Get available roles based on current user's role
   const getAvailableRoles = () => {
-    const allRoles = getAllRoles();
-    // Office managers cannot create admin users
-    if (currentUserRole !== 'executive_director') {
-      return allRoles.filter(role => role.value !== USER_ROLES.EXECUTIVE_DIRECTOR && (currentUserRole !== 'office_manager' || role.value !== USER_ROLES.ADMIN));
-    }
-    return allRoles;
+    return getAssignableRoles(currentUserRole ?? '', user?.role);
   };
 
   if (!isAuthorized) return null;
@@ -218,10 +219,10 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
           name="email"
           label="Correo Electrónico Organizacional"
           rules={[
-            { required: selectedRole === USER_ROLES.CLIENT, message: 'El correo electrónico es requerido para clientes' },
+            { required: isEditing || selectedRole === USER_ROLES.CLIENT, message: 'El correo electrónico es requerido' },
             { type: 'email', message: 'Ingrese un correo válido' },
           ]}
-          extra={selectedRole && selectedRole !== 'client' ? 'Si se deja vacío se generará uno corporativo automáticamente.' : undefined}
+          extra={!isEditing && selectedRole && selectedRole !== 'client' ? 'Si se deja vacío se generará uno corporativo automáticamente.' : undefined}
         >
           <Input prefix={<MailOutlined style={{ color: '#bfbfbf' }} />} placeholder="ejemplo@caf-mexico.com" />
         </Form.Item>
@@ -246,12 +247,12 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
           />
         </Form.Item>
 
-        {!isEditing && (
+        {(!isEditing || canResetPasswords(currentUserRole ?? '')) && (
           <Form.Item
             name="password"
-            label="Contraseña Temporal"
-            rules={[{ validator: createStrongPasswordFormRule() }]}
-            extra="Mínimo 12 caracteres con mayúscula, minúscula, número y símbolo."
+            label={isEditing ? "Nueva contraseña" : "Contraseña Temporal"}
+            rules={[{ validator: createStrongPasswordFormRule(!isEditing) }]}
+            extra={isEditing ? "Deje vacío para conservar la contraseña. Al cambiarla se cerrarán las sesiones del usuario." : "Mínimo 12 caracteres con mayúscula, minúscula, número y símbolo."}
           >
             <Input.Password maxLength={72} placeholder="Contraseña temporal segura" />
           </Form.Item>
@@ -260,7 +261,7 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
         <Row gutter={16}>
           <Col xs={24} sm={12}>
             <Form.Item name="role" label="Rol" rules={[{ required: true, message: 'Seleccione un rol' }]}>
-              <Select placeholder="Asignar un rol" onChange={handleRoleChange}>
+              <Select disabled={user?.role === USER_ROLES.TECHNICAL_SUPPORT} placeholder="Asignar un rol" onChange={handleRoleChange}>
                 {getAvailableRoles().map((role) => (
                   <Option key={role.value} value={role.value}>{role.label}</Option>
                 ))}
@@ -273,7 +274,7 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
                 name="officeId"
                 label="Oficina"
                 rules={
-                  selectedRole && requiresOffice(selectedRole as StaffRoleKey) && currentUserRole === 'executive_director'
+                  selectedRole && requiresOffice(selectedRole as StaffRoleKey) && canAccessAllOffices(currentUserRole ?? '')
                     ? [{ required: true, message: 'Debe asignar una oficina al personal' }]
                     : []
                 }
@@ -281,7 +282,7 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
                 <Select
                   placeholder={selectedRole ? 'Seleccione una oficina' : 'Primero seleccione un rol'}
                   allowClear={selectedRole === USER_ROLES.CLIENT}
-                  disabled={!selectedRole || currentUserRole !== 'executive_director'}
+                  disabled={!selectedRole || !canAccessAllOffices(currentUserRole ?? '')}
                   showSearch
                   filterOption={(input, option) =>
                     (option?.children?.toString() ?? '').toLowerCase().includes(input.toLowerCase())

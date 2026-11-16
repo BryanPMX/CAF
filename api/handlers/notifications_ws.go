@@ -31,7 +31,7 @@ func NotificationsWebSocket(database *gorm.DB, jwtSecret string, allowedOrigins 
 			return
 		}
 
-		userID, err := securityutil.ParseJWT(tokenStr, jwtSecret, time.Now())
+		userID, version, err := securityutil.ParseSessionJWT(tokenStr, jwtSecret, time.Now())
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid token"})
 			return
@@ -40,7 +40,7 @@ func NotificationsWebSocket(database *gorm.DB, jwtSecret string, allowedOrigins 
 		// JWTs are intentionally short-lived, but a disabled/deleted account must
 		// lose WebSocket access immediately rather than when its token expires.
 		var user models.User
-		if err := database.Select("id", "is_active").First(&user, userID).Error; err != nil || !user.IsActive {
+		if err := database.Select("id", "is_active", "token_version").First(&user, userID).Error; err != nil || !user.IsActive || user.TokenVersion != version {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "account is not active"})
 			return
 		}
@@ -143,5 +143,16 @@ func BroadcastNotification(payload any) {
 				_ = websocket.JSON.Send(conn, gin.H{"type": "notification", "notification": payload})
 			}
 		}
+	}
+}
+
+// DisconnectUser closes notification connections after a credential reset.
+func DisconnectUser(userID string) {
+	UserConnMu.Lock()
+	connections := UserConns[userID]
+	delete(UserConns, userID)
+	UserConnMu.Unlock()
+	for conn := range connections {
+		_ = conn.Close()
 	}
 }

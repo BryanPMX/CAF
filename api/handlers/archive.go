@@ -2,6 +2,7 @@
 package handlers
 
 import (
+	"github.com/BryanPMX/CAF/api/config"
 	"net/http"
 	"strconv"
 	"time"
@@ -31,8 +32,8 @@ func CompleteCase(db *gorm.DB) gin.HandlerFunc {
 		user := currentUser.(models.User)
 
 		// Check permissions - only admins and office managers can complete cases
-		userRole, _ := c.Get("userRole")
-		if userRole != "executive_director" && userRole != "admin" && userRole != "office_manager" {
+		userRole := c.GetString("userRole")
+		if !config.CanAccessAllOffices(userRole) && userRole != "admin" && userRole != "office_manager" {
 			c.JSON(http.StatusForbidden, gin.H{"error": "Solo administradores y gerentes de oficina pueden completar casos"})
 			return
 		}

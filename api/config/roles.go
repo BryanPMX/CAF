@@ -16,6 +16,7 @@ type StaffRole struct {
 
 // Role constants - Single source of truth for all role keys
 const (
+	RoleTechnicalSupport  = "technical_support"
 	RoleExecutiveDirector = "executive_director"
 	RoleAdmin             = "admin"
 	RoleOfficeManager     = "office_manager"
@@ -28,6 +29,13 @@ const (
 // STAFF_ROLES is the authoritative list of all valid staff roles
 // This is the single source of truth for role definitions
 var STAFF_ROLES = map[string]StaffRole{
+	RoleTechnicalSupport: {
+		Key:         RoleTechnicalSupport,
+		SpanishName: "Soporte Tecnico",
+		EnglishName: "Technical Support",
+		Department:  "Support",
+		Description: "Protected system support with organization-wide access and credential management",
+	},
 	RoleExecutiveDirector: {
 		Key:         RoleExecutiveDirector,
 		SpanishName: "Director Ejecutivo",
@@ -81,6 +89,7 @@ var STAFF_ROLES = map[string]StaffRole{
 
 // VALID_ROLES contains all valid role keys for validation
 var VALID_ROLES = []string{
+	RoleTechnicalSupport,
 	RoleExecutiveDirector,
 	RoleAdmin,
 	RoleOfficeManager,
@@ -140,52 +149,52 @@ func GetRolesByDepartment(department string) map[string]StaffRole {
 
 // CanAccessAllOffices checks if a role can access data from all offices
 func CanAccessAllOffices(role string) bool {
-	return role == RoleExecutiveDirector
+	return role == RoleTechnicalSupport || role == RoleExecutiveDirector
 }
 
 // CanManageUsers checks if a role can manage users
 func CanManageUsers(role string) bool {
-	return role == RoleExecutiveDirector || role == RoleAdmin
+	return CanAccessAllOffices(role) || role == RoleAdmin
 }
 
 // CanManageOffices checks if a role can manage offices
 func CanManageOffices(role string) bool {
-	return role == RoleExecutiveDirector || role == RoleAdmin
+	return CanAccessAllOffices(role) || role == RoleAdmin
 }
 
 // CanManageFiles checks if a role can manage files
 func CanManageFiles(role string) bool {
-	return role == RoleExecutiveDirector || role == RoleAdmin
+	return CanAccessAllOffices(role) || role == RoleAdmin
 }
 
 // CanManageWebContent checks if a role can manage web content
 func CanManageWebContent(role string) bool {
-	return role == RoleExecutiveDirector
+	return CanAccessAllOffices(role)
 }
 
 // CanViewLegalDocuments checks if a role can view legal documents
 func CanViewLegalDocuments(role string) bool {
-	return role == RoleExecutiveDirector || role == RoleAdmin || role == RoleLawyer
+	return CanAccessAllOffices(role) || role == RoleAdmin || role == RoleLawyer
 }
 
 // CanViewPsychologicalDocuments checks if a role can view psychological documents
 func CanViewPsychologicalDocuments(role string) bool {
-	return role == RoleExecutiveDirector || role == RoleAdmin || role == RolePsychologist
+	return CanAccessAllOffices(role) || role == RoleAdmin || role == RolePsychologist
 }
 
 // CanViewCases checks if a role can view cases
 func CanViewCases(role string) bool {
-	return role == RoleExecutiveDirector || role == RoleAdmin || role == RoleOfficeManager || role == RoleLawyer || role == RolePsychologist || role == RoleReceptionist
+	return CanAccessAllOffices(role) || role == RoleAdmin || role == RoleOfficeManager || role == RoleLawyer || role == RolePsychologist || role == RoleReceptionist
 }
 
 // CanViewAppointments checks if a role can view appointments
 func CanViewAppointments(role string) bool {
-	return role == RoleExecutiveDirector || role == RoleAdmin || role == RoleOfficeManager || role == RoleLawyer || role == RolePsychologist || role == RoleReceptionist
+	return CanAccessAllOffices(role) || role == RoleAdmin || role == RoleOfficeManager || role == RoleLawyer || role == RolePsychologist || role == RoleReceptionist
 }
 
 // CanViewEvents checks if a role can view events
 func CanViewEvents(role string) bool {
-	return role == RoleExecutiveDirector || role == RoleAdmin || role == RoleEventCoordinator
+	return CanAccessAllOffices(role) || role == RoleAdmin || role == RoleEventCoordinator
 }
 
 // IsProfessionalRole checks if a role is a professional service role
@@ -195,12 +204,12 @@ func IsProfessionalRole(role string) bool {
 
 // IsAdministrativeRole checks if a role is an administrative role
 func IsAdministrativeRole(role string) bool {
-	return role == RoleExecutiveDirector || role == RoleAdmin || role == RoleOfficeManager || role == RoleReceptionist
+	return CanAccessAllOffices(role) || role == RoleAdmin || role == RoleOfficeManager || role == RoleReceptionist
 }
 
 // IsManagementRole checks if a role is a management role
 func IsManagementRole(role string) bool {
-	return role == RoleExecutiveDirector || role == RoleAdmin || role == RoleOfficeManager
+	return CanAccessAllOffices(role) || role == RoleAdmin || role == RoleOfficeManager
 }
 
 // RequiresOffice checks if a role requires office assignment
@@ -211,6 +220,8 @@ func RequiresOffice(role string) bool {
 // GetRoleHierarchyLevel returns the hierarchy level of a role (lower number = higher access)
 func GetRoleHierarchyLevel(role string) int {
 	switch role {
+	case RoleTechnicalSupport:
+		return -1
 	case RoleExecutiveDirector:
 		return 0
 	case RoleAdmin:
@@ -239,4 +250,21 @@ func ValidateRoleMiddleware(role string) (bool, string) {
 		return false, fmt.Sprintf("Invalid role '%s'. Valid roles: %s", role, strings.Join(VALID_ROLES, ", "))
 	}
 	return true, ""
+}
+
+// CanResetPasswords is reserved to the startup support account.
+func CanResetPasswords(role string) bool { return role == RoleTechnicalSupport }
+
+// CanManageAccount checks the target role before applying office boundaries.
+func CanManageAccount(actorRole, targetRole string) bool {
+	if targetRole == RoleTechnicalSupport {
+		return actorRole == RoleTechnicalSupport
+	}
+	if CanAccessAllOffices(actorRole) {
+		return true
+	}
+	if targetRole == RoleExecutiveDirector {
+		return false
+	}
+	return actorRole == RoleAdmin || (actorRole == RoleOfficeManager && targetRole != RoleAdmin)
 }

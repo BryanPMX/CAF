@@ -42,10 +42,10 @@ const BLOCKED_PASSWORDS = new Set([
 ]);
 
 /** Mirrors the API password policy so invalid temporary credentials never reach the server. */
-export function createStrongPasswordFormRule() {
+export function createStrongPasswordFormRule(required = true) {
   return (_: unknown, value: unknown): Promise<void> => {
     const password = typeof value === 'string' ? value : '';
-    if (!password) return Promise.reject(new Error('La contraseña temporal es requerida'));
+    if (!password) return required ? Promise.reject(new Error('La contraseña es requerida')) : Promise.resolve();
     if (Array.from(password).length < 12) {
       return Promise.reject(new Error('Use al menos 12 caracteres'));
     }
@@ -172,7 +172,7 @@ export const ValidationSchemas = {
     first_name: [ValidationRules.required(), ValidationRules.minLength(2), ValidationRules.maxLength(50)],
     last_name: [ValidationRules.required(), ValidationRules.minLength(2), ValidationRules.maxLength(50)],
     role: ValidationRules.oneOf([
-      'executive_director', 'admin', 'office_manager', 'lawyer', 'psychologist',
+      'technical_support', 'executive_director', 'admin', 'office_manager', 'lawyer', 'psychologist',
       'receptionist', 'event_coordinator', 'client'
     ]),
   },

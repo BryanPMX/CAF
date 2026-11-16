@@ -70,11 +70,11 @@ ON therapist_office_capacities(staff_id, office_id, day_of_week);
 INSERT INTO audit_logs (
     entity_type, entity_id, action, user_id, user_role,
     reason, tags, severity, created_at
-) VALUES (
+) SELECT
     'system', 0, 'migration', 1, 'admin',
     'Migrated legacy migration: Reporting enhancements (offices.code, cases.court/docket_number/fee, therapist capacities)',
     ARRAY['migration', 'legacy_consolidation', 'reporting', 'schema_enhancement'], 'info', CURRENT_TIMESTAMP
-);
+WHERE EXISTS (SELECT 1 FROM users WHERE id = 1);
 
 -- Success notification (must be in DO block)
 DO $$

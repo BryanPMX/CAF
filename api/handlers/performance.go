@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/BryanPMX/CAF/api/config"
 	"log"
 	"net/http"
 	"strconv"
@@ -539,11 +540,11 @@ func (h *PerformanceOptimizedHandler) buildOptimizedUsersQuery(params Pagination
 
 // applyAccessControl applies role-based access control to queries
 func (h *PerformanceOptimizedHandler) applyAccessControl(query *gorm.DB, c *gin.Context) *gorm.DB {
-	userRole, _ := c.Get("userRole")
+	userRole := c.GetString("userRole")
 	userDepartment, _ := c.Get("userDepartment")
 	officeScopeID, _ := c.Get("officeScopeID")
 
-	if userRole == "executive_director" {
+	if config.CanAccessAllOffices(userRole) {
 		return query // Admins see everything
 	}
 
@@ -558,7 +559,7 @@ func (h *PerformanceOptimizedHandler) applyAccessControl(query *gorm.DB, c *gin.
 	}
 
 	// For staff users, include items they're assigned to
-	if userRoleStr, ok := userRole.(string); ok && middleware.IsStaffRole(userRoleStr) {
+	if middleware.IsStaffRole(userRole) {
 		userID, _ := c.Get("userID")
 		if userID != nil {
 			userIDStr, ok := userID.(string)
@@ -642,7 +643,7 @@ func (h *PerformanceOptimizedHandler) parsePaginationParams(c *gin.Context) Pagi
 
 // generateCacheKey creates a unique cache key based on parameters
 func (h *PerformanceOptimizedHandler) generateCacheKey(resource string, params PaginationParams, c *gin.Context) string {
-	userRole, _ := c.Get("userRole")
+	userRole := c.GetString("userRole")
 	officeScopeID, _ := c.Get("officeScopeID")
 	userID, _ := c.Get("userID")
 

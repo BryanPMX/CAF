@@ -2,6 +2,7 @@
 package handlers
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -73,7 +74,7 @@ func createUser(db *gorm.DB) gin.HandlerFunc {
 
 		// All employees except the executive director require an office.
 		if config.RequiresOffice(input.Role) && (input.OfficeID == nil || *input.OfficeID == 0) {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "An office must be assigned to all staff members except the executive director."})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "An office must be assigned to office-based staff members."})
 			return
 		}
 
@@ -303,6 +304,7 @@ func GetUsers(db *gorm.DB) gin.HandlerFunc {
 
 // UpdateUserInput defines the structure for updating a user's details.
 type UpdateUserInput struct {
+	Password        *string `json:"password"`
 	FirstName       string  `json:"firstName" binding:"required"`
 	LastName        string  `json:"lastName" binding:"required"`
 	Email           string  `json:"email" binding:"required,email"`
@@ -335,6 +337,21 @@ func updateUser(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
+		if input.Password != nil {
+			actor := c.MustGet("currentUser").(models.User)
+			if !config.CanResetPasswords(actor.Role) {
+				c.JSON(http.StatusForbidden, gin.H{"error": "Only technical support can reset passwords"})
+				return
+			}
+			hash, err := securityutil.HashPassword(*input.Password)
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+				return
+			}
+			user.Password = hash
+			user.TokenVersion++
+		}
+
 		// Perform the same role and office validation as in CreateUser using centralized config
 		if err := config.ValidateRole(input.Role); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -342,7 +359,7 @@ func updateUser(db *gorm.DB) gin.HandlerFunc {
 		}
 		// Office administrators must retain an office assignment.
 		if config.RequiresOffice(input.Role) && (input.OfficeID == nil || *input.OfficeID == 0) {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "An office must be assigned to all staff members except the executive director."})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "An office must be assigned to office-based staff members."})
 			return
 		}
 
@@ -377,6 +394,9 @@ func updateUser(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
+		if input.Password != nil {
+			DisconnectUser(fmt.Sprint(user.ID))
+		}
 		c.JSON(http.StatusOK, user)
 	}
 }
@@ -414,7 +434,7 @@ func deleteUser(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		// Protection 2: Prevent deletion of system/protected users (user ID 1 is reserved for system admin)
-		if user.ID == 1 {
+		if user.ID == 1 || user.Role == config.RoleTechnicalSupport {
 			c.JSON(http.StatusForbidden, gin.H{"error": "Cannot delete the system administrator account"})
 			return
 		}
@@ -531,6 +551,11 @@ func permanentDeleteUser(db *gorm.DB) gin.HandlerFunc {
 
 		requestedOffice := user.OfficeID
 		if !authorizeUserChange(c, &user, user.Role, &requestedOffice) {
+			return
+		}
+
+		if user.ID == 1 || user.Role == config.RoleTechnicalSupport {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Cannot delete the system administrator account"})
 			return
 		}
 

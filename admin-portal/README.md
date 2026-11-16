@@ -4,7 +4,7 @@ This directory contains the Next.js-based admin portal for the Centro de Apoyo p
 
 ## Access policy
 
-See [roles and rollout](../docs/ACCESS_CONTROL.md). Director Ejecutivo sees all offices and Sitio Web. Administrador sees Mi Oficina and office-scoped operational data, with no Sitio Web entry or direct-route access. The API enforces every data boundary.
+See [roles and rollout](../docs/ACCESS_CONTROL.md). Soporte Tecnico and Director Ejecutivo see all offices and Sitio Web. Soporte Tecnico alone can reset passwords and edit the protected support account; its role cannot be assigned or removed through Usuarios. The sidebar uses Oficinas for every administrative role. Administrador sees office-scoped operational data, with no Sitio Web entry or direct-route access. The API enforces every data boundary.
 
 ## Architecture Overview
 
@@ -97,10 +97,10 @@ The protected root route (`/`) is a role-aware operations dashboard backed exclu
 - Admin and office-manager views use `GET /api/v1/dashboard-summary`; staff views use `GET /api/v1/staff/dashboard-summary`.
 - Non-management staff roles receive the same calendar-first dashboard backed by `GET /api/v1/appointments/my`, with month navigation, status filtering, day selection, and a selected-day agenda. This is the temporary shared workflow until each professional role is defined in more detail.
 - Staff navigation is intentionally focused on Dashboard, Expedientes, Citas, Calendario, and Notificaciones. Usuarios, Oficinas, Reportes, and the management archive (`Archivos`) remain hidden; active case documents stay available inside each authorized expediente.
-- Every non-client employee role can create cases and appointments. Creation requests use the role-specific API group and employees other than Director Ejecutivo are restricted to clients, staff, cases, and offices within their assigned office.
+- Every non-client employee role can create cases and appointments. Creation requests use the role-specific API group and employees other than Soporte Tecnico/Director Ejecutivo are restricted to clients, staff, cases, and offices within their assigned office.
 - Summary cards link to the corresponding workflows and distribution charts visualize current case and appointment states without mock data.
 - Operational alerts are derived from pending tasks, today's appointments, and unread notifications.
-- Director Ejecutivo office filtering is applied server-side and includes an explicit "Todas las oficinas" option. Administrador and office-manager scope remains enforced by the API.
+- Soporte Tecnico/Director Ejecutivo office filtering is applied server-side and includes an explicit "Todas las oficinas" option. Administrador and office-manager scope remains enforced by the API.
 - Data refreshes every 30 seconds and can be refreshed manually. The UI differentiates initial loading from background synchronization.
 - Reusable dashboard components keep presentation, data access, normalization, and alert derivation separate.
 
@@ -114,7 +114,7 @@ Run slot boundary tests with `node --test testing/appointment-availability.test.
 
 - `Calendario` is available to every authenticated employee, including administrators and office managers; client accounts are excluded.
 - The unified month view combines case appointments with internal meetings from `GET /api/v1/calendar/events`. Management roles use `/appointments` for their authorized office scope; other employees use `/appointments/my`.
-- Internal events are separate from client appointments and support multiple attendees, editing/cancellation by organizers, office administrators within their office, and Director Ejecutivo, invitation responses, responsive month/day views, and real-time notification links.
+- Internal events are separate from client appointments and support multiple attendees, editing/cancellation by organizers, office administrators within their office, and Soporte Tecnico/Director Ejecutivo, invitation responses, responsive month/day views, and real-time notification links.
 - `calendarService.ts` owns the API boundary while shared calendar contracts live in `src/app/lib/calendar.ts`.
 
 ### Notifications

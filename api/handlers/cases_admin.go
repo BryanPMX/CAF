@@ -2,6 +2,7 @@
 package handlers
 
 import (
+	"github.com/BryanPMX/CAF/api/config"
 	"net/http"
 	"strconv"
 
@@ -131,7 +132,7 @@ func AssignStaffToCase(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		if !middleware.IsStaffRole(staff.Role) && staff.Role != "office_manager" && staff.Role != "admin" && staff.Role != "executive_director" {
+		if !middleware.IsStaffRole(staff.Role) && staff.Role != "office_manager" && staff.Role != "admin" && !config.CanAccessAllOffices(staff.Role) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "User cannot be assigned to cases"})
 			return
 		}

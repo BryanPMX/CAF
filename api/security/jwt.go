@@ -14,17 +14,26 @@ const (
 	JWTLifetime = 24 * time.Hour
 )
 
+type SessionClaims struct {
+	jwt.RegisteredClaims
+	TokenVersion uint `json:"token_version,omitempty"`
+}
+
 func IssueJWT(secret string, userID uint, now time.Time) (string, time.Time, error) {
+	return IssueSessionJWT(secret, userID, 0, now)
+}
+
+func IssueSessionJWT(secret string, userID, version uint, now time.Time) (string, time.Time, error) {
 	now = now.UTC()
 	expiresAt := now.Add(JWTLifetime)
-	claims := jwt.RegisteredClaims{
+	claims := SessionClaims{TokenVersion: version, RegisteredClaims: jwt.RegisteredClaims{
 		Issuer:    JWTIssuer,
 		Audience:  jwt.ClaimStrings{JWTAudience},
 		Subject:   strconv.FormatUint(uint64(userID), 10),
 		ExpiresAt: jwt.NewNumericDate(expiresAt),
 		NotBefore: jwt.NewNumericDate(now),
 		IssuedAt:  jwt.NewNumericDate(now),
-	}
+	}}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	signed, err := token.SignedString([]byte(secret))
 	if err != nil {
@@ -34,7 +43,12 @@ func IssueJWT(secret string, userID uint, now time.Time) (string, time.Time, err
 }
 
 func ParseJWT(tokenString, secret string, now time.Time) (string, error) {
-	claims := &jwt.RegisteredClaims{}
+	subject, _, err := ParseSessionJWT(tokenString, secret, now)
+	return subject, err
+}
+
+func ParseSessionJWT(tokenString, secret string, now time.Time) (string, uint, error) {
+	claims := &SessionClaims{}
 	token, err := jwt.ParseWithClaims(
 		tokenString,
 		claims,
@@ -51,13 +65,13 @@ func ParseJWT(tokenString, secret string, now time.Time) (string, error) {
 		jwt.WithTimeFunc(func() time.Time { return now.UTC() }),
 	)
 	if err != nil || !token.Valid {
-		return "", fmt.Errorf("invalid token")
+		return "", 0, fmt.Errorf("invalid token")
 	}
 	if claims.Subject == "" {
-		return "", fmt.Errorf("missing subject")
+		return "", 0, fmt.Errorf("missing subject")
 	}
 	if _, err := strconv.ParseUint(claims.Subject, 10, 32); err != nil {
-		return "", fmt.Errorf("invalid subject")
+		return "", 0, fmt.Errorf("invalid subject")
 	}
-	return claims.Subject, nil
+	return claims.Subject, claims.TokenVersion, nil
 }

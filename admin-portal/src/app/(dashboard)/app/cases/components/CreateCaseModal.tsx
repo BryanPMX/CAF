@@ -1,6 +1,8 @@
 // admin-portal/src/app/(dashboard)/admin/cases/components/CreateCaseModal.tsx
 'use client';
 
+import { canAccessAllOffices } from '@/config/roles';
+
 import React, { useState, useEffect } from 'react';
 import { Modal, Form, Input, Button, message, Select, Radio, AutoComplete, InputNumber } from 'antd';
 import { CASE_TYPES, findDepartmentByCaseType } from '@/app/lib/caseTaxonomy';
@@ -32,7 +34,7 @@ const CreateCaseModal: React.FC<CreateCaseModalProps> = ({ visible, onClose, onS
         if (!user) return;
         try {
           const availableOffices = await WorkflowService.listOffices(user.role);
-          setOffices(user.role === 'executive_director'
+          setOffices(canAccessAllOffices(user.role ?? '')
             ? availableOffices
             : availableOffices.filter((office) => office.id === user.officeId));
         } catch (error) {
@@ -46,7 +48,7 @@ const CreateCaseModal: React.FC<CreateCaseModalProps> = ({ visible, onClose, onS
       // Reset form fields
       form.resetFields();
       // Every non-admin employee creates records only within their assigned office.
-      if (user?.role !== 'executive_director' && user?.officeId) {
+      if (!canAccessAllOffices(user?.role ?? '') && user?.officeId) {
         form.setFieldsValue({ officeId: user.officeId });
       }
     }
@@ -231,12 +233,12 @@ const CreateCaseModal: React.FC<CreateCaseModalProps> = ({ visible, onClose, onS
         <Form.Item name="officeId" label="Asignar a Oficina" rules={[{ required: true, message: 'Por favor, seleccione una oficina' }]}>
           <Select
             placeholder="Seleccione una oficina"
-            disabled={user?.role !== 'executive_director'}
+            disabled={!canAccessAllOffices(user?.role ?? '')}
           >
             {offices && offices.length > 0 && offices.map(office => (
               <Option key={office.id} value={office.id}>{office.name}</Option>
             ))}
-            {user?.role !== 'executive_director' && user?.officeId && offices.length === 0 && (
+            {!canAccessAllOffices(user?.role ?? '') && user?.officeId && offices.length === 0 && (
               <Option key={user.officeId} value={user.officeId}>Mi Oficina</Option>
             )}
           </Select>

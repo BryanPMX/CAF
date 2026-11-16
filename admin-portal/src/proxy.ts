@@ -1,3 +1,4 @@
+import { canAccessAllOffices } from '@/config/roles';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
@@ -26,7 +27,7 @@ export function proxy(request: NextRequest) {
     // This is a navigation guard only. The API remains the authorization boundary.
     if (pathname.startsWith('/admin') || pathname.startsWith('/app/web-content')) {
       const userRole = request.cookies.get('userRole')?.value;
-      if (userRole !== 'executive_director') {
+      if (!canAccessAllOffices(userRole ?? '')) {
         return NextResponse.redirect(new URL('/', request.url));
       }
     }

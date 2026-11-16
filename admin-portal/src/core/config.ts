@@ -104,6 +104,7 @@ export const ENABLE_ANALYTICS = config.features.enableAnalytics;
 
 // Business constants
 export const USER_ROLES = [
+  'technical_support',
   'executive_director',
   'admin',
   'office_manager',
@@ -139,6 +140,7 @@ export { canAccessAllOffices, isAdminRole, isManagementRole, isStaffRole } from 
 
 export function hasPermission(role: string, permission: string): boolean {
   const rolePermissions: Record<string, string[]> = {
+    technical_support: ['*'],
     executive_director: ['*'],
     admin: ['read_cases', 'read_appointments', 'read_users', 'read_offices', 'create_cases', 'create_appointments', 'update_cases', 'update_appointments', 'manage_office_users'],
     office_manager: [

@@ -17,7 +17,7 @@ func CanAccessCase(db *gorm.DB, currentUser models.User, caseID uint) (bool, err
 	if err := db.Select("id, client_id, category, office_id, primary_staff_id").First(&caseRecord, caseID).Error; err != nil {
 		return false, err
 	}
-	if currentUser.Role == config.RoleExecutiveDirector {
+	if config.CanAccessAllOffices(currentUser.Role) {
 		return true, nil
 	}
 	if currentUser.Role == "client" {
@@ -75,6 +75,10 @@ func DataAccessControl(db *gorm.DB) gin.HandlerFunc {
 			c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "User not found"})
 			return
 		}
+		if version, exists := c.Get("tokenVersion"); exists && version != user.TokenVersion {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Session expired; please sign in again"})
+			return
+		}
 		if !user.IsActive {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "User account is inactive"})
 			return
@@ -87,7 +91,7 @@ func DataAccessControl(db *gorm.DB) gin.HandlerFunc {
 		c.Set("userOfficeID", user.OfficeID)
 
 		// Admin users have full access
-		if user.Role == config.RoleExecutiveDirector {
+		if config.CanAccessAllOffices(user.Role) {
 			c.Next()
 			return
 		}
@@ -118,7 +122,7 @@ func CaseAccessControl(db *gorm.DB) gin.HandlerFunc {
 		currentUser := user.(models.User)
 
 		// Admin users have access to all cases
-		if currentUser.Role == config.RoleExecutiveDirector {
+		if config.CanAccessAllOffices(currentUser.Role) {
 			c.Next()
 			return
 		}
@@ -220,7 +224,7 @@ func AppointmentAccessControl(db *gorm.DB) gin.HandlerFunc {
 		currentUser := user.(models.User)
 
 		// Admin users have access to all appointments
-		if currentUser.Role == config.RoleExecutiveDirector {
+		if config.CanAccessAllOffices(currentUser.Role) {
 			c.Next()
 			return
 		}
@@ -296,7 +300,7 @@ func TaskAccessControl(db *gorm.DB) gin.HandlerFunc {
 		currentUser := user.(models.User)
 
 		// Admin users have access to all tasks
-		if currentUser.Role == config.RoleExecutiveDirector {
+		if config.CanAccessAllOffices(currentUser.Role) {
 			c.Next()
 			return
 		}

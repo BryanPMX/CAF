@@ -50,7 +50,7 @@ func EnhancedLogin(db *gorm.DB, jwtSecret string) gin.HandlerFunc {
 		}
 
 		// Step 4: Generate JWT Token with explicit UTC time (24-hour expiration)
-		tokenString, expirationTime, err := securityutil.IssueJWT(jwtSecret, user.ID, time.Now())
+		tokenString, expirationTime, err := securityutil.IssueSessionJWT(jwtSecret, user.ID, user.TokenVersion, time.Now())
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error: could not create token"})
 			return

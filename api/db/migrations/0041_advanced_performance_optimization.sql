@@ -218,11 +218,11 @@ COMMENT ON FUNCTION get_appointment_statistics IS 'Function to get comprehensive
 INSERT INTO audit_logs (
     entity_type, entity_id, action, user_id, user_role,
     reason, tags, severity, created_at
-) VALUES (
+) SELECT
     'system', 0, 'migration', 1, 'admin',
     'Migrated legacy migration: Advanced performance optimization with comprehensive indexes and functions',
     ARRAY['migration', 'legacy_consolidation', 'performance', 'indexes', 'optimization'], 'info', CURRENT_TIMESTAMP
-);
+WHERE EXISTS (SELECT 1 FROM users WHERE id = 1);
 
 -- Final Statistics Update
 ANALYZE;

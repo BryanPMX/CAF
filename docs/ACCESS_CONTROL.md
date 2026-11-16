@@ -3,16 +3,21 @@
 The API reads the current role and office from the database on every request.
 JWTs identify users; cookies and hidden navigation items are not authorization.
 
-| Capability | Director Ejecutivo (`executive_director`) | Administrador (`admin`) |
-| --- | --- | --- |
-| Panel de Control | Organization totals; optional office filter | Assigned-office totals |
-| Cases, appointments, tasks and case documents | All offices | Assigned office, including direct IDs and mutations |
-| Internal calendar | All meetings | Meetings whose organizer belongs to the assigned office |
-| Calendar invitations and employee selection | All employees | Assigned-office employees |
-| Users | All offices; can assign executive role | Assigned office; cannot create, promote, modify or delete executives |
-| Office details | All offices; create, edit and delete | View and edit assigned office; cannot create or delete offices |
-| Archives and reports, including CSV exports | All offices | Assigned office |
-| Sitio Web, organization announcements and system operations | Allowed | Denied |
+| Capability | Soporte Tecnico (`technical_support`) | Director Ejecutivo (`executive_director`) | Administrador (`admin`) |
+| --- | --- | --- | --- |
+| Panel de Control | Organization totals; optional office filter | Organization totals; optional office filter | Assigned-office totals |
+| Cases, appointments, tasks and case documents | All offices | All offices | Assigned office, including direct IDs and mutations |
+| Internal calendar | All meetings | All meetings | Meetings whose organizer belongs to the assigned office |
+| Calendar invitations and employee selection | All employees | All employees | Assigned-office employees |
+| User details and role assignments | All users; can assign executive role | All offices except protected support account; can assign executive role | Assigned office; cannot modify executives or support |
+| Change an existing user's password | Allowed, including own account and CEO | Denied | Denied |
+| Office details | All offices; create, edit and delete | All offices; create, edit and delete | View and edit assigned office; cannot create or delete offices |
+| Archives and reports, including CSV exports | All offices | All offices | Assigned office |
+| Sitio Web, organization announcements and system operations | Allowed | Allowed | Denied |
+
+The sidebar entry is **Oficinas** for both global and office-scoped roles. The
+label does not expand Administrador permissions. Global roles have blank office
+cells and no office fields in their profile/edit forms.
 
 An administrator without a nonzero office assignment receives HTTP 403. Search
 filters only narrow access. Case updates accept an explicit field allowlist;
@@ -34,7 +39,7 @@ separate office. Existing cross-office meetings remain visible to their employee
 participants. Administrators cannot use such invitations to expand their scope.
 
 Notifications about contact inquiries, client comments and payments go to all
-executives and the relevant office's administrators/managers. Routine appointment
+executives, technical support and the relevant office's administrators/managers. Routine appointment
 WebSocket broadcasts contain an invalidation signal only; the portal fetches
 record details through authorized endpoints.
 
@@ -42,7 +47,8 @@ record details through authorized endpoints.
 
 Deploy the API and portal together. This change deliberately does not promote
 every existing administrator. `users.role` is already a free-form VARCHAR, so no
-schema migration is required.
+role-column type change is required. Migration `0062` adds the credential
+version used to invalidate sessions after a password reset.
 
 Before enabling the new policy, the database operator must identify the CEO's
 existing active account and promote that specific account. For example, with
@@ -80,10 +86,42 @@ HTTP 503 with `Retry-After` instead of waiting indefinitely. Each operation uses
 an isolated GORM session, and lock cleanup runs even after request cancellation.
 Connections are discarded if the lock cannot be released.
 
+## Protected startup support account
+
+Migration `0062_protected_technical_support.sql` upgrades only historical system
+user **ID 1**, and only when its current role is `admin` or `executive_director`,
+to **Soporte Tecnico** (`technical_support`). It clears the obsolete office
+assignment and preserves the email, names, password hash, active/deleted state,
+and other account details. It does not promote other administrators or the CEO's
+separate account. It never reactivates the insecure default disabled by `0059`.
+Deploy API and portal together, then sign out and sign in to refresh the label.
+No manual SQL or credential reset is needed for an active customized system account.
+
 For a fresh installation, the existing one-time `BOOTSTRAP_ADMIN_EMAIL` and
-`BOOTSTRAP_ADMIN_PASSWORD` variables now provision the first **Director Ejecutivo**.
-The variables retain their names for deployment compatibility. Remove them after
-successful bootstrap. Existing email accounts are never silently overwritten.
+`BOOTSTRAP_ADMIN_PASSWORD` variables provision **Soporte Tecnico**. The variables
+retain their names for deployment compatibility. Remove them after successful
+bootstrap. An existing support account (including a disabled/deleted one) prevents
+another bootstrap; an existing email is never overwritten. A partial unique index
+allows only one support account. Fresh-install migration audit entries are skipped
+until user ID 1 exists; the migration ledger still records every applied migration.
+
+Support cannot be created, assigned, demoted, soft-deleted or permanently deleted
+through ordinary user endpoints, including by support itself. CEO/admin/manager
+accounts cannot modify support. Support may update its own contact details and
+password; its role remains fixed. The historical ID 1 deletion protection remains
+in place. The last active CEO must still be preserved, even by support.
+
+In **Usuarios → Editar**, support has an optional **Nueva contraseña** field.
+Leaving it blank preserves the password. New passwords use the same policy as
+account creation: 12+ characters, uppercase, lowercase, number, symbol, maximum
+72 UTF-8 bytes, and no known insecure defaults. The API checks this independently
+of the UI, hashes the password with bcrypt, and never returns the hash or plaintext.
+An ordinary detail edit and optional password change are saved together only after
+all validation passes. Resetting increments `token_version`: prior JWTs fail both
+role and data middleware, and new WebSocket handshakes, while a new login receives
+the current version. Existing notification sockets on the handling API instance
+are closed. Existing JWTs without a version remain compatible at version zero.
+Changing one's own password signs support out and requires a new login.
 
 ## Verification
 
@@ -91,6 +129,8 @@ Run `go test ./...` from `api` and `npm run test:roles` from `testing`. The Go
 suite uses isolated SQLite databases with synthetic offices, users, cases,
 appointments and meetings to exercise real JWT middleware and handlers. It does
 not validate PostgreSQL migrations or PostgreSQL advisory-lock behavior.
+The isolated Docker check in the testing guide runs the production image against
+PostgreSQL 15 to cover migration, bootstrap, reset, protections and restart persistence.
 
 See [the testing guide](../testing/README.md#role-isolation-regression-checks)
 for the live browser checks. Production PostgreSQL/Docker validation should use

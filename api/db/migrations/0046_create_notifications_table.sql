@@ -57,11 +57,11 @@ END $$;
 INSERT INTO audit_logs (
     entity_type, entity_id, action, user_id, user_role,
     reason, tags, severity, created_at
-) VALUES (
+) SELECT
     'system', 0, 'migration', 1, 'admin',
     'Migrated legacy migration: Created notifications table for notification system',
     ARRAY['migration', 'legacy_consolidation', 'notifications', 'table_creation'], 'info', CURRENT_TIMESTAMP
-);
+WHERE EXISTS (SELECT 1 FROM users WHERE id = 1);
 
 -- Success notification (must be in DO block)
 DO $$

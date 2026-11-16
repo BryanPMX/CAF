@@ -3,6 +3,7 @@
 package handlers
 
 import (
+	"github.com/BryanPMX/CAF/api/config"
 	"strconv"
 	"sync"
 	"time"
@@ -51,7 +52,7 @@ func CreateNotificationWithMeta(db *gorm.DB, userID uint, message, notifType str
 // GetAdminUserIDs returns global executive recipients (active, not deleted).
 func GetAdminUserIDs(db *gorm.DB) ([]uint, error) {
 	var ids []uint
-	err := db.Model(&models.User{}).Where("role = ? AND is_active = ? AND deleted_at IS NULL", "executive_director", true).Pluck("id", &ids).Error
+	err := db.Model(&models.User{}).Where("role IN ? AND is_active = ? AND deleted_at IS NULL", []string{config.RoleExecutiveDirector, config.RoleTechnicalSupport}, true).Pluck("id", &ids).Error
 	return ids, err
 }
 

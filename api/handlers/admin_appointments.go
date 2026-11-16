@@ -141,7 +141,7 @@ func CreateAppointmentSmart(db *gorm.DB) gin.HandlerFunc {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Selected staff member is not available."})
 			return
 		}
-		if actor.Role != config.RoleExecutiveDirector {
+		if !config.CanAccessAllOffices(actor.Role) {
 			if actor.OfficeID == nil || *actor.OfficeID == 0 {
 				tx.Rollback()
 				c.JSON(http.StatusForbidden, gin.H{"error": "Staff member must be assigned to an office."})
@@ -199,7 +199,7 @@ func CreateAppointmentSmart(db *gorm.DB) gin.HandlerFunc {
 			// Scenario: Create a new client, but first check if ANY user already exists with the same email (including soft-deleted ones).
 			var existingUser models.User
 			if err := tx.Unscoped().Where("LOWER(email) = ?", input.NewClient.Email).First(&existingUser).Error; err == nil {
-				if actor.Role != config.RoleExecutiveDirector && (existingUser.OfficeID == nil || *existingUser.OfficeID != *actor.OfficeID) {
+				if !config.CanAccessAllOffices(actor.Role) && (existingUser.OfficeID == nil || *existingUser.OfficeID != *actor.OfficeID) {
 					tx.Rollback()
 					c.JSON(http.StatusForbidden, gin.H{"error": "Client is outside your office"})
 					return
@@ -217,7 +217,7 @@ func CreateAppointmentSmart(db *gorm.DB) gin.HandlerFunc {
 					existingUser.FirstName = input.NewClient.FirstName // Update with provided info
 					existingUser.LastName = input.NewClient.LastName
 					existingUser.IsActive = true
-					if actor.Role != config.RoleExecutiveDirector {
+					if !config.CanAccessAllOffices(actor.Role) {
 						existingUser.OfficeID = actor.OfficeID
 					}
 					if err := tx.Unscoped().Save(&existingUser).Error; err != nil {
@@ -258,7 +258,7 @@ func CreateAppointmentSmart(db *gorm.DB) gin.HandlerFunc {
 					Role:      "client",
 					IsActive:  true,
 				}
-				if actor.Role != config.RoleExecutiveDirector {
+				if !config.CanAccessAllOffices(actor.Role) {
 					client.OfficeID = actor.OfficeID
 				}
 				if err := tx.Create(&client).Error; err != nil {
@@ -274,7 +274,7 @@ func CreateAppointmentSmart(db *gorm.DB) gin.HandlerFunc {
 				return
 			}
 		}
-		if hasClient && actor.Role != config.RoleExecutiveDirector && (client.OfficeID == nil || *client.OfficeID != *actor.OfficeID) {
+		if hasClient && !config.CanAccessAllOffices(actor.Role) && (client.OfficeID == nil || *client.OfficeID != *actor.OfficeID) {
 			tx.Rollback()
 			c.JSON(http.StatusForbidden, gin.H{"error": "Selected client belongs to a different office."})
 			return
@@ -621,7 +621,7 @@ func DeleteAppointmentAdmin(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		// Professional Security Checks for non-admin users only
-		if user.Role != "admin" && user.Role != config.RoleExecutiveDirector {
+		if user.Role != "admin" && !config.CanAccessAllOffices(user.Role) {
 			// Prevent deletion of completed appointments
 			if appointment.Status == "completed" {
 				c.JSON(http.StatusForbidden, gin.H{

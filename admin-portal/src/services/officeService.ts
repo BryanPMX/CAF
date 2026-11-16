@@ -1,3 +1,4 @@
+import { isAdminRole } from '@/config/roles';
 // admin-portal/src/services/officeService.ts
 import { ApiClient } from '@/interfaces/api';
 import { IOfficeService } from '@/interfaces/services';
@@ -16,7 +17,7 @@ export class OfficeService implements IOfficeService {
       let endpoint = '/offices';
 
       // Route to appropriate endpoint based on user role
-      if ((userRole === 'executive_director' || userRole === 'admin')) {
+      if (isAdminRole(userRole ?? '')) {
         endpoint = '/admin/offices';
       } else if (userRole === 'office_manager') {
         endpoint = '/office/offices';
@@ -32,7 +33,7 @@ export class OfficeService implements IOfficeService {
 
   static async deleteOffice(userRole: string, id: string) {
     const { apiClient } = await import('@/app/lib/api');
-    const base = (userRole === 'executive_director' || userRole === 'admin') ? '/admin' : userRole === 'office_manager' ? '/manager' : '';
+    const base = (isAdminRole(userRole ?? '')) ? '/admin' : userRole === 'office_manager' ? '/manager' : '';
     await apiClient.delete(`${base}/offices/${id}`);
   }
 

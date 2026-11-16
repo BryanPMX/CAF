@@ -99,15 +99,24 @@ func authorizeUserChange(c *gin.Context, existing *models.User, role string, off
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Authenticated user required"})
 		return false
 	}
+	if (existing != nil && !config.CanManageAccount(actor.Role, existing.Role)) ||
+		(role == config.RoleTechnicalSupport && (existing == nil || existing.Role != config.RoleTechnicalSupport)) ||
+		(existing != nil && existing.Role == config.RoleTechnicalSupport && role != existing.Role) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "The technical support account is protected"})
+		return false
+	}
 	if config.CanAccessAllOffices(actor.Role) {
+		if config.CanAccessAllOffices(role) {
+			*officeID = nil
+		}
 		return true
 	}
-	allowedRole := role != config.RoleExecutiveDirector && (actor.Role == config.RoleAdmin || role != config.RoleAdmin)
+	allowedRole := !config.CanAccessAllOffices(role) && (actor.Role == config.RoleAdmin || role != config.RoleAdmin)
 	if !allowedRole || (actor.Role != config.RoleAdmin && actor.Role != config.RoleOfficeManager) || actor.OfficeID == nil || *actor.OfficeID == 0 {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Cannot assign this role"})
 		return false
 	}
-	if existing != nil && (existing.Role == config.RoleExecutiveDirector || (actor.Role == config.RoleOfficeManager && existing.Role == config.RoleAdmin) || existing.OfficeID == nil || *existing.OfficeID != *actor.OfficeID) {
+	if existing != nil && (config.CanAccessAllOffices(existing.Role) || (actor.Role == config.RoleOfficeManager && existing.Role == config.RoleAdmin) || existing.OfficeID == nil || *existing.OfficeID != *actor.OfficeID) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "User is outside your management scope"})
 		return false
 	}

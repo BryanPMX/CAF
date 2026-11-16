@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { CASE_STATUSES, CASE_STATUS_DISPLAY_NAMES } from '@/config/statuses';
-import { STAFF_ROLES, CASE_DOCUMENT_TYPES, PERMISSIONS, type StaffRoleKey } from '@/config/roles';
+import { isAdminRole, STAFF_ROLES, CASE_DOCUMENT_TYPES, PERMISSIONS, type StaffRoleKey } from '@/config/roles';
 import { useParams, useRouter } from 'next/navigation';
 import { Descriptions, Card, Table, Tag, Spin, message, Button, Empty, Row, Col, Tabs, Popconfirm, Modal, Input } from 'antd';
 import type { TabsProps } from 'antd';
@@ -376,7 +376,7 @@ const CaseDetailPage = () => {
   // Check if current user is assigned staff (has tasks assigned to them) vs primary staff
   const isAssignedStaff = user && caseDetails?.tasks?.some(task => task.assignedToId === user.id);
   const isPrimaryStaff = user && caseDetails?.primaryStaff?.id === user.id;
-  const isManagementStaff = (userRole === 'executive_director' || userRole === 'admin') || userRole === 'office_manager';
+  const isManagementStaff = (isAdminRole(userRole ?? '')) || userRole === 'office_manager';
   
   // Determine permission level
   const canManageCase = isManagementStaff || isPrimaryStaff;
@@ -467,7 +467,7 @@ const CaseDetailPage = () => {
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-semibold">Resumen del Caso #{caseDetails.id}</h2>
           <div className="flex space-x-2">
-            {!caseDetails.isCompleted && userRole && ((userRole === 'executive_director' || userRole === 'admin') || userRole === 'office_manager') && (
+            {!caseDetails.isCompleted && userRole && ((isAdminRole(userRole ?? '')) || userRole === 'office_manager') && (
               <Button 
                 type="primary"
                 icon={<CheckCircleOutlined />}

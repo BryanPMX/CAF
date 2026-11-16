@@ -61,6 +61,7 @@ var AppointmentStatusLabels = map[string]string{
 
 // UserRoleLabels provides Spanish (Mexico) localization for user roles
 var UserRoleLabels = map[string]string{
+	"technical_support":  "Soporte Tecnico",
 	"executive_director": "Director Ejecutivo",
 	"admin":              "Administrador",
 	"staff":              "Personal",

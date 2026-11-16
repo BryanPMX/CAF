@@ -1,3 +1,4 @@
+import { isAdminRole } from '@/config/roles';
 // admin-portal/src/services/taskService.ts
 // Centralized Task Data Access Layer
 
@@ -41,7 +42,7 @@ export class TaskService {
     // Determine endpoint based on role
     let endpoint: string;
     
-    if ((userRole === 'executive_director' || userRole === 'admin')) {
+    if (isAdminRole(userRole ?? '')) {
       endpoint = `/admin/tasks?${queryParams}`;
     } else {
       endpoint = `/tasks?${queryParams}`;
@@ -65,7 +66,7 @@ export class TaskService {
     // Determine endpoint based on role
     let endpoint: string;
     
-    if ((userRole === 'executive_director' || userRole === 'admin')) {
+    if (isAdminRole(userRole ?? '')) {
       endpoint = `/admin/tasks/${taskId}`;
     } else {
       endpoint = `/tasks/${taskId}`;
@@ -89,7 +90,7 @@ export class TaskService {
     // Determine endpoint based on role
     let endpoint: string;
     
-    if ((userRole === 'executive_director' || userRole === 'admin')) {
+    if (isAdminRole(userRole ?? '')) {
       endpoint = '/admin/tasks';
     } else {
       endpoint = '/tasks';
@@ -114,7 +115,7 @@ export class TaskService {
     const endpoint = EndpointResolver.getResourceEndpoint(userRole, 'tasks', taskId);
 
     // Admin uses PATCH, protected routes use PUT
-    const response = (userRole === 'executive_director' || userRole === 'admin')
+    const response = (isAdminRole(userRole ?? ''))
       ? await apiClient.patch(endpoint, taskData)
       : await apiClient.put(endpoint, taskData);
     return response.data;
@@ -133,7 +134,7 @@ export class TaskService {
     // Determine endpoint based on role
     let endpoint: string;
     
-    if ((userRole === 'executive_director' || userRole === 'admin')) {
+    if (isAdminRole(userRole ?? '')) {
       endpoint = `/admin/tasks/${taskId}`;
     } else {
       endpoint = `/tasks/${taskId}`;
@@ -190,7 +191,7 @@ export class TaskService {
     // Determine endpoint based on role
     let endpoint: string;
     
-    if ((userRole === 'executive_director' || userRole === 'admin')) {
+    if (isAdminRole(userRole ?? '')) {
       endpoint = `/admin/cases/${caseId}/tasks`;
     } else {
       endpoint = `/cases/${caseId}/tasks`;
@@ -215,7 +216,7 @@ export class TaskService {
     // Determine endpoint based on role
     let endpoint: string;
     
-    if ((userRole === 'executive_director' || userRole === 'admin')) {
+    if (isAdminRole(userRole ?? '')) {
       endpoint = `/admin/tasks/${taskId}/comments`;
     } else {
       endpoint = `/tasks/${taskId}/comments`;
@@ -242,7 +243,7 @@ export class TaskService {
     // Determine endpoint based on role
     let endpoint: string;
     
-    if ((userRole === 'executive_director' || userRole === 'admin')) {
+    if (isAdminRole(userRole ?? '')) {
       endpoint = `/admin/tasks/${taskId}/comments/${commentId}`;
     } else {
       endpoint = `/tasks/${taskId}/comments/${commentId}`;
@@ -267,7 +268,7 @@ export class TaskService {
     // Determine endpoint based on role
     let endpoint: string;
     
-    if ((userRole === 'executive_director' || userRole === 'admin')) {
+    if (isAdminRole(userRole ?? '')) {
       endpoint = `/admin/tasks/${taskId}/comments/${commentId}`;
     } else {
       endpoint = `/tasks/${taskId}/comments/${commentId}`;

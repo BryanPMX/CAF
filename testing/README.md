@@ -380,9 +380,11 @@ The preview binds only `127.0.0.1:8080`. It uses generated in-memory records and
 synthetic test credentials; it never reads production environment files or data.
 Keep these tests on loopback. The browser checks sign-in, role labels, dashboard
 office filters, sidebar entries, direct CMS denial, API case scope, and user-role
-choices for both Director Ejecutivo and Administrador. It also checks protected
+choices for Soporte Tecnico, Director Ejecutivo and Administrador. It also checks protected
 CEO rows with legacy office assignments, blank executive office cells, hidden
 executive office fields, denied direct edit links, and stale rows after promotion.
+It also verifies the protected support row and role, support-only password fields,
+saving user details/passwords, rejection of old credentials and invalidation of old JWTs.
 Screenshots are written
 to `/tmp/caf-rbac-e2e` (override with `CAF_E2E_ARTIFACT_DIR`). Stop both preview
 processes with Ctrl-C when finished.
@@ -391,3 +393,23 @@ SQLite tests require CGO and a C compiler (for example, Xcode command-line tools
 SQLite validates authorization and handler behavior; it does not replace the
 PostgreSQL/Docker migration and deployment checks. Use the production compose
 stack and two test offices for that final verification when Docker is available.
+
+
+### Technical support: production Docker/PostgreSQL verification
+
+Run from the repository root with Docker available:
+
+```bash
+docker build --platform linux/amd64 -t caf-api:support-review ./api
+python3 testing/technical-support-docker.py
+```
+
+Override the image with `CAF_TEST_API_IMAGE`. The script creates a uniquely named
+Docker network, PostgreSQL 15 container with temporary storage and a production
+API container exposed on a random loopback port. It uses synthetic credentials,
+never reads production environment files, and removes its containers/network on
+completion or failure. It checks migration `0062` twice against a legacy system
+account (including preserved disabled state), singleton support protection, all
+fresh-install migrations and secure support bootstrap, all-office access, password
+reset/login, old-token rejection, support delete/demotion denial and restart
+persistence. This complements the Go role/handler/race tests and browser suite.

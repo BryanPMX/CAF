@@ -1,3 +1,4 @@
+import { isAdminRole } from '@/config/roles';
 // admin-portal/src/services/caseService.ts
 import { ApiClient } from '@/interfaces/api';
 import {
@@ -20,7 +21,7 @@ export class CaseService implements ICaseService {
       let endpoint = '/cases';
 
       // Route to appropriate endpoint based on user role
-      if ((userRole === 'executive_director' || userRole === 'admin')) {
+      if (isAdminRole(userRole ?? '')) {
         endpoint = '/admin/cases';
       } else if (userRole === 'office_manager') {
         endpoint = '/manager/cases';
@@ -62,7 +63,7 @@ export class CaseService implements ICaseService {
       let endpoint = `/cases/${id}`;
 
       // Route to appropriate endpoint based on user role
-      if ((userRole === 'executive_director' || userRole === 'admin')) {
+      if (isAdminRole(userRole ?? '')) {
         endpoint = `/admin/cases/${id}`;
       } else if (userRole === 'office_manager') {
         endpoint = `/manager/cases/${id}`;
@@ -84,7 +85,7 @@ export class CaseService implements ICaseService {
 
     try {
       let endpoint = '/cases';
-      if ((userRole === 'executive_director' || userRole === 'admin')) {
+      if (isAdminRole(userRole ?? '')) {
         endpoint = '/admin/cases';
       } else if (userRole === 'office_manager') {
         endpoint = '/manager/cases';

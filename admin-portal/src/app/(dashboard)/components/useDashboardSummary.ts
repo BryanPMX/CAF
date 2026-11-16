@@ -63,7 +63,7 @@ const EMPTY_SUMMARY: DashboardSummary = {
   myPendingTasks: 0,
 };
 
-const MANAGEMENT_ROLES = new Set(['executive_director', 'admin', 'office_manager']);
+const MANAGEMENT_ROLES = new Set(['technical_support', 'executive_director', 'admin', 'office_manager']);
 const SUPPORTED_ROLES = new Set([
   ...MANAGEMENT_ROLES,
   'lawyer',

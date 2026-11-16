@@ -27,7 +27,7 @@ func EnhancedJWTAuth(jwtSecret string) gin.HandlerFunc {
 		}
 
 		// Step 2: Require HS256 plus the CAF issuer, audience, subject and expiry.
-		userID, err := securityutil.ParseJWT(tokenString, jwtSecret, time.Now())
+		userID, version, err := securityutil.ParseSessionJWT(tokenString, jwtSecret, time.Now())
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})
 			return
@@ -36,6 +36,7 @@ func EnhancedJWTAuth(jwtSecret string) gin.HandlerFunc {
 		// Step 3: Set user context (stateless). DataAccessControl replaces the
 		// temporary role after confirming the database account is active.
 		c.Set("userID", userID)
+		c.Set("tokenVersion", version)
 		c.Set("userRole", "pending")
 		c.Next()
 	}

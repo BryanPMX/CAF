@@ -450,16 +450,16 @@ ANALYZE therapist_capacity;
 INSERT INTO audit_logs (
     entity_type, entity_id, action, user_id, user_role,
     reason, tags, severity, created_at
-) VALUES (
+) SELECT
     'system', 0, 'migration', 1, 'admin',
     'Database migration: Initial schema setup (v3.1) - Renamed for consistency, includes case_events missing columns fix',
     ARRAY['migration', 'system', 'initial_setup', 'schema_sync', 'gorm_sync', 'naming_consistency'], 'info', CURRENT_TIMESTAMP
-);
+WHERE EXISTS (SELECT 1 FROM users WHERE id = 1);
 
 -- Update existing cases to set created_by if not set
 UPDATE cases
 SET created_by = 1, updated_by = 1
-WHERE created_by IS NULL;
+WHERE created_by IS NULL AND EXISTS (SELECT 1 FROM users WHERE id = 1);
 
 -- Success notification (must be in DO block)
 DO $$

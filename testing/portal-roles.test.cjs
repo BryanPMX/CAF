@@ -10,16 +10,16 @@ function load(relativePath) {
   const source = fs.readFileSync(path.resolve(__dirname, '../admin-portal/src', relativePath), 'utf8');
   const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText;
   const result = {};
-  new Function('require', 'exports', compiled)((name) => name.startsWith('@/') ? load(name.slice(2) + '.ts') : portalRequire(name), result);
+  new Function('require', 'exports', compiled)((name) => name.startsWith('@/') ? load(name.slice(2) + '.ts') : name.startsWith('./') ? load(path.join(path.dirname(relativePath), name + '.ts')) : portalRequire(name), result);
   return result;
 }
 const roles = load('config/roles.ts');
 const endpoints = load('app/lib/api-endpoints.ts');
 const core = load('core/config.ts');
 
-test('only Director Ejecutivo has organization and website access', () => {
+test('executives and technical support have organization and website access', () => {
   for (const role of Object.values(roles.USER_ROLES)) {
-    const executive = role === 'executive_director';
+    const executive = ['technical_support', 'executive_director'].includes(role);
     assert.equal(roles.canAccessAllOffices(role), executive, role);
     assert.equal(core.canAccessAllOffices(role), executive, role);
     assert.equal(roles.canManageWebContent(role), executive, role);
@@ -37,8 +37,8 @@ test('office administrators retain their operational navigation and API workflow
   for (const key of ['dashboard','cases','appointments','calendar','users','offices','records','reports']) {
     assert.ok(navigation.some(item => item.key === key), key);
   }
-  assert.equal(navigation.find(item => item.key === 'offices').label, 'Mi Oficina');
-  for (const role of ['executive_director','admin']) {
+  assert.equal(navigation.find(item => item.key === 'offices').label, 'Oficinas');
+  for (const role of ['technical_support','executive_director','admin']) {
     assert.equal(endpoints.getEndpointGroup(role), 'admin');
     assert.equal(endpoints.getCasesEndpoint(role, 'create'), '/admin/cases');
     assert.equal(endpoints.getAppointmentsEndpoint(role, 'create'), '/admin/appointments');
@@ -66,4 +66,31 @@ test('management of a user depends on the actor and the target account', () => {
   assert.equal(roles.canManageUser(admin, null), false);
   assert.equal(roles.canManageUser(executive, executive), true);
   assert.equal(roles.canManageUser(executive, { ...employee, officeId: 2 }), true);
+});
+
+
+test('technical support is protected and alone can reset passwords', () => {
+  const support = { role: 'technical_support' };
+  for (const role of Object.values(roles.USER_ROLES)) {
+    assert.equal(roles.canResetPasswords(role), role === 'technical_support');
+    assert.equal(roles.canManageUser({ role, officeId: 1 }, support), role === 'technical_support');
+    assert.equal(roles.getAssignableRoles(role).some(option => option.value === 'technical_support'), false);
+  }
+  assert.equal(roles.requiresOffice(support.role), false);
+  assert.equal(roles.getRoleDisplayName(support.role), 'Soporte Tecnico');
+  assert.equal(roles.canManageUser(support, { role: 'executive_director' }), true);
+  assert.deepEqual(roles.getAssignableRoles(support.role, support.role).map(option => option.value), ['technical_support']);
+});
+
+
+test('optional password changes preserve blank fields and validate supplied credentials', async () => {
+  const validation = load('core/validation.ts');
+  await validation.createStrongPasswordFormRule(false)(null, '');
+  await validation.createStrongPasswordFormRule(false)(null, undefined);
+  await validation.createStrongPasswordFormRule(false)(null, 'Synthetic-Secure-Password123!');
+  await assert.rejects(validation.createStrongPasswordFormRule()(null, ''));
+  await assert.rejects(validation.createStrongPasswordFormRule(false)(null, 'weak'));
+  await assert.rejects(validation.createStrongPasswordFormRule(false)(null, 'Strong-Password123!' + 'á'.repeat(30)));
+  assert.deepEqual(roles.getAssignableRoles('client'), []);
+  assert.deepEqual(roles.getAssignableRoles('unknown'), []);
 });

@@ -39,7 +39,7 @@ func AdminOfficeAccess(db *gorm.DB) gin.HandlerFunc {
 				id = c.Param("clientId")
 			}
 			if id != "" {
-				query = db.Unscoped().Model(&models.User{}).Where("id = ? AND office_id = ? AND role <> ?", id, *actor.OfficeID, config.RoleExecutiveDirector)
+				query = db.Unscoped().Model(&models.User{}).Where("id = ? AND office_id = ? AND role NOT IN ?", id, *actor.OfficeID, []string{config.RoleExecutiveDirector, config.RoleTechnicalSupport})
 			}
 		case "offices":
 			if c.Request.Method == http.MethodPost || c.Request.Method == http.MethodDelete {

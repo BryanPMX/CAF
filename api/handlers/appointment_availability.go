@@ -20,7 +20,7 @@ type appointmentBusyInterval struct {
 
 func canScheduleEmployee(actor, employee models.User) bool {
 	return actor.ID != 0 && actor.Role != "client" && employee.IsActive && employee.Role != "client" &&
-		(actor.Role == config.RoleExecutiveDirector || (actor.OfficeID != nil && employee.OfficeID != nil && *actor.OfficeID == *employee.OfficeID))
+		(config.CanAccessAllOffices(actor.Role) || (actor.OfficeID != nil && employee.OfficeID != nil && *actor.OfficeID == *employee.OfficeID))
 }
 
 func employeeBusyIntervals(db *gorm.DB, staffID uint, from, to time.Time) ([]appointmentBusyInterval, error) {

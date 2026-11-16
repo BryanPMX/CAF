@@ -39,6 +39,10 @@ func RoleAuth(db *gorm.DB, requiredRole string) gin.HandlerFunc {
 			c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "User not found"})
 			return
 		}
+		if version, exists := c.Get("tokenVersion"); exists && version != user.TokenVersion {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Session expired; please sign in again"})
+			return
+		}
 		if !user.IsActive {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "User account is inactive"})
 			return
@@ -51,7 +55,7 @@ func RoleAuth(db *gorm.DB, requiredRole string) gin.HandlerFunc {
 			// For staff routes, check if user has any staff role
 			hasAccess = IsStaffRole(user.Role)
 		} else if requiredRole == config.RoleAdmin {
-			hasAccess = user.Role == config.RoleAdmin || user.Role == config.RoleExecutiveDirector
+			hasAccess = user.Role == config.RoleAdmin || config.CanAccessAllOffices(user.Role)
 		} else {
 			// For specific roles, do exact match
 			hasAccess = user.Role == requiredRole

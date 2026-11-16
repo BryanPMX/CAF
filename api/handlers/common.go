@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"fmt"
+	"github.com/BryanPMX/CAF/api/config"
 	"log"
 	"net/http"
 	"runtime"
@@ -256,7 +257,7 @@ func ApplyAccessControl(query *gorm.DB, c *gin.Context, entityType string) *gorm
 	})
 
 	// Admins see everything
-	if userRole == "executive_director" {
+	if config.CanAccessAllOffices(userRole) {
 		return query
 	}
 

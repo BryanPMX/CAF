@@ -9,6 +9,7 @@ package handlers
 import (
 	"errors"
 	"fmt"
+	"github.com/BryanPMX/CAF/api/config"
 	"io"
 	"log"
 	"mime"
@@ -216,8 +217,8 @@ func DeleteComment(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		// Only admins and office managers can delete comments
-		userRole, _ := c.Get("userRole")
-		if userRole != "executive_director" && userRole != "admin" && userRole != "office_manager" {
+		userRole := c.GetString("userRole")
+		if !config.CanAccessAllOffices(userRole) && userRole != "admin" && userRole != "office_manager" {
 			c.JSON(http.StatusForbidden, gin.H{"error": "Solo administradores y gerentes de oficina pueden eliminar comentarios"})
 			return
 		}
@@ -413,8 +414,8 @@ func DeleteDocument(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		// Only admins and office managers can delete documents
-		userRole, _ := c.Get("userRole")
-		if userRole != "executive_director" && userRole != "admin" && userRole != "office_manager" {
+		userRole := c.GetString("userRole")
+		if !config.CanAccessAllOffices(userRole) && userRole != "admin" && userRole != "office_manager" {
 			c.JSON(http.StatusForbidden, gin.H{"error": "Solo administradores y gerentes de oficina pueden eliminar documentos"})
 			return
 		}
@@ -488,7 +489,7 @@ func GetDocument(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		// Check access permissions based on visibility
-		userRole, _ := c.Get("userRole")
+		userRole := c.GetString("userRole")
 		if event.Visibility == "internal" && userRole == "client" {
 			c.JSON(http.StatusForbidden, gin.H{"error": "Acceso denegado: documento interno"})
 			return

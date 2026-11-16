@@ -2,6 +2,7 @@
 // Centralized role configuration - single source of truth for frontend
 
 export const USER_ROLES = {
+  TECHNICAL_SUPPORT: 'technical_support',
   EXECUTIVE_DIRECTOR: 'executive_director',
   ADMIN: 'admin',
   OFFICE_MANAGER: 'office_manager',
@@ -15,6 +16,7 @@ export const USER_ROLES = {
 export type UserRole = typeof USER_ROLES[keyof typeof USER_ROLES];
 
 export const ROLE_DISPLAY_NAMES = {
+  [USER_ROLES.TECHNICAL_SUPPORT]: 'Soporte Tecnico',
   [USER_ROLES.EXECUTIVE_DIRECTOR]: 'Director Ejecutivo',
   [USER_ROLES.ADMIN]: 'Administrador',
   [USER_ROLES.OFFICE_MANAGER]: 'Gerente de Oficina',
@@ -30,7 +32,7 @@ export const ROLE_OPTIONS = Object.entries(ROLE_DISPLAY_NAMES).map(([value, labe
   label,
 }));
 
-export const canAccessAllOffices = (role: string): boolean => role === USER_ROLES.EXECUTIVE_DIRECTOR;
+export const canAccessAllOffices = (role: string): boolean => role === USER_ROLES.TECHNICAL_SUPPORT || role === USER_ROLES.EXECUTIVE_DIRECTOR;
 export const canManageWebContent = canAccessAllOffices;
 
 // Helper functions
@@ -39,7 +41,7 @@ export const getRoleDisplayName = (role: string): string => {
 };
 
 export const isAdminRole = (role: string): boolean => {
-  return role === USER_ROLES.EXECUTIVE_DIRECTOR || role === USER_ROLES.ADMIN;
+  return canAccessAllOffices(role) || role === USER_ROLES.ADMIN;
 };
 
 export const isManagementRole = (role: string): boolean => {
@@ -60,6 +62,7 @@ export const canManageUser = (
   target: UserManagementSubject | null | undefined,
 ): boolean => {
   if (!actor || !target || !isManagementRole(actor.role)) return false;
+  if (target.role === USER_ROLES.TECHNICAL_SUPPORT) return actor.role === USER_ROLES.TECHNICAL_SUPPORT;
   if (canAccessAllOffices(actor.role)) return true;
   if (target.role === USER_ROLES.EXECUTIVE_DIRECTOR) return false;
   if (actor.role === USER_ROLES.OFFICE_MANAGER && target.role === USER_ROLES.ADMIN) return false;
@@ -95,6 +98,7 @@ export type StaffRoleKey = UserRole;
 
 // Additional exports for backward compatibility
 export const STAFF_ROLES = {
+  [USER_ROLES.TECHNICAL_SUPPORT]: { key: USER_ROLES.TECHNICAL_SUPPORT, displayName: ROLE_DISPLAY_NAMES[USER_ROLES.TECHNICAL_SUPPORT], department: 'Support' },
   [USER_ROLES.EXECUTIVE_DIRECTOR]: {
     key: USER_ROLES.EXECUTIVE_DIRECTOR,
     displayName: ROLE_DISPLAY_NAMES[USER_ROLES.EXECUTIVE_DIRECTOR],
@@ -133,6 +137,7 @@ export const STAFF_ROLES = {
 };
 
 export const PERMISSIONS = {
+  [USER_ROLES.TECHNICAL_SUPPORT]: ['*'],
   [USER_ROLES.EXECUTIVE_DIRECTOR]: ['*'],
   [USER_ROLES.ADMIN]: ['cases.read', 'cases.write', 'appointments.read', 'appointments.write', 'users.read', 'users.write', 'manage_offices', 'documents.read', 'reports.read', 'records.write'],
   [USER_ROLES.OFFICE_MANAGER]: ['cases.read', 'cases.write', 'appointments.read', 'appointments.write', 'users.read', 'manage_offices'],
@@ -153,6 +158,7 @@ export const CASE_DOCUMENT_TYPES = {
 } as const;
 
 export const CASE_DOCUMENT_PERMISSIONS = {
+  [USER_ROLES.TECHNICAL_SUPPORT]: Object.values(CASE_DOCUMENT_TYPES),
   [USER_ROLES.EXECUTIVE_DIRECTOR]: Object.values(CASE_DOCUMENT_TYPES),
   [USER_ROLES.ADMIN]: Object.values(CASE_DOCUMENT_TYPES),
   [USER_ROLES.LAWYER]: [CASE_DOCUMENT_TYPES.LEGAL, CASE_DOCUMENT_TYPES.GENERAL],
@@ -204,7 +210,7 @@ export const getNavigationItemsForRole = (role: string) => {
     return [
       ...baseItems,
       { key: 'users', label: 'Usuarios', path: '/app/users', icon: 'UserOutlined' },
-      { key: 'offices', label: canAccessAllOffices(role) ? 'Oficinas' : 'Mi Oficina', path: '/app/offices', icon: 'BankOutlined' },
+      { key: 'offices', label: 'Oficinas', path: '/app/offices', icon: 'BankOutlined' },
       ...(canManageWebContent(role) ? [{ key: 'web-content', label: 'Sitio Web', path: '/app/web-content', icon: 'GlobalOutlined' }] : []),
       { key: 'records', label: 'Archivos', path: '/app/records', icon: 'FileOutlined' },
       { key: 'reports', label: 'Reportes', path: '/app/reports', icon: 'BarChartOutlined' },
@@ -239,4 +245,18 @@ export const getDashboardWidgetsForRole = (role: string) => {
   }
 
   return baseWidgets;
+};
+
+export const canResetPasswords = (role: string): boolean => role === USER_ROLES.TECHNICAL_SUPPORT;
+
+// Support is provisioned through bootstrap/migration, never ordinary role grants.
+export const getAssignableRoles = (actorRole: string, targetRole?: string) => {
+  if (!isManagementRole(actorRole)) return [];
+  if (targetRole === USER_ROLES.TECHNICAL_SUPPORT) {
+    return actorRole === USER_ROLES.TECHNICAL_SUPPORT
+      ? ROLE_OPTIONS.filter(role => role.value === USER_ROLES.TECHNICAL_SUPPORT) : [];
+  }
+  return ROLE_OPTIONS.filter(({ value }) => value !== USER_ROLES.TECHNICAL_SUPPORT &&
+    (canAccessAllOffices(actorRole) || (value !== USER_ROLES.EXECUTIVE_DIRECTOR &&
+      (actorRole !== USER_ROLES.OFFICE_MANAGER || value !== USER_ROLES.ADMIN))));
 };

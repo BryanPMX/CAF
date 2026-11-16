@@ -1,5 +1,7 @@
 'use client';
 
+import { canAccessAllOffices } from '@/config/roles';
+
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Result, Button, Spin } from 'antd';
@@ -24,7 +26,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
       }
 
       // Only admins and office managers can access admin routes
-      if (userRole !== 'executive_director') {
+      if (!canAccessAllOffices(userRole ?? '')) {
         setAccessDenied(true);
         setLoading(false);
         return;

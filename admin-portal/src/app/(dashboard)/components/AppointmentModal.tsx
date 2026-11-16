@@ -4,7 +4,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Modal, Form, Input, Button, message, Select, Radio, AutoComplete, Steps, Spin, Typography } from 'antd';
 import { CASE_TYPES, findDepartmentByCaseType } from '@/app/lib/caseTaxonomy';
-import { getRoleDisplayName, isAdminRole, getRolesForCaseCategory, StaffRoleKey } from '@/config/roles';
+import { canAccessAllOffices, getRoleDisplayName, isAdminRole, getRolesForCaseCategory, StaffRoleKey } from '@/config/roles';
 import { APPOINTMENT_STATUSES, APPOINTMENT_STATUS_OPTIONS } from '@/config/statuses';
 import { useAuth } from '@/context/AuthContext';
 import {
@@ -72,7 +72,7 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ visible, onClose, o
             WorkflowService.listClients(user.role, '', 10),
           ]);
           setStaffList(availableStaff);
-          setOffices(user.role === 'executive_director'
+          setOffices(canAccessAllOffices(user.role ?? '')
             ? availableOffices
             : availableOffices.filter((office) => office.id === user.officeId));
           const formattedClients = availableClients.map((client) => ({
@@ -99,7 +99,7 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ visible, onClose, o
       form.resetFields();
 
       // Every non-admin employee creates records only within their assigned office.
-      if (user.role !== 'executive_director' && user.officeId) {
+      if (!canAccessAllOffices(user.role ?? '') && user.officeId) {
         form.setFieldsValue({ officeId: user.officeId });
       }
 
@@ -224,7 +224,7 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ visible, onClose, o
     
     return staffList.filter(staff => {
       // Admins and office managers can be assigned to any appointment
-      const isManagement = (staff.role === 'executive_director' || staff.role === 'admin') || staff.role === 'office_manager';
+      const isManagement = (isAdminRole(staff.role ?? '')) || staff.role === 'office_manager';
       const isAdminForLegal = isAdminRole(staff.role as StaffRoleKey) && isLegalCase;
       const hasAllowedRole = allowedRoles.includes(staff.role as StaffRoleKey);
       const hasMatchingDepartment = staff.department === categoryToUse;
@@ -448,14 +448,14 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ visible, onClose, o
                 <Form.Item name="officeId" label="Oficina" rules={[{ required: true, message: 'Debe seleccionar una oficina' }]}>
                   <Select
                     placeholder="Seleccione una oficina"
-                    disabled={user?.role !== 'executive_director'}
+                    disabled={!canAccessAllOffices(user?.role ?? '')}
                   >
                     {offices && offices.length > 0 && offices.map((o) => (
                       <Option key={o.id} value={o.id}>
                         {o.name}
                       </Option>
                     ))}
-                    {user?.role !== 'executive_director' && user?.officeId && offices.length === 0 && (
+                    {!canAccessAllOffices(user?.role ?? '') && user?.officeId && offices.length === 0 && (
                       <Option key={user.officeId} value={user.officeId}>Mi Oficina</Option>
                     )}
                   </Select>

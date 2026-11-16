@@ -11,8 +11,8 @@ import (
 	"gorm.io/gorm"
 )
 
-// BootstrapAdmin creates the first executive director only when both bootstrap
-// environment values are explicitly supplied and no active executive director
+// BootstrapAdmin creates the protected technical support account only when both bootstrap
+// environment values are explicitly supplied and no technical support account
 // exists. It never resets or updates an existing account.
 func BootstrapAdmin(database *gorm.DB, rawEmail, password string) (bool, error) {
 	email := strings.ToLower(strings.TrimSpace(rawEmail))
@@ -32,13 +32,13 @@ func BootstrapAdmin(database *gorm.DB, rawEmail, password string) (bool, error) 
 		return false, fmt.Errorf("invalid bootstrap administrator password: %w", err)
 	}
 
-	var activeAdmins int64
-	if err := database.Model(&models.User{}).
-		Where("role = ? AND is_active = ? AND deleted_at IS NULL", config.RoleExecutiveDirector, true).
-		Count(&activeAdmins).Error; err != nil {
-		return false, fmt.Errorf("check active executive directors: %w", err)
+	var supportCount int64
+	if err := database.Unscoped().Model(&models.User{}).
+		Where("role = ?", config.RoleTechnicalSupport).
+		Count(&supportCount).Error; err != nil {
+		return false, fmt.Errorf("check technical support accounts: %w", err)
 	}
-	if activeAdmins > 0 {
+	if supportCount > 0 {
 		return false, nil
 	}
 
@@ -53,15 +53,15 @@ func BootstrapAdmin(database *gorm.DB, rawEmail, password string) (bool, error) 
 	if err != nil {
 		return false, err
 	}
-	admin := models.User{
+	support := models.User{
 		FirstName: "System",
-		LastName:  "Administrator",
+		LastName:  "Support",
 		Email:     email,
 		Password:  hash,
-		Role:      config.RoleExecutiveDirector,
+		Role:      config.RoleTechnicalSupport,
 		IsActive:  true,
 	}
-	if err := database.Create(&admin).Error; err != nil {
+	if err := database.Create(&support).Error; err != nil {
 		return false, fmt.Errorf("create bootstrap administrator: %w", err)
 	}
 	return true, nil

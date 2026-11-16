@@ -23,9 +23,9 @@ import (
 const authorizationTestSecret = "authorization-test-secret-at-least-32-characters"
 
 type authorizationFixture struct {
-	db                                      *gorm.DB
-	router                                  *gin.Engine
-	director, admin, otherAdmin, unassigned models.User
+	db                                               *gorm.DB
+	router                                           *gin.Engine
+	director, support, admin, otherAdmin, unassigned models.User
 }
 
 func authorizationSetup(t *testing.T) authorizationFixture {
@@ -39,12 +39,13 @@ func authorizationSetup(t *testing.T) authorizationFixture {
 		}
 	}
 	f := authorizationFixture{db: db,
+		support:    models.User{ID: 5, FirstName: "Technical", LastName: "Support", Email: "support@example.test", Role: config.RoleTechnicalSupport, IsActive: true},
 		director:   models.User{ID: 1, FirstName: "CEO", LastName: "CAF", Email: "ceo@example.test", Role: config.RoleExecutiveDirector, IsActive: true},
 		admin:      models.User{ID: 2, FirstName: "Admin A", LastName: "CAF", Email: "a@example.test", Role: config.RoleAdmin, OfficeID: &a, IsActive: true},
 		otherAdmin: models.User{ID: 3, FirstName: "Admin B", LastName: "CAF", Email: "b@example.test", Role: config.RoleAdmin, OfficeID: &b, IsActive: true},
 		unassigned: models.User{ID: 4, FirstName: "Unassigned", LastName: "CAF", Email: "none@example.test", Role: config.RoleAdmin, IsActive: true},
 	}
-	for _, user := range []models.User{f.director, f.admin, f.otherAdmin, f.unassigned} {
+	for _, user := range []models.User{f.director, f.admin, f.otherAdmin, f.unassigned, f.support} {
 		if err := db.Create(&user).Error; err != nil {
 			t.Fatal(err)
 		}
@@ -103,6 +104,7 @@ func authorizationSetup(t *testing.T) authorizationFixture {
 	admin.POST("/users", CreateUser(db))
 	admin.PATCH("/users/:id", UpdateUser(db))
 	admin.DELETE("/users/:id", DeleteUser(db))
+	admin.DELETE("/users/:id/permanent", PermanentDeleteUser(db))
 	admin.GET("/users/:id", GetUserByID(db))
 	admin.GET("/offices", GetOffices(repositories.NewOfficeRepository(db)))
 	admin.GET("/offices/:id/detail", GetOfficeDetailWithStaff(db))
@@ -165,11 +167,14 @@ func TestOfficeAuthorizationPreview(t *testing.T) {
 	if err := f.db.Model(&models.User{}).Where("id = ?", f.director.ID).Updates(map[string]interface{}{"id": 18, "office_id": *f.admin.OfficeID}).Error; err != nil {
 		t.Fatal(err)
 	}
+	if err := f.db.Model(&models.User{}).Where("id = ?", f.support.ID).Update("id", 1).Error; err != nil {
+		t.Fatal(err)
+	}
 	hash, err := security.HashPassword("Synthetic-E2E-Password123!")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := f.db.Model(&models.User{}).Where("id IN ?", []uint{18, 2, 3}).Update("password", hash).Error; err != nil {
+	if err := f.db.Model(&models.User{}).Where("id IN ?", []uint{1, 18, 2, 3}).Update("password", hash).Error; err != nil {
 		t.Fatal(err)
 	}
 	t.Log("Synthetic role preview listening on 127.0.0.1:8080")
@@ -180,7 +185,7 @@ func TestOfficeAuthorizationPreview(t *testing.T) {
 
 func (f authorizationFixture) request(t *testing.T, actor models.User, method, path, body string) *httptest.ResponseRecorder {
 	t.Helper()
-	token, _, err := security.IssueJWT(authorizationTestSecret, actor.ID, time.Now())
+	token, _, err := security.IssueSessionJWT(authorizationTestSecret, actor.ID, actor.TokenVersion, time.Now())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -199,12 +204,12 @@ func TestManagementListsRespectOfficeScope(t *testing.T) {
 		adminCount, directorCount int
 		wrapped                   bool
 	}{
-		{"/admin/cases", 1, 2, true}, {"/admin/appointments", 1, 2, true}, {"/admin/users", 1, 4, true},
+		{"/admin/cases", 1, 2, true}, {"/admin/appointments", 1, 2, true}, {"/admin/users", 1, 5, true},
 		{"/admin/offices", 1, 2, false}, {"/admin/records/cases", 1, 2, true}, {"/admin/records/appointments", 1, 2, true},
-		{"/calendar/events", 1, 2, true}, {"/calendar/staff", 1, 4, true},
+		{"/calendar/events", 1, 2, true}, {"/calendar/staff", 1, 5, true},
 	} {
 		t.Run(tc.path, func(t *testing.T) {
-			for _, actor := range []models.User{f.admin, f.director} {
+			for _, actor := range []models.User{f.admin, f.director, f.support} {
 				w := f.request(t, actor, http.MethodGet, "/api/v1"+tc.path, "")
 				if w.Code != http.StatusOK {
 					t.Fatalf("%s %s: %d %s", actor.Role, tc.path, w.Code, w.Body.String())
@@ -229,7 +234,7 @@ func TestManagementListsRespectOfficeScope(t *testing.T) {
 					t.Fatalf("%s: %s", err, payload)
 				}
 				want := tc.adminCount
-				if actor.Role == config.RoleExecutiveDirector {
+				if config.CanAccessAllOffices(actor.Role) {
 					want = tc.directorCount
 				}
 				if len(rows) != want {
@@ -306,12 +311,12 @@ func TestUserMutationsStayInOfficeAndPreserveLastExecutive(t *testing.T) {
 
 func TestReportExportsAndArchiveStatsStayInOffice(t *testing.T) {
 	f := authorizationSetup(t)
-	for _, actor := range []models.User{f.admin, f.director} {
+	for _, actor := range []models.User{f.admin, f.director, f.support} {
 		w := f.request(t, actor, "GET", "/api/v1/admin/reports/export?reportType=cases&period=monthly", "")
 		if w.Code != 200 {
 			t.Fatalf("export: %d %s", w.Code, w.Body.String())
 		}
-		if strings.Contains(w.Body.String(), "Case 2") != (actor.Role == config.RoleExecutiveDirector) {
+		if strings.Contains(w.Body.String(), "Case 2") != (config.CanAccessAllOffices(actor.Role)) {
 			t.Fatalf("incorrect export scope for %s: %s", actor.Role, w.Body.String())
 		}
 	}

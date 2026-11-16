@@ -10,6 +10,7 @@ import { UserRole } from '@/app/lib/types';
  */
 export class EndpointResolver {
   private static readonly ROLE_ENDPOINT_MAP = {
+    technical_support: { prefix: '/admin' },
     executive_director: { prefix: '/admin' },
     admin: {
       prefix: '/admin',

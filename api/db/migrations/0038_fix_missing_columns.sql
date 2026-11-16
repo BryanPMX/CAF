@@ -49,11 +49,11 @@ WHERE code IS NULL OR code = '';
 INSERT INTO audit_logs (
     entity_type, entity_id, action, user_id, user_role,
     reason, tags, severity, created_at
-) VALUES (
+) SELECT
     'system', 0, 'migration', 1, 'admin',
     'Emergency migration: Fixed missing last_login and code columns',
     ARRAY['migration', 'emergency', 'schema_fix', 'column_add'], 'critical', CURRENT_TIMESTAMP
-);
+WHERE EXISTS (SELECT 1 FROM users WHERE id = 1);
 
 -- Step 6: Verify the fix
 DO $$

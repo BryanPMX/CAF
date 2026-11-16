@@ -1,5 +1,7 @@
 'use client';
 
+import { isAdminRole } from '@/config/roles';
+
 import React, { useState, useEffect } from 'react';
 import { Modal, Form, Input, Select, DatePicker, TimePicker, Button, message, Space, Alert, Tag, Divider } from 'antd';
 import { SCHEDULE_LABELS, withinSchedulingHours } from '@/app/lib/schedulingHours';
@@ -101,7 +103,7 @@ const EditAppointmentModal: React.FC<EditAppointmentModalProps> = ({
       // Try to get staff list, but don't fail if we can't access it
       try {
         let staffEndpoint: string;
-        if ((role === 'executive_director' || role === 'admin')) {
+        if (isAdminRole(role ?? '')) {
           staffEndpoint = '/admin/users';
         } else if (role === 'office_manager') {
           staffEndpoint = '/manager/users';
@@ -189,7 +191,7 @@ const EditAppointmentModal: React.FC<EditAppointmentModalProps> = ({
       // Use appropriate endpoint based on user role
       const role = typeof window !== 'undefined' ? Cookies.get('userRole') : 'admin';
       let endpoint: string;
-      if ((role === 'executive_director' || role === 'admin')) {
+      if (isAdminRole(role ?? '')) {
         endpoint = `/admin/appointments/${appointment.id}`;
       } else if (role === 'office_manager') {
         endpoint = `/manager/appointments/${appointment.id}`;
@@ -252,7 +254,7 @@ const EditAppointmentModal: React.FC<EditAppointmentModalProps> = ({
       // Use appropriate endpoint based on user role
       const role = typeof window !== 'undefined' ? Cookies.get('userRole') : 'admin';
       let endpoint: string;
-      if ((role === 'executive_director' || role === 'admin')) {
+      if (isAdminRole(role ?? '')) {
         endpoint = `/admin/appointments/${appointment.id}`;
       } else if (role === 'office_manager') {
         endpoint = `/manager/appointments/${appointment.id}`;

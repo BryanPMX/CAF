@@ -6,7 +6,7 @@ import { Button, Table, message, Spin, Tag, Popconfirm, Select, Tooltip, Alert }
 import { useSearchParams, useRouter } from 'next/navigation';
 import { PlusOutlined, EditOutlined, DeleteOutlined, UserOutlined } from '@ant-design/icons';
 import { isAxiosError } from 'axios';
-import { STAFF_ROLES, PERMISSIONS, getAllRoles, canManageUser, canAccessAllOffices, USER_MANAGEMENT_DENIED_MESSAGE } from '@/config/roles';
+import { isAdminRole, STAFF_ROLES, PERMISSIONS, getAllRoles, canManageUser, canAccessAllOffices, USER_MANAGEMENT_DENIED_MESSAGE } from '@/config/roles';
 import { useHydrationSafe } from '@/hooks/useHydrationSafe';
 import { useAuth } from '@/context/AuthContext';
 import { apiClient } from '@/app/lib/api';
@@ -136,7 +136,7 @@ const UserManagementPage = () => {
     // User role is guaranteed to be available by the parent layout
      if (user && (PERMISSIONS[user.role as keyof typeof PERMISSIONS]?.includes('manage_offices') || PERMISSIONS[user.role as keyof typeof PERMISSIONS]?.includes('*'))) {
       // Use appropriate endpoint based on user role
-      const endpoint = (user.role === 'executive_director' || user.role === 'admin') ? '/admin/offices' : '/offices';
+      const endpoint = (isAdminRole(user.role ?? '')) ? '/admin/offices' : '/offices';
       apiClient.get(endpoint).then(res => setOffices(res.data)).catch(() => {});
     }
     // Intentionally omit fetchUsers/searchParams from deps: run once when hydrated and user is set; re-running on fetchUsers identity would cause redundant fetches.
@@ -243,7 +243,7 @@ const UserManagementPage = () => {
       return 'No puede eliminar la cuenta que está usando actualmente.';
     }
 
-    if (record.id === 1) {
+    if (record.id === 1 || record.role === 'technical_support') {
       return 'La cuenta del administrador del sistema está protegida.';
     }
 
@@ -270,6 +270,7 @@ const UserManagementPage = () => {
       key: 'role',
       render: (role: string) => {
         const MAP: Record<string, { label: string; color: string }> = {
+          technical_support: { label: 'Soporte Tecnico', color: 'cyan' },
           executive_director: { label: 'Director Ejecutivo', color: 'magenta' },
           admin: { label: 'Administrador', color: 'purple' },
           staff: { label: 'Personal', color: 'blue' },
@@ -295,7 +296,7 @@ const UserManagementPage = () => {
       title: 'Acciones',
       key: 'actions',
       render: (_: any, record: User) => {
-        if ((userRole !== 'executive_director' && userRole !== 'admin') && userRole !== 'office_manager') {
+        if ((!isAdminRole(userRole ?? '')) && userRole !== 'office_manager') {
           return null;
         }
 
@@ -308,7 +309,7 @@ const UserManagementPage = () => {
         return (
           <span className="space-x-2">
             <Button aria-label={`Editar a ${record.firstName} ${record.lastName}`} icon={<EditOutlined />} onClick={() => handleEdit(record)} />
-            {(userRole === 'executive_director' || userRole === 'admin') && (deleteBlockReason ? (
+            {(isAdminRole(userRole ?? '')) && (deleteBlockReason ? (
               <Tooltip title={deleteBlockReason}>
                 <span>
                   <Button
@@ -348,9 +349,9 @@ const UserManagementPage = () => {
         </h1>
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="flex flex-wrap items-center gap-2 md:gap-3">
-            {((userRole === 'executive_director' || userRole === 'admin') || userRole === 'office_manager') && (
+            {((isAdminRole(userRole ?? '')) || userRole === 'office_manager') && (
               <>
-                {(userRole === 'executive_director' || userRole === 'admin') && (
+                {(isAdminRole(userRole ?? '')) && (
                   <Select
                     allowClear
                     placeholder="Filtrar por Oficina"
@@ -403,7 +404,7 @@ const UserManagementPage = () => {
               </>
             )}
           </div>
-          {((userRole === 'executive_director' || userRole === 'admin') || userRole === 'office_manager') && (
+          {((isAdminRole(userRole ?? '')) || userRole === 'office_manager') && (
             <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
               Crear Usuario
             </Button>

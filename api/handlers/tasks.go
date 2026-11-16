@@ -585,7 +585,7 @@ func DeleteTaskComment(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		// Only the comment author or admin can delete it
-		if comment.UserID != user.ID && user.Role != "executive_director" && user.Role != "admin" {
+		if comment.UserID != user.ID && !config.CanAccessAllOffices(user.Role) && user.Role != "admin" {
 			c.JSON(http.StatusForbidden, gin.H{"error": "Access denied: You can only delete your own comments"})
 			return
 		}

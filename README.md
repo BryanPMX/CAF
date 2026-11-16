@@ -4,7 +4,7 @@ This is the official monorepo for the CAF digital platform. **100% local develop
 
 ## Access policy
 
-See [portal roles and deployment steps](docs/ACCESS_CONTROL.md). Existing CEO accounts must be explicitly promoted to `executive_director`; remaining administrators require an assigned office.
+See [portal roles and deployment steps](docs/ACCESS_CONTROL.md). Existing CEO accounts must be explicitly promoted to `executive_director`; remaining administrators require an assigned office. The protected startup account is Soporte Tecnico, with global access and password management.
 
 ## Security and data boundaries
 
@@ -236,7 +236,7 @@ docker-compose ps
 
 **Secure first administrator:**
 
-Set `BOOTSTRAP_ADMIN_EMAIL` and `BOOTSTRAP_ADMIN_PASSWORD` only for the first API start. These provision the first **Director Ejecutivo** (`executive_director`). The password must be 12–72 characters and include uppercase, lowercase, a number, and a symbol. After the account is created, remove both variables from Portainer and redeploy. There are no default credentials.
+Set `BOOTSTRAP_ADMIN_EMAIL` and `BOOTSTRAP_ADMIN_PASSWORD` only for the first API start. These provision the protected **Soporte Tecnico** (`technical_support`) account. Migration `0062` upgrades the existing system administrator (ID 1) without changing its credentials; other administrators remain office-scoped. The password must contain at least 12 characters, fit within 72 UTF-8 bytes, and include uppercase, lowercase, a number, and a symbol. After the account is created, remove both variables from Portainer and redeploy. There are no default credentials.
 
 ### 2. Start Admin Portal (Frontend)
 
@@ -341,7 +341,7 @@ Local file URLs use the `local://` scheme (e.g. `local://cases/42/uuid.pdf`).
 
 ## Content Management System (CMS)
 
-The admin portal includes a **CMS** for managing the marketing website content. Director Ejecutivo can control all public-facing content without code changes. Office administrators cannot access Sitio Web.
+The admin portal includes a **CMS** for managing the marketing website content. Soporte Tecnico and Director Ejecutivo can control all public-facing content without code changes. Office administrators cannot access Sitio Web.
 
 ### CMS Content Types
 
@@ -406,6 +406,8 @@ curl http://localhost:3000/api/health
 4. **Navigation**: Menu items based on user role
 
 #### 3. Role-Based Access Test
+
+- **Soporte Tecnico**: Protected startup account; organization-wide access plus password and user-detail management
 - **Director Ejecutivo**: Organization-wide access, office filtering, and Sitio Web
 - **Administrador**: Assigned-office cases, appointments, calendar, users, office details, archives, and reports; no Sitio Web
 - **Office Manager**: Office-specific data, user management
