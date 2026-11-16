@@ -304,29 +304,7 @@ func main() {
 		protected.DELETE("/notes/:id", handlers.DeleteUserNote(database))
 
 		// Profile and user info (include office for managers to prefill office selection)
-		protected.GET("/profile", func(c *gin.Context) {
-			userID, _ := c.Get("userID")
-			var user models.User
-			if err := database.Preload("Office").First(&user, "id = ?", userID).Error; err != nil {
-				c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
-				return
-			}
-			// Fallback: update last_login if missing
-			now := time.Now()
-			if user.LastLogin == nil || user.LastLogin.Before(now.Add(-1*time.Hour)) {
-				_ = database.Model(&user).Update("last_login", &now).Error
-			}
-			avatarUrl := handlers.BuildProfileAvatarURL(user.AvatarURL, apiBaseURL)
-			c.JSON(http.StatusOK, gin.H{
-				"userID":    userID,
-				"role":      user.Role,
-				"firstName": user.FirstName,
-				"lastName":  user.LastName,
-				"office":    user.Office,
-				"officeId":  user.OfficeID,
-				"avatarUrl": avatarUrl,
-			})
-		})
+		protected.GET("/profile", handlers.GetProfile(apiBaseURL))
 		protected.PATCH("/profile", handlers.UpdateProfile(database))
 		protected.POST("/profile/avatar", handlers.UploadProfileAvatar(database, apiBaseURL))
 		protected.GET("/avatar", handlers.GetProfileAvatar(database))
@@ -396,26 +374,7 @@ func main() {
 	clientPortal.Use(middleware.DataAccessControl(database))
 	{
 		// Client profile
-		clientPortal.GET("/profile", func(c *gin.Context) {
-			userID, _ := c.Get("userID")
-			var user models.User
-			if err := database.Preload("Office").First(&user, "id = ?", userID).Error; err != nil {
-				c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
-				return
-			}
-			avatarUrl := handlers.BuildProfileAvatarURL(user.AvatarURL, apiBaseURL, "/api/v1/client/avatar")
-			c.JSON(http.StatusOK, gin.H{
-				"userID":    userID,
-				"role":      user.Role,
-				"firstName": user.FirstName,
-				"lastName":  user.LastName,
-				"office":    user.Office,
-				"officeId":  user.OfficeID,
-				"avatarUrl": avatarUrl,
-				"email":     user.Email,
-				"phone":     user.Phone,
-			})
-		})
+		clientPortal.GET("/profile", handlers.GetProfile(apiBaseURL, "/api/v1/client/avatar"))
 		clientPortal.PATCH("/profile", handlers.UpdateProfile(database))
 		clientPortal.POST("/profile/avatar", handlers.UploadProfileAvatar(database, apiBaseURL, "/api/v1/client/avatar"))
 		clientPortal.GET("/avatar", handlers.GetProfileAvatar(database))

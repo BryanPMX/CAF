@@ -135,3 +135,23 @@ PostgreSQL 15 to cover migration, bootstrap, reset, protections and restart pers
 See [the testing guide](../testing/README.md#role-isolation-regression-checks)
 for the live browser checks. Production PostgreSQL/Docker validation should use
 the same two-office matrix before rollout.
+
+## Profiles
+
+`GET /api/v1/profile` (employees) and `GET /api/v1/client/profile` share an
+explicit response contract backed by the authenticated database account. Besides
+the existing identity/avatar fields, it includes email, phone, department,
+specialty, active status, creation date, last sign-in and the avatar upload policy.
+Global roles return no office assignment, including legacy assignments. These
+responses are private and not cacheable. Reading a profile never updates
+`last_login`; successful sign-in remains its source of truth. Password hashes,
+credential versions, payment identifiers and personal addresses are excluded.
+
+The portal reuses `ProfileCard`, its profile types/helpers, and `PROFILE_TEXT`
+for Mi perfil and the user detail view. Contact/office fields and compact account
+dates are shown; optional department/specialty fields appear only when populated.
+Personal addresses, activity feeds, case counters and permission matrices are
+intentionally omitted to keep the view focused. Existing user-detail API scope
+and edit permissions still apply. Photo controls are expandable and available
+only for one's own account. The API supplies MIME types, size and URL limits;
+removal explicitly sends an empty avatar URL and clears the shared avatar state.

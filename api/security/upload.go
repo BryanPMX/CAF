@@ -5,6 +5,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"path/filepath"
+	"sort"
 	"strings"
 )
 
@@ -73,4 +74,20 @@ func validateUpload(file *multipart.FileHeader, maxBytes int64, allowed map[stri
 		return "", fmt.Errorf("file contents do not match the allowed type")
 	}
 	return detected, nil
+}
+
+// ImageUploadMIMETypes exposes the validator's image allowlist to profile clients.
+func ImageUploadMIMETypes() []string {
+	unique := make(map[string]bool)
+	for _, types := range imageTypes {
+		for mime := range types {
+			unique[mime] = true
+		}
+	}
+	types := make([]string, 0, len(unique))
+	for mime := range unique {
+		types = append(types, mime)
+	}
+	sort.Strings(types)
+	return types
 }

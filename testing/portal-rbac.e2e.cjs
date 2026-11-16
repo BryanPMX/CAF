@@ -93,7 +93,7 @@ for (const role of ['admin', 'executive_director', 'technical_support']) {
       await modal.getByRole('button', { name: 'Cancel', exact: true }).click();
       if (executive) {
         await page.goto(`${portal}/app/users/18`);
-        await page.getByText('Nombre completo', { exact: true }).waitFor();
+        await page.getByRole('heading', { name: 'CEO CAF', exact: true }).waitFor();
         assert.equal(await page.getByText('Oficina', { exact: true }).count(), 0);
       } else {
         await page.goto(`${portal}/app/users?edit=18`);

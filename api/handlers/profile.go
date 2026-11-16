@@ -6,9 +6,12 @@ import (
 	"encoding/hex"
 	"log"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
+	"time"
 
+	"github.com/BryanPMX/CAF/api/config"
 	"github.com/BryanPMX/CAF/api/models"
 	securityutil "github.com/BryanPMX/CAF/api/security"
 	"github.com/BryanPMX/CAF/api/storage"
@@ -21,11 +24,65 @@ const maxAvatarURLLen = 512
 // isSafeAvatarURL returns true only for http/https URLs to prevent javascript:, data:, etc.
 func isSafeAvatarURL(s string) bool {
 	s = strings.TrimSpace(s)
-	if len(s) > maxAvatarURLLen || len(s) < 12 {
+	if len(s) > maxAvatarURLLen {
 		return false
 	}
-	lower := strings.ToLower(s)
-	return strings.HasPrefix(lower, "https://") || strings.HasPrefix(lower, "http://")
+	parsed, err := url.ParseRequestURI(s)
+	return err == nil && parsed.Hostname() != "" && (strings.EqualFold(parsed.Scheme, "https") || strings.EqualFold(parsed.Scheme, "http"))
+}
+
+// ProfileResponse is the shared, explicit self-profile contract for staff and clients.
+// Credential, payment and private address fields are intentionally excluded.
+type ProfileResponse struct {
+	UserID       string         `json:"userID"`
+	Role         string         `json:"role"`
+	FirstName    string         `json:"firstName"`
+	LastName     string         `json:"lastName"`
+	Email        string         `json:"email"`
+	Phone        string         `json:"phone"`
+	Department   *string        `json:"department"`
+	Specialty    *string        `json:"specialty"`
+	Office       *models.Office `json:"office"`
+	OfficeID     *uint          `json:"officeId"`
+	AvatarURL    string         `json:"avatarUrl"`
+	IsActive     bool           `json:"isActive"`
+	CreatedAt    time.Time      `json:"createdAt"`
+	LastLogin    *time.Time     `json:"lastLogin"`
+	AvatarPolicy struct {
+		MaxBytes         int64    `json:"maxBytes"`
+		MaxURLBytes      int      `json:"maxURLBytes"`
+		AllowedMIMETypes []string `json:"allowedMimeTypes"`
+	} `json:"avatarPolicy"`
+}
+
+// GetProfile uses the database-backed actor set by DataAccessControl. Reading a
+// profile never changes last_login; only successful sign-in records that time.
+func GetProfile(baseURL string, avatarPaths ...string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		value, exists := c.Get("currentUser")
+		user, ok := value.(models.User)
+		if !exists || !ok || !user.IsActive {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "No autenticado"})
+			return
+		}
+		response := ProfileResponse{
+			UserID: strconv.FormatUint(uint64(user.ID), 10), Role: user.Role,
+			FirstName: user.FirstName, LastName: user.LastName, Email: user.Email, Phone: user.Phone,
+			Department: user.Department, Specialty: user.Specialty,
+			Office: user.Office, OfficeID: user.OfficeID,
+			AvatarURL: BuildProfileAvatarURL(user.AvatarURL, baseURL, avatarPaths...),
+			IsActive:  user.IsActive, CreatedAt: user.CreatedAt, LastLogin: user.LastLogin,
+		}
+		if config.CanAccessAllOffices(user.Role) {
+			response.Office = nil
+			response.OfficeID = nil
+		}
+		response.AvatarPolicy.MaxBytes = securityutil.MaxImageBytes
+		response.AvatarPolicy.MaxURLBytes = maxAvatarURLLen
+		response.AvatarPolicy.AllowedMIMETypes = securityutil.ImageUploadMIMETypes()
+		c.Header("Cache-Control", "private, no-store")
+		c.JSON(http.StatusOK, response)
+	}
 }
 
 // ProfileUpdateInput is the body for PATCH /profile (optional fields).

@@ -94,3 +94,15 @@ test('optional password changes preserve blank fields and validate supplied cred
   assert.deepEqual(roles.getAssignableRoles('client'), []);
   assert.deepEqual(roles.getAssignableRoles('unknown'), []);
 });
+
+
+test('profile helpers handle missing dates, names and safe photo links', () => {
+  const profile = load('app/lib/profile.ts');
+  assert.equal(profile.getProfileName({ firstName: ' Ana ', lastName: ' Pérez ' }), 'Ana Pérez');
+  assert.equal(profile.getProfileInitials({ firstName: ' Ana ', lastName: ' Pérez ' }), 'AP');
+  assert.equal(profile.getProfileInitials({ firstName: '', lastName: '' }), '');
+  for (const value of [undefined, null, '', 'invalid', '0001-01-01T00:00:00Z']) assert.equal(profile.formatProfileDate(value), null);
+  assert.ok(profile.formatProfileDate('2024-03-15T12:00:00Z').includes('2024'));
+  for (const url of ['javascript:alert(1)', 'data:image/png;base64,AAA', 'https://', '/api/avatar']) assert.equal(profile.isValidProfilePhotoURL(url), false);
+  for (const url of ['https://example.test/photo.png', 'http://a.co']) assert.equal(profile.isValidProfilePhotoURL(url), true);
+});

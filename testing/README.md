@@ -413,3 +413,21 @@ account (including preserved disabled state), singleton support protection, all
 fresh-install migrations and secure support bootstrap, all-office access, password
 reset/login, old-token rejection, support delete/demotion denial and restart
 persistence. This complements the Go role/handler/race tests and browser suite.
+
+### Profile regression checks
+
+The same local role preview now includes every staff role and a client. With the
+preview API and portal running on the loopback ports above, run:
+
+```bash
+cd testing
+npm run test:e2e:profiles
+```
+
+The profile suite covers all nine roles, office visibility, optional fields,
+account dates, existing edit permissions, narrow-screen layout, load failure/retry,
+photo URL validation/persistence and removal from profile and shared auth state.
+Screenshots are saved to `/tmp/caf-profile-e2e` or `CAF_E2E_ARTIFACT_DIR`.
+The Docker script also checks the shared staff/client profile contract against
+PostgreSQL, verifies reads preserve the last-login timestamp, and uploads,
+retrieves and removes a real image through the production API.

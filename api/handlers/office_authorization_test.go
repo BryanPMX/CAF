@@ -76,11 +76,14 @@ func authorizationSetup(t *testing.T) authorizationFixture {
 	r.POST("/api/v1/login", EnhancedLogin(db, authorizationTestSecret))
 	base := r.Group("/api/v1", middleware.EnhancedJWTAuth(authorizationTestSecret), middleware.DataAccessControl(db))
 	base.GET("/dashboard-summary", GetDashboardSummary(db))
-	base.GET("/profile", func(c *gin.Context) {
-		value, _ := c.Get("currentUser")
-		user := value.(models.User)
-		c.JSON(200, gin.H{"userID": user.ID, "role": user.Role, "firstName": user.FirstName, "lastName": user.LastName, "officeId": user.OfficeID, "office": user.Office})
-	})
+	base.GET("/profile", middleware.DenyClients(), GetProfile(""))
+	base.PATCH("/profile", UpdateProfile(db))
+	base.POST("/profile/avatar", UploadProfileAvatar(db, ""))
+	base.GET("/avatar", GetProfileAvatar(db))
+	client := r.Group("/api/v1/client", middleware.EnhancedJWTAuth(authorizationTestSecret), middleware.RoleAuth(db, "client"), middleware.DataAccessControl(db))
+	client.GET("/profile", GetProfile("", "/api/v1/client/avatar"))
+	client.PATCH("/profile", UpdateProfile(db))
+
 	base.GET("/notifications", GetNotifications(db))
 	base.GET("/offices", GetOffices(repositories.NewOfficeRepository(db)))
 	base.GET("/appointments", GetAppointmentsEnhanced(db))
@@ -170,11 +173,26 @@ func TestOfficeAuthorizationPreview(t *testing.T) {
 	if err := f.db.Model(&models.User{}).Where("id = ?", f.support.ID).Update("id", 1).Error; err != nil {
 		t.Fatal(err)
 	}
+
+	for i, role := range []string{config.RoleOfficeManager, config.RoleLawyer, config.RolePsychologist, config.RoleReceptionist, config.RoleEventCoordinator, "client"} {
+		member := models.User{ID: uint(6 + i), FirstName: "Profile", LastName: role, Email: role + "@example.test", Role: role, IsActive: true, OfficeID: f.admin.OfficeID}
+		if role == config.RoleLawyer {
+			department, specialty := "Legal", "Derecho familiar"
+			member.Department = &department
+			member.Specialty = &specialty
+		}
+		if err := f.db.Create(&member).Error; err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := f.db.Model(&models.User{}).Where("is_active = ?", true).Updates(map[string]interface{}{"phone": "6561234567", "created_at": time.Date(2024, 3, 15, 12, 0, 0, 0, time.UTC)}).Error; err != nil {
+		t.Fatal(err)
+	}
 	hash, err := security.HashPassword("Synthetic-E2E-Password123!")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := f.db.Model(&models.User{}).Where("id IN ?", []uint{1, 18, 2, 3}).Update("password", hash).Error; err != nil {
+	if err := f.db.Model(&models.User{}).Where("is_active = ?", true).Update("password", hash).Error; err != nil {
 		t.Fatal(err)
 	}
 	t.Log("Synthetic role preview listening on 127.0.0.1:8080")

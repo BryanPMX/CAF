@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Isolated production-image/PostgreSQL checks. Uses synthetic data and removes its containers."""
+import base64
 import json
 import os
 from pathlib import Path
@@ -119,6 +120,40 @@ try:
     request('PATCH', '/api/v1/admin/users/1', {**body, 'role': 'admin', 'officeId': offices[0]}, token, 403)
     assert {office['id'] for office in request('GET', '/api/v1/admin/offices', token=token)}.issuperset(offices)
     assert len(request('GET', '/api/v1/admin/users', token=token)['data']) == 3
+    # Shared self-profile fields are authoritative, private and read-only.
+    last_login_before = sql('SELECT last_login FROM users WHERE id=1;')
+    profile = request('GET', '/api/v1/profile?userID=2', token=token)
+    assert profile['userID'] == '1' and profile['email'] == 'support@example.test'
+    assert profile['role'] == 'technical_support' and profile['office'] is None and profile['officeId'] is None
+    assert profile['createdAt'] and profile['lastLogin'] and profile['isActive']
+    assert profile['avatarPolicy']['maxBytes'] == 10 * 1024 * 1024
+    assert not {'password', 'tokenVersion', 'personalAddress', 'stripeCustomerId'}.intersection(profile)
+    assert sql('SELECT last_login FROM users WHERE id=1;') == last_login_before
+    request('PATCH', '/api/v1/profile', {'avatarUrl': 'javascript:alert(1)'}, token, 400)
+    request('PATCH', '/api/v1/profile', {'avatarUrl': 'https://example.test/photo.png'}, token)
+    assert request('GET', '/api/v1/profile', token=token)['avatarUrl'] == 'https://example.test/photo.png'
+    # Verify real multipart upload and protected local-avatar retrieval.
+    png = base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jV+kAAAAASUVORK5CYII=')
+    boundary = 'caf-photo-boundary'
+    multipart = (f'--{boundary}\r\nContent-Disposition: form-data; name="avatar"; filename="profile.png"\r\nContent-Type: image/png\r\n\r\n'.encode()
+                 + png + f'\r\n--{boundary}--\r\n'.encode())
+    upload = urllib.request.Request(base + '/api/v1/profile/avatar', method='POST', data=multipart,
+             headers={'Authorization': 'Bearer ' + token, 'Content-Type': 'multipart/form-data; boundary=' + boundary})
+    with urllib.request.urlopen(upload, timeout=10) as response:
+        assert response.status == 200
+        avatar_path = json.load(response)['avatarUrl']
+    assert avatar_path.startswith('/api/v1/avatar?v=')
+    with urllib.request.urlopen(urllib.request.Request(base + avatar_path, headers={'Authorization': 'Bearer ' + token}), timeout=10) as response:
+        assert response.read() == png and response.headers['Cache-Control'].startswith('private')
+    request('PATCH', '/api/v1/profile', {'avatarUrl': ''}, token)
+    assert request('GET', '/api/v1/profile', token=token)['avatarUrl'] == ''
+    client = create_user('Client', 'client', offices[1])
+    client_token = request('POST', '/api/v1/login', {'email': client['email'], 'password': PASSWORD})['token']
+    client_profile = request('GET', '/api/v1/client/profile', token=client_token)
+    assert client_profile['email'] == client['email'] and client_profile['phone'] == client['phone']
+    assert client_profile['officeId'] == offices[1] and client_profile['avatarPolicy'] == profile['avatarPolicy']
+    request('GET', '/api/v1/profile', token=client_token, expected=403)
+    print('PASS: shared staff/client profile contract, privacy, read-only login date, photo upload, protected retrieval and removal')
     credential_before = sql('SELECT password FROM users WHERE id=1;')
     docker('restart', API)
     base = 'http://' + docker('port', API, '8080/tcp').splitlines()[0]
