@@ -131,7 +131,7 @@ func AssignStaffToCase(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		if !middleware.IsStaffRole(staff.Role) && staff.Role != "office_manager" && staff.Role != "admin" {
+		if !middleware.IsStaffRole(staff.Role) && staff.Role != "office_manager" && staff.Role != "admin" && staff.Role != "executive_director" {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "User cannot be assigned to cases"})
 			return
 		}
@@ -143,9 +143,20 @@ func AssignStaffToCase(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
+		if actor, ok := c.Get("currentUser"); ok {
+			if actor, ok := actor.(models.User); ok && !canScheduleEmployee(actor, staff) {
+				c.JSON(http.StatusForbidden, gin.H{"error": "Staff outside your office"})
+				return
+			}
+		}
 		// Update assignment and audit fields
 		userID, _ := c.Get("userID")
-		userIDUint := userID.(uint)
+		userIDUint64, err := strconv.ParseUint(userID.(string), 10, 32)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
+			return
+		}
+		userIDUint := uint(userIDUint64)
 
 		caseData.PrimaryStaffID = &request.StaffID
 		caseData.UpdatedBy = &userIDUint
@@ -214,13 +225,13 @@ func GetCasesForClient(db *gorm.DB) gin.HandlerFunc {
 		var total int64
 
 		// Count total cases
-		if err := db.Model(&models.Case{}).Where("client_id = ? AND is_archived = ?", clientIDUint, false).Count(&total).Error; err != nil {
+		if err := officeScopedQuery(db.Model(&models.Case{}), c, "office_id").Where("client_id = ? AND is_archived = ?", clientIDUint, false).Count(&total).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to count cases"})
 			return
 		}
 
 		// Get cases with relationships
-		query := db.Preload("Client").Preload("Office").Preload("PrimaryStaff").
+		query := officeScopedQuery(db, c, "office_id").Preload("Client").Preload("Office").Preload("PrimaryStaff").
 			Where("client_id = ? AND is_archived = ?", clientIDUint, false).
 			Order("created_at DESC").
 			Offset(offset).

@@ -337,3 +337,54 @@ npm run test:crud
 4. **Documentation**: Update test docs with new features
 
 This comprehensive testing suite ensures the CAF system maintains high quality and reliability across all components and user scenarios.
+
+
+## Role isolation regression checks
+
+The current permission matrix and deployment steps are documented in
+[ACCESS_CONTROL.md](../docs/ACCESS_CONTROL.md). Older credential-driven scripts
+are separate from the isolated role regression suite.
+
+```bash
+cd api
+go test ./...
+go test -race ./...
+cd ../testing
+npm ci
+npm run test:roles
+```
+
+For the live E2E checks, start the **synthetic in-memory API** in one terminal:
+
+```bash
+cd api
+CAF_RBAC_PREVIEW=1 go test ./handlers -run '^TestOfficeAuthorizationPreview$' -count=1 -timeout=0 -v
+```
+
+Start the portal in another terminal, using the dedicated loopback port:
+
+```bash
+cd admin-portal
+NEXT_PUBLIC_API_URL=http://localhost:8080/api/v1 npm exec next dev -- --hostname 127.0.0.1 --port 3100
+```
+
+Then run:
+
+```bash
+cd testing
+npx playwright install chromium
+npm run test:e2e:roles
+```
+
+The preview binds only `127.0.0.1:8080`. It uses generated in-memory records and
+synthetic test credentials; it never reads production environment files or data.
+Keep these tests on loopback. The browser checks sign-in, role labels, dashboard
+office filters, sidebar entries, direct CMS denial, API case scope, and user-role
+choices for both Director Ejecutivo and Administrador. Screenshots are written
+to `/tmp/caf-rbac-e2e` (override with `CAF_E2E_ARTIFACT_DIR`). Stop both preview
+processes with Ctrl-C when finished.
+
+SQLite tests require CGO and a C compiler (for example, Xcode command-line tools on macOS).
+SQLite validates authorization and handler behavior; it does not replace the
+PostgreSQL/Docker migration and deployment checks. Use the production compose
+stack and two test offices for that final verification when Docker is available.

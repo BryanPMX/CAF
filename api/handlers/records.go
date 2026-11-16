@@ -32,7 +32,7 @@ func GetRecordsArchivedCases(db *gorm.DB) gin.HandlerFunc {
 		// Build query for archived cases
 		// Include both soft-deleted cases (deleted_at IS NOT NULL) and
 		// completed/archived cases (is_archived = true) to capture all records
-		query := db.Model(&models.Case{}).Where("deleted_at IS NOT NULL OR is_archived = ?", true)
+		query := officeScopedQuery(db.Model(&models.Case{}), c, "office_id").Where("deleted_at IS NOT NULL OR is_archived = ?", true)
 
 		// Apply search filter
 		if search != "" {
@@ -179,6 +179,10 @@ func GetArchivedAppointments(db *gorm.DB) gin.HandlerFunc {
 
 		countSQL := `SELECT COUNT(*) FROM appointments WHERE deleted_at IS NOT NULL`
 		countArgs := []interface{}{}
+		if scope, exists := c.Get("officeScopeID"); exists {
+			countSQL += " AND office_id = ?"
+			countArgs = append(countArgs, scope)
+		}
 
 		if search != "" {
 			countSQL += ` AND title ILIKE ?`
@@ -209,6 +213,10 @@ func GetArchivedAppointments(db *gorm.DB) gin.HandlerFunc {
 			WHERE a.deleted_at IS NOT NULL
 		`
 		selectArgs := []interface{}{}
+		if scope, exists := c.Get("officeScopeID"); exists {
+			selectSQL += " AND a.office_id = ?"
+			selectArgs = append(selectArgs, scope)
+		}
 
 		if search != "" {
 			selectSQL += ` AND a.title ILIKE ?`
@@ -318,7 +326,7 @@ func GetRecordsArchiveStats(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		// Count total archived cases (both soft-deleted and completed/archived)
-		if err := db.Model(&models.Case{}).Where("deleted_at IS NOT NULL OR is_archived = ?", true).Count(&stats.TotalArchived).Error; err != nil {
+		if err := officeScopedQuery(db.Model(&models.Case{}), c, "office_id").Where("deleted_at IS NOT NULL OR is_archived = ?", true).Count(&stats.TotalArchived).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"error":   "Failed to count total archived cases",
 				"message": err.Error(),
@@ -327,7 +335,7 @@ func GetRecordsArchiveStats(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		// Count completed archived cases
-		if err := db.Model(&models.Case{}).Where("is_completed = ? AND is_archived = ?", true, true).Count(&stats.CompletedArchived).Error; err != nil {
+		if err := officeScopedQuery(db.Model(&models.Case{}), c, "office_id").Where("is_completed = ? AND is_archived = ?", true, true).Count(&stats.CompletedArchived).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"error":   "Failed to count completed archived cases",
 				"message": err.Error(),
@@ -336,7 +344,7 @@ func GetRecordsArchiveStats(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		// Count manually deleted cases (soft-deleted but not completed)
-		if err := db.Model(&models.Case{}).Where("deleted_at IS NOT NULL AND is_completed = ?", false).Count(&stats.ManuallyDeleted).Error; err != nil {
+		if err := officeScopedQuery(db.Model(&models.Case{}), c, "office_id").Where("deleted_at IS NOT NULL AND is_completed = ?", false).Count(&stats.ManuallyDeleted).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"error":   "Failed to count manually deleted cases",
 				"message": err.Error(),
@@ -347,7 +355,7 @@ func GetRecordsArchiveStats(db *gorm.DB) gin.HandlerFunc {
 		// Count this month's archives (using both deleted_at and archived_at)
 		now := time.Now()
 		startOfMonth := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
-		if err := db.Model(&models.Case{}).Where(
+		if err := officeScopedQuery(db.Model(&models.Case{}), c, "office_id").Where(
 			"(deleted_at IS NOT NULL AND deleted_at >= ?) OR (archived_at IS NOT NULL AND archived_at >= ?)",
 			startOfMonth, startOfMonth,
 		).Count(&stats.ThisMonth).Error; err != nil {
@@ -361,7 +369,7 @@ func GetRecordsArchiveStats(db *gorm.DB) gin.HandlerFunc {
 		// Count last month's archives
 		startOfLastMonth := startOfMonth.AddDate(0, -1, 0)
 		endOfLastMonth := startOfMonth.Add(-time.Nanosecond)
-		if err := db.Model(&models.Case{}).Where(
+		if err := officeScopedQuery(db.Model(&models.Case{}), c, "office_id").Where(
 			"(deleted_at IS NOT NULL AND deleted_at >= ? AND deleted_at <= ?) OR (archived_at IS NOT NULL AND archived_at >= ? AND archived_at <= ?)",
 			startOfLastMonth, endOfLastMonth, startOfLastMonth, endOfLastMonth,
 		).Count(&stats.LastMonth).Error; err != nil {

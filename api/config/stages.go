@@ -30,7 +30,7 @@ var CaseStageLabels = map[string]string{
 	"action_plan":          "Plan de Acción",
 	"resolution":           "Resolución",
 	"closed":               "Cerrado",
-	
+
 	// Legal case stages
 	"etapa_inicial":        "Etapa Inicial",
 	"notificacion":         "Notificación",
@@ -41,51 +41,52 @@ var CaseStageLabels = map[string]string{
 
 // CaseStatusLabels provides Spanish (Mexico) localization for case statuses
 var CaseStatusLabels = map[string]string{
-	"open":     "Abierto",
-	"active":   "Activo",
-	"resolved": "Resuelto",
-	"closed":   "Cerrado",
-	"pending":  "Pendiente",
+	"open":      "Abierto",
+	"active":    "Activo",
+	"resolved":  "Resuelto",
+	"closed":    "Cerrado",
+	"pending":   "Pendiente",
 	"cancelled": "Cancelado",
 }
 
 // AppointmentStatusLabels provides Spanish (Mexico) localization for appointment statuses
 var AppointmentStatusLabels = map[string]string{
-	"confirmed": "Confirmada",
-	"pending":   "Pendiente",
-	"completed": "Completada",
-	"cancelled": "Cancelada",
-	"no-show":   "No Presentó",
+	"confirmed":   "Confirmada",
+	"pending":     "Pendiente",
+	"completed":   "Completada",
+	"cancelled":   "Cancelada",
+	"no-show":     "No Presentó",
 	"rescheduled": "Reprogramada",
 }
 
 // UserRoleLabels provides Spanish (Mexico) localization for user roles
 var UserRoleLabels = map[string]string{
-	"admin":    "Administrador",
-	"staff":    "Personal",
-	"client":   "Cliente",
-	"receptionist": "Recepcionista",
-	"lawyer":   "Abogado",
-	"psychologist": "Psicólogo",
-	"social_worker": "Trabajador Social",
+	"executive_director": "Director Ejecutivo",
+	"admin":              "Administrador",
+	"staff":              "Personal",
+	"client":             "Cliente",
+	"receptionist":       "Recepcionista",
+	"lawyer":             "Abogado",
+	"psychologist":       "Psicólogo",
+	"social_worker":      "Trabajador Social",
 }
 
 // DepartmentLabels provides Spanish (Mexico) localization for departments
 var DepartmentLabels = map[string]string{
-	"legal":        "Legal",
-	"psychology":   "Psicología",
-	"social":       "Asistencia Social",
+	"legal":          "Legal",
+	"psychology":     "Psicología",
+	"social":         "Asistencia Social",
 	"administration": "Administración",
-	"general":      "General",
+	"general":        "General",
 }
 
 // TaskStatusLabels provides Spanish (Mexico) localization for task statuses
 var TaskStatusLabels = map[string]string{
-	"pending":   "Pendiente",
+	"pending":     "Pendiente",
 	"in_progress": "En Progreso",
-	"completed": "Completada",
-	"cancelled": "Cancelada",
-	"overdue":   "Vencida",
+	"completed":   "Completada",
+	"cancelled":   "Cancelada",
+	"overdue":     "Vencida",
 }
 
 // PriorityLabels provides Spanish (Mexico) localization for priority levels

@@ -68,8 +68,8 @@ export default function DashboardPage() {
   const { user } = useAuth();
   const role = user?.role;
   const isStaff = isDashboardStaffRole(role);
-  const isAdmin = role === 'admin';
-  const isManager = role === 'office_manager';
+  const isAdmin = role === 'executive_director';
+  const isManager = role === 'admin' || role === 'office_manager';
 
   const {
     summary,
@@ -406,7 +406,7 @@ export default function DashboardPage() {
               <Link href="/app/cases"><Button icon={<FileAddOutlined />}>Expedientes</Button></Link>
               <Link href="/app/appointments"><Button icon={<CalendarOutlined />}>Agenda</Button></Link>
               {(isAdmin || isManager) && <Link href="/app/users"><Button icon={<UserAddOutlined />}>Usuarios</Button></Link>}
-              {isAdmin && <Link href="/app/offices"><Button icon={<BankOutlined />}>Oficinas</Button></Link>}
+              {(isAdmin || role === 'admin') && <Link href="/app/offices"><Button icon={<BankOutlined />}>Oficinas</Button></Link>}
             </div>
           </div>
         </div>

@@ -17,13 +17,13 @@ func CanAccessCase(db *gorm.DB, currentUser models.User, caseID uint) (bool, err
 	if err := db.Select("id, client_id, category, office_id, primary_staff_id").First(&caseRecord, caseID).Error; err != nil {
 		return false, err
 	}
-	if currentUser.Role == config.RoleAdmin {
+	if currentUser.Role == config.RoleExecutiveDirector {
 		return true, nil
 	}
 	if currentUser.Role == "client" {
 		return caseRecord.ClientID != nil && *caseRecord.ClientID == currentUser.ID, nil
 	}
-	if currentUser.Role == config.RoleOfficeManager {
+	if currentUser.Role == config.RoleAdmin || currentUser.Role == config.RoleOfficeManager {
 		return currentUser.OfficeID != nil && *currentUser.OfficeID == caseRecord.OfficeID, nil
 	}
 
@@ -87,7 +87,7 @@ func DataAccessControl(db *gorm.DB) gin.HandlerFunc {
 		c.Set("userOfficeID", user.OfficeID)
 
 		// Admin users have full access
-		if user.Role == config.RoleAdmin {
+		if user.Role == config.RoleExecutiveDirector {
 			c.Next()
 			return
 		}
@@ -95,7 +95,7 @@ func DataAccessControl(db *gorm.DB) gin.HandlerFunc {
 		// Treat any non-admin, non-client role as staff-like for access scoping
 		if user.Role != "client" {
 			// Ensure staff-like users are assigned to an office
-			if user.OfficeID == nil {
+			if user.OfficeID == nil || *user.OfficeID == 0 {
 				c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "Access denied: Staff member must be assigned to an office"})
 				return
 			}
@@ -118,13 +118,13 @@ func CaseAccessControl(db *gorm.DB) gin.HandlerFunc {
 		currentUser := user.(models.User)
 
 		// Admin users have access to all cases
-		if currentUser.Role == config.RoleAdmin {
+		if currentUser.Role == config.RoleExecutiveDirector {
 			c.Next()
 			return
 		}
 
 		// Office managers have access to all cases in their office
-		if currentUser.Role == config.RoleOfficeManager {
+		if currentUser.Role == config.RoleAdmin || currentUser.Role == config.RoleOfficeManager {
 			caseID := c.Param("id")
 			if caseID != "" {
 				// For specific case access, verify it belongs to their office (include soft-deleted for records restore/delete)
@@ -134,7 +134,7 @@ func CaseAccessControl(db *gorm.DB) gin.HandlerFunc {
 					return
 				}
 
-				if currentUser.OfficeID != nil && *currentUser.OfficeID != caseRecord.OfficeID {
+				if currentUser.OfficeID == nil || *currentUser.OfficeID != caseRecord.OfficeID {
 					c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "Access denied: Case belongs to different office"})
 					return
 				}
@@ -220,13 +220,13 @@ func AppointmentAccessControl(db *gorm.DB) gin.HandlerFunc {
 		currentUser := user.(models.User)
 
 		// Admin users have access to all appointments
-		if currentUser.Role == config.RoleAdmin {
+		if currentUser.Role == config.RoleExecutiveDirector {
 			c.Next()
 			return
 		}
 
 		// Office managers have access to all appointments in their office
-		if currentUser.Role == config.RoleOfficeManager {
+		if currentUser.Role == config.RoleAdmin || currentUser.Role == config.RoleOfficeManager {
 			appointmentID := c.Param("id")
 			if appointmentID != "" {
 				// For specific appointment access, verify it belongs to their office
@@ -236,7 +236,7 @@ func AppointmentAccessControl(db *gorm.DB) gin.HandlerFunc {
 					return
 				}
 
-				if currentUser.OfficeID != nil && appointment.Case.OfficeID != *currentUser.OfficeID {
+				if currentUser.OfficeID == nil || appointment.OfficeID != *currentUser.OfficeID {
 					c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "Access denied: Appointment belongs to different office"})
 					return
 				}
@@ -269,7 +269,7 @@ func AppointmentAccessControl(db *gorm.DB) gin.HandlerFunc {
 			}
 
 			// Check office access
-			if currentUser.OfficeID != nil && appointment.Case.OfficeID != *currentUser.OfficeID {
+			if currentUser.OfficeID == nil || appointment.OfficeID != *currentUser.OfficeID {
 				c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "Access denied: Appointment belongs to different office"})
 				return
 			}
@@ -296,11 +296,27 @@ func TaskAccessControl(db *gorm.DB) gin.HandlerFunc {
 		currentUser := user.(models.User)
 
 		// Admin users have access to all tasks
-		if currentUser.Role == config.RoleAdmin {
+		if currentUser.Role == config.RoleExecutiveDirector {
 			c.Next()
 			return
 		}
 
+		if currentUser.Role == config.RoleAdmin {
+			if currentUser.OfficeID == nil {
+				c.AbortWithStatus(http.StatusForbidden)
+				return
+			}
+			if id := c.Param("id"); id != "" {
+				var count int64
+				err := db.Model(&models.Task{}).Where("id = ? AND case_id IN (SELECT id FROM cases WHERE office_id = ?)", id, *currentUser.OfficeID).Count(&count).Error
+				if err != nil || count == 0 {
+					c.AbortWithStatus(http.StatusForbidden)
+					return
+				}
+			}
+			c.Next()
+			return
+		}
 		// For staff-like users, check task assignment and case access
 		if currentUser.Role != "client" {
 			taskID := c.Param("id")
@@ -348,7 +364,7 @@ func DepartmentFilter(db *gorm.DB) gin.HandlerFunc {
 		currentUser := user.(models.User)
 
 		// Only apply department filtering for staff-like users
-		if currentUser.Role != "client" && currentUser.Role != "admin" && currentUser.Department != nil {
+		if currentUser.Role != "client" && !config.IsManagementRole(currentUser.Role) && currentUser.Department != nil {
 			c.Set("departmentFilter", *currentUser.Department)
 		}
 

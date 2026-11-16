@@ -50,7 +50,7 @@ function listFromResponse<T>(payload: unknown): T[] {
 export const WorkflowService = {
   async listOffices(role: UserRole): Promise<WorkflowOffice[]> {
     assertEmployee(role);
-    const endpoint = role === 'admin' || role === 'office_manager'
+    const endpoint = (role === 'executive_director' || role === 'admin') || role === 'office_manager'
       ? `${rolePrefix(role)}/offices`
       : '/offices';
     const response = await apiClient.get(endpoint);

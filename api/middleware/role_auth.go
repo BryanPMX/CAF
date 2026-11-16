@@ -4,6 +4,7 @@ package middleware
 import (
 	"net/http"
 
+	"github.com/BryanPMX/CAF/api/config"
 	"github.com/BryanPMX/CAF/api/models"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -49,6 +50,8 @@ func RoleAuth(db *gorm.DB, requiredRole string) gin.HandlerFunc {
 		if requiredRole == "staff" {
 			// For staff routes, check if user has any staff role
 			hasAccess = IsStaffRole(user.Role)
+		} else if requiredRole == config.RoleAdmin {
+			hasAccess = user.Role == config.RoleAdmin || user.Role == config.RoleExecutiveDirector
 		} else {
 			// For specific roles, do exact match
 			hasAccess = user.Role == requiredRole

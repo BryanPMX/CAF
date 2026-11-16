@@ -7,7 +7,8 @@ export type CaseStatus = 'open' | 'in_progress' | 'closed' | 'pending' | 'archiv
 export type TaskStatus = 'pending' | 'in_progress' | 'completed' | 'cancelled';
 
 // User roles - Updated to match backend and roles.ts configuration
-export type UserRole = 'admin' | 'office_manager' | 'lawyer' | 'psychologist' | 'receptionist' | 'event_coordinator' | 'client';
+import type { UserRole } from '@/config/roles';
+export type { UserRole } from '@/config/roles';
 
 // Notification types
 export type NotificationType = 'info' | 'warning' | 'error' | 'success';

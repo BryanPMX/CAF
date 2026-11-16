@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/BryanPMX/CAF/api/config"
 	"github.com/BryanPMX/CAF/api/models"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -36,6 +35,14 @@ func NewReportsHandler(db *gorm.DB) *ReportsHandler {
 	return &ReportsHandler{db: db}
 }
 
+func reportOfficeQuery(db *gorm.DB, c *gin.Context, column string, requested *uint) *gorm.DB {
+	query := officeScopedQuery(db, c, column)
+	if requested != nil {
+		query = query.Where(column+" = ?", *requested)
+	}
+	return query
+}
+
 // GetSummaryReport returns a comprehensive summary of cases and appointments for the specified period
 func (rh *ReportsHandler) GetSummaryReport() gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -54,28 +61,16 @@ func (rh *ReportsHandler) GetSummaryReport() gin.HandlerFunc {
 		}
 
 		// Base query with office scoping for non-admin roles
-		dbq := rh.db.Model(&models.Case{})
-		if roleVal, exists := c.Get("userRole"); exists {
-			if role, ok := roleVal.(string); ok && !config.CanAccessAllOffices(role) {
-				if officeScopeVal, ok2 := c.Get("officeScopeID"); ok2 {
-					if officeID, ok3 := officeScopeVal.(uint); ok3 {
-						dbq = dbq.Where("office_id = ?", officeID)
-					}
-				}
-			}
-		}
+		dbq := reportOfficeQuery(rh.db.Model(&models.Case{}), c, "cases.office_id", query.OfficeID)
 
 		// Apply filters
 		if query.Department != "" {
-			dbq = dbq.Where("category = ?", query.Department)
-		}
-		if query.OfficeID != nil {
-			dbq = dbq.Where("office_id = ?", *query.OfficeID)
+			dbq = dbq.Session(&gorm.Session{}).Where("category = ?", query.Department)
 		}
 
 		// Get case statistics with proper error handling
 		var totalCases int64
-		if err := dbq.Where("created_at BETWEEN ? AND ?", query.DateFrom, query.DateTo).Count(&totalCases).Error; err != nil {
+		if err := dbq.Session(&gorm.Session{}).Where("created_at BETWEEN ? AND ?", query.DateFrom, query.DateTo).Count(&totalCases).Error; err != nil {
 			log.Printf("Error counting total cases: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al contar casos"})
 			return
@@ -86,7 +81,7 @@ func (rh *ReportsHandler) GetSummaryReport() gin.HandlerFunc {
 			Status string
 			Count  int64
 		}
-		if err := dbq.Where("created_at BETWEEN ? AND ?", query.DateFrom, query.DateTo).
+		if err := dbq.Session(&gorm.Session{}).Where("created_at BETWEEN ? AND ?", query.DateFrom, query.DateTo).
 			Select("status, COUNT(*) as count").
 			Group("status").Scan(&casesByStatus).Error; err != nil {
 			log.Printf("Error getting cases by status: %v", err)
@@ -101,7 +96,7 @@ func (rh *ReportsHandler) GetSummaryReport() gin.HandlerFunc {
 			Department string
 			Count      int64
 		}
-		if err := dbq.Where("created_at BETWEEN ? AND ?", query.DateFrom, query.DateTo).
+		if err := dbq.Session(&gorm.Session{}).Where("created_at BETWEEN ? AND ?", query.DateFrom, query.DateTo).
 			Select("category as department, COUNT(*) as count").
 			Group("category").Scan(&casesByDepartment).Error; err != nil {
 			log.Printf("Error getting cases by department: %v", err)
@@ -116,7 +111,7 @@ func (rh *ReportsHandler) GetSummaryReport() gin.HandlerFunc {
 			Stage string
 			Count int64
 		}
-		if err := dbq.Where("created_at BETWEEN ? AND ?", query.DateFrom, query.DateTo).
+		if err := dbq.Session(&gorm.Session{}).Where("created_at BETWEEN ? AND ?", query.DateFrom, query.DateTo).
 			Select("current_stage as stage, COUNT(*) as count").
 			Group("current_stage").Scan(&casesByStage).Error; err != nil {
 			log.Printf("Error getting cases by stage: %v", err)
@@ -128,11 +123,11 @@ func (rh *ReportsHandler) GetSummaryReport() gin.HandlerFunc {
 
 		// Get appointment statistics with proper error handling
 		var totalAppointments int64
-		apptQuery := rh.db.Model(&models.Appointment{})
+		apptQuery := reportOfficeQuery(rh.db.Model(&models.Appointment{}), c, "appointments.office_id", query.OfficeID)
 		if query.Department != "" {
-			apptQuery = apptQuery.Where("department = ?", query.Department)
+			apptQuery = apptQuery.Session(&gorm.Session{}).Where("department = ?", query.Department)
 		}
-		if err := apptQuery.Where("start_time BETWEEN ? AND ?", query.DateFrom, query.DateTo).Count(&totalAppointments).Error; err != nil {
+		if err := apptQuery.Session(&gorm.Session{}).Where("start_time BETWEEN ? AND ?", query.DateFrom, query.DateTo).Count(&totalAppointments).Error; err != nil {
 			log.Printf("Error counting total appointments: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al contar citas"})
 			return
@@ -143,7 +138,7 @@ func (rh *ReportsHandler) GetSummaryReport() gin.HandlerFunc {
 			Status string
 			Count  int64
 		}
-		if err := apptQuery.Where("start_time BETWEEN ? AND ?", query.DateFrom, query.DateTo).
+		if err := apptQuery.Session(&gorm.Session{}).Where("start_time BETWEEN ? AND ?", query.DateFrom, query.DateTo).
 			Select("status, COUNT(*) as count").
 			Group("status").Scan(&appointmentsByStatus).Error; err != nil {
 			log.Printf("Error getting appointments by status: %v", err)
@@ -158,7 +153,7 @@ func (rh *ReportsHandler) GetSummaryReport() gin.HandlerFunc {
 			Department string
 			Count      int64
 		}
-		if err := apptQuery.Where("start_time BETWEEN ? AND ?", query.DateFrom, query.DateTo).
+		if err := apptQuery.Session(&gorm.Session{}).Where("start_time BETWEEN ? AND ?", query.DateFrom, query.DateTo).
 			Select("department, COUNT(*) as count").
 			Group("department").Scan(&appointmentsByDepartment).Error; err != nil {
 			log.Printf("Error getting appointments by department: %v", err)
@@ -200,31 +195,18 @@ func (rh *ReportsHandler) GetCasesReport() gin.HandlerFunc {
 		}
 
 		// Base query with office scoping for non-admin roles
-		dbq := rh.db.Model(&models.Case{}).
+		dbq := reportOfficeQuery(rh.db.Model(&models.Case{}), c, "cases.office_id", query.OfficeID).
 			Preload("Client").
 			Preload("Office").
 			Preload("AssignedStaff")
 
-		if roleVal, exists := c.Get("userRole"); exists {
-			if role, ok := roleVal.(string); ok && !config.CanAccessAllOffices(role) {
-				if officeScopeVal, ok2 := c.Get("officeScopeID"); ok2 {
-					if officeID, ok3 := officeScopeVal.(uint); ok3 {
-						dbq = dbq.Where("office_id = ?", officeID)
-					}
-				}
-			}
-		}
-
 		// Apply filters
-		dbq = dbq.Where("created_at BETWEEN ? AND ?", query.DateFrom, query.DateTo)
+		dbq = dbq.Session(&gorm.Session{}).Where("created_at BETWEEN ? AND ?", query.DateFrom, query.DateTo)
 		if query.Department != "" {
-			dbq = dbq.Where("category = ?", query.Department)
-		}
-		if query.OfficeID != nil {
-			dbq = dbq.Where("office_id = ?", *query.OfficeID)
+			dbq = dbq.Session(&gorm.Session{}).Where("category = ?", query.Department)
 		}
 		if query.CaseStatus != "" {
-			dbq = dbq.Where("status = ?", query.CaseStatus)
+			dbq = dbq.Session(&gorm.Session{}).Where("status = ?", query.CaseStatus)
 		}
 
 		// Initialize with empty slice to prevent null JSON response
@@ -300,33 +282,18 @@ func (rh *ReportsHandler) GetAppointmentsReport() gin.HandlerFunc {
 		}
 
 		// Base query with office scoping for non-admin roles
-		dbq := rh.db.Model(&models.Appointment{}).
+		dbq := reportOfficeQuery(rh.db.Model(&models.Appointment{}), c, "appointments.office_id", query.OfficeID).
 			Preload("Case").
 			Preload("Case.Client").
 			Preload("Staff")
 
 		// Apply filters
-		dbq = dbq.Where("start_time BETWEEN ? AND ?", query.DateFrom, query.DateTo)
+		dbq = dbq.Session(&gorm.Session{}).Where("start_time BETWEEN ? AND ?", query.DateFrom, query.DateTo)
 		if query.Department != "" {
-			dbq = dbq.Where("department = ?", query.Department)
+			dbq = dbq.Session(&gorm.Session{}).Where("department = ?", query.Department)
 		}
 		if query.AppointmentStatus != "" {
-			dbq = dbq.Where("status = ?", query.AppointmentStatus)
-		}
-
-		// Office filtering through case relationship
-		if query.OfficeID != nil {
-			dbq = dbq.Joins("JOIN cases ON appointments.case_id = cases.id").
-				Where("cases.office_id = ?", *query.OfficeID)
-		} else if roleVal, exists := c.Get("userRole"); exists {
-			if role, ok := roleVal.(string); ok && !config.CanAccessAllOffices(role) {
-				if officeScopeVal, ok2 := c.Get("officeScopeID"); ok2 {
-					if officeID, ok3 := officeScopeVal.(uint); ok3 {
-						dbq = dbq.Joins("JOIN cases ON appointments.case_id = cases.id").
-							Where("cases.office_id = ?", officeID)
-					}
-				}
-			}
+			dbq = dbq.Session(&gorm.Session{}).Where("status = ?", query.AppointmentStatus)
 		}
 
 		// Initialize with empty slice to prevent null JSON response
@@ -408,11 +375,11 @@ func (rh *ReportsHandler) ExportReport() gin.HandlerFunc {
 		var csvContent string
 		switch query.ReportType {
 		case "cases":
-			csvContent = rh.generateEnhancedCasesCSV(query)
+			csvContent = rh.generateEnhancedCasesCSV(c, query)
 		case "appointments":
-			csvContent = rh.generateEnhancedAppointmentsCSV(query)
+			csvContent = rh.generateEnhancedAppointmentsCSV(c, query)
 		case "summary":
-			csvContent = rh.generateEnhancedSummaryCSV(query)
+			csvContent = rh.generateEnhancedSummaryCSV(c, query)
 		default:
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Tipo de reporte no válido"})
 			return
@@ -516,25 +483,25 @@ func getPeriodRange(period string) (time.Time, time.Time) {
 }
 
 // generateFormattedCasesPDF generates formatted content for PDF cases report
-func (rh *ReportsHandler) generateFormattedCasesPDF(query QueryParams) string {
+func (rh *ReportsHandler) generateFormattedCasesPDF(c *gin.Context, query QueryParams) string {
 	// For now, return enhanced CSV content (can be enhanced with actual PDF formatting)
-	return rh.generateEnhancedCasesCSV(query)
+	return rh.generateEnhancedCasesCSV(c, query)
 }
 
 // generateFormattedAppointmentsPDF generates formatted content for PDF appointments report
-func (rh *ReportsHandler) generateFormattedAppointmentsPDF(query QueryParams) string {
+func (rh *ReportsHandler) generateFormattedAppointmentsPDF(c *gin.Context, query QueryParams) string {
 	// For now, return enhanced CSV content (can be enhanced with actual PDF formatting)
-	return rh.generateEnhancedAppointmentsCSV(query)
+	return rh.generateEnhancedAppointmentsCSV(c, query)
 }
 
 // generateFormattedSummaryPDF generates formatted content for PDF summary report
-func (rh *ReportsHandler) generateFormattedSummaryPDF(query QueryParams) string {
+func (rh *ReportsHandler) generateFormattedSummaryPDF(c *gin.Context, query QueryParams) string {
 	// For now, return enhanced CSV content (can be enhanced with actual PDF formatting)
-	return rh.generateEnhancedSummaryCSV(query)
+	return rh.generateEnhancedSummaryCSV(c, query)
 }
 
 // generateEnhancedCasesCSV generates detailed CSV content for cases report with performance optimizations
-func (rh *ReportsHandler) generateEnhancedCasesCSV(query QueryParams) string {
+func (rh *ReportsHandler) generateEnhancedCasesCSV(c *gin.Context, query QueryParams) string {
 	var content strings.Builder
 
 	// Add cases header with enhanced formatting
@@ -543,7 +510,7 @@ func (rh *ReportsHandler) generateEnhancedCasesCSV(query QueryParams) string {
 	content.WriteString("ID,Título,Departamento,Estado,Fase,Cliente,Oficina,Personal Asignado,N° Expediente,Juzgado,Fecha Creación,Última Actualización,Prioridad\n")
 
 	// Use optimized query with proper indexing
-	dbq := rh.db.Model(&models.Case{}).
+	dbq := reportOfficeQuery(rh.db.Model(&models.Case{}), c, "cases.office_id", query.OfficeID).
 		Preload("Client").
 		Preload("Office").
 		Preload("PrimaryStaff").
@@ -551,13 +518,10 @@ func (rh *ReportsHandler) generateEnhancedCasesCSV(query QueryParams) string {
 
 	// Apply filters with proper indexing
 	if query.Department != "" {
-		dbq = dbq.Where("category = ?", query.Department)
-	}
-	if query.OfficeID != nil {
-		dbq = dbq.Where("office_id = ?", *query.OfficeID)
+		dbq = dbq.Session(&gorm.Session{}).Where("category = ?", query.Department)
 	}
 	if query.CaseStatus != "" {
-		dbq = dbq.Where("status = ?", query.CaseStatus)
+		dbq = dbq.Session(&gorm.Session{}).Where("status = ?", query.CaseStatus)
 	}
 
 	// Use pagination for large datasets to prevent memory issues
@@ -651,7 +615,7 @@ func (rh *ReportsHandler) generateEnhancedCasesCSV(query QueryParams) string {
 }
 
 // generateEnhancedAppointmentsCSV generates detailed CSV content for appointments report
-func (rh *ReportsHandler) generateEnhancedAppointmentsCSV(query QueryParams) string {
+func (rh *ReportsHandler) generateEnhancedAppointmentsCSV(c *gin.Context, query QueryParams) string {
 	var content strings.Builder
 
 	// Add appointments header with enhanced formatting
@@ -660,7 +624,7 @@ func (rh *ReportsHandler) generateEnhancedAppointmentsCSV(query QueryParams) str
 	content.WriteString("ID,Título,Caso,Cliente,Personal,Fecha Inicio,Fecha Fin,Duración,Estado,Categoría,Departamento,Fecha Creación\n")
 
 	// Use optimized query with proper indexing
-	dbq := rh.db.Model(&models.Appointment{}).
+	dbq := reportOfficeQuery(rh.db.Model(&models.Appointment{}), c, "appointments.office_id", query.OfficeID).
 		Preload("Staff").
 		Preload("Case").
 		Preload("Case.Client").
@@ -668,10 +632,10 @@ func (rh *ReportsHandler) generateEnhancedAppointmentsCSV(query QueryParams) str
 
 	// Apply filters
 	if query.Department != "" {
-		dbq = dbq.Where("department = ?", query.Department)
+		dbq = dbq.Session(&gorm.Session{}).Where("department = ?", query.Department)
 	}
 	if query.AppointmentStatus != "" {
-		dbq = dbq.Where("status = ?", query.AppointmentStatus)
+		dbq = dbq.Session(&gorm.Session{}).Where("status = ?", query.AppointmentStatus)
 	}
 
 	// Use pagination for large datasets to prevent memory issues
@@ -759,7 +723,7 @@ func (rh *ReportsHandler) generateEnhancedAppointmentsCSV(query QueryParams) str
 }
 
 // generateEnhancedSummaryCSV generates comprehensive summary CSV content
-func (rh *ReportsHandler) generateEnhancedSummaryCSV(query QueryParams) string {
+func (rh *ReportsHandler) generateEnhancedSummaryCSV(c *gin.Context, query QueryParams) string {
 	var content strings.Builder
 
 	// Add summary header with enhanced formatting
@@ -772,7 +736,7 @@ func (rh *ReportsHandler) generateEnhancedSummaryCSV(query QueryParams) string {
 	content.WriteString(strings.Repeat("=", 60) + "\n\n")
 
 	// Get comprehensive summary data with performance optimizations
-	summaryData := rh.getEnhancedSummaryData(query)
+	summaryData := rh.getEnhancedSummaryData(c, query)
 
 	// General Overview
 	content.WriteString("RESUMEN GENERAL\n")
@@ -830,7 +794,7 @@ func (rh *ReportsHandler) generateEnhancedSummaryCSV(query QueryParams) string {
 }
 
 // getEnhancedSummaryData retrieves comprehensive summary data with performance optimizations
-func (rh *ReportsHandler) getEnhancedSummaryData(query QueryParams) struct {
+func (rh *ReportsHandler) getEnhancedSummaryData(c *gin.Context, query QueryParams) struct {
 	TotalCases        int64
 	TotalAppointments int64
 	CasesByStatus     []struct {
@@ -854,21 +818,21 @@ func (rh *ReportsHandler) getEnhancedSummaryData(query QueryParams) struct {
 } {
 	// Use optimized queries with proper indexing
 	var totalCases int64
-	rh.db.Model(&models.Case{}).Where("created_at BETWEEN ? AND ?", query.DateFrom, query.DateTo).Count(&totalCases)
+	reportOfficeQuery(rh.db.Model(&models.Case{}), c, "cases.office_id", query.OfficeID).Where("created_at BETWEEN ? AND ?", query.DateFrom, query.DateTo).Count(&totalCases)
 
 	var totalAppointments int64
-	apptQuery := rh.db.Model(&models.Appointment{})
+	apptQuery := reportOfficeQuery(rh.db.Model(&models.Appointment{}), c, "appointments.office_id", query.OfficeID)
 	if query.Department != "" {
-		apptQuery = apptQuery.Where("department = ?", query.Department)
+		apptQuery = apptQuery.Session(&gorm.Session{}).Where("department = ?", query.Department)
 	}
-	apptQuery.Where("start_time BETWEEN ? AND ?", query.DateFrom, query.DateTo).Count(&totalAppointments)
+	apptQuery.Session(&gorm.Session{}).Where("start_time BETWEEN ? AND ?", query.DateFrom, query.DateTo).Count(&totalAppointments)
 
 	// Get aggregated data with single queries for better performance
 	var casesByStatus []struct {
 		Status string
 		Count  int64
 	}
-	rh.db.Model(&models.Case{}).
+	reportOfficeQuery(rh.db.Model(&models.Case{}), c, "cases.office_id", query.OfficeID).
 		Where("created_at BETWEEN ? AND ?", query.DateFrom, query.DateTo).
 		Select("status, COUNT(*) as count").
 		Group("status").
@@ -878,7 +842,7 @@ func (rh *ReportsHandler) getEnhancedSummaryData(query QueryParams) struct {
 		Department string
 		Count      int64
 	}
-	rh.db.Model(&models.Case{}).
+	reportOfficeQuery(rh.db.Model(&models.Case{}), c, "cases.office_id", query.OfficeID).
 		Where("created_at BETWEEN ? AND ?", query.DateFrom, query.DateTo).
 		Select("category as department, COUNT(*) as count").
 		Group("category").
@@ -888,7 +852,7 @@ func (rh *ReportsHandler) getEnhancedSummaryData(query QueryParams) struct {
 		Stage string
 		Count int64
 	}
-	rh.db.Model(&models.Case{}).
+	reportOfficeQuery(rh.db.Model(&models.Case{}), c, "cases.office_id", query.OfficeID).
 		Where("created_at BETWEEN ? AND ?", query.DateFrom, query.DateTo).
 		Select("current_stage as stage, COUNT(*) as count").
 		Group("current_stage").
@@ -898,7 +862,7 @@ func (rh *ReportsHandler) getEnhancedSummaryData(query QueryParams) struct {
 		Status string
 		Count  int64
 	}
-	apptQuery.Where("start_time BETWEEN ? AND ?", query.DateFrom, query.DateTo).
+	apptQuery.Session(&gorm.Session{}).Where("start_time BETWEEN ? AND ?", query.DateFrom, query.DateTo).
 		Select("status, COUNT(*) as count").
 		Group("status").
 		Scan(&appointmentsByStatus)

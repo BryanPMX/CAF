@@ -44,6 +44,7 @@ interface OfficeDetail {
 
 // Role color mapping for consistent badges
 const ROLE_COLORS: Record<string, string> = {
+  executive_director: 'purple',
   admin: 'red',
   office_manager: 'blue',
   lawyer: 'green',
@@ -221,9 +222,9 @@ const OfficeManagementPage = () => {
           <Button size="small" onClick={() => handleViewDetail(record)}>
             Ver Detalle
           </Button>
-          {userRole === 'admin' && (
+          {(userRole === 'executive_director' || userRole === 'admin') && <Button icon={<EditOutlined />} size="small" onClick={() => handleEdit(record)} />}
+          {userRole === 'executive_director' && (
             <>
-              <Button icon={<EditOutlined />} size="small" onClick={() => handleEdit(record)} />
               <Popconfirm
                 title="Eliminar oficina"
                 description="La oficina se borrará de forma permanente. Esta acción no se puede deshacer. ¿Continuar?"
@@ -251,7 +252,7 @@ const OfficeManagementPage = () => {
           </h1>
           <Text type="secondary">Haga clic en el nombre de una oficina para ver su detalle, personal y clientes</Text>
         </div>
-        {userRole === 'admin' && (
+        {userRole === 'executive_director' && (
           <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
             Crear Oficina
           </Button>

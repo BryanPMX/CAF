@@ -39,6 +39,7 @@ import type {
   EmployeeCalendarEvent,
 } from '@/app/lib/calendar';
 import { useAuth } from '@/context/AuthContext';
+import { isManagementRole } from '@/config/roles';
 import { CalendarService } from '@/services/calendarService';
 import CalendarEventModal from './components/CalendarEventModal';
 
@@ -115,7 +116,7 @@ export default function EmployeeCalendarPage() {
     const dateTo = month.endOf('month').add(7, 'day').format('YYYY-MM-DD');
     const [eventsResult, appointmentsResult] = await Promise.allSettled([
       CalendarService.listEvents(dateFrom, dateTo),
-      apiClient.get<AppointmentListResponse>('/appointments/my', { params: { dateFrom, dateTo, pageSize: 200 } }),
+      apiClient.get<AppointmentListResponse>(isManagementRole(user.role) ? '/appointments' : '/appointments/my', { params: { dateFrom, dateTo, pageSize: 200 } }),
     ]);
 
     if (eventsResult.status === 'fulfilled') setEvents(eventsResult.value);
@@ -127,7 +128,7 @@ export default function EmployeeCalendarPage() {
     if (failed > 0) setError('Algunos datos del calendario no pudieron actualizarse.');
     setLoading(false);
     setRefreshing(false);
-  }, [monthKey, user?.id]);
+  }, [monthKey, user?.id, user?.role]);
 
   useEffect(() => {
     void loadCalendar();
@@ -377,6 +378,7 @@ export default function EmployeeCalendarPage() {
 
               const response = item.event.attendees.find((attendee) => attendee.userId === user?.id)?.responseStatus || 'pending';
               const isOrganizer = item.event.organizerId === user?.id;
+              const canManage = isOrganizer || user?.role === 'executive_director' || user?.role === 'admin';
               return (
                 <div key={item.key} className="rounded-2xl border border-violet-200 bg-violet-50/50 p-4">
                   <div className="flex items-start justify-between gap-3">
@@ -397,7 +399,7 @@ export default function EmployeeCalendarPage() {
                         </Tooltip>
                       ))}
                     </Avatar.Group>
-                    {isOrganizer && (
+                    {canManage && (
                       <div className="flex gap-1">
                         <Button size="small" type="text" aria-label={`Editar ${item.title}`} icon={<EditOutlined />} onClick={() => { setEditingEvent(item.event); setEventModalOpen(true); }} />
                         <Popconfirm

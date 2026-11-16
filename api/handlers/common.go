@@ -256,7 +256,7 @@ func ApplyAccessControl(query *gorm.DB, c *gin.Context, entityType string) *gorm
 	})
 
 	// Admins see everything
-	if userRole == "admin" {
+	if userRole == "executive_director" {
 		return query
 	}
 
@@ -266,7 +266,7 @@ func ApplyAccessControl(query *gorm.DB, c *gin.Context, entityType string) *gorm
 	}
 
 	// Apply department restriction
-	if department != "" {
+	if department != "" && userRole != "admin" && userRole != "office_manager" {
 		query = query.Where("department = ?", department)
 	}
 

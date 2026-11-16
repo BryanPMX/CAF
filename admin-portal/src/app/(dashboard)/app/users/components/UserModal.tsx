@@ -55,7 +55,7 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
           // Get role from cookie (not localStorage) as set by AuthContext
           const role = typeof window !== 'undefined' ? Cookies.get('userRole') : 'admin';
           // Check if the current user can manage users (admin or office_manager)
-          if (role === 'admin' || role === 'office_manager') {
+          if ((role === 'executive_director' || role === 'admin') || role === 'office_manager') {
             const response = await apiClient.get('/offices');
             setOffices(response.data);
           } else {
@@ -86,7 +86,7 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
         if (typeof window !== 'undefined') {
           const role = Cookies.get('userRole');
           const officeId = Cookies.get('userOfficeId');
-          if (role === 'office_manager' && officeId) {
+          if (role !== 'executive_director' && officeId) {
             form.setFieldsValue({ officeId: Number(officeId) });
           }
         }
@@ -156,7 +156,7 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
     
     // For office managers creating/editing to staff role: auto-set their office
     // This is needed because the office dropdown is disabled for staff roles
-    if (currentUserRole === 'office_manager' && roleValue !== USER_ROLES.CLIENT) {
+    if (currentUserRole !== 'executive_director') {
       if (currentUserOfficeId) {
         form.setFieldsValue({ officeId: Number(currentUserOfficeId) });
       }
@@ -171,8 +171,8 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
   const getAvailableRoles = () => {
     const allRoles = getAllRoles();
     // Office managers cannot create admin users
-    if (currentUserRole === 'office_manager') {
-      return allRoles.filter(role => role.value !== USER_ROLES.ADMIN);
+    if (currentUserRole !== 'executive_director') {
+      return allRoles.filter(role => role.value !== USER_ROLES.EXECUTIVE_DIRECTOR && (currentUserRole !== 'office_manager' || role.value !== USER_ROLES.ADMIN));
     }
     return allRoles;
   };
@@ -270,7 +270,7 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
               name="officeId"
               label="Oficina"
               rules={
-                selectedRole && requiresOffice(selectedRole as StaffRoleKey) && currentUserRole !== 'office_manager'
+                selectedRole && requiresOffice(selectedRole as StaffRoleKey) && currentUserRole === 'executive_director'
                   ? [{ required: true, message: 'Debe asignar una oficina al personal' }]
                   : []
               }
@@ -278,7 +278,7 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
               <Select
                 placeholder={selectedRole ? 'Seleccione una oficina' : 'Primero seleccione un rol'}
                 allowClear={selectedRole === USER_ROLES.CLIENT}
-                disabled={!selectedRole || (currentUserRole === 'office_manager' && selectedRole !== USER_ROLES.CLIENT)}
+                disabled={!selectedRole || currentUserRole !== 'executive_director'}
                 showSearch
                 filterOption={(input, option) =>
                   (option?.children?.toString() ?? '').toLowerCase().includes(input.toLowerCase())

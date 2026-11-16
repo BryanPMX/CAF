@@ -146,6 +146,51 @@ func validateCalendarEmployees(db *gorm.DB, attendeeIDs []uint) error {
 	return nil
 }
 
+// Management visibility follows the organizer's office; employees keep their invitation scope.
+func scopedCalendarEvents(query *gorm.DB, db *gorm.DB, user models.User) *gorm.DB {
+	if config.CanAccessAllOffices(user.Role) {
+		return query
+	}
+	if user.Role == config.RoleAdmin {
+		if user.OfficeID == nil {
+			return query.Where("1 = 0")
+		}
+		return query.Where("organizer_id IN (?)", db.Model(&models.User{}).Select("id").Where("office_id = ?", *user.OfficeID))
+	}
+	return query.Where("(organizer_id = ? OR id IN (?))", user.ID, db.Model(&models.CalendarEventAttendee{}).Select("event_id").Where("user_id = ?", user.ID))
+}
+
+func validateCalendarScope(db *gorm.DB, user models.User, ids []uint) error {
+	if user.Role != config.RoleAdmin {
+		return nil
+	}
+	if user.OfficeID == nil {
+		return errors.New("Se requiere una oficina asignada")
+	}
+	var count int64
+	if err := db.Model(&models.User{}).Where("id IN ? AND office_id = ?", ids, *user.OfficeID).Count(&count).Error; err != nil {
+		return err
+	}
+	if count != int64(len(ids)) {
+		return errors.New("Solo puede invitar personal de su oficina")
+	}
+	return nil
+}
+
+func canManageCalendarEvent(db *gorm.DB, user models.User, event models.CalendarEvent) bool {
+	if config.CanAccessAllOffices(user.Role) {
+		return true
+	}
+	if user.Role == config.RoleAdmin {
+		if user.OfficeID == nil {
+			return false
+		}
+		var count int64
+		return db.Model(&models.User{}).Where("id = ? AND office_id = ?", event.OrganizerID, *user.OfficeID).Count(&count).Error == nil && count > 0
+	}
+	return event.OrganizerID == user.ID
+}
+
 func calendarEventPreload(db *gorm.DB) *gorm.DB {
 	return db.
 		Preload("Organizer", func(query *gorm.DB) *gorm.DB {
@@ -202,13 +247,17 @@ func notifyCalendarInvitees(db *gorm.DB, event models.CalendarEvent, organizer m
 // GetCalendarStaff returns the minimal active employee directory needed by the attendee selector.
 func GetCalendarStaff(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		if _, ok := currentCalendarUser(c); !ok {
+		user, ok := currentCalendarUser(c)
+		if !ok {
 			return
 		}
 
 		staff := make([]calendarStaffOption, 0)
-		if err := db.Model(&models.User{}).
-			Select("users.id, users.first_name, users.last_name, users.email, users.role, users.office_id, COALESCE(offices.name, '') AS office_name").
+		query := db.Model(&models.User{})
+		if user.Role == config.RoleAdmin {
+			query = officeScopedQuery(query, c, "users.office_id")
+		}
+		if err := query.Select("users.id, users.first_name, users.last_name, users.email, users.role, users.office_id, COALESCE(offices.name, '') AS office_name").
 			Joins("LEFT JOIN offices ON offices.id = users.office_id").
 			Where("users.is_active = ? AND users.role <> ? AND users.deleted_at IS NULL", true, "client").
 			Order("users.first_name ASC, users.last_name ASC").
@@ -253,10 +302,7 @@ func GetCalendarEvents(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		events := make([]models.CalendarEvent, 0)
-		attendeeEventIDs := db.Model(&models.CalendarEventAttendee{}).
-			Select("event_id").Where("user_id = ?", user.ID)
-		query := calendarEventPreload(db.Model(&models.CalendarEvent{})).
-			Where("(organizer_id = ? OR id IN (?))", user.ID, attendeeEventIDs).
+		query := scopedCalendarEvents(calendarEventPreload(db.Model(&models.CalendarEvent{})), db, user).
 			Where("start_time < ? AND end_time > ?", dateTo, dateFrom).
 			Order("start_time ASC").Limit(500)
 		if err := query.Find(&events).Error; err != nil {
@@ -289,6 +335,10 @@ func CreateCalendarEvent(db *gorm.DB) gin.HandlerFunc {
 		}
 		if err := validateWorkingHours(normalized.StartTime, normalized.EndTime, normalized.TimeZone, internalSchedule); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		if err := validateCalendarScope(db, organizer, normalized.AttendeeIDs); err != nil {
+			c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
 			return
 		}
 		if err := validateCalendarEmployees(db, normalized.AttendeeIDs); err != nil {
@@ -331,7 +381,7 @@ func UpdateCalendarEvent(db *gorm.DB) gin.HandlerFunc {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Evento no encontrado"})
 			return
 		}
-		if event.OrganizerID != user.ID && user.Role != config.RoleAdmin {
+		if !canManageCalendarEvent(db, user, event) {
 			c.JSON(http.StatusForbidden, gin.H{"error": "Solo el organizador puede editar este evento"})
 			return
 		}
@@ -383,6 +433,10 @@ func UpdateCalendarEvent(db *gorm.DB) gin.HandlerFunc {
 		normalized, err := normalizeCalendarEventInput(input, event.OrganizerID)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		if err := validateCalendarScope(db, user, normalized.AttendeeIDs); err != nil {
+			c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
 			return
 		}
 		if err := validateCalendarEmployees(db, normalized.AttendeeIDs); err != nil {
@@ -511,7 +565,7 @@ func DeleteCalendarEvent(db *gorm.DB) gin.HandlerFunc {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Evento no encontrado"})
 			return
 		}
-		if event.OrganizerID != user.ID && user.Role != config.RoleAdmin {
+		if !canManageCalendarEvent(db, user, event) {
 			c.JSON(http.StatusForbidden, gin.H{"error": "Solo el organizador puede cancelar este evento"})
 			return
 		}

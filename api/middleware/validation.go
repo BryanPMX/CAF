@@ -65,8 +65,8 @@ var ValidationRules = map[string]ValidationRule{
 	},
 	"role": {
 		Required: true,
-		Pattern:  `^(admin|office_manager|staff|counselor|psychologist|client)$`,
-		Message:  "Invalid role. Must be one of: admin, office_manager, staff, counselor, psychologist, client",
+		Pattern:  `^(executive_director|admin|office_manager|lawyer|psychologist|receptionist|event_coordinator|client)$`,
+		Message:  "Invalid role. Must be one of: executive_director, admin, office_manager, lawyer, psychologist, receptionist, event_coordinator, client",
 	},
 	"status": {
 		Required: true,
@@ -88,9 +88,9 @@ type ValidationError struct {
 
 // ValidationResponse represents the validation response
 type ValidationResponse struct {
-	Valid   bool             `json:"valid"`
+	Valid   bool              `json:"valid"`
 	Errors  []ValidationError `json:"errors"`
-	Message string           `json:"message"`
+	Message string            `json:"message"`
 }
 
 // ValidateField validates a single field
@@ -172,7 +172,7 @@ func ValidateRequest(c *gin.Context, rules map[string]ValidationRule) *Validatio
 func ValidationMiddleware(rules map[string]ValidationRule) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		validation := ValidateRequest(c, rules)
-		
+
 		if !validation.Valid {
 			c.JSON(http.StatusBadRequest, gin.H{
 				"error":   "Validation failed",
@@ -302,10 +302,10 @@ func SanitizeInput(input string) string {
 	input = strings.ReplaceAll(input, "javascript:", "")
 	input = strings.ReplaceAll(input, "onload=", "")
 	input = strings.ReplaceAll(input, "onerror=", "")
-	
+
 	// Trim whitespace
 	input = strings.TrimSpace(input)
-	
+
 	return input
 }
 

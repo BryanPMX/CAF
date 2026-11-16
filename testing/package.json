@@ -11,7 +11,9 @@
     "test:integration": "node integration-tests.js",
     "test:demo": "node demo-test.js",
     "test:comprehensive": "node comprehensive-test-suite.js",
-    "test:all": "npm run test:crud && npm run test:quick && npm run test:performance && npm run test:comprehensive"
+    "test:all": "npm run test:crud && npm run test:quick && npm run test:performance && npm run test:comprehensive",
+    "test:roles": "node --test portal-roles.test.cjs appointment-availability.test.cjs",
+    "test:e2e:roles": "node --test portal-rbac.e2e.cjs"
   },
   "dependencies": {
     "axios": "^1.6.0"
@@ -19,7 +21,8 @@
   "devDependencies": {
     "chalk": "^4.1.2",
     "dotenv": "^17.2.3",
-    "nodemon": "^3.0.0"
+    "nodemon": "^3.0.0",
+    "playwright": "^1.58.2"
   },
   "keywords": [
     "testing",

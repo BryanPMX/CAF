@@ -14,7 +14,10 @@ func TestSchedulingOfficeScope(t *testing.T) {
 		office       *uint
 		active, want bool
 	}{
-		{"admin across offices", "admin", &b, true, true},
+		{"director across offices", "executive_director", nil, true, true},
+        {"admin across offices", "admin", &b, true, false},
+        {"admin same office", "admin", &a, true, true},
+        {"admin without office", "admin", nil, true, false},
 		{"same office employee", "lawyer", &a, true, true},
 		{"different office manager", "office_manager", &b, true, false},
 		{"unassigned employee", "psychologist", nil, true, false},

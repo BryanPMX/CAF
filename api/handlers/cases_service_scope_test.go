@@ -6,9 +6,9 @@ import (
 	"github.com/BryanPMX/CAF/api/models"
 )
 
-func TestApplyCaseCreationScopeKeepsAdminOfficeChoice(t *testing.T) {
+func TestApplyCaseCreationScopeKeepsExecutiveOfficeChoice(t *testing.T) {
 	request := map[string]interface{}{"officeId": float64(42)}
-	if err := applyCaseCreationScope(request, models.User{Role: "admin"}); err != nil {
+	if err := applyCaseCreationScope(request, models.User{Role: "executive_director"}); err != nil {
 		t.Fatalf("admin scope failed: %v", err)
 	}
 	if got := request["officeId"]; got != float64(42) {

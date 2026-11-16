@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/BryanPMX/CAF/api/config"
 	"github.com/BryanPMX/CAF/api/interfaces"
 	"github.com/BryanPMX/CAF/api/models"
 	"github.com/gin-gonic/gin"
@@ -30,6 +31,13 @@ type OfficeInput struct {
 func GetOfficeByID(repo interfaces.OfficeRepository) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		id, err := parseOfficeID(c.Param("id"))
+		if c.GetString("userRole") == config.RoleAdmin {
+			scope, exists := c.Get("officeScopeID")
+			if !exists || scope != id {
+				c.JSON(http.StatusForbidden, gin.H{"error": "Office outside your scope"})
+				return
+			}
+		}
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid office ID"})
 			return
@@ -93,7 +101,23 @@ func CreateOffice(repo interfaces.OfficeRepository) gin.HandlerFunc {
 // GetOffices returns all offices (admin-only).
 func GetOffices(repo interfaces.OfficeRepository) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		offices, err := repo.List(c.Request.Context())
+		var offices []models.Office
+		var err error
+		if c.GetString("userRole") == config.RoleAdmin {
+			scope, _ := c.Get("officeScopeID")
+			id, ok := scope.(uint)
+			if !ok || id == 0 {
+				c.JSON(http.StatusForbidden, gin.H{"error": "Office assignment required"})
+				return
+			}
+			var office *models.Office
+			office, err = repo.GetByID(c.Request.Context(), id)
+			if office != nil {
+				offices = []models.Office{*office}
+			}
+		} else {
+			offices, err = repo.List(c.Request.Context())
+		}
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve offices."})
 			return
@@ -124,6 +148,13 @@ func GetPublicOffices(repo interfaces.OfficeRepository) gin.HandlerFunc {
 func UpdateOffice(repo interfaces.OfficeRepository) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		id, err := parseOfficeID(c.Param("id"))
+		if c.GetString("userRole") == config.RoleAdmin {
+			scope, exists := c.Get("officeScopeID")
+			if !exists || scope != id {
+				c.JSON(http.StatusForbidden, gin.H{"error": "Office outside your scope"})
+				return
+			}
+		}
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid office ID"})
 			return
@@ -186,6 +217,13 @@ func UpdateOffice(repo interfaces.OfficeRepository) gin.HandlerFunc {
 func DeleteOffice(repo interfaces.OfficeRepository) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		id, err := parseOfficeID(c.Param("id"))
+		if c.GetString("userRole") == config.RoleAdmin {
+			scope, exists := c.Get("officeScopeID")
+			if !exists || scope != id {
+				c.JSON(http.StatusForbidden, gin.H{"error": "Office outside your scope"})
+				return
+			}
+		}
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid office ID"})
 			return
@@ -215,6 +253,13 @@ func DeleteOffice(repo interfaces.OfficeRepository) gin.HandlerFunc {
 func GetOfficeDetailWithStaff(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		id, err := parseOfficeID(c.Param("id"))
+		if c.GetString("userRole") == config.RoleAdmin {
+			scope, exists := c.Get("officeScopeID")
+			if !exists || scope != id {
+				c.JSON(http.StatusForbidden, gin.H{"error": "Office outside your scope"})
+				return
+			}
+		}
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid office ID"})
 			return

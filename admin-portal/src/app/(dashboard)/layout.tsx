@@ -36,6 +36,7 @@ const { Header, Sider, Content } = Layout;
 
 // Role display configuration - now using centralized role definitions
 const ROLE_DISPLAY_CONFIG = {
+  'executive_director': { label: 'Director Ejecutivo', color: 'bg-purple-100 text-purple-800' },
   'admin': { label: 'Administrador', color: 'bg-red-100 text-red-800' },
   'office_manager': { label: 'Gerente de Oficina', color: 'bg-blue-100 text-blue-800' },
   'lawyer': { label: 'Abogado/a', color: 'bg-green-100 text-green-800' },

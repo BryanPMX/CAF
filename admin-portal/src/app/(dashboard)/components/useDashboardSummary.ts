@@ -63,7 +63,7 @@ const EMPTY_SUMMARY: DashboardSummary = {
   myPendingTasks: 0,
 };
 
-const MANAGEMENT_ROLES = new Set(['admin', 'office_manager']);
+const MANAGEMENT_ROLES = new Set(['executive_director', 'admin', 'office_manager']);
 const SUPPORTED_ROLES = new Set([
   ...MANAGEMENT_ROLES,
   'lawyer',
@@ -101,7 +101,7 @@ export function isDashboardStaffRole(role: string | undefined): boolean {
 }
 
 export function useDashboardSummary({ enabled, role, userOfficeId }: UseDashboardSummaryOptions) {
-  const initialOfficeId = role === 'office_manager' && userOfficeId ? String(userOfficeId) : '';
+  const initialOfficeId = (role === 'admin' || role === 'office_manager') && userOfficeId ? String(userOfficeId) : '';
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [offices, setOffices] = useState<DashboardOffice[]>([]);
   const [selectedOfficeId, setSelectedOfficeId] = useState(initialOfficeId);

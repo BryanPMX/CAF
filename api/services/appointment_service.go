@@ -15,8 +15,8 @@ import (
 // AppointmentServiceImpl implements the AppointmentService interface
 type AppointmentServiceImpl struct {
 	appointmentRepo interfaces.AppointmentRepository
-	caseRepo       interfaces.CaseRepository
-	userRepo       interfaces.UserRepository
+	caseRepo        interfaces.CaseRepository
+	userRepo        interfaces.UserRepository
 }
 
 // NewAppointmentService creates a new appointment service
@@ -27,8 +27,8 @@ func NewAppointmentService(
 ) interfaces.AppointmentService {
 	return &AppointmentServiceImpl{
 		appointmentRepo: appointmentRepo,
-		caseRepo:       caseRepo,
-		userRepo:       userRepo,
+		caseRepo:        caseRepo,
+		userRepo:        userRepo,
 	}
 }
 
@@ -181,7 +181,13 @@ func (s *AppointmentServiceImpl) ListAppointments(ctx context.Context, filter in
 	}
 
 	// Apply access control to filter
-	if userContext.Role != "admin" && userContext.Role != "office_manager" {
+	if !config.CanAccessAllOffices(userContext.Role) {
+		if userContext.OfficeID == nil {
+			return nil, 0, errors.New("office assignment required")
+		}
+		repoFilter.OfficeID = userContext.OfficeID
+	}
+	if !config.IsManagementRole(userContext.Role) {
 		// Staff can only see their assigned appointments
 		repoFilter.UserID = &userContext.UserID
 	}
@@ -209,8 +215,12 @@ func (s *AppointmentServiceImpl) GetAppointmentsByCase(ctx context.Context, case
 
 func (s *AppointmentServiceImpl) canAccessAppointment(appointment *models.Appointment, userContext interfaces.UserContext) bool {
 	// Admins can access all appointments
-	if userContext.Role == "admin" {
+	if config.CanAccessAllOffices(userContext.Role) {
 		return true
+	}
+
+	if userContext.Role == config.RoleAdmin {
+		return userContext.OfficeID != nil && appointment.OfficeID == *userContext.OfficeID
 	}
 
 	// Check if user is assigned to this appointment
@@ -231,12 +241,16 @@ func (s *AppointmentServiceImpl) canAccessAppointment(appointment *models.Appoin
 
 func (s *AppointmentServiceImpl) canModifyAppointment(appointment *models.Appointment, userContext interfaces.UserContext) bool {
 	// Admins can modify all appointments
-	if userContext.Role == "admin" {
+	if config.CanAccessAllOffices(userContext.Role) {
 		return true
 	}
 
+	if userContext.Role == config.RoleAdmin {
+		return userContext.OfficeID != nil && appointment.OfficeID == *userContext.OfficeID
+	}
+
 	// Office managers can modify appointments for cases in their office
-	if userContext.Role == "office_manager" && appointment.CaseID != 0 {
+	if (userContext.Role == config.RoleAdmin || userContext.Role == config.RoleOfficeManager) && appointment.CaseID != 0 {
 		caseModel, err := s.caseRepo.GetByID(context.Background(), appointment.CaseID)
 		if err == nil && userContext.OfficeID != nil && caseModel.OfficeID == *userContext.OfficeID {
 			return true
@@ -253,15 +267,18 @@ func (s *AppointmentServiceImpl) canModifyAppointment(appointment *models.Appoin
 
 func (s *AppointmentServiceImpl) canAccessCase(caseModel *models.Case, userContext interfaces.UserContext) bool {
 	// Admins can access all cases
-	if userContext.Role == "admin" {
+	if config.CanAccessAllOffices(userContext.Role) {
 		return true
 	}
 
 	// Office managers can access cases from their office
-	if userContext.Role == "office_manager" && userContext.OfficeID != nil && caseModel.OfficeID == *userContext.OfficeID {
+	if (userContext.Role == config.RoleAdmin || userContext.Role == config.RoleOfficeManager) && userContext.OfficeID != nil && caseModel.OfficeID == *userContext.OfficeID {
 		return true
 	}
 
+	if userContext.Role == config.RoleAdmin {
+		return false
+	}
 	// Staff can only access cases assigned to them (simplified check)
 	return true // Would need proper assignment checking
 }

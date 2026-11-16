@@ -38,9 +38,9 @@ func GetAppointmentsEnhanced(db *gorm.DB) gin.HandlerFunc {
 
 		// Admins see all appointments - no filtering needed
 		// Office managers see ALL appointments in their office (they manage the entire office)
-		if userRole == config.RoleOfficeManager && officeScopeID != nil {
-			query = query.Joins("INNER JOIN cases ON cases.id = appointments.case_id AND cases.office_id = ?", officeScopeID)
-		} else if userRole != config.RoleAdmin && userRole != "client" {
+		if userRole == config.RoleOfficeManager || userRole == config.RoleAdmin {
+			query = query.Where("appointments.office_id = ?", officeScopeID)
+		} else if userRole != config.RoleExecutiveDirector && userRole != "client" {
 			// Staff users: build a compound condition for access control
 			// They can see appointments they're assigned to OR appointments from their office/department
 			userID, _ := c.Get("userID")
@@ -159,9 +159,9 @@ func GetAppointmentByIDEnhanced(db *gorm.DB) gin.HandlerFunc {
 
 		// Admins see all appointments - no filtering needed
 		// Office managers can access ALL appointments in their office
-		if userRole == config.RoleOfficeManager && officeScopeID != nil {
-			query = query.Joins("INNER JOIN cases ON cases.id = appointments.case_id AND cases.office_id = ?", officeScopeID)
-		} else if userRole != config.RoleAdmin && userRole != "client" {
+		if userRole == config.RoleOfficeManager || userRole == config.RoleAdmin {
+			query = query.Where("appointments.office_id = ?", officeScopeID)
+		} else if userRole != config.RoleExecutiveDirector && userRole != "client" {
 			// Staff users: they can access appointments assigned to them OR from their office/department
 			userID, _ := c.Get("userID")
 			userIDUint, _ := strconv.ParseUint(userID.(string), 10, 32)
@@ -213,6 +213,33 @@ func CreateAppointmentEnhanced(db *gorm.DB) gin.HandlerFunc {
 		currentUser, _ := c.Get("currentUser")
 		user := currentUser.(models.User)
 
+		var caseRecord models.Case
+		if err := db.First(&caseRecord, input.CaseID).Error; err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Case not found"})
+			return
+		}
+		allowed, err := middleware.CanAccessCase(db, user, caseRecord.ID)
+		if err != nil || !allowed {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Case outside your access scope"})
+			return
+		}
+		var employee models.User
+		if err := db.First(&employee, input.StaffID).Error; err != nil || !canScheduleEmployee(user, employee) {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Employee outside your scheduling scope"})
+			return
+		}
+		if input.NewClient != nil && caseRecord.ClientID != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Case already has a client"})
+			return
+		}
+		if input.ClientID != nil {
+			var client models.User
+			if err := db.First(&client, *input.ClientID).Error; err != nil || client.Role != "client" || (!config.CanAccessAllOffices(user.Role) && (client.OfficeID == nil || *client.OfficeID != caseRecord.OfficeID)) {
+				c.JSON(http.StatusForbidden, gin.H{"error": "Client outside your office"})
+				return
+			}
+		}
+
 		// Handle new client creation if provided
 		var clientID uint
 		if input.NewClient != nil {
@@ -256,31 +283,10 @@ func CreateAppointmentEnhanced(db *gorm.DB) gin.HandlerFunc {
 			}
 		}
 
-		// Validate that the case exists and user has access to it
-		var caseRecord models.Case
-		if err := db.First(&caseRecord, input.CaseID).Error; err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Case not found"})
-			return
-		}
-
-		// If we created a new client and the case doesn't have a client, update the case
+		// The case was authorized before any new client was created.
 		if input.NewClient != nil && caseRecord.ClientID == nil {
-			caseRecord.ClientID = &clientID
-			db.Save(&caseRecord)
-		}
-
-		// Check case access permissions
-		if middleware.IsStaffRole(user.Role) {
-			// Check if user is assigned to this case
-			var assignment models.UserCaseAssignment
-			if err := db.Where("user_id = ? AND case_id = ?", user.ID, input.CaseID).First(&assignment).Error; err != nil {
-				c.JSON(http.StatusForbidden, gin.H{"error": "Access denied: You can only create appointments for cases you're assigned to"})
-				return
-			}
-
-			// Check office access
-			if user.OfficeID != nil && *user.OfficeID != caseRecord.OfficeID {
-				c.JSON(http.StatusForbidden, gin.H{"error": "Access denied: Case belongs to different office"})
+			if err := db.Model(&caseRecord).Update("client_id", clientID).Error; err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to assign client"})
 				return
 			}
 		}
@@ -288,6 +294,7 @@ func CreateAppointmentEnhanced(db *gorm.DB) gin.HandlerFunc {
 		// Create the appointment with centralized status
 		appointment := models.Appointment{
 			CaseID:     input.CaseID,
+			OfficeID:   caseRecord.OfficeID,
 			StaffID:    input.StaffID,
 			Title:      input.Title,
 			StartTime:  input.StartTime,
@@ -330,10 +337,10 @@ func UpdateAppointmentEnhanced(db *gorm.DB) gin.HandlerFunc {
 		var appointment models.Appointment
 		query := db.Preload("Case")
 
-		if middleware.IsStaffRole(user.Role) {
+		if !config.CanAccessAllOffices(user.Role) {
 			// Office managers can update all appointments in their office
-			if user.Role == config.RoleOfficeManager && user.OfficeID != nil {
-				query = query.Joins("INNER JOIN cases ON cases.id = appointments.case_id AND cases.office_id = ?", user.OfficeID)
+			if (user.Role == config.RoleAdmin || user.Role == config.RoleOfficeManager) && user.OfficeID != nil {
+				query = query.Where("appointments.office_id = ?", *user.OfficeID)
 			} else {
 				// Other staff users can only update appointments they're assigned to or from their department
 				if user.Department != nil {
@@ -391,6 +398,11 @@ func UpdateAppointmentEnhanced(db *gorm.DB) gin.HandlerFunc {
 			updates["department"] = input.Department
 		}
 		if input.StaffID != 0 {
+			var selectedStaff models.User
+			if err := db.First(&selectedStaff, input.StaffID).Error; err != nil || !canScheduleEmployee(user, selectedStaff) {
+				c.JSON(http.StatusForbidden, gin.H{"error": "Staff member is outside your scheduling scope"})
+				return
+			}
 			updates["staff_id"] = input.StaffID
 		}
 
@@ -401,28 +413,7 @@ func UpdateAppointmentEnhanced(db *gorm.DB) gin.HandlerFunc {
 		// Reload to get updated fields for notifications
 		_ = db.First(&appointment, appointment.ID).Error
 
-		// Send real-time notification to all connected users about appointment update
-		notification := gin.H{
-			"type": "appointment_updated",
-			"appointment": gin.H{
-				"id":        appointment.ID,
-				"title":     appointment.Title,
-				"status":    appointment.Status,
-				"startTime": appointment.StartTime,
-				"endTime":   appointment.EndTime,
-				"updatedBy": gin.H{
-					"id":   user.ID,
-					"name": fmt.Sprintf("%s %s", user.FirstName, user.LastName),
-					"role": user.Role,
-				},
-				"updatedAt": time.Now(),
-			},
-			"message":   fmt.Sprintf("Cita '%s' actualizada por %s %s", appointment.Title, user.FirstName, user.LastName),
-			"timestamp": time.Now(),
-		}
-
-		// Send real-time notification to all connected users
-		BroadcastNotification(notification)
+		BroadcastNotification(gin.H{"entityType": "appointment", "action": "refresh"})
 
 		c.JSON(http.StatusOK, appointment)
 	}
@@ -441,10 +432,10 @@ func DeleteAppointmentEnhanced(db *gorm.DB) gin.HandlerFunc {
 		var appointment models.Appointment
 		query := db.Preload("Case").Preload("Staff")
 
-		if middleware.IsStaffRole(user.Role) {
+		if !config.CanAccessAllOffices(user.Role) {
 			// Office managers can delete all appointments in their office
-			if user.Role == config.RoleOfficeManager && user.OfficeID != nil {
-				query = query.Joins("INNER JOIN cases ON cases.id = appointments.case_id AND cases.office_id = ?", user.OfficeID)
+			if (user.Role == config.RoleAdmin || user.Role == config.RoleOfficeManager) && user.OfficeID != nil {
+				query = query.Where("appointments.office_id = ?", *user.OfficeID)
 			} else {
 				// Other staff users can only delete appointments they're assigned to or from their department
 				if user.Department != nil {

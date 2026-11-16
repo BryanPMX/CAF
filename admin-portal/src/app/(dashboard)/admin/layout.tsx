@@ -24,7 +24,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
       }
 
       // Only admins and office managers can access admin routes
-      if (userRole !== 'admin' && userRole !== 'office_manager') {
+      if (userRole !== 'executive_director') {
         setAccessDenied(true);
         setLoading(false);
         return;
@@ -49,7 +49,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
         <Result
           status="403"
           title="Acceso Denegado"
-          subTitle="Solo administradores y gerentes de oficina pueden acceder a esta sección."
+          subTitle="Esta sección requiere el rol Director Ejecutivo."
           extra={[
             <Button 
               type="primary" 

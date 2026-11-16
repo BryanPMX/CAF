@@ -172,7 +172,7 @@ export const ValidationSchemas = {
     first_name: [ValidationRules.required(), ValidationRules.minLength(2), ValidationRules.maxLength(50)],
     last_name: [ValidationRules.required(), ValidationRules.minLength(2), ValidationRules.maxLength(50)],
     role: ValidationRules.oneOf([
-      'admin', 'office_manager', 'lawyer', 'psychologist',
+      'executive_director', 'admin', 'office_manager', 'lawyer', 'psychologist',
       'receptionist', 'event_coordinator', 'client'
     ]),
   },

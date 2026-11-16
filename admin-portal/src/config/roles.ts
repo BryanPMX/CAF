@@ -2,6 +2,7 @@
 // Centralized role configuration - single source of truth for frontend
 
 export const USER_ROLES = {
+  EXECUTIVE_DIRECTOR: 'executive_director',
   ADMIN: 'admin',
   OFFICE_MANAGER: 'office_manager',
   LAWYER: 'lawyer',
@@ -14,6 +15,7 @@ export const USER_ROLES = {
 export type UserRole = typeof USER_ROLES[keyof typeof USER_ROLES];
 
 export const ROLE_DISPLAY_NAMES = {
+  [USER_ROLES.EXECUTIVE_DIRECTOR]: 'Director Ejecutivo',
   [USER_ROLES.ADMIN]: 'Administrador',
   [USER_ROLES.OFFICE_MANAGER]: 'Gerente de Oficina',
   [USER_ROLES.LAWYER]: 'Abogado/a',
@@ -28,17 +30,20 @@ export const ROLE_OPTIONS = Object.entries(ROLE_DISPLAY_NAMES).map(([value, labe
   label,
 }));
 
+export const canAccessAllOffices = (role: string): boolean => role === USER_ROLES.EXECUTIVE_DIRECTOR;
+export const canManageWebContent = canAccessAllOffices;
+
 // Helper functions
 export const getRoleDisplayName = (role: string): string => {
   return ROLE_DISPLAY_NAMES[role as UserRole] || role;
 };
 
 export const isAdminRole = (role: string): boolean => {
-  return role === USER_ROLES.ADMIN;
+  return role === USER_ROLES.EXECUTIVE_DIRECTOR || role === USER_ROLES.ADMIN;
 };
 
 export const isManagementRole = (role: string): boolean => {
-  return role === USER_ROLES.ADMIN || role === USER_ROLES.OFFICE_MANAGER;
+  return isAdminRole(role) || role === USER_ROLES.OFFICE_MANAGER;
 };
 
 export const isProfessionalRole = (role: string): boolean => {
@@ -70,6 +75,11 @@ export type StaffRoleKey = UserRole;
 
 // Additional exports for backward compatibility
 export const STAFF_ROLES = {
+  [USER_ROLES.EXECUTIVE_DIRECTOR]: {
+    key: USER_ROLES.EXECUTIVE_DIRECTOR,
+    displayName: ROLE_DISPLAY_NAMES[USER_ROLES.EXECUTIVE_DIRECTOR],
+    department: 'Management',
+  },
   [USER_ROLES.ADMIN]: {
     key: USER_ROLES.ADMIN,
     displayName: ROLE_DISPLAY_NAMES[USER_ROLES.ADMIN],
@@ -103,7 +113,8 @@ export const STAFF_ROLES = {
 };
 
 export const PERMISSIONS = {
-  [USER_ROLES.ADMIN]: ['*'], // Admin has all permissions
+  [USER_ROLES.EXECUTIVE_DIRECTOR]: ['*'],
+  [USER_ROLES.ADMIN]: ['cases.read', 'cases.write', 'appointments.read', 'appointments.write', 'users.read', 'users.write', 'manage_offices', 'documents.read', 'reports.read', 'records.write'],
   [USER_ROLES.OFFICE_MANAGER]: ['cases.read', 'cases.write', 'appointments.read', 'appointments.write', 'users.read', 'manage_offices'],
   [USER_ROLES.LAWYER]: ['cases.read', 'cases.write', 'appointments.read', 'appointments.write', 'documents.read'],
   [USER_ROLES.PSYCHOLOGIST]: ['cases.read', 'cases.write', 'appointments.read', 'appointments.write', 'documents.read'],
@@ -122,6 +133,7 @@ export const CASE_DOCUMENT_TYPES = {
 } as const;
 
 export const CASE_DOCUMENT_PERMISSIONS = {
+  [USER_ROLES.EXECUTIVE_DIRECTOR]: Object.values(CASE_DOCUMENT_TYPES),
   [USER_ROLES.ADMIN]: Object.values(CASE_DOCUMENT_TYPES),
   [USER_ROLES.LAWYER]: [CASE_DOCUMENT_TYPES.LEGAL, CASE_DOCUMENT_TYPES.GENERAL],
   [USER_ROLES.PSYCHOLOGIST]: [CASE_DOCUMENT_TYPES.PSYCHOLOGICAL, CASE_DOCUMENT_TYPES.GENERAL],
@@ -142,6 +154,7 @@ export const isValidRole = (role: string): boolean => {
 
 export const requiresOffice = (role: string): boolean => {
   return [
+    USER_ROLES.ADMIN,
     USER_ROLES.OFFICE_MANAGER,
     USER_ROLES.LAWYER,
     USER_ROLES.PSYCHOLOGIST,
@@ -171,8 +184,8 @@ export const getNavigationItemsForRole = (role: string) => {
     return [
       ...baseItems,
       { key: 'users', label: 'Usuarios', path: '/app/users', icon: 'UserOutlined' },
-      { key: 'offices', label: 'Oficinas', path: '/app/offices', icon: 'BankOutlined' },
-      { key: 'web-content', label: 'Sitio Web', path: '/app/web-content', icon: 'GlobalOutlined' },
+      { key: 'offices', label: canAccessAllOffices(role) ? 'Oficinas' : 'Mi Oficina', path: '/app/offices', icon: 'BankOutlined' },
+      ...(canManageWebContent(role) ? [{ key: 'web-content', label: 'Sitio Web', path: '/app/web-content', icon: 'GlobalOutlined' }] : []),
       { key: 'records', label: 'Archivos', path: '/app/records', icon: 'FileOutlined' },
       { key: 'reports', label: 'Reportes', path: '/app/reports', icon: 'BarChartOutlined' },
     ];
@@ -197,7 +210,7 @@ export const getRoleDefinition = (role: string) => {
 export const getDashboardWidgetsForRole = (role: string) => {
   const baseWidgets = ['today-appointments', 'upcoming-appointments'];
 
-  if (isAdminRole(role)) {
+  if (canAccessAllOffices(role)) {
     return [...baseWidgets, 'user-management', 'system-stats', 'office-overview'];
   }
 

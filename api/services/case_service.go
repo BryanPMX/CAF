@@ -7,15 +7,16 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/BryanPMX/CAF/api/config"
 	"github.com/BryanPMX/CAF/api/interfaces"
 	"github.com/BryanPMX/CAF/api/models"
 )
 
 // CaseServiceImpl implements the CaseService interface
 type CaseServiceImpl struct {
-	caseRepo       interfaces.CaseRepository
+	caseRepo        interfaces.CaseRepository
 	appointmentRepo interfaces.AppointmentRepository
-	userRepo       interfaces.UserRepository
+	userRepo        interfaces.UserRepository
 }
 
 // NewCaseService creates a new case service
@@ -25,9 +26,9 @@ func NewCaseService(
 	userRepo interfaces.UserRepository,
 ) interfaces.CaseService {
 	return &CaseServiceImpl{
-		caseRepo:       caseRepo,
+		caseRepo:        caseRepo,
 		appointmentRepo: appointmentRepo,
-		userRepo:       userRepo,
+		userRepo:        userRepo,
 	}
 }
 
@@ -120,10 +121,17 @@ func (s *CaseServiceImpl) UpdateCase(ctx context.Context, id uint, req interface
 // DeleteCase deletes a case with business logic validation
 func (s *CaseServiceImpl) DeleteCase(ctx context.Context, id uint, userContext interfaces.UserContext) error {
 	// Check access permissions - only admins can delete cases
-	if userContext.Role != "admin" {
+	if !config.IsManagementRole(userContext.Role) {
 		return errors.New("access denied: only administrators can delete cases")
 	}
 
+	caseModel, err := s.caseRepo.GetByID(ctx, id)
+	if err != nil {
+		return err
+	}
+	if !s.canAccessCase(caseModel, userContext) {
+		return errors.New("access denied")
+	}
 	return s.caseRepo.Delete(ctx, id)
 }
 
@@ -140,10 +148,13 @@ func (s *CaseServiceImpl) ListCases(ctx context.Context, filter interfaces.CaseL
 	}
 
 	// Apply access control to filter
-	if userContext.Role != "admin" && userContext.Role != "office_manager" {
+	if !config.IsManagementRole(userContext.Role) {
 		// Staff can only see their assigned cases
 		repoFilter.UserID = &userContext.UserID
-	} else if userContext.Role == "office_manager" && userContext.OfficeID != nil {
+	} else if !config.CanAccessAllOffices(userContext.Role) {
+		if userContext.OfficeID == nil {
+			return nil, 0, errors.New("office assignment required")
+		}
 		// Office managers can see cases from their office
 		repoFilter.OfficeID = userContext.OfficeID
 	}
@@ -164,7 +175,7 @@ func (s *CaseServiceImpl) ArchiveCase(ctx context.Context, id uint, userContext 
 	}
 
 	// Check permissions
-	if userContext.Role != "admin" {
+	if !config.IsManagementRole(userContext.Role) || !s.canAccessCase(caseModel, userContext) {
 		return errors.New("access denied: only administrators can archive cases")
 	}
 
@@ -178,12 +189,12 @@ func (s *CaseServiceImpl) ArchiveCase(ctx context.Context, id uint, userContext 
 
 func (s *CaseServiceImpl) canAccessCase(caseModel *models.Case, userContext interfaces.UserContext) bool {
 	// Admins can access all cases
-	if userContext.Role == "admin" {
+	if config.CanAccessAllOffices(userContext.Role) {
 		return true
 	}
 
 	// Office managers can access cases from their office
-	if userContext.Role == "office_manager" && userContext.OfficeID != nil && caseModel.OfficeID == *userContext.OfficeID {
+	if (userContext.Role == config.RoleAdmin || userContext.Role == config.RoleOfficeManager) && userContext.OfficeID != nil && caseModel.OfficeID == *userContext.OfficeID {
 		return true
 	}
 
@@ -198,12 +209,12 @@ func (s *CaseServiceImpl) canAccessCase(caseModel *models.Case, userContext inte
 
 func (s *CaseServiceImpl) canModifyCase(caseModel *models.Case, userContext interfaces.UserContext) bool {
 	// Admins can modify all cases
-	if userContext.Role == "admin" {
+	if config.CanAccessAllOffices(userContext.Role) {
 		return true
 	}
 
 	// Office managers can modify cases from their office
-	if userContext.Role == "office_manager" && userContext.OfficeID != nil && caseModel.OfficeID == *userContext.OfficeID {
+	if (userContext.Role == config.RoleAdmin || userContext.Role == config.RoleOfficeManager) && userContext.OfficeID != nil && caseModel.OfficeID == *userContext.OfficeID {
 		return true
 	}
 
@@ -218,12 +229,12 @@ func (s *CaseServiceImpl) canModifyCase(caseModel *models.Case, userContext inte
 
 func (s *CaseServiceImpl) isValidStatusTransition(from, to string) bool {
 	validTransitions := map[string][]string{
-		"open":       {"active", "in_progress", "resolved", "closed"},
-		"active":     {"in_progress", "resolved", "closed"},
+		"open":        {"active", "in_progress", "resolved", "closed"},
+		"active":      {"in_progress", "resolved", "closed"},
 		"in_progress": {"resolved", "closed", "completed"},
-		"resolved":   {"closed", "completed"},
-		"closed":     {"reopened"},
-		"completed":  {"reopened"},
+		"resolved":    {"closed", "completed"},
+		"closed":      {"reopened"},
+		"completed":   {"reopened"},
 	}
 
 	validTos, exists := validTransitions[from]

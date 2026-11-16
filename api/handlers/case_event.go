@@ -217,7 +217,7 @@ func DeleteComment(db *gorm.DB) gin.HandlerFunc {
 
 		// Only admins and office managers can delete comments
 		userRole, _ := c.Get("userRole")
-		if userRole != "admin" && userRole != "office_manager" {
+		if userRole != "executive_director" && userRole != "admin" && userRole != "office_manager" {
 			c.JSON(http.StatusForbidden, gin.H{"error": "Solo administradores y gerentes de oficina pueden eliminar comentarios"})
 			return
 		}
@@ -414,7 +414,7 @@ func DeleteDocument(db *gorm.DB) gin.HandlerFunc {
 
 		// Only admins and office managers can delete documents
 		userRole, _ := c.Get("userRole")
-		if userRole != "admin" && userRole != "office_manager" {
+		if userRole != "executive_director" && userRole != "admin" && userRole != "office_manager" {
 			c.JSON(http.StatusForbidden, gin.H{"error": "Solo administradores y gerentes de oficina pueden eliminar documentos"})
 			return
 		}

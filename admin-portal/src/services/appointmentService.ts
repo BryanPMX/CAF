@@ -30,7 +30,7 @@ export class AppointmentService implements IAppointmentService {
       let endpoint = '/appointments';
 
       // Route to appropriate endpoint based on user role
-      if (userRole === 'admin') {
+      if ((userRole === 'executive_director' || userRole === 'admin')) {
         endpoint = '/admin/appointments';
       } else if (userRole === 'office_manager') {
         endpoint = '/office/appointments';
@@ -59,7 +59,7 @@ export class AppointmentService implements IAppointmentService {
 
     try {
       let endpoint = '/appointments';
-      if (userRole === 'admin') {
+      if ((userRole === 'executive_director' || userRole === 'admin')) {
         endpoint = '/admin/appointments';
       } else if (userRole === 'office_manager') {
         endpoint = '/office/appointments';

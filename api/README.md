@@ -27,6 +27,10 @@ api/
 └── config/                   # Environment configuration
 ```
 
+## Access policy
+
+[Role definitions and rollout](../docs/ACCESS_CONTROL.md) distinguish organization-wide Director Ejecutivo from office-scoped Administrador. Both use `/api/v1/admin`; `AdminOfficeAccess` enforces resource IDs and reserves the CMS/system operations to the executive. DataAccessControl rejects administrators without an assigned office.
+
 ## Route Groups
 
 ### Public (`/api/v1`)
@@ -49,19 +53,19 @@ api/
 Internal calendar endpoints (all authenticated non-client employees):
 
 - `GET /calendar/staff` - minimal active employee directory for invitations
-- `GET /calendar/events?dateFrom=YYYY-MM-DD&dateTo=YYYY-MM-DD` - meetings organized by or addressed to the current employee
+- `GET /calendar/events?dateFrom=YYYY-MM-DD&dateTo=YYYY-MM-DD` - all meetings for Director Ejecutivo, organizer-office meetings for Administrador, and participant meetings for other employees
 - `POST /calendar/events` - create a meeting and attendee invitations
 - `PATCH /calendar/events/:id` - organizer/admin update
 - `PATCH /calendar/events/:id/response` - attendee response (`accepted`, `tentative`, `declined`)
 - `DELETE /calendar/events/:id` - organizer/admin cancellation (soft delete)
 
-Internal meetings are intentionally stored separately from case appointments. Event visibility is participant-scoped, attendee IDs are validated against active non-client accounts, and invite/update/cancellation notifications link back to `/app/calendar`.
+Internal meetings are intentionally stored separately from case appointments. Event visibility follows the role matrix above; attendee IDs are validated against active non-client accounts, and invite/update/cancellation notifications link back to `/app/calendar`.
 
-All non-client employee roles may create cases and client appointments through their role route group. Non-admin creation is office-scoped: submitted office IDs cannot escape the authenticated employee's office, target staff must belong to that office, and newly created staff cases are assigned to their creator.
+All non-client employee roles may create cases and client appointments through their role route group. Creation by employees other than Director Ejecutivo is office-scoped: submitted office IDs cannot escape the authenticated employee's office, target staff must belong to that office, and newly created staff cases are assigned to their creator.
 
 Appointment scheduling availability:
 
-- `GET /appointment-availability?staffId=<id>&from=<RFC3339>&to=<RFC3339>` returns `{staffId,busy:[{startTime,endTime}]}` for a range of at most 45 days. Administrators may query any active employee; other employees may query only their own office. No appointment titles, clients, or meeting details are returned.
+- `GET /appointment-availability?staffId=<id>&from=<RFC3339>&to=<RFC3339>` returns `{staffId,busy:[{startTime,endTime}]}` for a range of at most 45 days. Director Ejecutivo may query any active employee; other employees, including Administradores, may query only their own office. No appointment titles, clients, or meeting details are returned.
 - Busy intervals include non-cancelled, non-deleted appointments and internal meetings organized by the employee or invitations that have not been declined. Overlap uses half-open intervals, permitting back-to-back appointments.
 - Client appointments use Monday–Friday 09:00–18:00 and Saturday 08:00–15:00; Sunday is closed. Smart and legacy creation routes and time-changing appointment updates enforce future appointments within this window. These requests accept an optional IANA `timeZone`; without it, the supplied start-time offset is used for compatibility.
 - Employee internal meetings use a separate policy: Monday–Friday 07:00–20:00 and Saturday 08:00–15:00, with Sunday closed. The full meeting must fit within one day's window. Creation and time-changing updates enforce this in the API; metadata-only updates preserve existing events. The portal sends the browser's displayed IANA time zone with appointment and meeting times. No timezone database column is required.

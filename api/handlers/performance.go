@@ -543,7 +543,7 @@ func (h *PerformanceOptimizedHandler) applyAccessControl(query *gorm.DB, c *gin.
 	userDepartment, _ := c.Get("userDepartment")
 	officeScopeID, _ := c.Get("officeScopeID")
 
-	if userRole == "admin" {
+	if userRole == "executive_director" {
 		return query // Admins see everything
 	}
 
@@ -553,7 +553,7 @@ func (h *PerformanceOptimizedHandler) applyAccessControl(query *gorm.DB, c *gin.
 	}
 
 	// Apply department restriction
-	if userDepartment != nil {
+	if userDepartment != nil && userRole != "admin" && userRole != "office_manager" {
 		query = query.Where("department = ?", userDepartment)
 	}
 

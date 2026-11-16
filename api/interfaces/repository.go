@@ -63,6 +63,7 @@ type CaseFilter struct {
 }
 
 type AppointmentFilter struct {
+	OfficeID *uint
 	Status   *string
 	CaseID   *uint
 	UserID   *string

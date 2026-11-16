@@ -72,7 +72,7 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ visible, onClose, o
             WorkflowService.listClients(user.role, '', 10),
           ]);
           setStaffList(availableStaff);
-          setOffices(user.role === 'admin'
+          setOffices(user.role === 'executive_director'
             ? availableOffices
             : availableOffices.filter((office) => office.id === user.officeId));
           const formattedClients = availableClients.map((client) => ({
@@ -99,7 +99,7 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ visible, onClose, o
       form.resetFields();
 
       // Every non-admin employee creates records only within their assigned office.
-      if (user.role !== 'admin' && user.officeId) {
+      if (user.role !== 'executive_director' && user.officeId) {
         form.setFieldsValue({ officeId: user.officeId });
       }
 
@@ -224,7 +224,7 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ visible, onClose, o
     
     return staffList.filter(staff => {
       // Admins and office managers can be assigned to any appointment
-      const isManagement = staff.role === 'admin' || staff.role === 'office_manager';
+      const isManagement = (staff.role === 'executive_director' || staff.role === 'admin') || staff.role === 'office_manager';
       const isAdminForLegal = isAdminRole(staff.role as StaffRoleKey) && isLegalCase;
       const hasAllowedRole = allowedRoles.includes(staff.role as StaffRoleKey);
       const hasMatchingDepartment = staff.department === categoryToUse;
@@ -448,14 +448,14 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ visible, onClose, o
                 <Form.Item name="officeId" label="Oficina" rules={[{ required: true, message: 'Debe seleccionar una oficina' }]}>
                   <Select
                     placeholder="Seleccione una oficina"
-                    disabled={user?.role !== 'admin'}
+                    disabled={user?.role !== 'executive_director'}
                   >
                     {offices && offices.length > 0 && offices.map((o) => (
                       <Option key={o.id} value={o.id}>
                         {o.name}
                       </Option>
                     ))}
-                    {user?.role !== 'admin' && user?.officeId && offices.length === 0 && (
+                    {user?.role !== 'executive_director' && user?.officeId && offices.length === 0 && (
                       <Option key={user.officeId} value={user.officeId}>Mi Oficina</Option>
                     )}
                   </Select>

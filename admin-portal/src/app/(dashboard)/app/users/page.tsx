@@ -135,7 +135,7 @@ const UserManagementPage = () => {
     // User role is guaranteed to be available by the parent layout
      if (user && (PERMISSIONS[user.role as keyof typeof PERMISSIONS]?.includes('manage_offices') || PERMISSIONS[user.role as keyof typeof PERMISSIONS]?.includes('*'))) {
       // Use appropriate endpoint based on user role
-      const endpoint = user.role === 'admin' ? '/admin/offices' : '/offices';
+      const endpoint = (user.role === 'executive_director' || user.role === 'admin') ? '/admin/offices' : '/offices';
       apiClient.get(endpoint).then(res => setOffices(res.data)).catch(() => {});
     }
     // Intentionally omit fetchUsers/searchParams from deps: run once when hydrated and user is set; re-running on fetchUsers identity would cause redundant fetches.
@@ -272,6 +272,7 @@ const UserManagementPage = () => {
       key: 'role',
       render: (role: string) => {
         const MAP: Record<string, { label: string; color: string }> = {
+          executive_director: { label: 'Director Ejecutivo', color: 'magenta' },
           admin: { label: 'Administrador', color: 'purple' },
           staff: { label: 'Personal', color: 'blue' },
           receptionist: { label: 'Recepción', color: 'geekblue' },
@@ -296,7 +297,7 @@ const UserManagementPage = () => {
       title: 'Acciones',
       key: 'actions',
       render: (_: any, record: User) => {
-        if (userRole !== 'admin' && userRole !== 'office_manager') {
+        if ((userRole !== 'executive_director' && userRole !== 'admin') && userRole !== 'office_manager') {
           return null;
         }
 
@@ -305,7 +306,7 @@ const UserManagementPage = () => {
         return (
           <span className="space-x-2">
             <Button icon={<EditOutlined />} onClick={() => handleEdit(record)} />
-            {userRole === 'admin' && (deleteBlockReason ? (
+            {(userRole === 'executive_director' || userRole === 'admin') && (deleteBlockReason ? (
               <Tooltip title={deleteBlockReason}>
                 <span>
                   <Button
@@ -345,9 +346,9 @@ const UserManagementPage = () => {
         </h1>
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="flex flex-wrap items-center gap-2 md:gap-3">
-            {(userRole === 'admin' || userRole === 'office_manager') && (
+            {((userRole === 'executive_director' || userRole === 'admin') || userRole === 'office_manager') && (
               <>
-                {userRole === 'admin' && (
+                {(userRole === 'executive_director' || userRole === 'admin') && (
                   <Select
                     allowClear
                     placeholder="Filtrar por Oficina"
@@ -400,7 +401,7 @@ const UserManagementPage = () => {
               </>
             )}
           </div>
-          {(userRole === 'admin' || userRole === 'office_manager') && (
+          {((userRole === 'executive_director' || userRole === 'admin') || userRole === 'office_manager') && (
             <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
               Crear Usuario
             </Button>

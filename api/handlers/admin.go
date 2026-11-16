@@ -47,7 +47,9 @@ func validateCreateUserEmail(input CreateUserInput) string {
 }
 
 // CreateUser handles the creation of a new user by an administrator.
-func CreateUser(db *gorm.DB) gin.HandlerFunc {
+func CreateUser(db *gorm.DB) gin.HandlerFunc { return serializeUserMutation(db, createUser) }
+
+func createUser(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var input CreateUserInput
 		if err := c.ShouldBindJSON(&input); err != nil {
@@ -55,6 +57,9 @@ func CreateUser(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 		normalizeCreateUserInput(&input)
+		if !authorizeUserChange(c, nil, input.Role, &input.OfficeID) {
+			return
+		}
 
 		// Validate the provided role against our centralized role configuration
 		if err := config.ValidateRole(input.Role); err != nil {
@@ -66,9 +71,9 @@ func CreateUser(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		// Enforce that all non-client users must be assigned to an office, except admins
-		if input.Role != "client" && input.Role != config.RoleAdmin && config.RequiresOffice(input.Role) && input.OfficeID == nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "An office must be assigned to all staff members (admins are exempt)."})
+		// All employees except the executive director require an office.
+		if config.RequiresOffice(input.Role) && (input.OfficeID == nil || *input.OfficeID == 0) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "An office must be assigned to all staff members except the executive director."})
 			return
 		}
 
@@ -117,6 +122,9 @@ func CreateUser(db *gorm.DB) gin.HandlerFunc {
 		if err := db.Unscoped().Where("LOWER(email) = ?", input.Email).First(&existingUser).Error; err == nil {
 			// User exists but might be soft-deleted
 			if existingUser.DeletedAt.Valid {
+				if !authorizeUserChange(c, &existingUser, input.Role, &input.OfficeID) {
+					return
+				}
 				// Reactivate the soft-deleted user
 				existingUser.FirstName = input.FirstName
 				existingUser.LastName = input.LastName
@@ -153,134 +161,10 @@ func CreateUser(db *gorm.DB) gin.HandlerFunc {
 
 // CreateUserScoped handles user creation by office managers with office restrictions.
 // Business rules:
-// - Office managers can create clients for ANY office
-// - Office managers can only create staff for THEIR office
-func CreateUserScoped(db *gorm.DB) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		var input CreateUserInput
-		if err := c.ShouldBindJSON(&input); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-		normalizeCreateUserInput(&input)
+// - Office managers create clients and staff only in their own office
+// - Executive and administrator grants are forbidden
+func CreateUserScoped(db *gorm.DB) gin.HandlerFunc { return CreateUser(db) }
 
-		// Get the office manager's office from middleware (stored as uint, not *uint)
-		managerOfficeIDVal, hasOffice := c.Get("officeScopeID")
-
-		// Validate the provided role against our centralized role configuration
-		if err := config.ValidateRole(input.Role); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-		if validationError := validateCreateUserEmail(input); validationError != "" {
-			c.JSON(http.StatusBadRequest, gin.H{"error": validationError})
-			return
-		}
-
-		// Business rule: Office managers can only create staff for their own office
-		isStaffRole := input.Role != "client"
-		if isStaffRole {
-			// If office not provided but manager has office scope, auto-assign their office
-			if input.OfficeID == nil && hasOffice && managerOfficeIDVal != nil {
-				if managerOfficeID, ok := managerOfficeIDVal.(uint); ok {
-					input.OfficeID = &managerOfficeID
-				}
-			}
-
-			// Staff must be assigned to an office
-			if input.OfficeID == nil {
-				c.JSON(http.StatusBadRequest, gin.H{"error": "An office must be assigned to all staff members."})
-				return
-			}
-
-			// Office managers can only create staff in their own office
-			if hasOffice && managerOfficeIDVal != nil {
-				managerOfficeID, ok := managerOfficeIDVal.(uint)
-				if ok && *input.OfficeID != managerOfficeID {
-					c.JSON(http.StatusForbidden, gin.H{"error": "You can only create staff members for your own office."})
-					return
-				}
-			}
-		}
-		// Clients can be created for any office (no restriction)
-
-		// For employees (non-clients), auto-generate corporate email if missing
-		if input.Role != "client" && strings.TrimSpace(input.Email) == "" {
-			if strings.TrimSpace(input.FirstName) == "" || strings.TrimSpace(input.LastName) == "" {
-				c.JSON(http.StatusBadRequest, gin.H{"error": "First name and last name are required to generate email."})
-				return
-			}
-			base := generateCorpEmailLocalPart(input.FirstName, input.LastName)
-			domain := "@caf-mexico.com"
-			email := base + domain
-			suffix := 1
-			for {
-				var exists models.User
-				if err := db.Unscoped().Where("LOWER(email) = ?", email).First(&exists).Error; err == gorm.ErrRecordNotFound {
-					break
-				}
-				email = base + strconv.Itoa(suffix) + domain
-				suffix++
-			}
-			input.Email = email
-		}
-
-		// Securely hash the temporary password.
-		hashedPassword, err := securityutil.HashPassword(input.Password)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-
-		// Create the new user model.
-		user := models.User{
-			FirstName:       input.FirstName,
-			LastName:        input.LastName,
-			Email:           input.Email,
-			Password:        hashedPassword,
-			Role:            input.Role,
-			OfficeID:        input.OfficeID,
-			Phone:           strings.TrimSpace(input.Phone),
-			PersonalAddress: input.PersonalAddress,
-		}
-
-		// Check if a soft-deleted user with the same email exists
-		var existingUser models.User
-		if err := db.Unscoped().Where("LOWER(email) = ?", input.Email).First(&existingUser).Error; err == nil {
-			if existingUser.DeletedAt.Valid {
-				// Reactivate the soft-deleted user
-				existingUser.FirstName = input.FirstName
-				existingUser.LastName = input.LastName
-				existingUser.Password = hashedPassword
-				existingUser.Role = input.Role
-				existingUser.OfficeID = input.OfficeID
-				existingUser.Phone = strings.TrimSpace(input.Phone)
-				existingUser.PersonalAddress = input.PersonalAddress
-				existingUser.DeletedAt = gorm.DeletedAt{}
-
-				if err := db.Unscoped().Save(&existingUser).Error; err != nil {
-					c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to reactivate user."})
-					return
-				}
-				c.JSON(http.StatusOK, existingUser)
-				return
-			} else {
-				c.JSON(http.StatusConflict, gin.H{"error": "User with this email already exists."})
-				return
-			}
-		}
-
-		// Save the new user to the database.
-		if err := db.Create(&user).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user."})
-			return
-		}
-
-		c.JSON(http.StatusCreated, user)
-	}
-}
-
-// generateCorpEmailLocalPart builds a normalized local-part like jsmith from first/last names
 func generateCorpEmailLocalPart(firstName, lastName string) string {
 	fn := strings.TrimSpace(firstName)
 	ln := strings.TrimSpace(lastName)
@@ -424,7 +308,9 @@ type UpdateUserInput struct {
 }
 
 // UpdateUser handles modifying an existing user's details.
-func UpdateUser(db *gorm.DB) gin.HandlerFunc {
+func UpdateUser(db *gorm.DB) gin.HandlerFunc { return serializeUserMutation(db, updateUser) }
+
+func updateUser(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var user models.User
 		// Find the user by their ID from the URL parameter (e.g., /users/10).
@@ -440,18 +326,28 @@ func UpdateUser(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
+		if !authorizeUserChange(c, &user, input.Role, &input.OfficeID) {
+			return
+		}
+
 		// Perform the same role and office validation as in CreateUser using centralized config
 		if err := config.ValidateRole(input.Role); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		// For update operations, only enforce office requirement for non-admin, non-client staff
-		// Allow admins to have no office, and allow clearing office for existing users in transition
-		if input.Role != "client" && input.Role != config.RoleAdmin && config.RequiresOffice(input.Role) && input.OfficeID == nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "An office must be assigned to all staff members (except admins)."})
+		// Office administrators must retain an office assignment.
+		if config.RequiresOffice(input.Role) && (input.OfficeID == nil || *input.OfficeID == 0) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "An office must be assigned to all staff members except the executive director."})
 			return
 		}
 
+		if user.Role == config.RoleExecutiveDirector && input.Role != config.RoleExecutiveDirector {
+			var remaining int64
+			if err := db.Model(&models.User{}).Where("role = ? AND is_active = ? AND id <> ?", config.RoleExecutiveDirector, true, user.ID).Count(&remaining).Error; err != nil || remaining == 0 {
+				c.JSON(http.StatusForbidden, gin.H{"error": "Cannot demote the last executive director"})
+				return
+			}
+		}
 		// Check if email is being changed and if it conflicts with another user
 		if user.Email != input.Email {
 			var existingUser models.User
@@ -482,92 +378,15 @@ func UpdateUser(db *gorm.DB) gin.HandlerFunc {
 
 // UpdateUserScoped handles modifying an existing user's details with office restrictions.
 // Business rules:
-// - Office managers can update clients for ANY office
-// - Office managers can only update staff in THEIR office
-func UpdateUserScoped(db *gorm.DB) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		var user models.User
-		if err := db.Where("id = ?", c.Param("id")).First(&user).Error; err != nil {
-			c.JSON(http.StatusNotFound, gin.H{"error": "User not found."})
-			return
-		}
-
-		// Get the office manager's office from middleware (stored as uint, not *uint)
-		managerOfficeIDVal, hasOffice := c.Get("officeScopeID")
-
-		// Check if the user being updated is staff (not a client)
-		// Office managers can only update staff in their own office
-		if user.Role != "client" && hasOffice && managerOfficeIDVal != nil {
-			managerOfficeID, ok := managerOfficeIDVal.(uint)
-			if ok && user.OfficeID != nil && *user.OfficeID != managerOfficeID {
-				c.JSON(http.StatusForbidden, gin.H{"error": "You can only update staff members from your own office."})
-				return
-			}
-		}
-
-		var input UpdateUserInput
-		if err := c.ShouldBindJSON(&input); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-
-		// Validate the role
-		if err := config.ValidateRole(input.Role); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-
-		// Business rule: If updating to a staff role, office managers can only assign to their office
-		isStaffRole := input.Role != "client"
-		if isStaffRole && hasOffice && managerOfficeIDVal != nil {
-			managerOfficeID, ok := managerOfficeIDVal.(uint)
-
-			// If office not provided, auto-assign manager's office
-			if input.OfficeID == nil && ok {
-				input.OfficeID = &managerOfficeID
-			}
-
-			if input.OfficeID == nil {
-				c.JSON(http.StatusBadRequest, gin.H{"error": "An office must be assigned to all staff members."})
-				return
-			}
-
-			if ok && *input.OfficeID != managerOfficeID {
-				c.JSON(http.StatusForbidden, gin.H{"error": "You can only assign staff members to your own office."})
-				return
-			}
-		}
-
-		// Check if email is being changed and if it conflicts
-		if user.Email != input.Email {
-			var existingUser models.User
-			if err := db.Where("email = ? AND id != ?", input.Email, user.ID).First(&existingUser).Error; err == nil {
-				c.JSON(http.StatusConflict, gin.H{"error": "Email is already in use by another user."})
-				return
-			}
-		}
-
-		user.FirstName = input.FirstName
-		user.LastName = input.LastName
-		user.Email = input.Email
-		user.Role = input.Role
-		user.OfficeID = input.OfficeID
-		user.Phone = strings.TrimSpace(input.Phone)
-		user.PersonalAddress = input.PersonalAddress
-
-		if err := db.Save(&user).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update user."})
-			return
-		}
-
-		c.JSON(http.StatusOK, user)
-	}
-}
+// - Office managers update clients and staff only in their own office
+func UpdateUserScoped(db *gorm.DB) gin.HandlerFunc { return UpdateUser(db) }
 
 // DeleteUser handles deactivating a user account.
 // This performs a "soft delete" by setting the `deleted_at` timestamp.
 // Protected by: self-deletion prevention, last-admin protection, system user protection.
-func DeleteUser(db *gorm.DB) gin.HandlerFunc {
+func DeleteUser(db *gorm.DB) gin.HandlerFunc { return serializeUserMutation(db, deleteUser) }
+
+func deleteUser(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		targetID := c.Param("id")
 
@@ -584,18 +403,23 @@ func DeleteUser(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
+		requestedOffice := user.OfficeID
+		if !authorizeUserChange(c, &user, user.Role, &requestedOffice) {
+			return
+		}
+
 		// Protection 2: Prevent deletion of system/protected users (user ID 1 is reserved for system admin)
 		if user.ID == 1 {
 			c.JSON(http.StatusForbidden, gin.H{"error": "Cannot delete the system administrator account"})
 			return
 		}
 
-		// Protection 3: Prevent deletion of last admin
-		if user.Role == config.RoleAdmin {
+		// Protection 3: Preserve the last active executive director.
+		if user.Role == config.RoleExecutiveDirector {
 			var adminCount int64
-			db.Model(&models.User{}).Where("role = ? AND deleted_at IS NULL", config.RoleAdmin).Count(&adminCount)
+			db.Model(&models.User{}).Where("role = ? AND is_active = ? AND deleted_at IS NULL", config.RoleExecutiveDirector, true).Count(&adminCount)
 			if adminCount <= 1 {
-				c.JSON(http.StatusForbidden, gin.H{"error": "Cannot delete the last administrator account"})
+				c.JSON(http.StatusForbidden, gin.H{"error": "Cannot delete the last executive director account"})
 				return
 			}
 		}
@@ -622,7 +446,7 @@ func SearchClients(db *gorm.DB) gin.HandlerFunc {
 		clients := make([]models.User, 0)
 		// Search for clients where the name or email contains the query text.
 		searchPattern := "%" + strings.ToLower(query) + "%"
-		db.Where("role = ? AND (LOWER(first_name || ' ' || last_name) LIKE ? OR LOWER(email) LIKE ?)", "client", searchPattern, searchPattern).
+		officeScopedQuery(db, c, "office_id").Where("role = ? AND (LOWER(first_name || ' ' || last_name) LIKE ? OR LOWER(email) LIKE ?)", "client", searchPattern, searchPattern).
 			Limit(10). // Limit to 10 results for performance
 			Find(&clients)
 
@@ -637,7 +461,7 @@ func GetUserByID(db *gorm.DB) gin.HandlerFunc {
 		var user models.User
 
 		// Use Preload to efficiently load user with office and case assignments
-		query := db.Preload("Office").Where("id = ? AND deleted_at IS NULL", userID)
+		query := officeScopedQuery(db.Preload("Office"), c, "users.office_id").Where("id = ? AND deleted_at IS NULL", userID)
 
 		if err := query.First(&user).Error; err != nil {
 			if err == gorm.ErrRecordNotFound {
@@ -650,7 +474,7 @@ func GetUserByID(db *gorm.DB) gin.HandlerFunc {
 
 		// Load case assignments for this user
 		var caseAssignments []models.UserCaseAssignment
-		if err := db.Preload("Case").Where("user_id = ?", user.ID).Find(&caseAssignments).Error; err != nil {
+		if err := db.Preload("Case").Where("case_id IN (?)", officeScopedQuery(db.Model(&models.Case{}).Select("id"), c, "office_id")).Where("user_id = ?", user.ID).Find(&caseAssignments).Error; err != nil {
 			// Log error but don't fail the request
 			log.Printf("Warning: Failed to load case assignments for user %d: %v", user.ID, err)
 		}
@@ -675,7 +499,7 @@ func GetUserByID(db *gorm.DB) gin.HandlerFunc {
 		// For clients, include contact form submissions (interest metadata)
 		if user.Role == "client" {
 			var contactSubmissions []models.ContactSubmission
-			if err := db.Where("user_id = ?", user.ID).Order("created_at DESC").Find(&contactSubmissions).Error; err == nil {
+			if err := officeScopedQuery(db, c, "office_id").Where("user_id = ?", user.ID).Order("created_at DESC").Find(&contactSubmissions).Error; err == nil {
 				response["contactSubmissions"] = contactSubmissions
 			} else {
 				response["contactSubmissions"] = []models.ContactSubmission{}
@@ -689,6 +513,10 @@ func GetUserByID(db *gorm.DB) gin.HandlerFunc {
 // PermanentDeleteUser handles permanently removing a user from the database.
 // This is a hard delete that completely removes the record.
 func PermanentDeleteUser(db *gorm.DB) gin.HandlerFunc {
+	return serializeUserMutation(db, permanentDeleteUser)
+}
+
+func permanentDeleteUser(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var user models.User
 		if err := db.Unscoped().Where("id = ?", c.Param("id")).First(&user).Error; err != nil {
@@ -696,12 +524,17 @@ func PermanentDeleteUser(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		// Check if this is the admin user (prevent deleting the last admin)
-		if user.Role == config.RoleAdmin {
+		requestedOffice := user.OfficeID
+		if !authorizeUserChange(c, &user, user.Role, &requestedOffice) {
+			return
+		}
+
+		// Preserve the last active executive director.
+		if user.Role == config.RoleExecutiveDirector {
 			var adminCount int64
-			db.Model(&models.User{}).Where("role = ? AND deleted_at IS NULL", config.RoleAdmin).Count(&adminCount)
+			db.Model(&models.User{}).Where("role = ? AND is_active = ? AND deleted_at IS NULL", config.RoleExecutiveDirector, true).Count(&adminCount)
 			if adminCount <= 1 {
-				c.JSON(http.StatusForbidden, gin.H{"error": "Cannot permanently delete the last admin user."})
+				c.JSON(http.StatusForbidden, gin.H{"error": "Cannot permanently delete the last executive director user."})
 				return
 			}
 		}

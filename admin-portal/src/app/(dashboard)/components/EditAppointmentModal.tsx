@@ -101,7 +101,7 @@ const EditAppointmentModal: React.FC<EditAppointmentModalProps> = ({
       // Try to get staff list, but don't fail if we can't access it
       try {
         let staffEndpoint: string;
-        if (role === 'admin') {
+        if ((role === 'executive_director' || role === 'admin')) {
           staffEndpoint = '/admin/users';
         } else if (role === 'office_manager') {
           staffEndpoint = '/manager/users';
@@ -189,7 +189,7 @@ const EditAppointmentModal: React.FC<EditAppointmentModalProps> = ({
       // Use appropriate endpoint based on user role
       const role = typeof window !== 'undefined' ? Cookies.get('userRole') : 'admin';
       let endpoint: string;
-      if (role === 'admin') {
+      if ((role === 'executive_director' || role === 'admin')) {
         endpoint = `/admin/appointments/${appointment.id}`;
       } else if (role === 'office_manager') {
         endpoint = `/manager/appointments/${appointment.id}`;
@@ -252,7 +252,7 @@ const EditAppointmentModal: React.FC<EditAppointmentModalProps> = ({
       // Use appropriate endpoint based on user role
       const role = typeof window !== 'undefined' ? Cookies.get('userRole') : 'admin';
       let endpoint: string;
-      if (role === 'admin') {
+      if ((role === 'executive_director' || role === 'admin')) {
         endpoint = `/admin/appointments/${appointment.id}`;
       } else if (role === 'office_manager') {
         endpoint = `/manager/appointments/${appointment.id}`;

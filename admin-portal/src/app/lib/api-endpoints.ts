@@ -94,6 +94,7 @@ export const API_ENDPOINTS = {
 
 // Role hierarchy for determining access level
 const ROLE_HIERARCHY = {
+  executive_director: 0,
   admin: 1,
   office_manager: 2,
   lawyer: 3,

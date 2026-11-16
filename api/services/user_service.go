@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/BryanPMX/CAF/api/config"
 	"github.com/BryanPMX/CAF/api/interfaces"
 	"github.com/BryanPMX/CAF/api/models"
 	securityutil "github.com/BryanPMX/CAF/api/security"
@@ -94,7 +95,7 @@ func (s *UserServiceImpl) ListUsers(ctx context.Context, filter interfaces.UserL
 	}
 
 	// Apply access control
-	if requestingUser.Role != "admin" {
+	if !config.CanAccessAllOffices(requestingUser.Role) {
 		// Non-admins can only see users from their office
 		if requestingUser.OfficeID != nil {
 			repoFilter.OfficeID = requestingUser.OfficeID
@@ -119,12 +120,12 @@ func (s *UserServiceImpl) ListUsers(ctx context.Context, filter interfaces.UserL
 // CreateUser creates a new user with proper validation
 func (s *UserServiceImpl) CreateUser(ctx context.Context, userData interfaces.CreateUserRequest, requestingUser interfaces.UserContext) (*models.User, error) {
 	// Check permissions - only admins can create users
-	if requestingUser.Role != "admin" {
+	if !config.CanManageUsers(requestingUser.Role) || (!config.CanAccessAllOffices(requestingUser.Role) && (userData.Role == config.RoleExecutiveDirector || requestingUser.OfficeID == nil || *requestingUser.OfficeID != userData.OfficeID)) {
 		return nil, errors.New("access denied: only administrators can create users")
 	}
 
 	// Validate role
-	validRoles := []string{"admin", "office_manager", "lawyer", "psychologist", "receptionist", "event_coordinator", "client"}
+	validRoles := config.VALID_ROLES
 	isValidRole := false
 	for _, role := range validRoles {
 		if userData.Role == role {

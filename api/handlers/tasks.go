@@ -83,6 +83,9 @@ func GetTasks(db *gorm.DB) gin.HandlerFunc {
 			query = query.Where("("+directAssignment+") OR ("+caseAssignmentCondition+")", allArgs...)
 		}
 
+		if c.GetString("userRole") == config.RoleAdmin {
+			query = query.Where("tasks.case_id IN (?)", officeScopedQuery(db.Model(&models.Case{}).Select("id"), c, "office_id"))
+		}
 		// Apply additional filters from query parameters
 		if status := c.Query("status"); status != "" {
 			query = query.Where("tasks.status = ?", status)
@@ -110,6 +113,9 @@ func GetTaskByID(db *gorm.DB) gin.HandlerFunc {
 		// Use Preload to efficiently load task with all related data
 		query := db.Preload("Case").Preload("Case.Client").Preload("AssignedTo").Where("id = ? AND deleted_at IS NULL", taskID)
 
+		if c.GetString("userRole") == config.RoleAdmin {
+			query = query.Where("tasks.case_id IN (?)", officeScopedQuery(db.Model(&models.Case{}).Select("id"), c, "office_id"))
+		}
 		// Apply access control
 		userRole, _ := c.Get("userRole")
 		userDepartment, _ := c.Get("userDepartment")
@@ -237,6 +243,19 @@ func CreateTaskEnhanced(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
+		if user.Role == config.RoleAdmin {
+			if user.OfficeID == nil || caseRecord.OfficeID != *user.OfficeID {
+				c.JSON(http.StatusForbidden, gin.H{"error": "Case outside your office"})
+				return
+			}
+			if input.AssignedToID != nil {
+				var assignee models.User
+				if err := db.First(&assignee, *input.AssignedToID).Error; err != nil || !canScheduleEmployee(user, assignee) {
+					c.JSON(http.StatusForbidden, gin.H{"error": "Assignee outside your office"})
+					return
+				}
+			}
+		}
 		// Check case access permissions
 		if middleware.IsStaffRole(user.Role) {
 			// Check if user is assigned to this case
@@ -460,6 +479,12 @@ func CreateTaskComment(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
+		if c.GetString("userRole") == config.RoleAdmin {
+			if user.OfficeID == nil || task.Case.OfficeID != *user.OfficeID {
+				c.JSON(http.StatusForbidden, gin.H{"error": "Task outside your office"})
+				return
+			}
+		}
 		// Apply access control
 		if middleware.IsStaffRole(user.Role) {
 			// Check if user is assigned to this task or the case
@@ -515,7 +540,7 @@ func UpdateTaskComment(db *gorm.DB) gin.HandlerFunc {
 
 		// Check if comment exists and user owns it
 		var comment models.TaskComment
-		if err := db.First(&comment, commentIDUint).Error; err != nil {
+		if err := db.Where("task_id = ?", c.Param("id")).First(&comment, commentIDUint).Error; err != nil {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Comment not found"})
 			return
 		}
@@ -554,13 +579,13 @@ func DeleteTaskComment(db *gorm.DB) gin.HandlerFunc {
 
 		// Check if comment exists
 		var comment models.TaskComment
-		if err := db.First(&comment, commentIDUint).Error; err != nil {
+		if err := db.Where("task_id = ?", c.Param("id")).First(&comment, commentIDUint).Error; err != nil {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Comment not found"})
 			return
 		}
 
 		// Only the comment author or admin can delete it
-		if comment.UserID != user.ID && user.Role != "admin" {
+		if comment.UserID != user.ID && user.Role != "executive_director" && user.Role != "admin" {
 			c.JSON(http.StatusForbidden, gin.H{"error": "Access denied: You can only delete your own comments"})
 			return
 		}
@@ -590,6 +615,9 @@ func GetMyTasks(db *gorm.DB) gin.HandlerFunc {
 			Preload("Comments.User").
 			Order("created_at desc")
 
+		if c.GetString("userRole") == config.RoleAdmin {
+			query = query.Where("tasks.case_id IN (?)", officeScopedQuery(db.Model(&models.Case{}).Select("id"), c, "office_id"))
+		}
 		// Apply additional filters
 		if status := c.Query("status"); status != "" {
 			query = query.Where("status = ?", status)

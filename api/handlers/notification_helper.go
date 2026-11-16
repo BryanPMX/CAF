@@ -48,21 +48,21 @@ func CreateNotificationWithMeta(db *gorm.DB, userID uint, message, notifType str
 	return db.Create(&n).Error
 }
 
-// GetAdminUserIDs returns all user IDs with role "admin" (active, not deleted).
+// GetAdminUserIDs returns global executive recipients (active, not deleted).
 func GetAdminUserIDs(db *gorm.DB) ([]uint, error) {
 	var ids []uint
-	err := db.Model(&models.User{}).Where("role = ? AND is_active = ? AND deleted_at IS NULL", "admin", true).Pluck("id", &ids).Error
+	err := db.Model(&models.User{}).Where("role = ? AND is_active = ? AND deleted_at IS NULL", "executive_director", true).Pluck("id", &ids).Error
 	return ids, err
 }
 
-// GetOfficeManagerUserIDs returns user IDs with role "office_manager" for the given office (active, not deleted).
+// GetOfficeManagerUserIDs returns office administrators and managers.
 func GetOfficeManagerUserIDs(db *gorm.DB, officeID uint) ([]uint, error) {
 	var ids []uint
-	err := db.Model(&models.User{}).Where("role = ? AND office_id = ? AND is_active = ? AND deleted_at IS NULL", "office_manager", officeID, true).Pluck("id", &ids).Error
+	err := db.Model(&models.User{}).Where("role IN ? AND office_id = ? AND is_active = ? AND deleted_at IS NULL", []string{"admin", "office_manager"}, officeID, true).Pluck("id", &ids).Error
 	return ids, err
 }
 
-// NotifyAdminsAndOfficeManagersForContact notifies all admins and, when officeID is set, the manager(s) of that office.
+// NotifyAdminsAndOfficeManagersForContact notifies executives and the selected office management.
 // Recipients are deduplicated (e.g. an office manager who is also admin gets one notification).
 func NotifyAdminsAndOfficeManagersForContact(db *gorm.DB, message, notifType string, link *string, entityType string, entityID *uint, dedupKey string, officeID *uint) {
 	seen := make(map[uint]struct{})

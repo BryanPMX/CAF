@@ -136,7 +136,7 @@ const RecordsPage: React.FC = () => {
       setUserRole(user.role);
 
       // Only admins and office managers can access archives
-      if (user.role !== 'admin' && user.role !== 'office_manager') {
+      if ((user.role !== 'executive_director' && user.role !== 'admin') && user.role !== 'office_manager') {
         setAccessDenied(true);
         setLoading(false);
         return false;
@@ -271,7 +271,7 @@ const RecordsPage: React.FC = () => {
 
   // Restore archived case
   const handleRestoreCase = async (caseId: number) => {
-    if (!user?.role || (user.role !== 'admin' && user.role !== 'office_manager')) {
+    if (!user?.role || ((user.role !== 'executive_director' && user.role !== 'admin') && user.role !== 'office_manager')) {
       message.error('Sin permisos para restaurar');
       return;
     }
@@ -288,7 +288,7 @@ const RecordsPage: React.FC = () => {
 
   // Permanently delete archived case
   const handleDeleteCase = async (caseId: number) => {
-    if (!user?.role || (user.role !== 'admin' && user.role !== 'office_manager')) {
+    if (!user?.role || ((user.role !== 'executive_director' && user.role !== 'admin') && user.role !== 'office_manager')) {
       message.error('Sin permisos para eliminar');
       return;
     }
@@ -305,7 +305,7 @@ const RecordsPage: React.FC = () => {
 
   // Restore archived appointment
   const handleRestoreAppointment = async (appointmentId: number) => {
-    if (!user?.role || (user.role !== 'admin' && user.role !== 'office_manager')) {
+    if (!user?.role || ((user.role !== 'executive_director' && user.role !== 'admin') && user.role !== 'office_manager')) {
       message.error('Sin permisos para restaurar');
       return;
     }
@@ -322,7 +322,7 @@ const RecordsPage: React.FC = () => {
 
   // Permanently delete archived appointment
   const handleDeleteAppointment = async (appointmentId: number) => {
-    if (!user?.role || (user.role !== 'admin' && user.role !== 'office_manager')) {
+    if (!user?.role || ((user.role !== 'executive_director' && user.role !== 'admin') && user.role !== 'office_manager')) {
       message.error('Sin permisos para eliminar');
       return;
     }

@@ -438,7 +438,8 @@ func main() {
 	admin := r.Group("/api/v1/admin")
 	admin.Use(middleware.EnhancedJWTAuth(cfg.JWTSecret))
 	admin.Use(middleware.RoleAuth(database, "admin"))
-	admin.Use(middleware.DataAccessControl(database)) // Admin also gets enhanced context
+	admin.Use(middleware.DataAccessControl(database)) // Resolve authoritative database role and office
+	admin.Use(middleware.AdminOfficeAccess(database))
 	{
 		// User Management
 		admin.POST("/users", handlers.CreateUser(database))

@@ -11,8 +11,8 @@ import (
 	"gorm.io/gorm"
 )
 
-// BootstrapAdmin creates the first administrator only when both bootstrap
-// environment values are explicitly supplied and no active administrator
+// BootstrapAdmin creates the first executive director only when both bootstrap
+// environment values are explicitly supplied and no active executive director
 // exists. It never resets or updates an existing account.
 func BootstrapAdmin(database *gorm.DB, rawEmail, password string) (bool, error) {
 	email := strings.ToLower(strings.TrimSpace(rawEmail))
@@ -34,9 +34,9 @@ func BootstrapAdmin(database *gorm.DB, rawEmail, password string) (bool, error) 
 
 	var activeAdmins int64
 	if err := database.Model(&models.User{}).
-		Where("role = ? AND is_active = ? AND deleted_at IS NULL", config.RoleAdmin, true).
+		Where("role = ? AND is_active = ? AND deleted_at IS NULL", config.RoleExecutiveDirector, true).
 		Count(&activeAdmins).Error; err != nil {
-		return false, fmt.Errorf("check active administrators: %w", err)
+		return false, fmt.Errorf("check active executive directors: %w", err)
 	}
 	if activeAdmins > 0 {
 		return false, nil
@@ -58,7 +58,7 @@ func BootstrapAdmin(database *gorm.DB, rawEmail, password string) (bool, error) 
 		LastName:  "Administrator",
 		Email:     email,
 		Password:  hash,
-		Role:      config.RoleAdmin,
+		Role:      config.RoleExecutiveDirector,
 		IsActive:  true,
 	}
 	if err := database.Create(&admin).Error; err != nil {

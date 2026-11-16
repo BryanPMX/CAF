@@ -375,6 +375,7 @@ func GetRecentActivity(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		db.Table("case_events").
+			Where("case_id IN (?)", officeScopedQuery(db.Model(&models.Case{}).Select("id"), c, "office_id")).
 			Select("id, event_type, title, created_at, created_by").
 			Order("created_at DESC").
 			Limit(limit / 2).
@@ -401,7 +402,7 @@ func GetRecentActivity(db *gorm.DB) gin.HandlerFunc {
 			CreatedBy uint      `json:"created_by"`
 		}
 
-		db.Table("appointments").
+		officeScopedQuery(db.Table("appointments"), c, "office_id").
 			Select("id, status, created_at, created_by").
 			Order("created_at DESC").
 			Limit(limit / 2).

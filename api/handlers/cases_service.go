@@ -50,7 +50,7 @@ func (qb *CaseQueryBuilder) ApplyAccessControl(c *gin.Context) *CaseQueryBuilder
 	userID, _ := c.Get("userID")
 
 	// Admin users see all cases
-	if userRole == config.RoleAdmin {
+	if userRole == config.RoleExecutiveDirector {
 		return qb
 	}
 
@@ -61,9 +61,11 @@ func (qb *CaseQueryBuilder) ApplyAccessControl(c *gin.Context) *CaseQueryBuilder
 	}
 
 	// Office managers see ALL cases in their office (they manage the entire office)
-	if userRole == config.RoleOfficeManager {
+	if userRole == config.RoleAdmin || userRole == config.RoleOfficeManager {
 		if officeScopeID != nil {
 			qb.query = qb.query.Where("office_id = ?", officeScopeID)
+		} else {
+			qb.query = qb.query.Where("1 = 0")
 		}
 		return qb
 	}
@@ -268,7 +270,7 @@ func (s *CaseService) GetCaseByID(caseID string, light bool) (*models.Case, erro
 }
 
 func applyCaseCreationScope(requestData map[string]interface{}, actor models.User) error {
-	if actor.Role == config.RoleAdmin {
+	if actor.Role == config.RoleExecutiveDirector {
 		return nil
 	}
 	if actor.OfficeID == nil || *actor.OfficeID == 0 {
@@ -371,7 +373,7 @@ func (s *CaseService) CreateCase(c *gin.Context) (*models.Case, error) {
 		}
 	}
 
-	if clientID != nil && actor.Role != config.RoleAdmin {
+	if clientID != nil && actor.Role != config.RoleExecutiveDirector {
 		var selectedClient models.User
 		if err := s.db.Select("id, role, office_id").First(&selectedClient, *clientID).Error; err != nil {
 			return nil, fmt.Errorf("client not found")
@@ -379,7 +381,7 @@ func (s *CaseService) CreateCase(c *gin.Context) (*models.Case, error) {
 		if selectedClient.Role != "client" {
 			return nil, fmt.Errorf("selected user is not a client")
 		}
-		if selectedClient.OfficeID != nil && *selectedClient.OfficeID != *actor.OfficeID {
+		if selectedClient.OfficeID == nil || *selectedClient.OfficeID != *actor.OfficeID {
 			return nil, fmt.Errorf("client belongs to a different office")
 		}
 	}
@@ -412,7 +414,7 @@ func (s *CaseService) CreateCase(c *gin.Context) (*models.Case, error) {
 
 	// Set client ID
 	caseData.ClientID = clientID
-	if actor.Role != config.RoleAdmin && actor.Role != config.RoleOfficeManager {
+	if !config.IsManagementRole(actor.Role) {
 		caseData.PrimaryStaffID = &actor.ID
 	}
 
@@ -480,9 +482,8 @@ func (s *CaseService) UpdateCase(caseID string, c *gin.Context) (*models.Case, e
 	// Map frontend field names to database column names
 	// GORM's Updates() with map doesn't automatically apply column mappings from struct tags
 	columnMapping := map[string]string{
-		"docketNumber": "docket_number", // docketNumber -> docket_number
-		"updatedBy":    "updated_by",    // updatedBy -> updated_by
-		// Add other mappings as needed
+		"title": "title", "description": "description", "category": "category", "court": "court", "fee": "fee",
+		"status": "status", "priority": "priority", "currentStage": "current_stage", "docketNumber": "docket_number", "updatedBy": "updated_by",
 	}
 
 	// Create a new map with correct column names
@@ -491,7 +492,7 @@ func (s *CaseService) UpdateCase(caseID string, c *gin.Context) (*models.Case, e
 		if columnName, exists := columnMapping[key]; exists {
 			mappedUpdateData[columnName] = value
 		} else {
-			mappedUpdateData[key] = value
+			return nil, fmt.Errorf("field %s cannot be updated through this endpoint", key)
 		}
 	}
 

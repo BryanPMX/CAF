@@ -94,7 +94,7 @@ func GetDashboardSummary(db *gorm.DB) gin.HandlerFunc {
 			if parsed, err := strconv.ParseUint(officeIdStr, 10, 32); err == nil {
 				officeFilter = uint(parsed)
 				// Office manager may only see their own office; ignore query if different
-				if role == config.RoleOfficeManager {
+				if !config.CanAccessAllOffices(role) {
 					if scope, ok := c.Get("officeScopeID"); ok {
 						if sid, ok2 := scope.(uint); ok2 && sid != officeFilter {
 							officeFilter = sid
@@ -173,7 +173,7 @@ func GetDashboardSummary(db *gorm.DB) gin.HandlerFunc {
 		apptTodayQuery.Count(&appointmentsToday)
 
 		var offices []models.Office
-		db.Find(&offices)
+		officeScopedQuery(db, c, "id").Find(&offices)
 
 		// Additional stats for enhanced dashboard
 		var totalStaff int64

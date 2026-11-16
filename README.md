@@ -2,6 +2,10 @@
 
 This is the official monorepo for the CAF digital platform. **100% local development** - no cloud costs or dependencies.
 
+## Access policy
+
+See [portal roles and deployment steps](docs/ACCESS_CONTROL.md). Existing CEO accounts must be explicitly promoted to `executive_director`; remaining administrators require an assigned office.
+
 ## Security and data boundaries
 
 This public repository contains application source code and deployment templates. It does **not** automatically contain PostgreSQL records, uploaded documents, Portainer secrets, or Docker named-volume contents. Those remain on the Docker host unless someone explicitly exports and commits them.
@@ -232,7 +236,7 @@ docker-compose ps
 
 **Secure first administrator:**
 
-Set `BOOTSTRAP_ADMIN_EMAIL` and `BOOTSTRAP_ADMIN_PASSWORD` only for the first API start. The password must be 12–72 characters and include uppercase, lowercase, a number, and a symbol. After the account is created, remove both variables from Portainer and redeploy. There are no default credentials.
+Set `BOOTSTRAP_ADMIN_EMAIL` and `BOOTSTRAP_ADMIN_PASSWORD` only for the first API start. These provision the first **Director Ejecutivo** (`executive_director`). The password must be 12–72 characters and include uppercase, lowercase, a number, and a symbol. After the account is created, remove both variables from Portainer and redeploy. There are no default credentials.
 
 ### 2. Start Admin Portal (Frontend)
 
@@ -337,7 +341,7 @@ Local file URLs use the `local://` scheme (e.g. `local://cases/42/uuid.pdf`).
 
 ## Content Management System (CMS)
 
-The admin portal includes a **CMS** for managing the marketing website content. Admins can control all public-facing content without code changes.
+The admin portal includes a **CMS** for managing the marketing website content. Director Ejecutivo can control all public-facing content without code changes. Office administrators cannot access Sitio Web.
 
 ### CMS Content Types
 
@@ -402,7 +406,8 @@ curl http://localhost:3000/api/health
 4. **Navigation**: Menu items based on user role
 
 #### 3. Role-Based Access Test
-- **Admin**: Full access to all features, office filtering
+- **Director Ejecutivo**: Organization-wide access, office filtering, and Sitio Web
+- **Administrador**: Assigned-office cases, appointments, calendar, users, office details, archives, and reports; no Sitio Web
 - **Office Manager**: Office-specific data, user management
 - **Staff**: Only assigned cases/appointments, limited views
 

@@ -34,7 +34,7 @@ func EnhancedLogin(db *gorm.DB, jwtSecret string) gin.HandlerFunc {
 
 		// Step 2: Find User in Database
 		input.Email = strings.ToLower(strings.TrimSpace(input.Email))
-		if err := db.Where("LOWER(email) = ?", input.Email).First(&user).Error; err != nil {
+		if err := db.Preload("Office").Where("LOWER(email) = ?", input.Email).First(&user).Error; err != nil {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
 			return
 		}
@@ -68,6 +68,8 @@ func EnhancedLogin(db *gorm.DB, jwtSecret string) gin.HandlerFunc {
 				"id":        user.ID,
 				"email":     user.Email,
 				"role":      user.Role,
+				"officeId":  user.OfficeID,
+				"office":    user.Office,
 				"firstName": user.FirstName,
 				"lastName":  user.LastName,
 			},

@@ -32,7 +32,7 @@ func CompleteCase(db *gorm.DB) gin.HandlerFunc {
 
 		// Check permissions - only admins and office managers can complete cases
 		userRole, _ := c.Get("userRole")
-		if userRole != "admin" && userRole != "office_manager" {
+		if userRole != "executive_director" && userRole != "admin" && userRole != "office_manager" {
 			c.JSON(http.StatusForbidden, gin.H{"error": "Solo administradores y gerentes de oficina pueden completar casos"})
 			return
 		}

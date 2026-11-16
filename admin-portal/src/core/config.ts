@@ -104,6 +104,7 @@ export const ENABLE_ANALYTICS = config.features.enableAnalytics;
 
 // Business constants
 export const USER_ROLES = [
+  'executive_director',
   'admin',
   'office_manager',
   'lawyer',
@@ -133,26 +134,13 @@ export type CaseStatus = typeof CASE_STATUSES[number];
 export type AppointmentStatus = typeof APPOINTMENT_STATUSES[number];
 export type CaseCategory = typeof CASE_CATEGORIES[number];
 
-// Permission checking functions
-export function canAccessAllOffices(role: string): boolean {
-  return role === 'admin';
-}
-
-export function isAdminRole(role: string): boolean {
-  return role === 'admin';
-}
-
-export function isManagementRole(role: string): boolean {
-  return ['admin', 'office_manager'].includes(role);
-}
-
-export function isStaffRole(role: string): boolean {
-  return ['lawyer', 'psychologist', 'receptionist', 'event_coordinator'].includes(role);
-}
+// Legacy exports share the canonical frontend role policy.
+export { canAccessAllOffices, isAdminRole, isManagementRole, isStaffRole } from '@/config/roles';
 
 export function hasPermission(role: string, permission: string): boolean {
   const rolePermissions: Record<string, string[]> = {
-    admin: ['*'], // All permissions
+    executive_director: ['*'],
+    admin: ['read_cases', 'read_appointments', 'read_users', 'read_offices', 'create_cases', 'create_appointments', 'update_cases', 'update_appointments', 'manage_office_users'],
     office_manager: [
       'read_cases',
       'read_appointments',

@@ -143,7 +143,7 @@ export default function UserProfilePage() {
         <Button type="text" icon={<ArrowLeftOutlined />} onClick={handleBack}>
           Volver a usuarios
         </Button>
-        {(authUser?.role === 'admin' || authUser?.role === 'office_manager') && (
+        {((authUser?.role === 'executive_director' || authUser?.role === 'admin') || authUser?.role === 'office_manager') && (
           <Button type="primary" icon={<FormOutlined />} onClick={handleEdit}>
             Editar usuario
           </Button>

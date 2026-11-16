@@ -55,6 +55,10 @@ func (r *AppointmentRepositoryImpl) List(ctx context.Context, filter interfaces.
 		Preload("Case").
 		Preload("AssignedStaff")
 
+	if filter.OfficeID != nil {
+		query = query.Where("appointments.office_id = ?", *filter.OfficeID)
+	}
+
 	// Apply filters
 	if filter.Status != nil {
 		query = query.Where("status = ?", *filter.Status)

@@ -141,7 +141,7 @@ func CreateAppointmentSmart(db *gorm.DB) gin.HandlerFunc {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Selected staff member is not available."})
 			return
 		}
-		if actor.Role != config.RoleAdmin {
+		if actor.Role != config.RoleExecutiveDirector {
 			if actor.OfficeID == nil || *actor.OfficeID == 0 {
 				tx.Rollback()
 				c.JSON(http.StatusForbidden, gin.H{"error": "Staff member must be assigned to an office."})
@@ -199,6 +199,12 @@ func CreateAppointmentSmart(db *gorm.DB) gin.HandlerFunc {
 			// Scenario: Create a new client, but first check if ANY user already exists with the same email (including soft-deleted ones).
 			var existingUser models.User
 			if err := tx.Unscoped().Where("LOWER(email) = ?", input.NewClient.Email).First(&existingUser).Error; err == nil {
+				if actor.Role != config.RoleExecutiveDirector && (existingUser.OfficeID == nil || *existingUser.OfficeID != *actor.OfficeID) {
+					tx.Rollback()
+					c.JSON(http.StatusForbidden, gin.H{"error": "Client is outside your office"})
+					return
+				}
+
 				// A user with this email already exists (possibly soft-deleted)
 				if existingUser.Role != "client" {
 					tx.Rollback()
@@ -211,7 +217,7 @@ func CreateAppointmentSmart(db *gorm.DB) gin.HandlerFunc {
 					existingUser.FirstName = input.NewClient.FirstName // Update with provided info
 					existingUser.LastName = input.NewClient.LastName
 					existingUser.IsActive = true
-					if actor.Role != config.RoleAdmin {
+					if actor.Role != config.RoleExecutiveDirector {
 						existingUser.OfficeID = actor.OfficeID
 					}
 					if err := tx.Unscoped().Save(&existingUser).Error; err != nil {
@@ -252,7 +258,7 @@ func CreateAppointmentSmart(db *gorm.DB) gin.HandlerFunc {
 					Role:      "client",
 					IsActive:  true,
 				}
-				if actor.Role != config.RoleAdmin {
+				if actor.Role != config.RoleExecutiveDirector {
 					client.OfficeID = actor.OfficeID
 				}
 				if err := tx.Create(&client).Error; err != nil {
@@ -268,7 +274,7 @@ func CreateAppointmentSmart(db *gorm.DB) gin.HandlerFunc {
 				return
 			}
 		}
-		if hasClient && actor.Role != config.RoleAdmin && client.OfficeID != nil && *client.OfficeID != *actor.OfficeID {
+		if hasClient && actor.Role != config.RoleExecutiveDirector && (client.OfficeID == nil || *client.OfficeID != *actor.OfficeID) {
 			tx.Rollback()
 			c.JSON(http.StatusForbidden, gin.H{"error": "Selected client belongs to a different office."})
 			return
@@ -294,7 +300,7 @@ func CreateAppointmentSmart(db *gorm.DB) gin.HandlerFunc {
 				// Fallback: determine from staff role
 				var staff models.User
 				if err := tx.First(&staff, input.StaffID).Error; err == nil {
-					if staff.Role == "admin" {
+					if config.IsManagementRole(staff.Role) {
 						category = "General"
 					} else {
 						// Map staff role to proper department
@@ -410,7 +416,7 @@ func CreateAppointmentSmart(db *gorm.DB) gin.HandlerFunc {
 			// No case category available, determine from staff role
 			var staff models.User
 			if err := tx.First(&staff, input.StaffID).Error; err == nil {
-				if staff.Role == "admin" {
+				if config.IsManagementRole(staff.Role) {
 					appointmentCategory = "General"
 					department = "General"
 				} else {
@@ -615,7 +621,7 @@ func DeleteAppointmentAdmin(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		// Professional Security Checks for non-admin users only
-		if user.Role != "admin" {
+		if user.Role != "admin" && user.Role != config.RoleExecutiveDirector {
 			// Prevent deletion of completed appointments
 			if appointment.Status == "completed" {
 				c.JSON(http.StatusForbidden, gin.H{
@@ -790,7 +796,7 @@ func GetClientCasesForAppointment(db *gorm.DB) gin.HandlerFunc {
 		// Get all cases appropriate for appointment scheduling
 		// Initialize with empty slice to prevent null JSON response
 		cases := make([]models.Case, 0)
-		query := db.Model(&models.Case{}).
+		query := officeScopedQuery(db.Model(&models.Case{}), c, "office_id").
 			Where("client_id = ?", client.ID).
 			Where("deleted_at IS NULL").                                  // Not soft-deleted
 			Where("is_archived = ?", false).                              // Not archived
@@ -860,7 +866,7 @@ func GetClientCasesForAppointmentScoped(db *gorm.DB) gin.HandlerFunc {
 
 		// Get cases appropriate for appointment scheduling, scoped by office
 		cases := make([]models.Case, 0)
-		query := db.Model(&models.Case{}).
+		query := officeScopedQuery(db.Model(&models.Case{}), c, "office_id").
 			Where("client_id = ?", client.ID).
 			Where("deleted_at IS NULL").
 			Where("is_archived = ?", false).

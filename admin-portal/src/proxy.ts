@@ -12,9 +12,7 @@ export function proxy(request: NextRequest) {
   if (pathname === '/login') {
     const token = request.cookies.get('authToken')?.value || request.headers.get('authorization');
     if (token) {
-      const userRole = request.cookies.get('userRole')?.value;
-      const redirectPath = userRole === 'admin' || userRole === 'office_manager' ? '/admin' : '/';
-      return NextResponse.redirect(new URL(redirectPath, request.url));
+      return NextResponse.redirect(new URL('/', request.url));
     }
     return NextResponse.next();
   }
@@ -26,9 +24,9 @@ export function proxy(request: NextRequest) {
     }
 
     // This is a navigation guard only. The API remains the authorization boundary.
-    if (pathname.startsWith('/admin')) {
+    if (pathname.startsWith('/admin') || pathname.startsWith('/app/web-content')) {
       const userRole = request.cookies.get('userRole')?.value;
-      if (userRole !== 'admin' && userRole !== 'office_manager') {
+      if (userRole !== 'executive_director') {
         return NextResponse.redirect(new URL('/', request.url));
       }
     }

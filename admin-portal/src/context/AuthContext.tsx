@@ -361,7 +361,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, [state.user]);
 
   // Computed properties
-  const isAdmin = hasRole('admin');
+  const isAdmin = hasAnyRole(['executive_director', 'admin']);
   const isStaff = hasAnyRole(['office_manager', 'lawyer', 'psychologist', 'receptionist', 'event_coordinator']);
   const isClient = hasRole('client');
 
