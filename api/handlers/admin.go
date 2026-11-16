@@ -89,8 +89,13 @@ func createUser(db *gorm.DB) gin.HandlerFunc {
 			suffix := 1
 			for {
 				var exists models.User
-				if err := db.Unscoped().Where("LOWER(email) = ?", email).First(&exists).Error; err == gorm.ErrRecordNotFound {
+				lookupErr := db.Unscoped().Where("LOWER(email) = ?", email).First(&exists).Error
+				if lookupErr == gorm.ErrRecordNotFound {
 					break
+				}
+				if lookupErr != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate employee email"})
+					return
 				}
 				email = base + strconv.Itoa(suffix) + domain
 				suffix++

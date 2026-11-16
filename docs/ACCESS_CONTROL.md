@@ -43,7 +43,8 @@ existing active account and promote that specific account. For example, with
 
 ```sql
 BEGIN;
-SELECT pg_advisory_xact_lock(1976081601);
+SET LOCAL lock_timeout = '5s';
+SET LOCAL statement_timeout = '15s';
 UPDATE users
 SET role = 'executive_director', updated_at = NOW()
 WHERE id = :ceo_user_id
@@ -67,7 +68,10 @@ Have affected users sign out and sign in to refresh portal role/office state.
 Existing tokens immediately follow the current database permissions. Additional
 executives can then be provisioned by Director Ejecutivo through Usuarios.
 The API prevents demotion or deletion of the last active executive; PostgreSQL
-advisory locks serialize user mutations across API instances.
+advisory locks serialize user mutations across API instances. A busy lock returns
+HTTP 503 with `Retry-After` instead of waiting indefinitely. Each operation uses
+an isolated GORM session, and lock cleanup runs even after request cancellation.
+Connections are discarded if the lock cannot be released.
 
 For a fresh installation, the existing one-time `BOOTSTRAP_ADMIN_EMAIL` and
 `BOOTSTRAP_ADMIN_PASSWORD` variables now provision the first **Director Ejecutivo**.
