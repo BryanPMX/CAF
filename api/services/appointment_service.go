@@ -249,8 +249,8 @@ func (s *AppointmentServiceImpl) canModifyAppointment(appointment *models.Appoin
 		return userContext.OfficeID != nil && appointment.OfficeID == *userContext.OfficeID
 	}
 
-	// Office managers can modify appointments for cases in their office
-	if (userContext.Role == config.RoleAdmin || userContext.Role == config.RoleOfficeManager) && appointment.CaseID != 0 {
+	// Office administrators can modify appointments for cases in their office
+	if (userContext.Role == config.RoleAdmin) && appointment.CaseID != 0 {
 		caseModel, err := s.caseRepo.GetByID(context.Background(), appointment.CaseID)
 		if err == nil && userContext.OfficeID != nil && caseModel.OfficeID == *userContext.OfficeID {
 			return true
@@ -271,8 +271,8 @@ func (s *AppointmentServiceImpl) canAccessCase(caseModel *models.Case, userConte
 		return true
 	}
 
-	// Office managers can access cases from their office
-	if (userContext.Role == config.RoleAdmin || userContext.Role == config.RoleOfficeManager) && userContext.OfficeID != nil && caseModel.OfficeID == *userContext.OfficeID {
+	// Office administrators can access cases from their office
+	if (userContext.Role == config.RoleAdmin) && userContext.OfficeID != nil && caseModel.OfficeID == *userContext.OfficeID {
 		return true
 	}
 

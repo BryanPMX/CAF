@@ -13,12 +13,12 @@ const (
 	ClientOrganization     = "organization"
 )
 
-// Organization is an office-owned factory or construction-company record.
+// Organization is a shared factory or an office-owned construction company.
 // A constructor has a canonical client account; its contacts are regular clients.
 type Organization struct {
 	ID                  uint           `gorm:"primaryKey" json:"id"`
 	Kind                string         `gorm:"size:20;not null;index" json:"kind"`
-	OfficeID            uint           `gorm:"not null;index" json:"officeId"`
+	OfficeID            *uint          `gorm:"index" json:"officeId"`
 	Office              *Office        `gorm:"foreignKey:OfficeID" json:"office,omitempty"`
 	Name                string         `gorm:"size:255;not null" json:"name"`
 	LegalRepresentative string         `gorm:"size:255" json:"legalRepresentative"`

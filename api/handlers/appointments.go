@@ -39,8 +39,8 @@ func GetAppointmentsEnhanced(db *gorm.DB) gin.HandlerFunc {
 		officeScopeID, _ := c.Get("officeScopeID")
 
 		// Admins see all appointments - no filtering needed
-		// Office managers see ALL appointments in their office (they manage the entire office)
-		if userRole == config.RoleOfficeManager || userRole == config.RoleAdmin {
+		// Office administrators see ALL appointments in their office (they manage the entire office)
+		if userRole == config.RoleAdmin {
 			query = query.Where("appointments.office_id = ?", officeScopeID)
 		} else if !config.CanAccessAllOffices(userRole) && userRole != "client" {
 			// Staff users: build a compound condition for access control
@@ -163,8 +163,8 @@ func GetAppointmentByIDEnhanced(db *gorm.DB) gin.HandlerFunc {
 		officeScopeID, _ := c.Get("officeScopeID")
 
 		// Admins see all appointments - no filtering needed
-		// Office managers can access ALL appointments in their office
-		if userRole == config.RoleOfficeManager || userRole == config.RoleAdmin {
+		// Office administrators can access ALL appointments in their office
+		if userRole == config.RoleAdmin {
 			query = query.Where("appointments.office_id = ?", officeScopeID)
 		} else if !config.CanAccessAllOffices(userRole) && userRole != "client" {
 			// Staff users: they can access appointments assigned to them OR from their office/department
@@ -280,8 +280,8 @@ func CreateAppointmentEnhanced(db *gorm.DB) gin.HandlerFunc {
 			clientID = *input.ClientID
 		}
 
-		// Validate department compatibility for staff users (office managers can create appointments for any department)
-		if middleware.IsStaffRole(user.Role) && user.Role != config.RoleOfficeManager && user.Department != nil {
+		// Validate department compatibility for staff users (office administrators can create appointments for any department)
+		if middleware.IsStaffRole(user.Role) && user.Department != nil {
 			if input.Department != *user.Department {
 				c.JSON(http.StatusBadRequest, gin.H{"error": "Appointment department must match your department"})
 				return
@@ -343,8 +343,8 @@ func UpdateAppointmentEnhanced(db *gorm.DB) gin.HandlerFunc {
 		query := db.Preload("Case")
 
 		if !config.CanAccessAllOffices(user.Role) {
-			// Office managers can update all appointments in their office
-			if (user.Role == config.RoleAdmin || user.Role == config.RoleOfficeManager) && user.OfficeID != nil {
+			// Office administrators can update all appointments in their office
+			if (user.Role == config.RoleAdmin) && user.OfficeID != nil {
 				query = query.Where("appointments.office_id = ?", *user.OfficeID)
 			} else {
 				// Other staff users can only update appointments they're assigned to or from their department
@@ -469,8 +469,8 @@ func DeleteAppointmentEnhanced(db *gorm.DB) gin.HandlerFunc {
 		query := db.Preload("Case").Preload("Staff")
 
 		if !config.CanAccessAllOffices(user.Role) {
-			// Office managers can delete all appointments in their office
-			if (user.Role == config.RoleAdmin || user.Role == config.RoleOfficeManager) && user.OfficeID != nil {
+			// Office administrators can delete all appointments in their office
+			if (user.Role == config.RoleAdmin) && user.OfficeID != nil {
 				query = query.Where("appointments.office_id = ?", *user.OfficeID)
 			} else {
 				// Other staff users can only delete appointments they're assigned to or from their department

@@ -19,7 +19,7 @@ func TestSchedulingOfficeScope(t *testing.T) {
         {"admin same office", "admin", &a, true, true},
         {"admin without office", "admin", nil, true, false},
 		{"same office employee", "lawyer", &a, true, true},
-		{"different office manager", "office_manager", &b, true, false},
+		{"different office administrator", "admin", &b, true, false},
 		{"unassigned employee", "psychologist", nil, true, false},
 		{"client cannot query", "client", &a, true, false},
 		{"inactive employee", "admin", &a, false, false},

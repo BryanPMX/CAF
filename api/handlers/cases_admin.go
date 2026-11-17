@@ -132,7 +132,7 @@ func AssignStaffToCase(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		if !middleware.IsStaffRole(staff.Role) && staff.Role != "office_manager" && staff.Role != "admin" && !config.CanAccessAllOffices(staff.Role) {
+		if !middleware.IsStaffRole(staff.Role) && staff.Role != "admin" && !config.CanAccessAllOffices(staff.Role) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "User cannot be assigned to cases"})
 			return
 		}

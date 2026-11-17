@@ -22,12 +22,10 @@ cells and no office fields in their profile/edit forms.
 An administrator without a nonzero office assignment receives HTTP 403. Search
 filters only narrow access. Case updates accept an explicit field allowlist;
 office reassignment is not part of that endpoint. New user creation and email
-reactivation follow the same scope and role checks. Office managers also use
-the shared user-management implementation and cannot assign administrative or
-executive roles. Staff and client assignment/ownership rules remain in force.
+reactivation follow the same scope and role checks. Staff and client assignment/ownership rules remain in force.
 
 User-management actions also check the target account. An executive account is
-read-only to Administradores and office managers, even if it retains a legacy
+read-only to Administradores, even if it retains a legacy
 office assignment. Edit links refresh the target from the API before opening the
 form; direct edit URLs follow the same rule. Executive rows show an empty Oficina
 cell, and executive profiles/edit forms omit office-specific fields because the
@@ -39,7 +37,7 @@ separate office. Existing cross-office meetings remain visible to their employee
 participants. Administrators cannot use such invitations to expand their scope.
 
 Notifications about contact inquiries, client comments and payments go to all
-executives, technical support and the relevant office's administrators/managers. Routine appointment
+executives, technical support and the relevant office's administrators. Routine appointment
 WebSocket broadcasts contain an invalidation signal only; the portal fetches
 record details through authorized endpoints.
 
@@ -106,7 +104,7 @@ allows only one support account. Fresh-install migration audit entries are skipp
 until user ID 1 exists; the migration ledger still records every applied migration.
 
 Support cannot be created, assigned, demoted, soft-deleted or permanently deleted
-through ordinary user endpoints, including by support itself. CEO/admin/manager
+through ordinary user endpoints, including by support itself. CEO/administrators
 accounts cannot modify support. Support may update its own contact details and
 password; its role remains fixed. The historical ID 1 deletion protection remains
 in place. The last active CEO must still be preserved, even by support.
@@ -184,11 +182,27 @@ removal explicitly sends an empty avatar URL and clears the shared avatar state.
 
 ## Client organizations
 
-Maquilas and Constructoras use the same global/assigned-office boundary.
-Management can register/edit organizations and link individual clients; other
-employees can read their own office's directory, and clients are denied.
+Maquilas are shared across offices; Constructoras remain office-owned.
+Administradores and global roles can register/edit shared factory names.
+Factory client/case data and construction-company records retain office scope;
+other employees can read the shared factory catalog and authorized related
+records. Clients are denied.
 Factory case lists also apply existing case assignment/category restrictions.
 Construction companies have canonical client accounts and direct appointments
 without cases. Related calendar clients never become attendees or acquire
 calendar access. See [client organizations](CLIENT_ORGANIZATIONS.md) for the
 shared data contract, historical employment behavior and migration `0063`.
+
+
+## Retired office-management role
+
+Administrador is the single office-management role. Migration `0065` converts
+legacy `office_manager` users to `admin` while preserving their office, credentials
+and status, and invalidates their previous sessions once. Role validation,
+authentication, navigation, assignment choices and endpoint routing no longer
+support the retired role. `/api/v1/manager` routes are removed. An account without
+an office remains blocked until CEO/support assigns its responsible office.
+
+Shared maquila metadata does not widen client/case visibility. Migration `0066`
+preserves every factory ID, membership and historical case reference while
+moving the catalog to global scope. See [client organizations](CLIENT_ORGANIZATIONS.md).

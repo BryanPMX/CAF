@@ -34,7 +34,7 @@ export default function UserProfilePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [revision, setRevision] = useState(0);
-  const base = user?.role === 'office_manager' ? '/manager' : '/admin';
+  const base = '/admin';
 
   useEffect(() => {
     if (!userID) return;

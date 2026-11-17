@@ -177,7 +177,7 @@ const EditCaseModal: React.FC<EditCaseModalProps> = ({
           <Input placeholder="Ej: 1FXA" />
         </Form.Item>
 
-        <EmploymentFields officeId={caseData.officeId} />
+        <EmploymentFields />
         <Form.Item 
           name="description" 
           label="Descripción" 

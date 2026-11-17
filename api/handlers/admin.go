@@ -187,12 +187,6 @@ func createUser(db *gorm.DB) gin.HandlerFunc {
 	}
 }
 
-// CreateUserScoped handles user creation by office managers with office restrictions.
-// Business rules:
-// - Office managers create clients and staff only in their own office
-// - Executive and administrator grants are forbidden
-func CreateUserScoped(db *gorm.DB) gin.HandlerFunc { return CreateUser(db) }
-
 func generateCorpEmailLocalPart(firstName, lastName string) string {
 	fn := strings.TrimSpace(firstName)
 	ln := strings.TrimSpace(lastName)
@@ -441,11 +435,6 @@ func updateUser(db *gorm.DB) gin.HandlerFunc {
 		c.JSON(http.StatusOK, user)
 	}
 }
-
-// UpdateUserScoped handles modifying an existing user's details with office restrictions.
-// Business rules:
-// - Office managers update clients and staff only in their own office
-func UpdateUserScoped(db *gorm.DB) gin.HandlerFunc { return UpdateUser(db) }
 
 // DeleteUser handles deactivating a user account.
 // This performs a "soft delete" by setting the `deleted_at` timestamp.

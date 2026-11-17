@@ -554,7 +554,7 @@ func (h *PerformanceOptimizedHandler) applyAccessControl(query *gorm.DB, c *gin.
 	}
 
 	// Apply department restriction
-	if userDepartment != nil && userRole != "admin" && userRole != "office_manager" {
+	if userDepartment != nil && userRole != "admin" {
 		query = query.Where("department = ?", userDepartment)
 	}
 

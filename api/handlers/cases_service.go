@@ -62,8 +62,8 @@ func (qb *CaseQueryBuilder) ApplyAccessControl(c *gin.Context) *CaseQueryBuilder
 		return qb
 	}
 
-	// Office managers see ALL cases in their office (they manage the entire office)
-	if userRole == config.RoleAdmin || userRole == config.RoleOfficeManager {
+	// Office administrators see ALL cases in their office (they manage the entire office)
+	if userRole == config.RoleAdmin {
 		if officeScopeID != nil {
 			qb.query = qb.query.Where("office_id = ?", officeScopeID)
 		} else {
@@ -475,6 +475,12 @@ func (s *CaseService) createCase(c *gin.Context) (*models.Case, error) {
 		var client models.User
 		if err := s.db.First(&client, *clientID).Error; err != nil {
 			return nil, err
+		}
+		if client.OfficeID == nil {
+			client.OfficeID = &caseData.OfficeID
+			if err := s.db.Model(&client).Update("office_id", caseData.OfficeID).Error; err != nil {
+				return nil, err
+			}
 		}
 		if err := services.SaveClientEmployment(s.db, actor, &client, employment); err != nil {
 			return nil, err

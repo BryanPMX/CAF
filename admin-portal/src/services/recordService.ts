@@ -21,8 +21,6 @@ export class RecordService {
     
     if (isAdminRole(userRole ?? '')) {
       endpoint = '/admin/records/stats';
-    } else if (userRole === 'office_manager') {
-      endpoint = '/manager/records/stats';
     } else {
       throw new Error('Insufficient permissions to view archive statistics');
     }
@@ -65,8 +63,6 @@ export class RecordService {
     
     if (isAdminRole(userRole ?? '')) {
       endpoint = `/admin/records/cases?${queryParams}`;
-    } else if (userRole === 'office_manager') {
-      endpoint = `/manager/records/cases?${queryParams}`;
     } else {
       throw new Error('Insufficient permissions to view archived cases');
     }
@@ -109,8 +105,6 @@ export class RecordService {
     
     if (isAdminRole(userRole ?? '')) {
       endpoint = `/admin/records/appointments?${queryParams}`;
-    } else if (userRole === 'office_manager') {
-      endpoint = `/manager/records/appointments?${queryParams}`;
     } else {
       throw new Error('Insufficient permissions to view archived appointments');
     }
@@ -132,8 +126,6 @@ export class RecordService {
     
     if (isAdminRole(userRole ?? '')) {
       endpoint = `/admin/records/cases/${caseId}/restore`;
-    } else if (userRole === 'office_manager') {
-      endpoint = `/manager/records/cases/${caseId}/restore`;
     } else {
       throw new Error('Insufficient permissions to restore cases');
     }
@@ -153,8 +145,6 @@ export class RecordService {
     
     if (isAdminRole(userRole ?? '')) {
       endpoint = `/admin/records/cases/${caseId}`;
-    } else if (userRole === 'office_manager') {
-      endpoint = `/manager/records/cases/${caseId}`;
     } else {
       throw new Error('Insufficient permissions to permanently delete cases');
     }
@@ -174,8 +164,6 @@ export class RecordService {
     
     if (isAdminRole(userRole ?? '')) {
       endpoint = `/admin/records/appointments/${appointmentId}/restore`;
-    } else if (userRole === 'office_manager') {
-      endpoint = `/manager/records/appointments/${appointmentId}/restore`;
     } else {
       throw new Error('Insufficient permissions to restore appointments');
     }
@@ -195,8 +183,6 @@ export class RecordService {
     
     if (isAdminRole(userRole ?? '')) {
       endpoint = `/admin/records/appointments/${appointmentId}`;
-    } else if (userRole === 'office_manager') {
-      endpoint = `/manager/records/appointments/${appointmentId}`;
     } else {
       throw new Error('Insufficient permissions to permanently delete appointments');
     }

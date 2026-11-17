@@ -32,7 +32,6 @@ const CreateCaseModal: React.FC<CreateCaseModalProps> = ({ visible, onClose, onS
   const [employmentError, setEmploymentError] = useState(false);
   const [employmentRevision, setEmploymentRevision] = useState(0);
   const [employmentLoading, setEmploymentLoading] = useState(false);
-  const watchedOffice = Form.useWatch('officeId',form);
   const [clientMode, setClientMode] = useState('existing');
   const [offices, setOffices] = useState<WorkflowOffice[]>([]);
   const [clientOptions, setClientOptions] = useState<{ value: string; label: string; key: number }[]>([]);
@@ -280,7 +279,7 @@ const CreateCaseModal: React.FC<CreateCaseModalProps> = ({ visible, onClose, onS
             )}
           </Select>
         </Form.Item>
-        <EmploymentFields officeId={watchedOffice} />
+        <EmploymentFields />
         <Form.Item name="description" label="Descripción Inicial" rules={[{ required: true, message: 'La descripción es obligatoria' }]}>
           <Input.TextArea rows={4} />
         </Form.Item>

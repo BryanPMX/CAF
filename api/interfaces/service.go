@@ -42,7 +42,6 @@ type UserService interface {
 type DashboardService interface {
 	GetAdminDashboard(ctx context.Context, filter DashboardFilter) (*DashboardSummary, error)
 	GetStaffDashboard(ctx context.Context, userID string) (*StaffDashboardSummary, error)
-	GetOfficeManagerDashboard(ctx context.Context, officeID uint, filter DashboardFilter) (*DashboardSummary, error)
 }
 
 // Request/Response structs for service operations

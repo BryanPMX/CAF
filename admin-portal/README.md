@@ -34,7 +34,7 @@ admin-portal/
 │   │   │       ├── cases/          # Expedientes - Case management with pagination
 │   │   │       ├── appointments/   # Citas - Appointment scheduling with filters
 │   │   │       ├── calendar/       # Calendario - Employee meetings + assigned client appointments
-│   │   │       ├── users/          # Usuarios - User management (admin/manager)
+│   │   │       ├── users/          # Usuarios - User management (administrators)
 │   │   │       ├── offices/        # Oficinas - Office management with staff detail drawer
 │   │   │       ├── web-content/    # Gestión de Contenido Web - CMS for marketing site
 │   │   │       ├── records/        # Archivos - Archives of completed/deleted cases & appointments
@@ -112,7 +112,7 @@ Internal employee events and meetings follow a separate schedule: Monday–Frida
 
 Run slot boundary tests with `node --test testing/appointment-availability.test.cjs` from the repository root, and API scheduling tests with `go test ./...` from `api`.
 
-- `Calendario` is available to every authenticated employee, including administrators and office managers; client accounts are excluded.
+- `Calendario` is available to every authenticated employee, including administrators; client accounts are excluded.
 - The unified month view combines case appointments with internal meetings from `GET /api/v1/calendar/events`. Management roles use `/appointments` for their authorized office scope; other employees use `/appointments/my`.
 - Internal events are separate from client appointments and support multiple attendees, editing/cancellation by organizers, office administrators within their office, and Soporte Tecnico/Director Ejecutivo, invitation responses, responsive month/day views, and real-time notification links.
 - `calendarService.ts` owns the API boundary while shared calendar contracts live in `src/app/lib/calendar.ts`.

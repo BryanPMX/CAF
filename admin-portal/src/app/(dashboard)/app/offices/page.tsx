@@ -47,7 +47,6 @@ const ROLE_COLORS: Record<string, string> = {
   technical_support: 'cyan',
   executive_director: 'purple',
   admin: 'red',
-  office_manager: 'blue',
   lawyer: 'green',
   psychologist: 'purple',
   receptionist: 'orange',
@@ -157,7 +156,7 @@ const OfficeManagementPage = () => {
     setDrawerVisible(true);
     setLoadingDetail(true);
     try {
-      const base = user?.role === 'office_manager' ? '/manager' : '/admin';
+      const base = '/admin';
       const response = await apiClient.get(`${base}/offices/${office.id}/detail`);
       const detail = response.data as Partial<OfficeDetail>;
       const allUsers = [...(detail.staff ?? []), ...(detail.clients ?? [])];

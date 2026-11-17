@@ -609,68 +609,6 @@ func main() {
 		staff.DELETE("/tasks/:id/comments/:commentId", middleware.TaskAccessControl(database), handlers.DeleteTaskComment(database))
 	}
 
-	// Group 6: Office Manager Routes (role: office_manager)
-	officeManager := r.Group("/api/v1/manager")
-	officeManager.Use(middleware.EnhancedJWTAuth(cfg.JWTSecret))
-	officeManager.Use(middleware.RoleAuth(database, "office_manager"))
-	officeManager.Use(middleware.DataAccessControl(database))
-	{
-		// Users management for Office Managers
-		// Office managers can create/update clients for any office, but staff only for their office
-		officeManager.POST("/users", handlers.CreateUserScoped(database))
-		officeManager.GET("/users/:id", handlers.GetUserByID(database))
-		officeManager.PATCH("/users/:id", handlers.UpdateUserScoped(database))
-		officeManager.GET("/users", handlers.GetUsers(database))
-		officeManager.GET("/users/search", handlers.SearchClients(database))
-
-		// Offices list and detail (managers can see all offices for reference)
-		officeManager.GET("/offices", handlers.GetOffices(cont.GetOfficeRepository()))
-		officeManager.GET("/offices/:id", handlers.GetOfficeByID(cont.GetOfficeRepository()))
-		officeManager.GET("/offices/:id/detail", handlers.GetOfficeDetailWithStaff(database))
-
-		// Case Management for Office Managers
-		officeManager.GET("/cases", middleware.CaseAccessControl(database), handlers.GetCasesEnhanced(database))
-		officeManager.GET("/cases/:id", middleware.CaseAccessControl(database), handlers.GetCaseByIDEnhanced(database))
-		officeManager.GET("/cases/my", middleware.CaseAccessControl(database), handlers.GetMyCases(database))
-		officeManager.POST("/cases", middleware.CaseAccessControl(database), handlers.CreateCaseEnhanced(database))
-		officeManager.PUT("/cases/:id", middleware.CaseAccessControl(database), handlers.UpdateCase(database))
-		officeManager.DELETE("/cases/:id", middleware.CaseAccessControl(database), handlers.DeleteCase(database))
-
-		// Case Comments for Office Managers
-		officeManager.POST("/cases/:id/comments", middleware.CaseAccessControl(database), handlers.CreateComment(database))
-		officeManager.PUT("/cases/comments/:eventId", middleware.CaseAccessControl(database), handlers.UpdateComment(database))
-		officeManager.DELETE("/cases/comments/:eventId", middleware.CaseAccessControl(database), handlers.DeleteComment(database))
-
-		// Client cases for appointment creation (scoped by office)
-		officeManager.GET("/clients/:clientId/cases-for-appointment", handlers.GetClientCasesForAppointmentScoped(database))
-		// Client cases endpoint
-		officeManager.GET("/clients/:clientId/cases", handlers.GetCasesForClient(database))
-
-		// Appointment Management for Office Managers
-		officeManager.GET("/appointments", middleware.AppointmentAccessControl(database), handlers.GetAppointmentsEnhanced(database))
-		officeManager.GET("/appointments/:id", middleware.AppointmentAccessControl(database), handlers.GetAppointmentByIDEnhanced(database))
-		officeManager.GET("/appointments/my", middleware.AppointmentAccessControl(database), handlers.GetMyAppointments(database))
-		officeManager.POST("/appointments", handlers.CreateAppointmentSmart(database))
-		officeManager.PATCH("/appointments/:id", middleware.AppointmentAccessControl(database), handlers.UpdateAppointmentEnhanced(database))
-		officeManager.DELETE("/appointments/:id", middleware.AppointmentAccessControl(database), handlers.DeleteAppointmentEnhanced(database))
-
-		// Records (scoped by office via DataAccessControl)
-		officeManager.GET("/records/stats", handlers.GetRecordsArchiveStats(database))
-		officeManager.GET("/records/cases", middleware.CaseAccessControl(database), handlers.GetRecordsArchivedCases(database))
-		officeManager.GET("/records/appointments", middleware.AppointmentAccessControl(database), handlers.GetArchivedAppointments(database))
-		officeManager.POST("/records/cases/:id/restore", middleware.CaseAccessControl(database), handlers.RestoreCase(database))
-		officeManager.POST("/records/appointments/:id/restore", middleware.AppointmentAccessControl(database), handlers.RestoreAppointment(database))
-		officeManager.DELETE("/records/cases/:id", middleware.CaseAccessControl(database), handlers.PermanentlyDeleteCase(database))
-		officeManager.DELETE("/records/appointments/:id", middleware.AppointmentAccessControl(database), handlers.PermanentlyDeleteAppointment(database))
-
-		// Reports (scoped by office via DataAccessControl)
-		reportsHandler := handlers.NewReportsHandler(database)
-		officeManager.GET("/reports/summary-report", reportsHandler.GetSummaryReport())
-		officeManager.GET("/reports/cases-report", reportsHandler.GetCasesReport())
-		officeManager.GET("/reports/appointments-report", reportsHandler.GetAppointmentsReport())
-		officeManager.GET("/reports/export", reportsHandler.ExportReport())
-	}
-
 	// --- Step 7: Start the Server ---
 	// Bind to all interfaces (0.0.0.0) for AWS deployment
 	serverAddr := "0.0.0.0:" + cfg.Port

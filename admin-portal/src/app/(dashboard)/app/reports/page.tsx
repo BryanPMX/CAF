@@ -138,7 +138,7 @@ const ReportsPage = () => {
   };
 
   const getReportsBase = () => {
-    return role === 'office_manager' ? '/manager/reports' : '/admin/reports';
+    return '/admin/reports';
   };
 
   const handleExport = async (format: 'excel' | 'pdf') => {

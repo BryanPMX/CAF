@@ -15,9 +15,6 @@ export class EndpointResolver {
     admin: {
       prefix: '/admin',
     },
-    office_manager: {
-      prefix: '/manager',
-    },
     default: {
       prefix: '', // Staff and other roles use protected routes (no prefix)
     },

@@ -267,7 +267,7 @@ func ApplyAccessControl(query *gorm.DB, c *gin.Context, entityType string) *gorm
 	}
 
 	// Apply department restriction
-	if department != "" && userRole != "admin" && userRole != "office_manager" {
+	if department != "" && userRole != "admin" {
 		query = query.Where("department = ?", department)
 	}
 

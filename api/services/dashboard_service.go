@@ -69,7 +69,7 @@ func (s *DashboardServiceImpl) GetAdminDashboard(ctx context.Context, filter int
 	todayApptQuery := apptQuery.Session(&gorm.Session{})
 	todayApptQuery.Where("start_time >= ? AND start_time < ?", todayStart, todayEnd).Count(&summary.AppointmentsToday)
 
-	// Always get offices for admin/office manager roles (for filtering UI)
+	// Always get offices for administrative roles (for filtering UI)
 	// Note: This is a simplified approach - in production, you might want to
 	// filter offices based on user permissions
 	var offices []models.Office
@@ -109,16 +109,4 @@ func (s *DashboardServiceImpl) GetStaffDashboard(ctx context.Context, userID str
 		Count(&summary.MyPendingAppointments)
 
 	return &summary, nil
-}
-
-// GetOfficeManagerDashboard gets dashboard data for office managers
-func (s *DashboardServiceImpl) GetOfficeManagerDashboard(ctx context.Context, officeID uint, filter interfaces.DashboardFilter) (*interfaces.DashboardSummary, error) {
-	// Office managers see data for their office only
-	officeFilter := interfaces.DashboardFilter{
-		OfficeID: &officeID,
-		DateFrom: filter.DateFrom,
-		DateTo:   filter.DateTo,
-	}
-
-	return s.GetAdminDashboard(ctx, officeFilter)
 }

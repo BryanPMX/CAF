@@ -5,10 +5,8 @@ import { OrganizationService } from "@/services/organizationService";
 import type { Organization } from "@/app/lib/organizations";
 import { ORGANIZATION_TEXT as text } from "@/config/organizations";
 export default function EmploymentFields({
-  officeId,
   fixedMaquila,
 }: {
-  officeId?: number;
   fixedMaquila?: number;
 }) {
   const form = Form.useFormInstance();
@@ -20,7 +18,7 @@ export default function EmploymentFields({
   useEffect(() => {
     let current = true;
     const timer = setTimeout(() => {
-      OrganizationService.list("maquila", search, 1, 100, officeId)
+      OrganizationService.list("maquila", search, 1, 100)
         .then((result) => {
           if (current) setOrganizations(result.data);
         })
@@ -32,14 +30,14 @@ export default function EmploymentFields({
       current = false;
       clearTimeout(timer);
     };
-  }, [officeId, search]);
+  }, [search]);
   useEffect(() => {
     if (!maquilaId || fixedMaquila) {
       setSelectedOrganization(undefined);
       return;
     }
     let current = true;
-    OrganizationService.list("maquila", "", 1, 1, officeId, maquilaId)
+    OrganizationService.list("maquila", "", 1, 1, undefined, maquilaId)
       .then((result) => {
         if (current) setSelectedOrganization(result.data[0]);
       })
@@ -49,7 +47,7 @@ export default function EmploymentFields({
     return () => {
       current = false;
     };
-  }, [maquilaId, fixedMaquila, officeId]);
+  }, [maquilaId, fixedMaquila]);
   const choices = [
     ...new Map(
       [
@@ -76,7 +74,7 @@ export default function EmploymentFields({
             placeholder={text.factoryPlaceholder}
             options={choices.map((record) => ({
               value: record.id,
-              label: record.name,
+              label: `${record.name} · #${record.id}`,
             }))}
             onClear={() =>
               form.setFieldValue("employment", {

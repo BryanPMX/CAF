@@ -6,7 +6,6 @@ export const USER_ROLES = {
   TECHNICAL_SUPPORT: 'technical_support',
   EXECUTIVE_DIRECTOR: 'executive_director',
   ADMIN: 'admin',
-  OFFICE_MANAGER: 'office_manager',
   LAWYER: 'lawyer',
   PSYCHOLOGIST: 'psychologist',
   RECEPTIONIST: 'receptionist',
@@ -20,7 +19,6 @@ export const ROLE_DISPLAY_NAMES = {
   [USER_ROLES.TECHNICAL_SUPPORT]: 'Soporte Tecnico',
   [USER_ROLES.EXECUTIVE_DIRECTOR]: 'Director Ejecutivo',
   [USER_ROLES.ADMIN]: 'Administrador',
-  [USER_ROLES.OFFICE_MANAGER]: 'Gerente de Oficina',
   [USER_ROLES.LAWYER]: 'Abogado/a',
   [USER_ROLES.PSYCHOLOGIST]: 'Psicólogo/a',
   [USER_ROLES.RECEPTIONIST]: 'Recepcionista',
@@ -46,7 +44,7 @@ export const isAdminRole = (role: string): boolean => {
 };
 
 export const isManagementRole = (role: string): boolean => {
-  return isAdminRole(role) || role === USER_ROLES.OFFICE_MANAGER;
+  return isAdminRole(role);
 };
 
 interface UserManagementSubject {
@@ -66,7 +64,6 @@ export const canManageUser = (
   if (target.role === USER_ROLES.TECHNICAL_SUPPORT) return actor.role === USER_ROLES.TECHNICAL_SUPPORT;
   if (canAccessAllOffices(actor.role)) return true;
   if (target.role === USER_ROLES.EXECUTIVE_DIRECTOR) return false;
-  if (actor.role === USER_ROLES.OFFICE_MANAGER && target.role === USER_ROLES.ADMIN) return false;
   return Boolean(actor.officeId && target.officeId === actor.officeId);
 };
 
@@ -110,11 +107,6 @@ export const STAFF_ROLES = {
     displayName: ROLE_DISPLAY_NAMES[USER_ROLES.ADMIN],
     department: 'Administration',
   },
-  [USER_ROLES.OFFICE_MANAGER]: {
-    key: USER_ROLES.OFFICE_MANAGER,
-    displayName: ROLE_DISPLAY_NAMES[USER_ROLES.OFFICE_MANAGER],
-    department: 'Management',
-  },
   [USER_ROLES.LAWYER]: {
     key: USER_ROLES.LAWYER,
     displayName: ROLE_DISPLAY_NAMES[USER_ROLES.LAWYER],
@@ -141,7 +133,6 @@ export const PERMISSIONS = {
   [USER_ROLES.TECHNICAL_SUPPORT]: ['*'],
   [USER_ROLES.EXECUTIVE_DIRECTOR]: ['*'],
   [USER_ROLES.ADMIN]: ['cases.read', 'cases.write', 'appointments.read', 'appointments.write', 'users.read', 'users.write', 'manage_offices', 'documents.read', 'reports.read', 'records.write'],
-  [USER_ROLES.OFFICE_MANAGER]: ['cases.read', 'cases.write', 'appointments.read', 'appointments.write', 'users.read', 'manage_offices'],
   [USER_ROLES.LAWYER]: ['cases.read', 'cases.write', 'appointments.read', 'appointments.write', 'documents.read'],
   [USER_ROLES.PSYCHOLOGIST]: ['cases.read', 'cases.write', 'appointments.read', 'appointments.write', 'documents.read'],
   [USER_ROLES.RECEPTIONIST]: ['cases.read', 'appointments.read', 'appointments.write', 'users.read'],
@@ -165,7 +156,6 @@ export const CASE_DOCUMENT_PERMISSIONS = {
   [USER_ROLES.LAWYER]: [CASE_DOCUMENT_TYPES.LEGAL, CASE_DOCUMENT_TYPES.GENERAL],
   [USER_ROLES.PSYCHOLOGIST]: [CASE_DOCUMENT_TYPES.PSYCHOLOGICAL, CASE_DOCUMENT_TYPES.GENERAL],
   [USER_ROLES.RECEPTIONIST]: [CASE_DOCUMENT_TYPES.GENERAL],
-  [USER_ROLES.OFFICE_MANAGER]: Object.values(CASE_DOCUMENT_TYPES),
   [USER_ROLES.EVENT_COORDINATOR]: [CASE_DOCUMENT_TYPES.GENERAL],
   [USER_ROLES.CLIENT]: [],
 };
@@ -182,7 +172,6 @@ export const isValidRole = (role: string): boolean => {
 export const requiresOffice = (role: string): boolean => {
   return [
     USER_ROLES.ADMIN,
-    USER_ROLES.OFFICE_MANAGER,
     USER_ROLES.LAWYER,
     USER_ROLES.PSYCHOLOGIST,
     USER_ROLES.RECEPTIONIST,
@@ -222,15 +211,6 @@ export const getNavigationItemsForRole = (role: string) => {
     ];
   }
 
-  if (isManagementRole(role)) {
-    return [
-      ...baseItems,
-      { key: 'users', label: 'Usuarios', path: '/app/users', icon: 'UserOutlined' },
-      { key: 'records', label: 'Archivo', path: '/app/records', icon: 'FileOutlined' },
-      { key: 'reports', label: 'Reportes', path: '/app/reports', icon: 'BarChartOutlined' },
-    ];
-  }
-
   return baseItems;
 };
 
@@ -262,8 +242,7 @@ export const getAssignableRoles = (actorRole: string, targetRole?: string) => {
       ? ROLE_OPTIONS.filter(role => role.value === USER_ROLES.TECHNICAL_SUPPORT) : [];
   }
   return ROLE_OPTIONS.filter(({ value }) => value !== USER_ROLES.TECHNICAL_SUPPORT &&
-    (canAccessAllOffices(actorRole) || (value !== USER_ROLES.EXECUTIVE_DIRECTOR &&
-      (actorRole !== USER_ROLES.OFFICE_MANAGER || value !== USER_ROLES.ADMIN))));
+    (canAccessAllOffices(actorRole) || value !== USER_ROLES.EXECUTIVE_DIRECTOR));
 };
 
 // Only practitioner roles have a professional specialty.

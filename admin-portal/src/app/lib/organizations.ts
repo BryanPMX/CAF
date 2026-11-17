@@ -11,7 +11,7 @@ export interface EmploymentInput extends EmploymentDetails {
 export interface Organization {
   id: number;
   kind: OrganizationKind;
-  officeId: number;
+  officeId?: number | null;
   office?: { id: number; name: string };
   name: string;
   legalRepresentative: string;
@@ -32,7 +32,8 @@ export interface ClientOption {
   lastName: string;
   email: string;
   clientType?: "person" | "organization";
-  officeId?: number;
+  officeId?: number | null;
+  office?: { id: number; name: string };
 }
 export const clientLabel = (
   client: Pick<ClientOption, "firstName" | "lastName">,

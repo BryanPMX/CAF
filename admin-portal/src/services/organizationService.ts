@@ -24,6 +24,7 @@ export interface OrganizationDetail {
     isArchived: boolean;
     clientId?: number;
     client?: ClientOption;
+    office?: { id: number; name: string };
     employeeNumber: string;
     shiftName: string;
     shiftStart?: string;

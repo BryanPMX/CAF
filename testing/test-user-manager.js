@@ -36,7 +36,7 @@ const TEST_USERS = {
         email: 'test-staff@caf-test.local',
         firstName: 'Test',
         lastName: 'Staff',
-        role: 'staff',
+        role: 'lawyer',
         department: 'Legal',
         specialty: 'Immigration',
         description: 'Staff test user for staff workflow testing'
@@ -48,14 +48,6 @@ const TEST_USERS = {
         role: 'admin',
         department: 'Administration',
         description: 'Admin test user for integration tests'
-    },
-    manager: {
-        email: 'test-manager@caf-test.local',
-        firstName: 'Test',
-        lastName: 'Manager',
-        role: 'office_manager',
-        department: 'Management',
-        description: 'Office manager test user for manager workflow testing'
     }
 };
 

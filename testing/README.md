@@ -424,7 +424,7 @@ cd testing
 npm run test:e2e:profiles
 ```
 
-The profile suite covers all nine roles, office visibility, optional fields,
+The profile suite covers all eight roles, office visibility, optional fields,
 account dates, existing edit permissions, narrow-screen layout, load failure/retry,
 photo URL validation/persistence and removal from profile and shared auth state.
 Screenshots are saved to `/tmp/caf-profile-e2e` or `CAF_E2E_ARTIFACT_DIR`.
@@ -494,3 +494,28 @@ profile metadata, migration `0064` replay against legacy support values and
 preservation of other users and credentials. Go tests cover known role/specialty
 compatibility, custom labels, placeholders, atomic validation failures and
 clearing unrelated professional data when roles change.
+
+
+### Single office role and shared maquilas
+
+The role suite rejects the retired role in selectors and API endpoint resolution,
+and verifies that a browser with a cached retired role must sign in again. The
+backend rejects retired-role login, requests and user assignment. The organization
+suite now registers a factory without an office and uses it from two offices,
+checking local client/case isolation and the CEO's combined view with office
+labels. All selectors include factory record IDs to distinguish legacy names.
+
+Run the production image and upgrade checks with:
+
+```bash
+docker build --platform linux/amd64 -t caf-api:shared-maquilas-review ./api
+CAF_TEST_API_IMAGE=caf-api:shared-maquilas-review python3 testing/technical-support-docker.py
+```
+
+The PostgreSQL script replays `0065`/`0066` against legacy-shaped synthetic tables.
+It verifies role conversion without office/credential/status changes, one-time
+session invalidation, preservation of duplicate factory IDs, memberships, case
+references and snapshots, and retained prior-office audit values. Live API checks
+also cover the removed route, invalid role assignment, globally readable factory
+metadata and office-scoped clients/cases. Test containers use temporary storage
+and are removed after completion.

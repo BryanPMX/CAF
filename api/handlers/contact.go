@@ -131,11 +131,11 @@ func SubmitContact(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		// Notify all admins and the manager(s) of the selected office (if any); link to client profile
+		// Notify all admins and the administrators of the selected office (if any); link to client profile
 		msg := fmt.Sprintf("Nuevo contacto de %s: %s", input.Name, truncate(input.Message, 200))
 		link := fmt.Sprintf("/app/users/%d", clientID)
 		eid := sub.ID
-		NotifyAdminsAndOfficeManagersForContact(db, msg, "info", &link, "contact_interest", &eid, fmt.Sprintf("contact_interest:%d", sub.ID), input.OfficeID)
+		NotifyOfficeLeadershipForContact(db, msg, "info", &link, "contact_interest", &eid, fmt.Sprintf("contact_interest:%d", sub.ID), input.OfficeID)
 
 		c.JSON(http.StatusOK, gin.H{
 			"success": true,

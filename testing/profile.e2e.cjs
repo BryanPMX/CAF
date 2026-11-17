@@ -7,7 +7,7 @@ const path = require('node:path');
 const portal = 'http://127.0.0.1:3100';
 const api = 'http://localhost:8080/api/v1';
 const artifacts = process.env.CAF_E2E_ARTIFACT_DIR || '/tmp/caf-profile-e2e';
-const roles = ['technical_support', 'executive_director', 'admin', 'office_manager', 'lawyer', 'psychologist', 'receptionist', 'event_coordinator', 'client'];
+const roles = ['technical_support', 'executive_director', 'admin', 'lawyer', 'psychologist', 'receptionist', 'event_coordinator', 'client'];
 const emails = { technical_support: 'support@example.test', executive_director: 'ceo@example.test', admin: 'a@example.test' };
 
 async function login(page, role) {
@@ -45,7 +45,7 @@ for (const role of roles) {
       await account.getByText('Miembro desde', { exact: true }).waitFor();
       await account.getByText('Último inicio de sesión', { exact: true }).waitFor();
       assert.ok((await account.innerText()).includes('2024'));
-      assert.equal(await page.getByRole('button', { name: 'Editar datos', exact: true }).count(), ['technical_support', 'executive_director', 'admin', 'office_manager'].includes(role) ? 1 : 0);
+      assert.equal(await page.getByRole('button', { name: 'Editar datos', exact: true }).count(), ['technical_support', 'executive_director', 'admin'].includes(role) ? 1 : 0);
       assert.equal(await page.getByLabel('Enlace de la foto', { exact: true }).isVisible(), false);
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
       if (['technical_support', 'lawyer'].includes(role)) {

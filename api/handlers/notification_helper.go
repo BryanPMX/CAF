@@ -56,16 +56,16 @@ func GetAdminUserIDs(db *gorm.DB) ([]uint, error) {
 	return ids, err
 }
 
-// GetOfficeManagerUserIDs returns office administrators and managers.
-func GetOfficeManagerUserIDs(db *gorm.DB, officeID uint) ([]uint, error) {
+// GetOfficeAdministratorUserIDs returns office administrators.
+func GetOfficeAdministratorUserIDs(db *gorm.DB, officeID uint) ([]uint, error) {
 	var ids []uint
-	err := db.Model(&models.User{}).Where("role IN ? AND office_id = ? AND is_active = ? AND deleted_at IS NULL", []string{"admin", "office_manager"}, officeID, true).Pluck("id", &ids).Error
+	err := db.Model(&models.User{}).Where("role IN ? AND office_id = ? AND is_active = ? AND deleted_at IS NULL", []string{"admin"}, officeID, true).Pluck("id", &ids).Error
 	return ids, err
 }
 
-// NotifyAdminsAndOfficeManagersForContact notifies executives and the selected office management.
-// Recipients are deduplicated (e.g. an office manager who is also admin gets one notification).
-func NotifyAdminsAndOfficeManagersForContact(db *gorm.DB, message, notifType string, link *string, entityType string, entityID *uint, dedupKey string, officeID *uint) {
+// NotifyOfficeLeadershipForContact notifies executives and the selected office management.
+// Recipients are deduplicated (e.g. each administrator receives one notification).
+func NotifyOfficeLeadershipForContact(db *gorm.DB, message, notifType string, link *string, entityType string, entityID *uint, dedupKey string, officeID *uint) {
 	seen := make(map[uint]struct{})
 	var recipientIDs []uint
 
@@ -80,9 +80,9 @@ func NotifyAdminsAndOfficeManagersForContact(db *gorm.DB, message, notifType str
 	}
 
 	if officeID != nil && *officeID != 0 {
-		managerIDs, err := GetOfficeManagerUserIDs(db, *officeID)
+		officeAdminIDs, err := GetOfficeAdministratorUserIDs(db, *officeID)
 		if err == nil {
-			for _, id := range managerIDs {
+			for _, id := range officeAdminIDs {
 				if _, ok := seen[id]; !ok {
 					seen[id] = struct{}{}
 					recipientIDs = append(recipientIDs, id)

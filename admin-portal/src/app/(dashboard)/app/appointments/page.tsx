@@ -308,8 +308,8 @@ const AppointmentsPage = () => {
         <span className="space-x-2">
           {/* IMPROVEMENT: Accessibility and role-based UI */}
           <Button aria-label="Editar Cita" icon={<EditOutlined />} onClick={() => handleEdit(record)} />
-          {/* Admin and Office Manager can delete appointments */}
-          {((isAdminRole(userRole ?? '')) || userRole === 'office_manager') && (
+          {/* Office administrators can delete appointments */}
+          {((isAdminRole(userRole ?? ''))) && (
             <Popconfirm title="¿Está seguro de que desea eliminar esta cita?" onConfirm={() => handleDelete(record.id)}>
               <Button aria-label="Eliminar Cita" icon={<DeleteOutlined />} danger />
             </Popconfirm>

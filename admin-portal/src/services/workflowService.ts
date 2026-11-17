@@ -32,9 +32,9 @@ function assertEmployee(role: UserRole): void {
   }
 }
 
-function rolePrefix(role: UserRole): '/admin' | '/manager' | '/staff' {
+function rolePrefix(role: UserRole): '/admin' | '/staff' {
   const group = getEndpointGroup(role);
-  return group === 'admin' ? '/admin' : group === 'manager' ? '/manager' : '/staff';
+  return group === 'admin' ? '/admin' : '/staff';
 }
 
 function listFromResponse<T>(payload: unknown): T[] {
@@ -52,7 +52,7 @@ function listFromResponse<T>(payload: unknown): T[] {
 export const WorkflowService = {
   async listOffices(role: UserRole): Promise<WorkflowOffice[]> {
     assertEmployee(role);
-    const endpoint = (isAdminRole(role ?? '')) || role === 'office_manager'
+    const endpoint = (isAdminRole(role ?? ''))
       ? `${rolePrefix(role)}/offices`
       : '/offices';
     const response = await apiClient.get(endpoint);

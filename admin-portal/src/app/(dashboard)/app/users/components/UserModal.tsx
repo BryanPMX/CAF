@@ -54,14 +54,14 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
   const currentUserRole = currentUser?.role;
   const currentUserOfficeId = currentUser?.officeId;
   const isAuthorized = user ? canManageUser(currentUser, user) : isManagementRole(currentUserRole ?? '');
-  const selectedOfficeId = Form.useWatch('officeId',form);
+  const selectedMaquilaId = Form.useWatch(['employment', 'maquilaId'], form);
   const isEditing = !!user; // A simple boolean flag to determine if we are in "edit" mode.
 
   // This `useEffect` hook runs whenever the modal becomes visible or the user to be edited changes.
   useEffect(() => {
     if (visible && isAuthorized) {
       setSubmitError(null);
-      // Fetch offices for admins and office managers - run always when modal opens
+      // Fetch offices for office administrators - run always when modal opens
       const fetchOffices = async () => {
         try {
           // Use the same authenticated actor as the target-account policy.
@@ -118,8 +118,7 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
       message.loading({ content: 'Guardando...', key: messageKey });
 
       // Determine the base endpoint based on user role
-      const role = currentUserRole;
-      const base = role === 'office_manager' ? '/manager' : '/admin';
+      const base = '/admin';
 
       if (isEditing) {
         // If editing, send a PATCH request to the update endpoint.
@@ -175,7 +174,7 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
       return;
     }
     
-    // For office managers creating/editing to staff role: auto-set their office
+    // For office administrators creating/editing to staff role: auto-set their office
     // This is needed because the office dropdown is disabled for staff roles
     if (!canAccessAllOffices(currentUserRole ?? '')) {
       if (currentUserOfficeId) {
@@ -289,8 +288,8 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
                 name="officeId"
                 label="Oficina"
                 rules={
-                  selectedRole && requiresOffice(selectedRole as StaffRoleKey) && canAccessAllOffices(currentUserRole ?? '')
-                    ? [{ required: true, message: 'Debe asignar una oficina al personal' }]
+                  selectedRole && (requiresOffice(selectedRole as StaffRoleKey) || (selectedRole === USER_ROLES.CLIENT && Boolean(selectedMaquilaId))) && canAccessAllOffices(currentUserRole ?? '')
+                    ? [{ required: true, message: ORGANIZATION_TEXT.officeRequired }]
                     : []
                 }
               >
@@ -317,13 +316,9 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
             <Input maxLength={100} />
           </Form.Item>
         )}
-        {selectedRole === USER_ROLES.CLIENT && user?.clientType !== 'organization' && <EmploymentFields officeId={selectedOfficeId} />}
+        {selectedRole === USER_ROLES.CLIENT && user?.clientType !== 'organization' && <EmploymentFields />}
         {user?.clientType === 'organization' && <p className="text-sm text-slate-500">{ORGANIZATION_TEXT.companyHint}</p>}
-        {currentUserRole === 'office_manager' && selectedRole && selectedRole !== USER_ROLES.CLIENT && (
-          <div style={{ color: '#1890ff', fontSize: '12px', marginTop: -8, marginBottom: 8 }}>
-            ℹ️ El personal se asignará automáticamente a su oficina
-          </div>
-        )}
+
         {!selectedRole && (
           <div style={{ color: '#999', fontSize: '12px', marginTop: -8, marginBottom: 8 }}>
             ℹ️ Seleccione un rol primero para asignar una oficina

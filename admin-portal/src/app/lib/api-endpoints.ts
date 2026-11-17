@@ -24,14 +24,6 @@ export const API_ENDPOINTS = {
       delete: (id: string) => `/staff/cases/${id}`,
       my: '/staff/cases/my',
     },
-    // Manager endpoints
-    manager: {
-      list: '/manager/cases',
-      create: '/manager/cases',
-      get: (id: string) => `/manager/cases/${id}`,
-      update: (id: string) => `/manager/cases/${id}`,
-      delete: (id: string) => `/manager/cases/${id}`,
-    },
   },
   appointments: {
     admin: {
@@ -49,13 +41,6 @@ export const API_ENDPOINTS = {
       delete: (id: string) => `/staff/appointments/${id}`,
       my: '/staff/appointments/my',
     },
-    manager: {
-      list: '/manager/appointments',
-      create: '/manager/appointments',
-      get: (id: string) => `/manager/appointments/${id}`,
-      update: (id: string) => `/manager/appointments/${id}`,
-      delete: (id: string) => `/manager/appointments/${id}`,
-    },
   },
   users: {
     admin: {
@@ -64,13 +49,6 @@ export const API_ENDPOINTS = {
       get: (id: string) => `/admin/users/${id}`,
       update: (id: string) => `/admin/users/${id}`,
       delete: (id: string) => `/admin/users/${id}`,
-    },
-    manager: {
-      list: '/manager/users',
-      create: '/manager/users',
-      get: (id: string) => `/manager/users/${id}`,
-      update: (id: string) => `/manager/users/${id}`,
-      delete: (id: string) => `/manager/users/${id}`,
     },
   },
   tasks: {
@@ -97,7 +75,6 @@ const ROLE_HIERARCHY = {
   technical_support: -1,
   executive_director: 0,
   admin: 1,
-  office_manager: 2,
   lawyer: 3,
   psychologist: 3,
   receptionist: 4,
@@ -106,13 +83,12 @@ const ROLE_HIERARCHY = {
 } as const;
 
 // Determine which endpoint group to use based on user role
-export function getEndpointGroup(role: UserRole): 'admin' | 'staff' | 'manager' {
+export function getEndpointGroup(role: UserRole): 'admin' | 'staff' {
+  if (!(role in ROLE_HIERARCHY)) throw new Error('Rol no válido. Inicie sesión nuevamente.');
   const hierarchyLevel = ROLE_HIERARCHY[role];
   
   if (hierarchyLevel <= 1) {
     return 'admin';
-  } else if (hierarchyLevel <= 2) {
-    return 'manager';
   } else {
     return 'staff';
   }
@@ -172,16 +148,12 @@ export function getAppointmentsEndpoint(role: UserRole, action: keyof typeof API
 
 // Check if user role has access to a specific resource
 export function hasResourceAccess(role: UserRole, resource: 'cases' | 'appointments' | 'users' | 'tasks', action: 'create' | 'read' | 'update' | 'delete' = 'read'): boolean {
+  if (!(role in ROLE_HIERARCHY)) throw new Error('Rol no válido. Inicie sesión nuevamente.');
   const hierarchyLevel = ROLE_HIERARCHY[role];
   
   // Admin has access to everything
   if (hierarchyLevel <= 1) {
     return true;
-  }
-  
-  // Manager has access to most resources
-  if (hierarchyLevel <= 2) {
-    return resource !== 'users' || action === 'read';
   }
   
   // Staff roles have limited access
@@ -200,11 +172,6 @@ export function hasResourceAccess(role: UserRole, resource: 'cases' | 'appointme
 // Check if user role can access admin endpoints
 export function canAccessAdminEndpoints(role: UserRole): boolean {
   return ROLE_HIERARCHY[role] <= 1;
-}
-
-// Check if user role can access manager endpoints
-export function canAccessManagerEndpoints(role: UserRole): boolean {
-  return ROLE_HIERARCHY[role] <= 2;
 }
 
 // Check if user role can access staff endpoints

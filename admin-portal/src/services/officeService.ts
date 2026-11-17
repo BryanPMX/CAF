@@ -19,8 +19,6 @@ export class OfficeService implements IOfficeService {
       // Route to appropriate endpoint based on user role
       if (isAdminRole(userRole ?? '')) {
         endpoint = '/admin/offices';
-      } else if (userRole === 'office_manager') {
-        endpoint = '/office/offices';
       }
 
       const response = await apiClient.get(endpoint);
@@ -33,7 +31,7 @@ export class OfficeService implements IOfficeService {
 
   static async deleteOffice(userRole: string, id: string) {
     const { apiClient } = await import('@/app/lib/api');
-    const base = (isAdminRole(userRole ?? '')) ? '/admin' : userRole === 'office_manager' ? '/manager' : '';
+    const base = (isAdminRole(userRole ?? '')) ? '/admin' : '';
     await apiClient.delete(`${base}/offices/${id}`);
   }
 

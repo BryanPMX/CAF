@@ -25,7 +25,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
         return;
       }
 
-      // Only admins and office managers can access admin routes
+      // Only office administrators can access admin routes
       if (!canAccessAllOffices(userRole ?? '')) {
         setAccessDenied(true);
         setLoading(false);

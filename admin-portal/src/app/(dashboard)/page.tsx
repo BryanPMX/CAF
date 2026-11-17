@@ -71,7 +71,7 @@ export default function DashboardPage() {
   const role = user?.role;
   const isStaff = isDashboardStaffRole(role);
   const isAdmin = canAccessAllOffices(role ?? '');
-  const isManager = role === 'admin' || role === 'office_manager';
+  const isOfficeAdministrator = role === 'admin';
 
   const {
     summary,
@@ -342,7 +342,7 @@ export default function DashboardPage() {
                 className="w-full sm:min-w-[240px] sm:w-auto"
               />
             </>
-          ) : isManager ? (
+          ) : isOfficeAdministrator ? (
             <span className="inline-flex items-center gap-2 text-sm font-medium text-slate-700">
               <BankOutlined /> Oficina asignada
             </span>
@@ -407,7 +407,7 @@ export default function DashboardPage() {
             <div className="mt-3 flex flex-wrap gap-2">
               <Link href="/app/cases"><Button icon={<FileAddOutlined />}>Expedientes</Button></Link>
               <Link href="/app/appointments"><Button icon={<CalendarOutlined />}>Agenda</Button></Link>
-              {(isAdmin || isManager) && <Link href="/app/users"><Button icon={<UserAddOutlined />}>Usuarios</Button></Link>}
+              {(isAdmin || isOfficeAdministrator) && <Link href="/app/users"><Button icon={<UserAddOutlined />}>Usuarios</Button></Link>}
               {(isAdmin || role === 'admin') && <Link href="/app/offices"><Button icon={<BankOutlined />}>Oficinas</Button></Link>}
             </div>
           </div>

@@ -23,7 +23,7 @@ func CanAccessCase(db *gorm.DB, currentUser models.User, caseID uint) (bool, err
 	if currentUser.Role == "client" {
 		return caseRecord.ClientID != nil && *caseRecord.ClientID == currentUser.ID, nil
 	}
-	if currentUser.Role == config.RoleAdmin || currentUser.Role == config.RoleOfficeManager {
+	if currentUser.Role == config.RoleAdmin {
 		return currentUser.OfficeID != nil && *currentUser.OfficeID == caseRecord.OfficeID, nil
 	}
 
@@ -84,6 +84,10 @@ func DataAccessControl(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
+		if !config.IsValidRole(user.Role) {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "Role unavailable; contact technical support"})
+			return
+		}
 		// Set user context for downstream handlers
 		c.Set("currentUser", user)
 		c.Set("userRole", user.Role)
@@ -127,8 +131,8 @@ func CaseAccessControl(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		// Office managers have access to all cases in their office
-		if currentUser.Role == config.RoleAdmin || currentUser.Role == config.RoleOfficeManager {
+		// Office administrators have access to all cases in their office
+		if currentUser.Role == config.RoleAdmin {
 			caseID := c.Param("id")
 			if caseID != "" {
 				// For specific case access, verify it belongs to their office (include soft-deleted for records restore/delete)
@@ -229,8 +233,8 @@ func AppointmentAccessControl(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		// Office managers have access to all appointments in their office
-		if currentUser.Role == config.RoleAdmin || currentUser.Role == config.RoleOfficeManager {
+		// Office administrators have access to all appointments in their office
+		if currentUser.Role == config.RoleAdmin {
 			appointmentID := c.Param("id")
 			if appointmentID != "" {
 				// For specific appointment access, verify it belongs to their office

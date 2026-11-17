@@ -24,7 +24,7 @@ The current Flutter mobile app is a **client-only portal** (not an admin-portal 
 
 - WebSocket notifications (`/ws?token=<jwt>`) refresh notifications and case/appointment views in the app.
 - Staff/admin `client_visible` case comments reach the client in realtime.
-- Client replies in `Mi Caso` notify portal users (admins/managers/assigned staff) via DB notifications + websocket payloads.
+- Client replies in `Mi Caso` notify portal users (administrators/assigned staff) via DB notifications + websocket payloads.
 - Stripe webhook-confirmed payments notify the client and refresh `Recibos` in realtime.
 
 ---

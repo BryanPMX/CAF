@@ -46,7 +46,7 @@ const CompleteCaseModal: React.FC<CompleteCaseModalProps> = ({
       
       // If it's a permission error, show more specific message
       if (error.response?.status === 403) {
-        message.error('No tiene permisos para completar este caso. Solo administradores y gerentes de oficina pueden completar casos.');
+        message.error('No tiene permisos para completar este caso. Solo administradores pueden completar casos.');
       }
     } finally {
       setLoading(false);

@@ -19,7 +19,6 @@ const (
 	RoleTechnicalSupport  = "technical_support"
 	RoleExecutiveDirector = "executive_director"
 	RoleAdmin             = "admin"
-	RoleOfficeManager     = "office_manager"
 	RoleLawyer            = "lawyer"
 	RolePsychologist      = "psychologist"
 	RoleReceptionist      = "receptionist"
@@ -49,13 +48,6 @@ var STAFF_ROLES = map[string]StaffRole{
 		EnglishName: "Administrator",
 		Department:  "Administration",
 		Description: "Management of the assigned office",
-	},
-	RoleOfficeManager: {
-		Key:         RoleOfficeManager,
-		SpanishName: "Gerente de Oficina",
-		EnglishName: "Office Manager",
-		Department:  "Management",
-		Description: "Office-level management and oversight",
 	},
 	RoleLawyer: {
 		Key:         RoleLawyer,
@@ -92,7 +84,6 @@ var VALID_ROLES = []string{
 	RoleTechnicalSupport,
 	RoleExecutiveDirector,
 	RoleAdmin,
-	RoleOfficeManager,
 	RoleLawyer,
 	RolePsychologist,
 	RoleReceptionist,
@@ -184,12 +175,12 @@ func CanViewPsychologicalDocuments(role string) bool {
 
 // CanViewCases checks if a role can view cases
 func CanViewCases(role string) bool {
-	return CanAccessAllOffices(role) || role == RoleAdmin || role == RoleOfficeManager || role == RoleLawyer || role == RolePsychologist || role == RoleReceptionist
+	return CanAccessAllOffices(role) || role == RoleAdmin || role == RoleLawyer || role == RolePsychologist || role == RoleReceptionist
 }
 
 // CanViewAppointments checks if a role can view appointments
 func CanViewAppointments(role string) bool {
-	return CanAccessAllOffices(role) || role == RoleAdmin || role == RoleOfficeManager || role == RoleLawyer || role == RolePsychologist || role == RoleReceptionist
+	return CanAccessAllOffices(role) || role == RoleAdmin || role == RoleLawyer || role == RolePsychologist || role == RoleReceptionist
 }
 
 // CanViewEvents checks if a role can view events
@@ -204,17 +195,17 @@ func IsProfessionalRole(role string) bool {
 
 // IsAdministrativeRole checks if a role is an administrative role
 func IsAdministrativeRole(role string) bool {
-	return CanAccessAllOffices(role) || role == RoleAdmin || role == RoleOfficeManager || role == RoleReceptionist
+	return CanAccessAllOffices(role) || role == RoleAdmin || role == RoleReceptionist
 }
 
 // IsManagementRole checks if a role is a management role
 func IsManagementRole(role string) bool {
-	return CanAccessAllOffices(role) || role == RoleAdmin || role == RoleOfficeManager
+	return CanAccessAllOffices(role) || role == RoleAdmin
 }
 
 // RequiresOffice checks if a role requires office assignment
 func RequiresOffice(role string) bool {
-	return role == RoleAdmin || role == RoleOfficeManager || role == RoleLawyer || role == RolePsychologist || role == RoleReceptionist || role == RoleEventCoordinator
+	return role == RoleAdmin || role == RoleLawyer || role == RolePsychologist || role == RoleReceptionist || role == RoleEventCoordinator
 }
 
 // GetRoleHierarchyLevel returns the hierarchy level of a role (lower number = higher access)
@@ -226,8 +217,6 @@ func GetRoleHierarchyLevel(role string) int {
 		return 0
 	case RoleAdmin:
 		return 1
-	case RoleOfficeManager:
-		return 2
 	case RoleLawyer, RolePsychologist:
 		return 3
 	case RoleReceptionist:
@@ -266,5 +255,5 @@ func CanManageAccount(actorRole, targetRole string) bool {
 	if targetRole == RoleExecutiveDirector {
 		return false
 	}
-	return actorRole == RoleAdmin || (actorRole == RoleOfficeManager && targetRole != RoleAdmin)
+	return actorRole == RoleAdmin
 }

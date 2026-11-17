@@ -65,8 +65,8 @@ var ValidationRules = map[string]ValidationRule{
 	},
 	"role": {
 		Required: true,
-		Pattern:  `^(technical_support|executive_director|admin|office_manager|lawyer|psychologist|receptionist|event_coordinator|client)$`,
-		Message:  "Invalid role. Must be one of: technical_support, executive_director, admin, office_manager, lawyer, psychologist, receptionist, event_coordinator, client",
+		Pattern:  `^(technical_support|executive_director|admin|lawyer|psychologist|receptionist|event_coordinator|client)$`,
+		Message:  "Invalid role. Must be one of: technical_support, executive_director, admin, lawyer, psychologist, receptionist, event_coordinator, client",
 	},
 	"status": {
 		Required: true,

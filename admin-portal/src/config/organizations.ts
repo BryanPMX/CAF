@@ -4,7 +4,8 @@ export const ORGANIZATION_TEXT = {
     title: "Maquilas",
     singular: "Maquila",
     add: "Registrar maquila",
-    description: "Clientes y expedientes relacionados con cada fábrica.",
+    description:
+      "Directorio compartido de fábricas. Clientes y expedientes según sus permisos.",
   },
   constructora: {
     title: "Constructoras",
@@ -23,6 +24,14 @@ export const ORGANIZATION_TEXT = {
   clientFilter: "Filtro de cliente",
   relatedOrganizations: "Organizaciones relacionadas",
   unavailableSchedule: "El horario ya no está disponible. Seleccione otro.",
+  sharedCatalog: "Directorio compartido por todas las oficinas",
+  sharedFactoryHint:
+    "La maquila no pertenece a una oficina. Cada cliente y expediente conserva su oficina responsable.",
+  assignedClientHint:
+    "El cliente debe tener una oficina responsable. Vincular una maquila no cambia esa oficina.",
+  officeRequired:
+    "Debe asignar una oficina responsable.",
+  scope: "Alcance",
   name: "Nombre",
   legalRepresentative: "Apoderado legal",
   legalAddress: "Domicilio legal",

@@ -190,8 +190,6 @@ const EditAppointmentModal: React.FC<EditAppointmentModalProps> = ({
       let endpoint: string;
       if (isAdminRole(role ?? '')) {
         endpoint = `/admin/appointments/${appointment.id}`;
-      } else if (role === 'office_manager') {
-        endpoint = `/manager/appointments/${appointment.id}`;
       } else {
         endpoint = `/appointments/${appointment.id}`;
       }
@@ -253,8 +251,6 @@ const EditAppointmentModal: React.FC<EditAppointmentModalProps> = ({
       let endpoint: string;
       if (isAdminRole(role ?? '')) {
         endpoint = `/admin/appointments/${appointment.id}`;
-      } else if (role === 'office_manager') {
-        endpoint = `/manager/appointments/${appointment.id}`;
       } else {
         endpoint = `/appointments/${appointment.id}`;
       }

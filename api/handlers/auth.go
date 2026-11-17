@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/BryanPMX/CAF/api/config"
 	"github.com/BryanPMX/CAF/api/models"
 	securityutil "github.com/BryanPMX/CAF/api/security"
 	"github.com/gin-gonic/gin"
@@ -49,6 +50,10 @@ func EnhancedLogin(db *gorm.DB, jwtSecret string) gin.HandlerFunc {
 			return
 		}
 
+		if !config.IsValidRole(user.Role) {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Role unavailable; contact technical support"})
+			return
+		}
 		// Step 4: Generate JWT Token with explicit UTC time (24-hour expiration)
 		tokenString, expirationTime, err := securityutil.IssueSessionJWT(jwtSecret, user.ID, user.TokenVersion, time.Now())
 		if err != nil {

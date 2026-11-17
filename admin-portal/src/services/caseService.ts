@@ -23,8 +23,6 @@ export class CaseService implements ICaseService {
       // Route to appropriate endpoint based on user role
       if (isAdminRole(userRole ?? '')) {
         endpoint = '/admin/cases';
-      } else if (userRole === 'office_manager') {
-        endpoint = '/manager/cases';
       } else if (userRole === 'staff') {
         endpoint = '/staff/cases';
       }
@@ -65,8 +63,6 @@ export class CaseService implements ICaseService {
       // Route to appropriate endpoint based on user role
       if (isAdminRole(userRole ?? '')) {
         endpoint = `/admin/cases/${id}`;
-      } else if (userRole === 'office_manager') {
-        endpoint = `/manager/cases/${id}`;
       } else if (userRole === 'staff') {
         endpoint = `/staff/cases/${id}`;
       }
@@ -87,8 +83,6 @@ export class CaseService implements ICaseService {
       let endpoint = '/cases';
       if (isAdminRole(userRole ?? '')) {
         endpoint = '/admin/cases';
-      } else if (userRole === 'office_manager') {
-        endpoint = '/manager/cases';
       } else if (userRole === 'staff') {
         endpoint = '/staff/cases';
       }

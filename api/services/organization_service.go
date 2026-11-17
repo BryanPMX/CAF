@@ -44,7 +44,7 @@ func NormalizeEmployment(input *EmploymentInput) error {
 }
 
 func CanAccessOrganization(actor models.User, organization models.Organization) bool {
-	return actor.Role != "client" && (config.CanAccessAllOffices(actor.Role) || (actor.OfficeID != nil && *actor.OfficeID == organization.OfficeID))
+	return actor.Role != "client" && (organization.Kind == models.OrganizationMaquila || config.CanAccessAllOffices(actor.Role) || (actor.OfficeID != nil && organization.OfficeID != nil && *actor.OfficeID == *organization.OfficeID))
 }
 
 func ValidateMaquila(db *gorm.DB, actor models.User, officeID uint, input *EmploymentInput) error {
@@ -58,8 +58,8 @@ func ValidateMaquila(db *gorm.DB, actor models.User, officeID uint, input *Emplo
 	if err := db.Where("id = ? AND kind = ?", *input.MaquilaID, models.OrganizationMaquila).First(&organization).Error; err != nil {
 		return InvalidOrganization("Maquila no disponible")
 	}
-	if organization.OfficeID != officeID || !CanAccessOrganization(actor, organization) {
-		return InvalidOrganization("La maquila debe pertenecer a la oficina del registro")
+	if officeID == 0 || !CanAccessOrganization(actor, organization) || (!config.CanAccessAllOffices(actor.Role) && (actor.OfficeID == nil || *actor.OfficeID != officeID)) {
+		return InvalidOrganization("La oficina responsable del registro debe estar dentro de su alcance")
 	}
 	return nil
 }
@@ -76,15 +76,8 @@ func SaveClientEmployment(tx *gorm.DB, actor models.User, client *models.User, i
 	if err := NormalizeEmployment(input); err != nil {
 		return err
 	}
-	if input.MaquilaID != nil && client.OfficeID == nil {
-		var organization models.Organization
-		if err := tx.First(&organization, *input.MaquilaID).Error; err != nil {
-			return InvalidOrganization("Maquila no disponible")
-		}
-		client.OfficeID = &organization.OfficeID
-		if err := tx.Model(client).Update("office_id", client.OfficeID).Error; err != nil {
-			return err
-		}
+	if input.MaquilaID != nil && (client.OfficeID == nil || *client.OfficeID == 0) {
+		return InvalidOrganization("Asigne una oficina responsable al cliente antes de vincular una maquila")
 	}
 	officeID := uint(0)
 	if client.OfficeID != nil {
@@ -157,7 +150,7 @@ func SyncOrganizationClient(tx *gorm.DB, user *models.User) error {
 	if err := tx.Where("account_client_id = ?", user.ID).First(&organization).Error; err != nil {
 		return fmt.Errorf("constructora no disponible: %w", err)
 	}
-	if organization.OfficeID != *user.OfficeID {
+	if organization.OfficeID == nil || *organization.OfficeID != *user.OfficeID {
 		return InvalidOrganization("La oficina de la constructora no puede cambiarse desde Usuarios")
 	}
 	return tx.Model(&organization).Update("name", strings.TrimSpace(user.FirstName)).Error
@@ -172,7 +165,7 @@ func ValidateClientOrganizations(tx *gorm.DB, client models.User) error {
 			return err
 		}
 	} else {
-		if err := query.Where("organization_id IN (?)", tx.Model(&models.Organization{}).Select("id").Where("office_id <> ?", *client.OfficeID)).Count(&count).Error; err != nil {
+		if err := query.Where("organization_id IN (?)", tx.Model(&models.Organization{}).Select("id").Where("kind = ? AND office_id <> ?", models.OrganizationContractor, *client.OfficeID)).Count(&count).Error; err != nil {
 			return err
 		}
 	}

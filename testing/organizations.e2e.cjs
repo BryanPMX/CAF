@@ -41,7 +41,7 @@ test('office administrator: factories, historical cases, contractors, contacts, 
     await page.getByRole('button', { name: 'Registrar maquila', exact: true }).click();
     let modal = page.getByRole('dialog').filter({ has: page.getByRole('button', { name: 'Guardar', exact: true }) });
     await modal.getByLabel('Nombre', { exact: true }).fill(factory);
-    assert.equal(await modal.getByLabel('Oficina responsable', { exact: true }).isDisabled(), true);
+    assert.equal(await modal.getByLabel('Oficina responsable', { exact: true }).count(), 0);
     const factorySaved = page.waitForResponse(r => r.url().endsWith('/organizations') && r.request().method() === 'POST');
     await modal.getByRole('button', { name: 'Guardar', exact: true }).click();
     const factoryResponse = await factorySaved;
@@ -189,5 +189,53 @@ test('staff directory is read-only, scoped, and fits a narrow screen', { timeout
     assert.equal(denied.status(), 403);
     await fs.mkdir(artifacts, { recursive: true });
     await page.screenshot({ path: `${artifacts}/staff-mobile.png`, fullPage: true, animations: 'disabled' });
+  } finally { await browser.close(); }
+});
+
+test('one shared maquila serves two offices without exposing their clients or cases', { timeout: 90000 }, async () => {
+  const browser = await chromium.launch({ headless: true });
+  const page = await browser.newPage({ viewport: { width: 1440, height: 1050 } });
+  let otherPage, executivePage;
+  try {
+    const headersA = await login(page);
+    const password = 'Synthetic-E2E-Password123!';
+    const otherLogin = await page.request.post(`${api}/login`, { data: { email: 'b@example.test', password } });
+    assert.equal(otherLogin.status(), 200);
+    const headersB = { Authorization: `Bearer ${(await otherLogin.json()).token}` };
+    const suffix = Date.now();
+    const factoryName = `Shared factory ${suffix}`;
+    const registered = await page.request.post(`${api}/organizations`, { headers: headersA, data: { kind: 'maquila', name: factoryName } });
+    assert.equal(registered.status(), 201);
+    const factory = await registered.json();
+    assert.equal(factory.officeId, null);
+    for (const [officeId, headers, letter] of [[1, headersA, 'A'], [2, headersB, 'B']]) {
+      const result = await page.request.post(`${api}/admin/users`, { headers, data: { firstName: `Employee ${letter}`, lastName: `${suffix}`, email: `shared-${letter}-${suffix}@example.test`, phone: '6561234567', password, officeId, role: 'client', employment: { maquilaId: factory.id, employeeNumber: `000${officeId}`, shiftName: 'Segundo turno' } } });
+      assert.equal(result.status(), 201, await result.text());
+      const person = await result.json();
+      const caseResponse = await page.request.post(`${api}/admin/cases`, { headers, data: { clientId: person.id, officeId, title: `Case ${letter} ${suffix}`, category: 'Legal', description: 'Shared employer, independent office case' } });
+      assert.equal(caseResponse.status(), 201, await caseResponse.text());
+    }
+    otherPage = await browser.newPage({ viewport: { width: 1440, height: 1050 } });
+    await login(otherPage, 'b@example.test');
+    await otherPage.goto(`${portal}/app/maquilas?organizationId=${factory.id}`);
+    const drawerB = otherPage.locator('.ant-drawer-content');
+    await drawerB.getByRole('tab', { name: 'Clientes y contactos', exact: true }).click();
+    await drawerB.getByText(`Employee B ${suffix}`, { exact: true }).waitFor();
+    assert.equal(await drawerB.getByText(`Employee A ${suffix}`, { exact: true }).count(), 0);
+    await drawerB.getByRole('tab', { name: 'Expedientes', exact: true }).click();
+    await drawerB.getByRole('button', { name: `Case B ${suffix}`, exact: true }).waitFor();
+    assert.equal(await drawerB.getByRole('button', { name: `Case A ${suffix}`, exact: true }).count(), 0);
+    await fs.mkdir(artifacts, { recursive: true });
+    await otherPage.screenshot({ path: `${artifacts}/shared-factory-office-b.png`, fullPage: true, animations: 'disabled' });
+    executivePage = await browser.newPage({ viewport: { width: 1440, height: 1050 } });
+    await login(executivePage, 'ceo@example.test');
+    await executivePage.goto(`${portal}/app/maquilas?organizationId=${factory.id}`);
+    const globalDrawer = executivePage.locator('.ant-drawer-content');
+    await globalDrawer.getByRole('tab', { name: 'Clientes y contactos', exact: true }).click();
+    await globalDrawer.getByText(`Employee A ${suffix}`, { exact: true }).waitFor();
+    await globalDrawer.getByText(`Employee B ${suffix}`, { exact: true }).waitFor();
+    await globalDrawer.getByText('Office A', { exact: true }).waitFor();
+    await globalDrawer.getByText('Office B', { exact: true }).waitFor();
+    await executivePage.screenshot({ path: `${artifacts}/shared-factory-executive.png`, fullPage: true, animations: 'disabled' });
   } finally { await browser.close(); }
 });

@@ -33,8 +33,6 @@ export class AppointmentService implements IAppointmentService {
       // Route to appropriate endpoint based on user role
       if (isAdminRole(userRole ?? '')) {
         endpoint = '/admin/appointments';
-      } else if (userRole === 'office_manager') {
-        endpoint = '/office/appointments';
       }
 
       const response = await apiClient.get(endpoint, { params });
@@ -62,8 +60,6 @@ export class AppointmentService implements IAppointmentService {
       let endpoint = '/appointments';
       if (isAdminRole(userRole ?? '')) {
         endpoint = '/admin/appointments';
-      } else if (userRole === 'office_manager') {
-        endpoint = '/office/appointments';
       }
 
       await apiClient.delete(`${endpoint}/${id}`);

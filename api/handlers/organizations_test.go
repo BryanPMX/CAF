@@ -13,6 +13,9 @@ import (
 
 func registryCreate(t *testing.T, f authorizationFixture, actor models.User, kind, name string, office uint) models.Organization {
 	t.Helper()
+	if kind == models.OrganizationMaquila {
+		office = 0
+	}
 	body := fmt.Sprintf(`{"kind":%q,"name":%q,"officeId":%d,"legalRepresentative":"Representante","legalAddress":"Domicilio legal 123","boardPresident":"Presidente","neighborhood":"Colonia Centro"}`, kind, name, office)
 	w := f.request(t, actor, "POST", "/api/v1/organizations", body)
 	if w.Code != 201 {
@@ -155,23 +158,29 @@ func TestOrganizationScopeAndValidation(t *testing.T) {
 	f := authorizationSetup(t)
 	own := registryCreate(t, f, f.admin, "maquila", "Local", 1)
 	other := registryCreate(t, f, f.otherAdmin, "maquila", "Otra oficina", 2)
+	foreignCompany := registryCreate(t, f, f.otherAdmin, "constructora", "Private construction company", 2)
 	client := registryPerson(t, f, "scope@example.test", f.admin.OfficeID)
 	outside := registryPerson(t, f, "other-scope@example.test", f.otherAdmin.OfficeID)
 	for _, tc := range []struct {
 		method, path, body string
 		want               int
 	}{
-		{"GET", fmt.Sprintf("/api/v1/organizations/%d", other.ID), "", 404},
-		{"POST", "/api/v1/organizations", `{"kind":"maquila","name":"Escape","officeId":2}`, 403},
+		{"GET", fmt.Sprintf("/api/v1/organizations/%d", other.ID), "", 200},
+		{"GET", fmt.Sprintf("/api/v1/organizations/%d", foreignCompany.ID), "", 404},
+		{"POST", "/api/v1/organizations", `{"kind":"maquila","name":"Escape","officeId":2}`, 400},
 		{"POST", fmt.Sprintf("/api/v1/organizations/%d/clients", own.ID), fmt.Sprintf(`{"clientId":%d,"employeeNumber":"123","shiftName":"Primero"}`, outside.ID), 400},
 		{"POST", fmt.Sprintf("/api/v1/organizations/%d/clients", own.ID), fmt.Sprintf(`{"clientId":%d,"employeeNumber":"123","shiftName":"Primero","shiftStart":"08:00"}`, client.ID), 400},
 		{"POST", "/api/v1/organizations", `{"kind":"constructora","name":"Incomplete","officeId":1}`, 400},
-		{"POST", "/api/v1/admin/users", fmt.Sprintf(`{"firstName":"Employee","lastName":"Test","email":"invalid-employment@example.test","role":"client","phone":"6561234567","password":"Synthetic-E2E-Password123!","officeId":1,"employment":{"maquilaId":%d,"employeeNumber":"0001","shiftName":"Primero"}}`, other.ID), 400},
+		{"POST", "/api/v1/admin/users", fmt.Sprintf(`{"firstName":"Employee","lastName":"Test","email":"invalid-employment@example.test","role":"client","phone":"6561234567","password":"Synthetic-E2E-Password123!","officeId":1,"employment":{"maquilaId":%d,"employeeNumber":"0001","shiftName":"Primero"}}`, uint(99999)), 400},
 	} {
 		w := f.request(t, f.admin, tc.method, tc.path, tc.body)
 		if w.Code != tc.want {
 			t.Errorf("%s %s: %d want %d: %s", tc.method, tc.path, w.Code, tc.want, w.Body.String())
 		}
+	}
+	listedCompanies := f.request(t, f.admin, "GET", "/api/v1/organizations?kind=constructora", "")
+	if listedCompanies.Code != 200 || strings.Contains(listedCompanies.Body.String(), foreignCompany.Name) {
+		t.Fatal("shared maquilas widened contractor directory scope")
 	}
 	var count int64
 	f.db.Model(&models.User{}).Where("email = ?", "invalid-employment@example.test").Count(&count)
@@ -298,5 +307,62 @@ func TestCompanyAppointmentReportsAndArchivesKeepClientName(t *testing.T) {
 	archive := f.request(t, f.admin, "GET", "/api/v1/admin/records/appointments", "")
 	if archive.Code != 200 || !strings.Contains(archive.Body.String(), `"firstName":"Report Company"`) {
 		t.Fatalf("archive lost direct client: %d %s", archive.Code, archive.Body.String())
+	}
+}
+
+func TestSharedFactoryKeepsClientsAndCasesScopedByOffice(t *testing.T) {
+	f := authorizationSetup(t)
+	factory := registryCreate(t, f, f.admin, "maquila", "Shared factory", 1)
+	if factory.OfficeID != nil {
+		t.Fatal("factory retained office ownership")
+	}
+	people := []models.User{registryPerson(t, f, "shared-a@example.test", f.admin.OfficeID), registryPerson(t, f, "shared-b@example.test", f.otherAdmin.OfficeID)}
+	actors := []models.User{f.admin, f.otherAdmin}
+	for i, actor := range actors {
+		person := people[i]
+		response := f.request(t, actor, "POST", fmt.Sprintf("/api/v1/organizations/%d/clients", factory.ID), fmt.Sprintf(`{"clientId":%d,"employeeNumber":"000%d","shiftName":"Segundo turno"}`, person.ID, i))
+		if response.Code != 200 {
+			t.Fatalf("shared factory link: %d %s", response.Code, response.Body.String())
+		}
+		response = f.request(t, actor, "POST", "/api/v1/admin/cases", fmt.Sprintf(`{"clientId":%d,"officeId":%d,"title":"Shared employment","category":"Legal","description":"Shared factory case"}`, person.ID, *actor.OfficeID))
+		if response.Code != 201 {
+			t.Fatalf("shared factory case: %d %s", response.Code, response.Body.String())
+		}
+	}
+	for _, actor := range []models.User{f.admin, f.otherAdmin, f.director, f.support} {
+		response := f.request(t, actor, "GET", fmt.Sprintf("/api/v1/organizations/%d", factory.ID), "")
+		var detail struct {
+			ClientTotal int                     `json:"clientTotal"`
+			CaseTotal   int                     `json:"caseTotal"`
+			Clients     []organizationClientRow `json:"clients"`
+		}
+		json.Unmarshal(response.Body.Bytes(), &detail)
+		want := 1
+		if config.CanAccessAllOffices(actor.Role) {
+			want = 2
+		}
+		if response.Code != 200 || detail.ClientTotal != want || detail.CaseTotal != want {
+			t.Fatalf("shared directory scope: %s %d %s", actor.Role, response.Code, response.Body.String())
+		}
+		if want == 1 && (len(detail.Clients) != 1 || detail.Clients[0].Client.OfficeID == nil || *detail.Clients[0].Client.OfficeID != *actor.OfficeID) {
+			t.Fatal("foreign client leaked through shared factory")
+		}
+	}
+	response := f.request(t, f.admin, "POST", fmt.Sprintf("/api/v1/organizations/%d/clients", factory.ID), fmt.Sprintf(`{"clientId":%d,"employeeNumber":"999","shiftName":"Otro"}`, people[1].ID))
+	if response.Code != 400 {
+		t.Fatal("shared factory widened client mutation permissions")
+	}
+	response = f.request(t, f.otherAdmin, "POST", "/api/v1/organizations", `{"kind":"maquila","name":" shared FACTORY "}`)
+	if response.Code != 409 {
+		t.Fatalf("duplicate shared factory allowed: %d %s", response.Code, response.Body.String())
+	}
+	response = f.request(t, f.director, "PATCH", fmt.Sprintf("/api/v1/admin/users/%d", people[0].ID), `{"firstName":"Moved","lastName":"Employee","email":"shared-a@example.test","role":"client","phone":"6561234567","officeId":2}`)
+	if response.Code != 200 {
+		t.Fatalf("shared employment prevented authorized office transfer: %d %s", response.Code, response.Body.String())
+	}
+	var snapshot models.Case
+	f.db.Where("client_id = ?", people[0].ID).First(&snapshot)
+	if snapshot.OfficeID != 1 || snapshot.MaquilaID == nil || *snapshot.MaquilaID != factory.ID || snapshot.EmployeeNumber != "0000" {
+		t.Fatal("moving client rewrote original case office or employment history")
 	}
 }

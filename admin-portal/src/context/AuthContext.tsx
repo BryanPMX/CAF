@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, Rea
 import { useRouter } from 'next/navigation';
 import { jwtDecode } from 'jwt-decode';
 import Cookies from 'js-cookie';
+import { isValidRole } from '@/config/roles';
 import { AuthUser, UserRole } from '@/app/lib/types';
 
 // Storage keys constants
@@ -155,6 +156,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           }
         }
       }
+
+      if (parsedUserData && !isValidRole(parsedUserData.role)) throw new Error('Rol no válido. Inicie sesión nuevamente.');
 
       // Step 4: Validate that we have user data to work with
       if (!parsedUserData) {
@@ -362,7 +365,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   // Computed properties
   const isAdmin = hasAnyRole(['technical_support', 'executive_director', 'admin']);
-  const isStaff = hasAnyRole(['office_manager', 'lawyer', 'psychologist', 'receptionist', 'event_coordinator']);
+  const isStaff = hasAnyRole(['lawyer', 'psychologist', 'receptionist', 'event_coordinator']);
   const isClient = hasRole('client');
 
   // Context value

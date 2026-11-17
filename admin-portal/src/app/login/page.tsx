@@ -23,7 +23,6 @@ const ROLE_REDIRECTS: Record<UserRole, string> = {
   technical_support: '/',
   executive_director: '/',
   admin: '/',
-  office_manager: '/',
   lawyer: '/',
   psychologist: '/',
   receptionist: '/',

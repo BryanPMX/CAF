@@ -869,7 +869,7 @@ func GetClientCasesForAppointment(db *gorm.DB) gin.HandlerFunc {
 }
 
 // GetClientCasesForAppointmentScoped returns cases for a client filtered by the user's office scope
-// This is used by office managers who should only see cases within their office
+// This is used by office administrators who should only see cases within their office
 func GetClientCasesForAppointmentScoped(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		clientIDStr := c.Param("clientId")

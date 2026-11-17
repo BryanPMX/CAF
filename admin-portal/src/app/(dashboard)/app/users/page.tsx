@@ -88,7 +88,7 @@ const UserManagementPage = () => {
 
       setLoading(true);
       // User role is guaranteed to be available by the parent layout
-       const base = user!.role === 'office_manager' ? '/manager' : '/admin';
+       const base = '/admin';
       const params: any = {};
       if (selectedOfficeId) params.officeId = selectedOfficeId;
       if (activity) params.activity = activity;
@@ -195,7 +195,7 @@ const UserManagementPage = () => {
   const loadUserForEditing = useCallback(async (userId: string | number) => {
     if (!user) return;
     setUserManagementError(null);
-    const base = user.role === 'office_manager' ? '/manager' : '/admin';
+    const base = '/admin';
     try {
       const res = await apiClient.get(`${base}/users/${userId}`);
       const target = res.data?.user ? { ...res.data.user, organizationInfo: res.data.organizationInfo } : undefined;
@@ -287,7 +287,6 @@ const UserManagementPage = () => {
           manager: { label: 'Gerencia', color: 'gold' },
           lawyer: { label: 'Abogado(a)', color: 'volcano' },
           psychologist: { label: 'Psicólogo(a)', color: 'orange' },
-          office_manager: { label: 'Gerente de Oficina', color: 'gold' },
           event_coordinator: { label: 'Coordinador de Eventos', color: 'cyan' },
         };
         const { label, color } = MAP[role] || { label: role, color: 'default' };
@@ -319,7 +318,7 @@ const UserManagementPage = () => {
       title: 'Acciones',
       key: 'actions',
       render: (_: any, record: User) => {
-        if ((!isAdminRole(userRole ?? '')) && userRole !== 'office_manager') {
+        if ((!isAdminRole(userRole ?? ''))) {
           return null;
         }
 
@@ -372,7 +371,7 @@ const UserManagementPage = () => {
         </h1>
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="flex flex-wrap items-center gap-2 md:gap-3">
-            {((isAdminRole(userRole ?? '')) || userRole === 'office_manager') && (
+            {((isAdminRole(userRole ?? ''))) && (
               <>
                 {(isAdminRole(userRole ?? '')) && (
                   <Select
@@ -427,7 +426,7 @@ const UserManagementPage = () => {
               </>
             )}
           </div>
-          {((isAdminRole(userRole ?? '')) || userRole === 'office_manager') && (
+          {((isAdminRole(userRole ?? ''))) && (
             <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
               Crear Usuario
             </Button>

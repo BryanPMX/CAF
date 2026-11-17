@@ -155,7 +155,7 @@ func (s *CaseServiceImpl) ListCases(ctx context.Context, filter interfaces.CaseL
 		if userContext.OfficeID == nil {
 			return nil, 0, errors.New("office assignment required")
 		}
-		// Office managers can see cases from their office
+		// Office administrators can see cases from their office
 		repoFilter.OfficeID = userContext.OfficeID
 	}
 
@@ -193,8 +193,8 @@ func (s *CaseServiceImpl) canAccessCase(caseModel *models.Case, userContext inte
 		return true
 	}
 
-	// Office managers can access cases from their office
-	if (userContext.Role == config.RoleAdmin || userContext.Role == config.RoleOfficeManager) && userContext.OfficeID != nil && caseModel.OfficeID == *userContext.OfficeID {
+	// Office administrators can access cases from their office
+	if (userContext.Role == config.RoleAdmin) && userContext.OfficeID != nil && caseModel.OfficeID == *userContext.OfficeID {
 		return true
 	}
 
@@ -213,8 +213,8 @@ func (s *CaseServiceImpl) canModifyCase(caseModel *models.Case, userContext inte
 		return true
 	}
 
-	// Office managers can modify cases from their office
-	if (userContext.Role == config.RoleAdmin || userContext.Role == config.RoleOfficeManager) && userContext.OfficeID != nil && caseModel.OfficeID == *userContext.OfficeID {
+	// Office administrators can modify cases from their office
+	if (userContext.Role == config.RoleAdmin) && userContext.OfficeID != nil && caseModel.OfficeID == *userContext.OfficeID {
 		return true
 	}
 

@@ -89,6 +89,7 @@ for (const role of ['admin', 'executive_director', 'technical_support']) {
       await modal.getByLabel('Rol', { exact: true }).click();
       assert.equal(await page.getByRole('option', { name: 'Director Ejecutivo', exact: true }).count(), executive ? 1 : 0);
       assert.equal(await page.getByRole('option', { name: 'Soporte Tecnico', exact: true }).count(), 0);
+      assert.equal(await page.getByRole('option', { name: 'Gerente de Oficina', exact: true }).count(), 0);
       await page.keyboard.press('Escape');
       await modal.getByRole('button', { name: 'Cancel', exact: true }).click();
       if (executive) {
@@ -185,4 +186,25 @@ test('support edits user details and resets a password through the portal', { ti
   } finally {
     await browser.close();
   }
+});
+
+
+test('a browser session carrying the retired role must sign in again', { timeout: 60000 }, async () => {
+  const browser = await chromium.launch({ headless: true });
+  const page = await browser.newPage();
+  try {
+    await page.goto(`${portal}/login`);
+    await page.getByLabel('Correo electrónico', { exact: true }).fill('a@example.test');
+    await page.getByLabel('Contraseña', { exact: true }).fill('Synthetic-E2E-Password123!');
+    await page.getByRole('button', { name: 'Continuar', exact: true }).click();
+    await page.waitForURL(`${portal}/`);
+    await page.evaluate(() => {
+      const user = JSON.parse(localStorage.getItem('userData'));
+      localStorage.setItem('userData', JSON.stringify({ ...user, role: 'office_manager' }));
+      localStorage.setItem('userRole', 'office_manager');
+    });
+    await page.goto(`${portal}/app/profile`);
+    await page.waitForURL(`${portal}/login`);
+    assert.equal(await page.evaluate(() => localStorage.getItem('authToken')), null);
+  } finally { await browser.close(); }
 });

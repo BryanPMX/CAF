@@ -49,7 +49,12 @@ def request(method, path, data=None, token=None, expected=200):
     except urllib.error.HTTPError as response:
         status, body = response.code, response.read().decode()
     assert status == expected, f'{method} {path}: {status}, expected {expected}: {body}'
-    return json.loads(body) if body else None
+    if not body:
+        return None
+    try:
+        return json.loads(body)
+    except json.JSONDecodeError:
+        return body  # Gin's removed-route 404 is plain text.
 
 
 try:
@@ -81,6 +86,59 @@ try:
         DROP SCHEMA migration_check CASCADE;
         """)
     print('PASS: migration preserves credentials/status, leaves other accounts intact, is repeatable, and prevents duplicate support')
+    # Verify the two new upgrade migrations against legacy-shaped synthetic data.
+    role_migration = (ROOT / 'api/db/migrations/0065_single_office_administrator.sql').read_text()
+    sql("""CREATE SCHEMA retired_role_check; SET search_path TO retired_role_check;
+        CREATE TABLE users (id BIGINT PRIMARY KEY, role TEXT, office_id BIGINT, password TEXT,
+          first_name TEXT, last_name TEXT, department TEXT, is_active BOOLEAN, deleted_at TIMESTAMPTZ,
+          updated_at TIMESTAMPTZ, token_version BIGINT NOT NULL DEFAULT 0);
+        INSERT INTO users (id,role,office_id,password,is_active,token_version) VALUES
+          (1,'technical_support',NULL,'support-preserved',true,3),
+          (2,'office_manager',10,'manager-a-preserved',true,4),
+          (3,'office_manager',20,'manager-b-preserved',false,8),
+          (4,'office_manager',NULL,'unassigned-preserved',true,0),
+          (5,'admin',10,'admin-preserved',true,2);
+        """ + role_migration + role_migration + """
+        DO $$ BEGIN
+          IF EXISTS (SELECT 1 FROM users WHERE role='office_manager')
+             OR NOT EXISTS (SELECT 1 FROM users WHERE id=2 AND role='admin' AND office_id=10 AND password='manager-a-preserved' AND is_active AND token_version=5)
+             OR NOT EXISTS (SELECT 1 FROM users WHERE id=3 AND role='admin' AND office_id=20 AND password='manager-b-preserved' AND NOT is_active AND token_version=9)
+             OR NOT EXISTS (SELECT 1 FROM users WHERE id=4 AND role='admin' AND office_id IS NULL AND token_version=1)
+             OR NOT EXISTS (SELECT 1 FROM users WHERE id=1 AND role='technical_support' AND token_version=3)
+             OR NOT EXISTS (SELECT 1 FROM users WHERE id=5 AND role='admin' AND token_version=2)
+          THEN RAISE EXCEPTION 'Role retirement changed scope/credentials/status or replay invalidated sessions twice'; END IF;
+          BEGIN
+            UPDATE users SET role='office_manager' WHERE id=5;
+            RAISE EXCEPTION 'Retired role was allowed';
+          EXCEPTION WHEN check_violation THEN NULL; END;
+        END $$;
+        DROP SCHEMA retired_role_check CASCADE;
+        """)
+    shared_migration = (ROOT / 'api/db/migrations/0066_shared_maquila_directory.sql').read_text()
+    sql("""CREATE SCHEMA shared_factory_check; SET search_path TO shared_factory_check;
+        CREATE TABLE organizations (id BIGINT PRIMARY KEY, kind TEXT, name TEXT, office_id BIGINT NOT NULL, deleted_at TIMESTAMPTZ);
+        CREATE TABLE organization_clients (id BIGINT PRIMARY KEY, organization_id BIGINT, client_id BIGINT, employee_number TEXT);
+        CREATE TABLE cases (id BIGINT PRIMARY KEY, maquila_id BIGINT, office_id BIGINT, employee_number TEXT, shift_name TEXT);
+        INSERT INTO organizations VALUES (10,'maquila','Same factory',1,NULL),(11,'maquila','Same factory',2,NULL),(12,'constructora','Company',1,NULL);
+        INSERT INTO organization_clients VALUES (1,10,100,'0001'),(2,11,200,'0002');
+        INSERT INTO cases VALUES (1,10,1,'0001','Primero'),(2,11,2,'0002','Segundo');
+        """ + shared_migration + shared_migration + """
+        DO $$ BEGIN
+          IF (SELECT COUNT(*) FROM organizations) <> 3
+             OR (SELECT COUNT(*) FROM organizations WHERE kind='maquila' AND office_id IS NULL AND deleted_at IS NULL) <> 2
+             OR NOT EXISTS (SELECT 1 FROM organizations WHERE id=10 AND legacy_office_id=1)
+             OR NOT EXISTS (SELECT 1 FROM organizations WHERE id=11 AND legacy_office_id=2)
+             OR NOT EXISTS (SELECT 1 FROM organizations WHERE id=12 AND office_id=1 AND legacy_office_id IS NULL)
+             OR NOT EXISTS (SELECT 1 FROM organization_clients WHERE id=1 AND organization_id=10 AND employee_number='0001')
+             OR NOT EXISTS (SELECT 1 FROM organization_clients WHERE id=2 AND organization_id=11 AND employee_number='0002')
+             OR NOT EXISTS (SELECT 1 FROM cases WHERE id=1 AND maquila_id=10 AND office_id=1 AND employee_number='0001' AND shift_name='Primero')
+             OR NOT EXISTS (SELECT 1 FROM cases WHERE id=2 AND maquila_id=11 AND office_id=2 AND employee_number='0002' AND shift_name='Segundo')
+          THEN RAISE EXCEPTION 'Shared factory upgrade altered records, relationships or history'; END IF;
+        END $$;
+        DROP SCHEMA shared_factory_check CASCADE;
+        """)
+    print('PASS: role retirement preserves office/credentials/status and revokes sessions once; shared factory upgrade/replay preserves duplicate records, links and snapshots')
+
     docker('run', '-d', '--name', API, '--network', NETWORK, '-p', '127.0.0.1::8080',
            '-e', 'NODE_ENV=production', '-e', 'DB_HOST=' + DATABASE, '-e', 'DB_PORT=5432',
            '-e', 'DB_USER=caf_test', '-e', 'DB_NAME=caf_test', '-e', 'DB_PASSWORD=' + PASSWORD,
@@ -160,13 +218,16 @@ try:
     registry_migration = (ROOT / 'api/db/migrations/0063_client_organizations.sql').read_text()
     sql(registry_migration + registry_migration)
     admin_token = request('POST', '/api/v1/login', {'email': admin['email'], 'password': PASSWORD})['token']
-    factory_data = {'kind': 'maquila', 'name': 'Maquila Uno', 'officeId': offices[0]}
+    factory_data = {'kind': 'maquila', 'name': 'Maquila Uno'}
     factory = request('POST', '/api/v1/organizations', factory_data, admin_token, 201)
     request('POST', '/api/v1/organizations', factory_data, admin_token, 409)
     second_factory = request('POST', '/api/v1/organizations', {**factory_data, 'name': 'Maquila Dos'}, admin_token, 201)
-    foreign_factory = request('POST', '/api/v1/organizations', {**factory_data, 'name': 'Otra oficina', 'officeId': offices[1]}, token, 201)
-    request('GET', f"/api/v1/organizations/{foreign_factory['id']}", token=admin_token, expected=404)
-    request('POST', '/api/v1/organizations', {**factory_data, 'name': 'Scope escape', 'officeId': offices[1]}, admin_token, 403)
+    foreign_factory = request('POST', '/api/v1/organizations', {**factory_data, 'name': 'Compartida entre oficinas'}, token, 201)
+    request('GET', f"/api/v1/organizations/{foreign_factory['id']}", token=admin_token)
+    request('POST', '/api/v1/organizations', {**factory_data, 'name': 'Scope escape', 'officeId': offices[1]}, admin_token, 400)
+    assert factory['officeId'] is None
+    request('GET', '/api/v1/manager/users', token=token, expected=404)
+    request('POST', '/api/v1/admin/users', {'firstName':'Retired','lastName':'Role','email':'retired-role@example.test','phone':'6561234567','role':'office_manager','officeId':offices[0],'password':PASSWORD}, token, 400)
     employee = create_user('Employee', 'client', offices[0])
     employment = {'employeeNumber': '000042', 'shiftName': 'Tercer turno', 'shiftStart': '22:00', 'shiftEnd': '06:00'}
     request('POST', f"/api/v1/organizations/{factory['id']}/clients", {'clientId': employee['id'], **employment}, admin_token)
@@ -176,6 +237,16 @@ try:
     history = request('GET', f"/api/v1/organizations/{factory['id']}", token=admin_token)
     assert history['clientTotal'] == 1 and history['clients'][0]['historical']
     assert history['cases'][0]['employeeNumber'] == '000042'
+    remote_employee = create_user('RemoteEmployee', 'client', offices[1])
+    request('POST', f"/api/v1/organizations/{factory['id']}/clients", {'clientId': remote_employee['id'], **employment, 'employeeNumber':'000077'}, token)
+    request('POST', '/api/v1/admin/cases', {'clientId': remote_employee['id'], 'officeId':offices[1], 'title':'Remote factory case', 'category':'Legal', 'description':'Synthetic second-office case'}, token, 201)
+    local_detail = request('GET', f"/api/v1/organizations/{factory['id']}", token=admin_token)
+    global_detail = request('GET', f"/api/v1/organizations/{factory['id']}", token=token)
+    assert local_detail['clientTotal'] == 1 and local_detail['caseTotal'] == 1
+    assert global_detail['clientTotal'] == 2 and global_detail['caseTotal'] == 2
+    request('POST', f"/api/v1/organizations/{factory['id']}/clients", {'clientId':remote_employee['id'], **employment}, admin_token, 400)
+    assert sql("SELECT count(*) FROM migrations WHERE version IN ('0065','0066');") == '2'
+
     contractor_data = {'kind': 'constructora', 'name': 'Constructora Uno', 'officeId': offices[0], 'legalRepresentative': 'Representante', 'legalAddress': 'Domicilio legal 123', 'boardPresident': 'Presidente', 'neighborhood': 'Centro'}
     contractor = request('POST', '/api/v1/organizations', contractor_data, admin_token, 201)
     second_contractor = request('POST', '/api/v1/organizations', {**contractor_data, 'name': 'Constructora Dos'}, admin_token, 201)

@@ -186,7 +186,7 @@ func TestOfficeAuthorizationPreview(t *testing.T) {
 
 	// Reproduce production's historical migration defaults on every role.
 	f.db.Model(&models.User{}).Where("id IN ?", []uint{1, 18, f.admin.ID}).Updates(map[string]interface{}{"department": "legal", "specialty": "general_practice"})
-	for i, role := range []string{config.RoleOfficeManager, config.RoleLawyer, config.RolePsychologist, config.RoleReceptionist, config.RoleEventCoordinator, "client"} {
+	for i, role := range []string{config.RoleLawyer, config.RolePsychologist, config.RoleReceptionist, config.RoleEventCoordinator, "client"} {
 		member := models.User{ID: uint(6 + i), FirstName: "Profile", LastName: role, Email: role + "@example.test", Role: role, IsActive: true, OfficeID: f.admin.OfficeID}
 		if role == config.RoleLawyer || role == config.RolePsychologist {
 			department, specialty := "legal", "family_law"

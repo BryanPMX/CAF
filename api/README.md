@@ -5,7 +5,7 @@ Go backend for the CAF platform. It serves the admin portal, marketing site inte
 ## What It Provides
 
 - JWT authentication (`/api/v1/login`); accounts are provisioned by authorized administrators
-- Role-aware route groups (`/api/v1`, `/api/v1/admin`, `/api/v1/staff`, `/api/v1/manager`)
+- Role-aware route groups (`/api/v1`, `/api/v1/admin`, `/api/v1/staff`)
 - Client-safe mobile route group (`/api/v1/client`)
 - Case management, client appointments, internal employee calendar, tasks, documents, notifications
 - Realtime notification websocket endpoint (`/ws`)
@@ -92,12 +92,11 @@ Client-safe endpoints for the Flutter app:
 - `GET /documents/:eventId` (visibility + ownership enforced)
 - `GET /offices`
 
-### Admin / Staff / Manager
+### Admin / Staff
 
 - Existing role-specific route groups remain in place:
   - `/api/v1/admin`
   - `/api/v1/staff`
-  - `/api/v1/manager`
 
 ## Realtime Messaging Consistency (Cases)
 
@@ -106,7 +105,7 @@ Client-safe endpoints for the Flutter app:
   - push websocket notifications to the client in realtime
 - Client case replies (`POST /api/v1/client/cases/:id/comments`) now:
   - create timeline events (`client_visible`)
-  - notify portal users (admins, office managers, primary/assigned staff)
+  - notify portal users (administrators, primary/assigned staff)
   - push websocket notifications to those users
 
 ## Stripe Integration (Server-Side, Secure)
@@ -140,7 +139,7 @@ Recommended for the current CAF architecture (no separate client web portal):
 - Verifies Stripe signature using `Stripe-Signature` + `STRIPE_WEBHOOK_SECRET`
 - Persists Checkout payment state (`payment_records`) from `checkout.session.*` events
 - Creates client-visible case timeline payment confirmation events (deduplicated by Checkout Session ID)
-- Notifies client + portal users (admins/office managers/assigned staff) via DB notifications + `/ws`
+- Notifies client + portal users (administrators/assigned staff) via DB notifications + `/ws`
 - Admin financial dashboard metrics now read revenue from `payment_records` (webhook-backed)
 
 ## Storage

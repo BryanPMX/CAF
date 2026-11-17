@@ -39,7 +39,6 @@ const ROLE_DISPLAY_CONFIG = {
   'technical_support': { label: 'Soporte Tecnico', color: 'bg-cyan-100 text-cyan-800' },
   'executive_director': { label: 'Director Ejecutivo', color: 'bg-purple-100 text-purple-800' },
   'admin': { label: 'Administrador', color: 'bg-red-100 text-red-800' },
-  'office_manager': { label: 'Gerente de Oficina', color: 'bg-blue-100 text-blue-800' },
   'lawyer': { label: 'Abogado/a', color: 'bg-green-100 text-green-800' },
   'psychologist': { label: 'Psicólogo/a', color: 'bg-purple-100 text-purple-800' },
   'receptionist': { label: 'Recepcionista', color: 'bg-orange-100 text-orange-800' },

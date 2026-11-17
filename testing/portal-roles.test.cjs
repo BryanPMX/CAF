@@ -48,7 +48,10 @@ test('office administrators retain their operational navigation and API workflow
     assert.equal(roles.isManagementRole(role), true);
     assert.equal(roles.canViewDocumentType(role, 'legal'), true);
   }
-  assert.equal(endpoints.getEndpointGroup('office_manager'), 'manager');
+  assert.throws(() => endpoints.getEndpointGroup('office_manager'), /Rol no válido/);
+  assert.equal(roles.isValidRole('office_manager'), false);
+  assert.deepEqual(roles.getAssignableRoles('office_manager'), []);
+  assert.equal(roles.getAllRoles().some(role => role.value === 'office_manager'), false);
   assert.equal(endpoints.getEndpointGroup('psychologist'), 'staff');
 });
 
@@ -61,7 +64,7 @@ test('management of a user depends on the actor and the target account', () => {
   assert.equal(roles.canManageUser(manager, executive), false);
   assert.equal(roles.canManageUser(manager, admin), false);
   assert.equal(roles.canManageUser(admin, employee), true);
-  assert.equal(roles.canManageUser(manager, employee), true);
+  assert.equal(roles.canManageUser(manager, employee), false);
   assert.equal(roles.canManageUser(admin, { ...employee, officeId: 2 }), false);
   assert.equal(roles.canManageUser({ role: 'admin' }, employee), false);
   assert.equal(roles.canManageUser(employee, admin), false);

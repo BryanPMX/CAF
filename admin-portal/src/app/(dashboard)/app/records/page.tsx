@@ -137,8 +137,8 @@ const RecordsPage: React.FC = () => {
       
       setUserRole(user.role);
 
-      // Only admins and office managers can access archives
-      if ((!isAdminRole(user.role ?? '')) && user.role !== 'office_manager') {
+      // Only office administrators can access archives
+      if ((!isAdminRole(user.role ?? ''))) {
         setAccessDenied(true);
         setLoading(false);
         return false;
@@ -273,7 +273,7 @@ const RecordsPage: React.FC = () => {
 
   // Restore archived case
   const handleRestoreCase = async (caseId: number) => {
-    if (!user?.role || ((!isAdminRole(user.role ?? '')) && user.role !== 'office_manager')) {
+    if (!user?.role || ((!isAdminRole(user.role ?? '')))) {
       message.error('Sin permisos para restaurar');
       return;
     }
@@ -290,7 +290,7 @@ const RecordsPage: React.FC = () => {
 
   // Permanently delete archived case
   const handleDeleteCase = async (caseId: number) => {
-    if (!user?.role || ((!isAdminRole(user.role ?? '')) && user.role !== 'office_manager')) {
+    if (!user?.role || ((!isAdminRole(user.role ?? '')))) {
       message.error('Sin permisos para eliminar');
       return;
     }
@@ -307,7 +307,7 @@ const RecordsPage: React.FC = () => {
 
   // Restore archived appointment
   const handleRestoreAppointment = async (appointmentId: number) => {
-    if (!user?.role || ((!isAdminRole(user.role ?? '')) && user.role !== 'office_manager')) {
+    if (!user?.role || ((!isAdminRole(user.role ?? '')))) {
       message.error('Sin permisos para restaurar');
       return;
     }
@@ -324,7 +324,7 @@ const RecordsPage: React.FC = () => {
 
   // Permanently delete archived appointment
   const handleDeleteAppointment = async (appointmentId: number) => {
-    if (!user?.role || ((!isAdminRole(user.role ?? '')) && user.role !== 'office_manager')) {
+    if (!user?.role || ((!isAdminRole(user.role ?? '')))) {
       message.error('Sin permisos para eliminar');
       return;
     }
@@ -569,7 +569,7 @@ const RecordsPage: React.FC = () => {
       <Result
         status="403"
         title="Acceso Denegado"
-        subTitle="No tiene permisos para acceder a esta sección. Solo administradores y gerentes de oficina pueden acceder a los archivos."
+        subTitle="No tiene permisos para acceder a esta sección. Solo administradores pueden acceder a los archivos."
         extra={
           <Button type="primary" onClick={() => router.push('/')}>
             Volver al Tablero

@@ -413,7 +413,7 @@ func notifyClientAndPortalUsersForStripePayment(db *gorm.DB, caseRecord models.C
 			recipientSet[id] = struct{}{}
 		}
 	}
-	if ids, err := GetOfficeManagerUserIDs(db, caseRecord.OfficeID); err == nil {
+	if ids, err := GetOfficeAdministratorUserIDs(db, caseRecord.OfficeID); err == nil {
 		for _, id := range ids {
 			recipientSet[id] = struct{}{}
 		}

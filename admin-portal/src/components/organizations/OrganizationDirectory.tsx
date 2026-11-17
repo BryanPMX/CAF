@@ -183,7 +183,10 @@ export default function OrganizationDirectory({
         : undefined;
     form.setFieldsValue({
       ...record,
-      officeId: record?.officeId || user?.officeId,
+      officeId:
+        kind === "constructora"
+          ? record?.officeId || user?.officeId
+          : undefined,
       email: account?.email || "",
       phone: account?.phone || "",
     });
@@ -193,7 +196,14 @@ export default function OrganizationDirectory({
     try {
       const values = await form.validateFields();
       setSaving(true);
-      await OrganizationService.save({ ...values, kind }, editor?.record?.id);
+      await OrganizationService.save(
+        {
+          ...values,
+          kind,
+          officeId: kind === "constructora" ? values.officeId : undefined,
+        },
+        editor?.record?.id,
+      );
       setEditor(null);
       refresh();
     } catch (error) {
@@ -339,21 +349,36 @@ export default function OrganizationDirectory({
             title: text.name,
             key: "name",
             render: (_, record: Organization) => (
-              <Button
-                type="link"
-                className="!p-0"
-                onClick={() => {
-                  setClientPage(1);
-                  setCasePage(1);
-                  setActiveTab("data");
-                  setSelectedId(record.id);
-                }}
-              >
-                {record.name}
-              </Button>
+              <>
+                <Button
+                  type="link"
+                  className="!p-0"
+                  onClick={() => {
+                    setClientPage(1);
+                    setCasePage(1);
+                    setActiveTab("data");
+                    setSelectedId(record.id);
+                  }}
+                >
+                  {record.name}
+                </Button>
+                {kind === "maquila" && (
+                  <span className="ml-3 text-xs text-slate-400">
+                    #{record.id}
+                  </span>
+                )}
+              </>
             ),
           },
-          { title: text.office, dataIndex: ["office", "name"], key: "office" },
+          ...(kind === "constructora"
+            ? [
+                {
+                  title: text.office,
+                  dataIndex: ["office", "name"],
+                  key: "office",
+                },
+              ]
+            : []),
         ]}
         locale={{ emptyText: text.empty }}
       />
@@ -408,8 +433,12 @@ export default function OrganizationDirectory({
                       items={[
                         {
                           key: "office",
-                          label: text.office,
-                          children: detail.organization.office?.name,
+                          label:
+                            kind === "constructora" ? text.office : text.scope,
+                          children:
+                            kind === "constructora"
+                              ? detail.organization.office?.name
+                              : text.sharedFactoryHint,
                         },
                         ...(kind === "constructora"
                           ? [
@@ -470,6 +499,16 @@ export default function OrganizationDirectory({
                             </>
                           ),
                         },
+                        ...(kind === "maquila" &&
+                        canAccessAllOffices(user?.role || "")
+                          ? [
+                              {
+                                key: "office",
+                                title: text.office,
+                                dataIndex: ["client", "office", "name"],
+                              },
+                            ]
+                          : []),
                         ...(kind === "maquila"
                           ? [
                               {
@@ -549,6 +588,15 @@ export default function OrganizationDirectory({
                                     ? clientLabel(record.client)
                                     : "—",
                               },
+                              ...(canAccessAllOffices(user?.role || "")
+                                ? [
+                                    {
+                                      key: "office",
+                                      title: text.office,
+                                      dataIndex: ["office", "name"],
+                                    },
+                                  ]
+                                : []),
                               {
                                 key: "employee",
                                 title: text.employeeNumber,
@@ -563,7 +611,8 @@ export default function OrganizationDirectory({
                                 key: "status",
                                 title: text.status,
                                 dataIndex: "status",
-                                render: (status: string) => getCaseStatusDisplayName(status),
+                                render: (status: string) =>
+                                  getCaseStatusDisplayName(status),
                               },
                             ]}
                           />
@@ -597,22 +646,26 @@ export default function OrganizationDirectory({
           >
             <Input maxLength={255} />
           </Form.Item>
-          <Form.Item
-            name="officeId"
-            label={text.office}
-            rules={[{ required: true, message: text.required }]}
-          >
-            <Select
-              disabled={
-                Boolean(editor?.record) ||
-                !canAccessAllOffices(user?.role || "")
-              }
-              options={offices.map((office) => ({
-                value: office.id,
-                label: office.name,
-              }))}
-            />
-          </Form.Item>
+          {kind === "constructora" && (
+            <>
+              <Form.Item
+                name="officeId"
+                label={text.office}
+                rules={[{ required: true, message: text.required }]}
+              >
+                <Select
+                  disabled={
+                    Boolean(editor?.record) ||
+                    !canAccessAllOffices(user?.role || "")
+                  }
+                  options={offices.map((office) => ({
+                    value: office.id,
+                    label: office.name,
+                  }))}
+                />
+              </Form.Item>
+            </>
+          )}
           {kind === "constructora" && (
             <>
               <Form.Item
@@ -670,6 +723,11 @@ export default function OrganizationDirectory({
         {error && (
           <Alert type="error" showIcon message={error} className="mb-4" />
         )}
+        {kind === "maquila" && (
+          <p className="mb-4 text-sm text-slate-500">
+            {text.assignedClientHint}
+          </p>
+        )}
         <Form form={linkForm} layout="vertical">
           <Form.Item
             name="clientId"
@@ -677,14 +735,13 @@ export default function OrganizationDirectory({
             rules={[{ required: true, message: text.required }]}
           >
             <ClientSelect
-              officeId={detail?.organization.officeId}
+              officeId={detail?.organization.officeId || undefined}
               clientType="person"
             />
           </Form.Item>
           {kind === "maquila" && detail && (
             <EmploymentFields
               fixedMaquila={detail.organization.id}
-              officeId={detail.organization.officeId}
             />
           )}
         </Form>

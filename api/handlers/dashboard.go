@@ -84,7 +84,7 @@ func GetStaffDashboardSummary(db *gorm.DB) gin.HandlerFunc {
 }
 
 // GetDashboardSummary provides key metrics for the admin dashboard.
-// Office filter: use query param "officeId" when provided (admin); otherwise use context officeScopeID (office_manager).
+// Office filter: use query param "officeId" when provided (admin); otherwise use the authenticated office scope.
 func GetDashboardSummary(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var officeFilter uint
@@ -111,7 +111,7 @@ func GetDashboardSummary(db *gorm.DB) gin.HandlerFunc {
 			}
 		}
 
-		// Get all required metrics for admin/office manager dashboard
+		// Get all required metrics for office administration dashboard
 		var totalCases int64
 		totalCasesQuery := db.Model(&models.Case{}).Where("is_archived = ? AND deleted_at IS NULL", false)
 		if officeFilter != 0 {

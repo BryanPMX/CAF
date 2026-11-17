@@ -31,10 +31,10 @@ func CompleteCase(db *gorm.DB) gin.HandlerFunc {
 		currentUser, _ := c.Get("currentUser")
 		user := currentUser.(models.User)
 
-		// Check permissions - only admins and office managers can complete cases
+		// Check permissions - only office administrators can complete cases
 		userRole := c.GetString("userRole")
-		if !config.CanAccessAllOffices(userRole) && userRole != "admin" && userRole != "office_manager" {
-			c.JSON(http.StatusForbidden, gin.H{"error": "Solo administradores y gerentes de oficina pueden completar casos"})
+		if !config.CanAccessAllOffices(userRole) && userRole != "admin" {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Solo administradores pueden completar casos"})
 			return
 		}
 

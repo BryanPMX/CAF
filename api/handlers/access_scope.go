@@ -111,12 +111,12 @@ func authorizeUserChange(c *gin.Context, existing *models.User, role string, off
 		}
 		return true
 	}
-	allowedRole := !config.CanAccessAllOffices(role) && (actor.Role == config.RoleAdmin || role != config.RoleAdmin)
-	if !allowedRole || (actor.Role != config.RoleAdmin && actor.Role != config.RoleOfficeManager) || actor.OfficeID == nil || *actor.OfficeID == 0 {
+	allowedRole := !config.CanAccessAllOffices(role)
+	if !allowedRole || (actor.Role != config.RoleAdmin) || actor.OfficeID == nil || *actor.OfficeID == 0 {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Cannot assign this role"})
 		return false
 	}
-	if existing != nil && (config.CanAccessAllOffices(existing.Role) || (actor.Role == config.RoleOfficeManager && existing.Role == config.RoleAdmin) || existing.OfficeID == nil || *existing.OfficeID != *actor.OfficeID) {
+	if existing != nil && (config.CanAccessAllOffices(existing.Role) || existing.OfficeID == nil || *existing.OfficeID != *actor.OfficeID) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "User is outside your management scope"})
 		return false
 	}

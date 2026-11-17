@@ -223,8 +223,8 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ visible, onClose, o
     const isLegalCase = categoryToUse === 'Familiar' || categoryToUse === 'Civil';
     
     return staffList.filter(staff => {
-      // Admins and office managers can be assigned to any appointment
-      const isManagement = (isAdminRole(staff.role ?? '')) || staff.role === 'office_manager';
+      // Office administrators can be assigned to any appointment
+      const isManagement = (isAdminRole(staff.role ?? ''));
       const isAdminForLegal = isAdminRole(staff.role as StaffRoleKey) && isLegalCase;
       const hasAllowedRole = allowedRoles.includes(staff.role as StaffRoleKey);
       const hasMatchingDepartment = staff.department === categoryToUse;

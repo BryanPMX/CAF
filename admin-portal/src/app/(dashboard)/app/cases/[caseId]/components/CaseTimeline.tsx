@@ -92,10 +92,10 @@ const CaseTimeline: React.FC<CaseTimelineProps> = ({ events, onRefresh }) => {
     return currentUserId === item.user.id;
   }, [currentUser]);
 
-  // Check if user can delete an item (only admins and office managers)
+  // Check if user can delete an item (only office administrators)
   const canDeleteItem = useCallback(() => {
     if (!userRole) return false;
-    return (isAdminRole(userRole ?? '')) || userRole === 'office_manager';
+    return (isAdminRole(userRole ?? ''));
   }, [userRole]);
 
   // Check if file can be previewed or opened
@@ -404,7 +404,7 @@ const CaseTimeline: React.FC<CaseTimelineProps> = ({ events, onRefresh }) => {
                   </Button>
                 )}
                 
-                {/* Delete Button - Only for admins/managers */}
+                {/* Delete Button - Only for administrators */}
                 {canDeleteItem() && (
                   <Popconfirm
                     title="¿Está seguro de que desea eliminar este documento?"

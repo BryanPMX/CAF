@@ -93,7 +93,7 @@ func notifyPortalUsersForClientCaseComment(db *gorm.DB, caseRecord models.Case, 
 		}
 	}
 
-	if ids, err := GetOfficeManagerUserIDs(db, caseRecord.OfficeID); err == nil {
+	if ids, err := GetOfficeAdministratorUserIDs(db, caseRecord.OfficeID); err == nil {
 		for _, id := range ids {
 			recipientSet[id] = struct{}{}
 		}
