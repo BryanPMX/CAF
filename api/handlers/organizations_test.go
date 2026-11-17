@@ -3,7 +3,6 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"strings"
 	"testing"
 
@@ -13,9 +12,7 @@ import (
 
 func registryCreate(t *testing.T, f authorizationFixture, actor models.User, kind, name string, office uint) models.Organization {
 	t.Helper()
-	if kind == models.OrganizationMaquila {
-		office = 0
-	}
+	office = 0
 	body := fmt.Sprintf(`{"kind":%q,"name":%q,"officeId":%d,"legalRepresentative":"Representante","legalAddress":"Domicilio legal 123","boardPresident":"Presidente","neighborhood":"Colonia Centro"}`, kind, name, office)
 	w := f.request(t, actor, "POST", "/api/v1/organizations", body)
 	if w.Code != 201 {
@@ -144,7 +141,7 @@ func TestContractorsHaveCanonicalClientAccountsAndDirectAppointments(t *testing.
 	if w.Code == 201 {
 		t.Fatal("company can be used as a fabricated case client")
 	}
-	update := fmt.Sprintf(`{"firstName":"Nuevo nombre","lastName":"","email":"","role":"client","officeId":1,"phone":""}`)
+	update := fmt.Sprintf(`{"firstName":"Nuevo nombre","lastName":"","email":"","role":"client","officeId":null,"phone":""}`)
 	if w := f.request(t, f.admin, "PATCH", fmt.Sprintf("/api/v1/admin/users/%d", client.ID), update); w.Code != 200 {
 		t.Fatalf("company user edit: %d %s", w.Code, w.Body.String())
 	}
@@ -166,7 +163,7 @@ func TestOrganizationScopeAndValidation(t *testing.T) {
 		want               int
 	}{
 		{"GET", fmt.Sprintf("/api/v1/organizations/%d", other.ID), "", 200},
-		{"GET", fmt.Sprintf("/api/v1/organizations/%d", foreignCompany.ID), "", 404},
+		{"GET", fmt.Sprintf("/api/v1/organizations/%d", foreignCompany.ID), "", 200},
 		{"POST", "/api/v1/organizations", `{"kind":"maquila","name":"Escape","officeId":2}`, 400},
 		{"POST", fmt.Sprintf("/api/v1/organizations/%d/clients", own.ID), fmt.Sprintf(`{"clientId":%d,"employeeNumber":"123","shiftName":"Primero"}`, outside.ID), 400},
 		{"POST", fmt.Sprintf("/api/v1/organizations/%d/clients", own.ID), fmt.Sprintf(`{"clientId":%d,"employeeNumber":"123","shiftName":"Primero","shiftStart":"08:00"}`, client.ID), 400},
@@ -179,8 +176,8 @@ func TestOrganizationScopeAndValidation(t *testing.T) {
 		}
 	}
 	listedCompanies := f.request(t, f.admin, "GET", "/api/v1/organizations?kind=constructora", "")
-	if listedCompanies.Code != 200 || strings.Contains(listedCompanies.Body.String(), foreignCompany.Name) {
-		t.Fatal("shared maquilas widened contractor directory scope")
+	if listedCompanies.Code != 200 || !strings.Contains(listedCompanies.Body.String(), foreignCompany.Name) {
+		t.Fatal("shared company was not visible across offices")
 	}
 	var count int64
 	f.db.Model(&models.User{}).Where("email = ?", "invalid-employment@example.test").Count(&count)
@@ -195,15 +192,17 @@ func TestOrganizationScopeAndValidation(t *testing.T) {
 	if w := f.request(t, employee, "POST", "/api/v1/organizations", `{"kind":"maquila","name":"Denied","officeId":1}`); w.Code != 403 {
 		t.Fatal("staff can mutate directory")
 	}
-	if w := f.request(t, employee, "GET", "/api/v1/organizations?kind=maquila", ""); w.Code != http.StatusOK {
-		t.Fatalf("staff cannot read own directory: %d", w.Code)
+	if w := f.request(t, employee, "GET", "/api/v1/organizations?kind=maquila", ""); w.Code != 403 {
+		t.Fatalf("staff gained directory read access: %d", w.Code)
 	}
 }
 
 func TestCalendarClientLinksDoNotInviteClientsOrExposeOtherOffices(t *testing.T) {
 	f := authorizationSetup(t)
-	a := registryCreate(t, f, f.admin, "constructora", "Calendario A", 1)
-	b := registryCreate(t, f, f.otherAdmin, "constructora", "Calendario B", 2)
+	personA := registryPerson(t, f, "calendar-a@example.test", f.admin.OfficeID)
+	personB := registryPerson(t, f, "calendar-b@example.test", f.otherAdmin.OfficeID)
+	a := models.Organization{AccountClientID: &personA.ID}
+	b := models.Organization{AccountClientID: &personB.ID}
 	payload := fmt.Sprintf(`{"relatedClientIds":[%d,%d]}`, *a.AccountClientID, *b.AccountClientID)
 	if w := f.request(t, f.director, "PATCH", "/api/v1/calendar/events/1", payload); w.Code != 200 {
 		t.Fatalf("global calendar links: %d %s", w.Code, w.Body.String())

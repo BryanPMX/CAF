@@ -15,7 +15,7 @@ async function login(page, email = 'a@example.test') {
   return { Authorization: `Bearer ${await page.evaluate(() => localStorage.getItem('authToken'))}` };
 }
 async function select(page, field, name) {
-  await field.click();
+  await field.press("ArrowDown");
   await page.locator('.ant-select-dropdown:visible .ant-select-item-option-content').filter({ hasText: new RegExp(`^${name}$`) }).click();
 }
 
@@ -106,6 +106,7 @@ test('office administrator: factories, historical cases, contractors, contacts, 
     for (const [label, value] of Object.entries({ Nombre: company, 'Apoderado legal': 'Representante Sintético', 'Domicilio legal': 'Avenida Prueba 123', 'Presidente del Consejo': 'Presidente Sintético', 'Nombre de la colonia': 'Centro' })) {
       await modal.getByLabel(label, { exact: true }).fill(value);
     }
+    assert.equal(await modal.getByLabel('Oficina responsable', { exact: true }).count(), 0);
     const companySaved = page.waitForResponse(r => r.url().endsWith('/organizations') && r.request().method() === 'POST');
     await modal.getByRole('button', { name: 'Guardar', exact: true }).click();
     const companyResponse = await companySaved;
@@ -173,23 +174,28 @@ test('office administrator: factories, historical cases, contractors, contacts, 
   } finally { await browser.close(); }
 });
 
-test('staff directory is read-only, scoped, and fits a narrow screen', { timeout: 60000 }, async () => {
-  const browser = await chromium.launch({ headless: true });
-  const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
-  try {
-    const headers = await login(page, 'lawyer@example.test');
-    const loaded = page.waitForResponse(r => r.url().includes('/organizations?kind=maquila'));
-    await page.goto(`${portal}/app/maquilas`);
-    assert.equal((await loaded).status(), 200);
-    await page.getByRole('button', { name: /Maquila Frontera/ }).first().waitFor();
-    await page.getByRole('heading', { name: 'Maquilas', exact: true }).waitFor();
-    assert.equal(await page.getByRole('button', { name: 'Registrar maquila', exact: true }).count(), 0);
-    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
-    const denied = await page.request.post(`${api}/organizations`, { headers, data: { kind: 'maquila', name: 'Denied', officeId: 1 } });
-    assert.equal(denied.status(), 403);
-    await fs.mkdir(artifacts, { recursive: true });
-    await page.screenshot({ path: `${artifacts}/staff-mobile.png`, fullPage: true, animations: 'disabled' });
-  } finally { await browser.close(); }
+test('only management can open either directory; staff keep minimal workflow selectors', { timeout: 90000 }, async () => {
+ const browser = await chromium.launch({headless:true});
+ try {
+  for (const email of ['lawyer@example.test','psychologist@example.test','receptionist@example.test','event_coordinator@example.test','client@example.test']) {
+   const page = await browser.newPage({viewport:{width:390,height:844}});
+   const headers = await login(page,email);
+   for (const kind of ['maquila','constructora']) {
+    const title = kind === 'maquila' ? 'Maquilas' : 'Constructoras';
+    assert.equal(await page.getByRole('menuitem',{name:new RegExp(title)}).count(),0);
+    await page.goto(`${portal}/app/${kind === 'maquila' ? 'maquilas' : 'constructoras'}`);
+    await page.getByText('No tiene acceso a este directorio.',{exact:true}).waitFor();
+    assert.equal(await page.getByRole('button',{name:`Registrar ${kind}`,exact:true}).count(),0);
+    const response=await page.request.get(`${api}/organizations?kind=${kind}`,{headers});
+    assert.equal(response.status(),403);
+   }
+   const options=await page.request.get(`${api}/maquila-options`,{headers});
+   assert.equal(options.status(),email === 'client@example.test' ? 403 : 200);
+   if (options.status()===200) for (const option of (await options.json()).data) assert.deepEqual(Object.keys(option).sort(),['id','name']);
+   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth),true);
+   await page.close();
+  }
+ } finally {await browser.close();}
 });
 
 test('one shared maquila serves two offices without exposing their clients or cases', { timeout: 90000 }, async () => {
@@ -238,4 +244,91 @@ test('one shared maquila serves two offices without exposing their clients or ca
     await globalDrawer.getByText('Office B', { exact: true }).waitFor();
     await executivePage.screenshot({ path: `${artifacts}/shared-factory-executive.png`, fullPage: true, animations: 'disabled' });
   } finally { await browser.close(); }
+});
+
+test('shared contractor keeps per-office contacts and appointments with an explicit global office picker', {timeout:120000}, async () => {
+ const browser=await chromium.launch({headless:true});
+ const page=await browser.newPage({viewport:{width:1440,height:1050}});
+ let otherPage, globalPage;
+ try {
+  const headers=await login(page);
+  const suffix=Date.now();
+  const name=`Shared company ${suffix}`;
+  const registered=await page.request.post(`${api}/organizations`,{headers,data:{kind:'constructora',name,legalRepresentative:'Legal representative',legalAddress:'Avenida Compartida 123',boardPresident:'President',neighborhood:'Centro'}});
+  assert.equal(registered.status(),201,await registered.text());
+  const company=await registered.json();
+  assert.equal(company.officeId,null);
+  otherPage=await browser.newPage({viewport:{width:390,height:844}});
+  const headersB=await login(otherPage,'b@example.test');
+  for (const [officeId, auth, letter] of [[1,headers,'A'],[2,headersB,'B']]) {
+   const created=await page.request.post(`${api}/admin/users`,{headers:auth,data:{firstName:`Contact ${letter}`,lastName:`${suffix}`,email:`company-contact-${letter}-${suffix}@example.test`,phone:'6561234567',password:'Synthetic-E2E-Password123!',role:'client',officeId}});
+   assert.equal(created.status(),201,await created.text());
+   const person=await created.json();
+   const linked=await page.request.post(`${api}/organizations/${company.id}/clients`,{headers:auth,data:{clientId:person.id}});
+   assert.equal(linked.status(),200,await linked.text());
+  }
+  await otherPage.goto(`${portal}/app/constructoras?organizationId=${company.id}`);
+  const drawer=otherPage.locator('.ant-drawer-content');
+  await drawer.getByText('Avenida Compartida 123',{exact:true}).waitFor();
+  await drawer.getByRole('tab',{name:'Clientes y contactos',exact:true}).click();
+  await drawer.getByText(`Contact B ${suffix}`,{exact:true}).waitFor();
+  assert.equal(await drawer.getByText(`Contact A ${suffix}`,{exact:true}).count(),0);
+  assert.equal(await drawer.getByRole('tab',{name:'Expedientes',exact:true}).count(),0);
+  await fs.mkdir(artifacts,{recursive:true});
+  await otherPage.screenshot({path:`${artifacts}/shared-company-mobile.png`,fullPage:true,animations:'disabled'});
+  async function book(target, officeName, title) {
+   const directory=target.locator('.ant-drawer-content');
+   await directory.getByRole('button',{name:'Agendar cita',exact:true}).click();
+   const modal=target.getByRole('dialog').filter({hasText:'Cita para constructora'});
+   if (officeName) await select(target,modal.getByLabel('Oficina responsable',{exact:true}),officeName);
+   await modal.getByLabel('Título de la cita',{exact:true}).fill(title);
+   await select(target,modal.getByLabel('Asignar a',{exact:true}),'Admin B CAF');
+   await modal.getByRole('button',{name:'Mes siguiente',exact:true}).click();
+   await modal.locator('.ant-picker-calendar .ant-picker-cell-in-view:not(.ant-picker-cell-disabled)').first().click();
+   await modal.getByRole('group',{name:'Horarios disponibles',exact:true}).getByRole('button').first().click();
+   const saved=target.waitForResponse(r=>r.url().endsWith('/admin/appointments') && r.request().method()==='POST');
+   await modal.getByRole('button',{name:'Guardar',exact:true}).click();
+   const result=await saved;
+   assert.equal(result.status(),201,await result.text());
+   const appointment=await result.json();
+   assert.equal(appointment.clientId,company.accountClientId);
+   assert.equal(appointment.officeId,2);
+   assert.equal(appointment.caseId,0);
+   await modal.waitFor({state:'hidden'});
+  }
+  await book(otherPage,null,`Office B company meeting ${suffix}`);
+  globalPage=await browser.newPage({viewport:{width:1440,height:1050}});
+  await login(globalPage,'ceo@example.test');
+  await globalPage.goto(`${portal}/app/constructoras?organizationId=${company.id}`);
+  const globalDrawer=globalPage.locator('.ant-drawer-content');
+  await globalDrawer.getByText('Avenida Compartida 123',{exact:true}).waitFor();
+  await book(globalPage,'Office B',`CEO company meeting ${suffix}`);
+  await globalDrawer.getByRole('tab',{name:'Clientes y contactos',exact:true}).click();
+  await globalDrawer.getByText(`Contact A ${suffix}`,{exact:true}).waitFor();
+  await globalDrawer.getByText(`Contact B ${suffix}`,{exact:true}).waitFor();
+  await globalPage.screenshot({path:`${artifacts}/shared-company-executive.png`,fullPage:true,animations:'disabled'});
+  const listA=await page.request.get(`${api}/admin/appointments?clientId=${company.accountClientId}`,{headers});
+  const listB=await otherPage.request.get(`${api}/admin/appointments?clientId=${company.accountClientId}`,{headers:headersB});
+  assert.equal((await listA.json()).data.length,0);
+  assert.equal((await listB.json()).data.length,2);
+  await otherPage.goto(`${portal}/app/users?edit=${company.accountClientId}`);
+  const editor=otherPage.getByRole('dialog').filter({hasText:'Editar Usuario'});
+  await editor.waitFor();
+  assert.equal(await editor.getByLabel('Oficina',{exact:true}).count(),0);
+  const changed=`${name} updated`;
+  await editor.getByLabel('Nombre(s)',{exact:true}).fill(changed);
+  const edited=otherPage.waitForResponse(r=>r.url().endsWith(`/admin/users/${company.accountClientId}`) && r.request().method()==='PATCH');
+  await editor.getByRole('button',{name:'OK',exact:true}).click();
+  const result=await edited;
+  assert.equal(result.status(),200,await result.text());
+  const canonical=await result.json();
+  assert.equal(canonical.officeId ?? null,null);
+  await otherPage.goto(`${portal}/app/users/${company.accountClientId}`);
+  await otherPage.getByText('Registro de constructora compartido entre oficinas',{exact:true}).waitFor();
+  assert.equal(await otherPage.getByText('Sin oficina asignada',{exact:true}).count(),0);
+ } catch(error) {
+  await fs.mkdir(artifacts,{recursive:true});
+  if (globalPage) await globalPage.screenshot({path:`${artifacts}/shared-company-failure.png`,fullPage:true});
+  throw error;
+ } finally {await browser.close();}
 });

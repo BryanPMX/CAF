@@ -297,7 +297,7 @@ const UserManagementPage = () => {
       title: 'Oficina',
       dataIndex: ['office', 'name'], // Ant Design can access nested data with an array.
       key: 'office',
-      render: (name: string, record: User) => canAccessAllOffices(record.role) ? null : name || 'N/A',
+      render: (name: string, record: User) => canAccessAllOffices(record.role) ? null : record.clientType === 'organization' ? ORGANIZATION_TEXT.sharedCompany : name || 'N/A',
     },
     {
       title: ORGANIZATION_TEXT.organizations,

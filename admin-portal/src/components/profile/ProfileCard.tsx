@@ -139,7 +139,7 @@ export default function ProfileCard({
             {global
               ? text.globalScope
               : profile.role === "client"
-                ? text.clientScope
+                ? profile.clientType === "organization" ? text.companyScope : text.clientScope
                 : text.officeScope}
           </p>
         </div>

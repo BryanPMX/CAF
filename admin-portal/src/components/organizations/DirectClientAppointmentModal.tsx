@@ -4,13 +4,14 @@ import { Alert, Form, Input, Modal, Select } from "antd";
 import { useAuth } from "@/context/AuthContext";
 import { ORGANIZATION_TEXT as text } from "@/config/organizations";
 import type { ClientOption } from "@/app/lib/organizations";
-import { WorkflowService, type WorkflowUser } from "@/services/workflowService";
+import { WorkflowService, type WorkflowUser, type WorkflowOffice } from "@/services/workflowService";
 import {
   availableAppointmentSlots,
   loadEmployeeAvailability,
   type AppointmentSlot,
 } from "@/services/appointmentAvailability";
 import AppointmentAvailabilityPicker from "@/app/(dashboard)/components/AppointmentAvailabilityPicker";
+import { canAccessAllOffices } from "@/config/roles";
 import { CalendarService } from "@/services/calendarService";
 import ClientSelect from "./ClientSelect";
 export default function DirectClientAppointmentModal({
@@ -31,13 +32,17 @@ export default function DirectClientAppointmentModal({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const staffId = Form.useWatch("staffId", form);
+  const officeId = Form.useWatch("officeId", form);
+  const [offices, setOffices] = useState<WorkflowOffice[]>([]);
   useEffect(() => {
     if (!open || !user) return;
     setError(null);
     setClient(initialClient);
     form.resetFields();
     form.setFieldValue("clientId", initialClient?.id);
+    form.setFieldValue("officeId", user.officeId || undefined);
     let current = true;
+    WorkflowService.listOffices(user.role).then(rows => { if (current) setOffices(rows); }).catch(() => setError(text.failed));
     CalendarService.listStaff()
       .then((rows) => {
         if (current) setStaff(rows);
@@ -50,7 +55,7 @@ export default function DirectClientAppointmentModal({
   const save = async () => {
     try {
       const values = await form.validateFields();
-      if (!user || !client?.officeId) return;
+      if (!user || !client || !values.officeId) return;
       setSaving(true);
       setError(null);
       const schedule = values.schedule as AppointmentSlot;
@@ -70,7 +75,7 @@ export default function DirectClientAppointmentModal({
       await WorkflowService.createAppointment(user.role, {
         withoutCase: true,
         clientId: client.id,
-        officeId: client.officeId,
+        officeId: values.officeId,
         staffId: values.staffId,
         title: values.title,
         startTime: schedule.startTime.toISOString(),
@@ -124,6 +129,9 @@ export default function DirectClientAppointmentModal({
             }}
           />
         </Form.Item>
+        <Form.Item name="officeId" label={text.office} rules={[{ required: true, message: text.officeRequired }]}>
+          <Select disabled={!canAccessAllOffices(user?.role || "")} options={offices.map(office => ({value: office.id, label: office.name}))} onChange={() => form.setFieldsValue({staffId: undefined, schedule: undefined})} />
+        </Form.Item>
         <Form.Item
           name="title"
           label={text.appointmentTitle}
@@ -139,9 +147,9 @@ export default function DirectClientAppointmentModal({
           <Select
             showSearch
             optionFilterProp="label"
-            disabled={!client}
+            disabled={!client || !officeId}
             options={staff
-              .filter((member) => member.officeId === client?.officeId)
+              .filter((member) => member.officeId === officeId)
               .map((member) => ({
                 value: member.id,
                 label: `${member.firstName} ${member.lastName}`,

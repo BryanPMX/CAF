@@ -16,11 +16,8 @@ func createDirectClientAppointment(db *gorm.DB, c *gin.Context, input SmartAppoi
 	var appointment models.Appointment
 	err := db.Transaction(func(tx *gorm.DB) error {
 		var client, staff models.User
-		if err := tx.Where("id = ? AND office_id = ? AND role = ? AND client_type = ? AND is_active = ?", *input.ClientID, input.OfficeID, "client", models.ClientOrganization, true).First(&client).Error; err != nil {
+		if err := tx.Where("id = ? AND office_id IS NULL AND role = ? AND client_type = ? AND is_active = ?", *input.ClientID, "client", models.ClientOrganization, true).First(&client).Error; err != nil {
 			return services.InvalidOrganization("Seleccione la cuenta de una constructora activa")
-		}
-		if client.OfficeID == nil || *client.OfficeID != input.OfficeID {
-			return services.InvalidOrganization("La cita debe usar la oficina de la constructora")
 		}
 		if !config.CanAccessAllOffices(actor.Role) && (actor.OfficeID == nil || *actor.OfficeID != input.OfficeID) {
 			return services.InvalidOrganization("Oficina fuera de su alcance")

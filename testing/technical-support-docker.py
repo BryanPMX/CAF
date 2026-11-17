@@ -137,6 +137,34 @@ try:
         END $$;
         DROP SCHEMA shared_factory_check CASCADE;
         """)
+    company_migration = (ROOT / 'api/db/migrations/0067_shared_constructoras.sql').read_text()
+    sql("""CREATE SCHEMA shared_company_check; SET search_path TO shared_company_check;
+        CREATE TABLE users (id BIGINT PRIMARY KEY, client_type TEXT, office_id BIGINT, password TEXT, is_active BOOLEAN);
+        CREATE TABLE organizations (id BIGINT PRIMARY KEY, kind TEXT, name TEXT, office_id BIGINT, legacy_office_id BIGINT, account_client_id BIGINT, deleted_at TIMESTAMPTZ);
+        CREATE TABLE organization_clients (id BIGINT, organization_id BIGINT, client_id BIGINT);
+        CREATE TABLE appointments (id BIGINT, client_id BIGINT, office_id BIGINT);
+        CREATE TABLE calendar_event_clients (event_id BIGINT, client_id BIGINT);
+        INSERT INTO users VALUES (1,'organization',10,'password-preserved',true),(2,'organization',20,'disabled-preserved',false),(3,'person',10,'person-preserved',true);
+        INSERT INTO organizations VALUES (11,'constructora','Same company',10,NULL,1,NULL),(12,'constructora','Same company',20,NULL,2,NULL),(13,'maquila','Factory',NULL,10,NULL,NULL);
+        INSERT INTO organization_clients VALUES (1,11,1),(2,11,3),(3,12,2);
+        INSERT INTO appointments VALUES (1,1,10),(2,2,20);
+        INSERT INTO calendar_event_clients VALUES (1,1),(2,2);
+        """ + company_migration + company_migration + """
+        DO $$ BEGIN
+          IF (SELECT COUNT(*) FROM organizations)<>3 OR (SELECT COUNT(*) FROM organization_clients)<>3
+            OR EXISTS (SELECT 1 FROM organizations WHERE office_id IS NOT NULL)
+            OR NOT EXISTS (SELECT 1 FROM organizations WHERE id=11 AND legacy_office_id=10 AND account_client_id=1)
+            OR NOT EXISTS (SELECT 1 FROM organizations WHERE id=12 AND legacy_office_id=20 AND account_client_id=2)
+            OR NOT EXISTS (SELECT 1 FROM users WHERE id=1 AND office_id IS NULL AND legacy_organization_office_id=10 AND password='password-preserved' AND is_active)
+            OR NOT EXISTS (SELECT 1 FROM users WHERE id=2 AND office_id IS NULL AND legacy_organization_office_id=20 AND password='disabled-preserved' AND NOT is_active)
+            OR NOT EXISTS (SELECT 1 FROM users WHERE id=3 AND office_id=10 AND password='person-preserved')
+            OR NOT EXISTS (SELECT 1 FROM appointments WHERE id=1 AND client_id=1 AND office_id=10)
+            OR NOT EXISTS (SELECT 1 FROM appointments WHERE id=2 AND client_id=2 AND office_id=20)
+            OR (SELECT COUNT(*) FROM calendar_event_clients)<>2
+          THEN RAISE EXCEPTION 'Company upgrade changed identities, credentials or service history'; END IF;
+        END $$; DROP SCHEMA shared_company_check CASCADE;
+        """)
+    print('PASS: shared company migration/replay preserves duplicate IDs, client links, credentials, account status and appointment/event history')
     print('PASS: role retirement preserves office/credentials/status and revokes sessions once; shared factory upgrade/replay preserves duplicate records, links and snapshots')
 
     docker('run', '-d', '--name', API, '--network', NETWORK, '-p', '127.0.0.1::8080',
@@ -247,7 +275,7 @@ try:
     request('POST', f"/api/v1/organizations/{factory['id']}/clients", {'clientId':remote_employee['id'], **employment}, admin_token, 400)
     assert sql("SELECT count(*) FROM migrations WHERE version IN ('0065','0066');") == '2'
 
-    contractor_data = {'kind': 'constructora', 'name': 'Constructora Uno', 'officeId': offices[0], 'legalRepresentative': 'Representante', 'legalAddress': 'Domicilio legal 123', 'boardPresident': 'Presidente', 'neighborhood': 'Centro'}
+    contractor_data = {'kind': 'constructora', 'name': 'Constructora Uno', 'legalRepresentative': 'Representante', 'legalAddress': 'Domicilio legal 123', 'boardPresident': 'Presidente', 'neighborhood': 'Centro'}
     contractor = request('POST', '/api/v1/organizations', contractor_data, admin_token, 201)
     second_contractor = request('POST', '/api/v1/organizations', {**contractor_data, 'name': 'Constructora Dos'}, admin_token, 201)
     assert contractor['accountClientId'] != second_contractor['accountClientId']
@@ -255,7 +283,20 @@ try:
     request('POST', '/api/v1/organizations', {**contractor_data, 'name': 'Duplicate email', 'email': employee['email']}, admin_token, 409)
     assert sql('SELECT count(*) FROM users;') == before_duplicate
     assert sql("SELECT count(*) FROM users WHERE client_type='organization' AND email='';") == '2'
+    assert contractor['officeId'] is None
     company_id = contractor['accountClientId']
+    assert sql(f"SELECT office_id IS NULL FROM users WHERE id={company_id};") == 't'
+    request('POST', '/api/v1/organizations', {**contractor_data, 'name': ' constructora UNO '}, admin_token, 409)
+    assert sql("SELECT count(*) FROM migrations WHERE version='0067';") == '1'
+    for staff_role in ('lawyer', 'psychologist', 'receptionist', 'event_coordinator'):
+        staff_user = create_user('DirectoryDenied' + staff_role, staff_role, offices[0])
+        staff_token = request('POST', '/api/v1/login', {'email': staff_user['email'], 'password': PASSWORD})['token']
+        for kind in ('maquila', 'constructora'):
+            request('GET', '/api/v1/organizations?kind=' + kind, token=staff_token, expected=403)
+        request('GET', f"/api/v1/organizations/{contractor['id']}", token=staff_token, expected=403)
+        options = request('GET', '/api/v1/maquila-options', token=staff_token)['data']
+        assert all(set(item) == {'id', 'name'} for item in options)
+
     request('POST', f"/api/v1/organizations/{contractor['id']}/clients", {'clientId': employee['id']}, admin_token)
     assert len(request('GET', f"/api/v1/client-organizations/{employee['id']}", token=admin_token)['data']) == 2
     before_direct = sql('SELECT count(*) FROM cases;')
@@ -266,6 +307,16 @@ try:
     request('POST', '/api/v1/admin/appointments', appointment_data, admin_token, 400)
     appointments = request('GET', f'/api/v1/admin/appointments?clientId={company_id}', token=admin_token)['data']
     assert len(appointments) == 1 and appointments[0]['client']['firstName'] == contractor['name']
+    remote_staff = create_user('RemoteCompanyStaff', 'lawyer', offices[1])
+    remote_appointment = request('POST', '/api/v1/admin/appointments', {**appointment_data, 'officeId': offices[1], 'staffId': remote_staff['id']}, token, 201)
+    assert remote_appointment['clientId'] == company_id
+    assert len(request('GET', f'/api/v1/admin/appointments?clientId={company_id}', token=admin_token)['data']) == 1
+    assert len(request('GET', f'/api/v1/admin/appointments?clientId={company_id}', token=token)['data']) == 2
+    request('PATCH', f"/api/v1/admin/appointments/{remote_appointment['id']}", {'title':'Denied'}, admin_token, 403)
+    request('POST', f"/api/v1/organizations/{contractor['id']}/clients", {'clientId':remote_employee['id']}, token)
+    local_company = request('GET', f"/api/v1/organizations/{contractor['id']}", token=admin_token)
+    assert {row['client']['id'] for row in local_company['clients']} == {company_id, employee['id']}
+    request('GET', f'/api/v1/admin/users/{company_id}', token=admin_token)
     request('POST', '/api/v1/admin/cases', {'clientId': company_id, 'officeId': offices[0], 'title': 'Invalid', 'category': 'Legal'}, admin_token, 400)
     request('DELETE', f'/api/v1/admin/users/{company_id}', token=admin_token, expected=403)
     event = request('POST', '/api/v1/calendar/events', {'title': 'Company meeting', 'startTime': '2030-01-07T12:00:00Z', 'endTime': '2030-01-07T13:00:00Z', 'timeZone': 'UTC', 'relatedClientIds': [company_id, employee['id']], 'attendeeIds': []}, admin_token, 201)

@@ -452,7 +452,7 @@ shared form, confirms historical data survives unlinking, registers a company
 with all five legal fields and no email, links a contact, schedules a direct
 company appointment through live availability and creates a related-client
 event without inviting that client. It checks the normal Usuarios/Citas views,
-staff read-only access and narrow-screen layout. Screenshots go to
+management-only directory access (including direct URLs/API calls) and narrow-screen layout. Screenshots go to
 `/tmp/caf-organizations-e2e` or `CAF_E2E_ARTIFACT_DIR`.
 
 Production database/image verification includes these workflows:
@@ -519,3 +519,19 @@ references and snapshots, and retained prior-office audit values. Live API check
 also cover the removed route, invalid role assignment, globally readable factory
 metadata and office-scoped clients/cases. Test containers use temporary storage
 and are removed after completion.
+
+
+### Shared Constructoras and management-only directories
+
+Migration 0067 replay checks preserve duplicate companies, canonical account IDs,
+credentials/status, contacts and office-specific appointment/event history.
+The Go suite tests both management directories against all excluded roles,
+minimal employee workflow selectors, shared company identities in Usuarios,
+per-office contact and appointment visibility, duplicate names and guarded edits.
+The browser suite checks both direct pages and navigation for excluded roles,
+a shared company used by two offices, and the global appointment office picker.
+
+```bash
+docker build --platform linux/amd64 -t caf-api:shared-constructoras-review ./api
+CAF_TEST_API_IMAGE=caf-api:shared-constructoras-review python3 testing/technical-support-docker.py
+```

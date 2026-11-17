@@ -111,6 +111,7 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
     try {
       setSubmitError(null);
       const values = await form.validateFields();
+      if (user?.clientType === 'organization') values.officeId = null;
       if (values.role !== USER_ROLES.CLIENT || user?.clientType === 'organization') delete values.employment;
       if (!supportsProfessionalSpecialty(values.role)) delete values.specialty;
       if (isEditing && !values.password) delete values.password;
@@ -282,7 +283,7 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
               </Select>
             </Form.Item>
           </Col>
-          {!canAccessAllOffices(selectedRole) && (
+          {!canAccessAllOffices(selectedRole) && user?.clientType !== 'organization' && (
             <Col xs={24} sm={12}>
               <Form.Item
                 name="officeId"

@@ -11,6 +11,7 @@ import (
 
 	"github.com/BryanPMX/CAF/api/config"
 	"github.com/BryanPMX/CAF/api/models"
+	"github.com/BryanPMX/CAF/api/services"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -203,7 +204,7 @@ func calendarEventPreload(db *gorm.DB, actor models.User) *gorm.DB {
 		if actor.OfficeID == nil {
 			related = related.Where("1 = 0")
 		} else {
-			related = related.Where("office_id = ?", *actor.OfficeID)
+			related = services.OfficeClientUsers(related, *actor.OfficeID)
 		}
 	}
 	return db.Preload("RelatedClients", "client_id IN (?)", related).Preload("RelatedClients.Client", func(query *gorm.DB) *gorm.DB {
@@ -636,7 +637,7 @@ func validateRelatedClients(db *gorm.DB, actor models.User, ids []uint) error {
 		if actor.OfficeID == nil {
 			return errors.New("Se requiere oficina")
 		}
-		query = query.Where("office_id = ?", *actor.OfficeID)
+		query = services.OfficeClientUsers(query, *actor.OfficeID)
 	}
 	var count int64
 	if err := query.Count(&count).Error; err != nil {
@@ -653,7 +654,7 @@ func saveRelatedClients(tx *gorm.DB, actor models.User, eventID uint, ids []uint
 		if actor.OfficeID == nil {
 			return errors.New("Se requiere oficina")
 		}
-		query = query.Where("client_id IN (?)", tx.Session(&gorm.Session{NewDB: true}).Model(&models.User{}).Unscoped().Select("id").Where("office_id = ?", *actor.OfficeID))
+		query = query.Where("client_id IN (?)", services.OfficeClientUsers(tx.Session(&gorm.Session{NewDB: true}).Model(&models.User{}).Unscoped().Select("id"), *actor.OfficeID))
 	}
 	if err := query.Delete(&models.CalendarEventClient{}).Error; err != nil {
 		return err

@@ -26,7 +26,7 @@ test('executives and technical support have organization and website access', ()
     assert.equal(roles.getNavigationItemsForRole(role).some(item => item.key === 'web-content'), executive, role);
     assert.equal(roles.PERMISSIONS[role].includes('*'), executive, role);
     for (const key of ['maquilas', 'constructoras']) {
-      assert.equal(roles.getNavigationItemsForRole(role).some(item => item.key === key), role !== 'client', role);
+      assert.equal(roles.getNavigationItemsForRole(role).some(item => item.key === key), ['admin','executive_director','technical_support'].includes(role), role);
     }
   }
   assert.equal(roles.getRoleDisplayName('executive_director'), 'Director Ejecutivo');
@@ -64,6 +64,8 @@ test('management of a user depends on the actor and the target account', () => {
   assert.equal(roles.canManageUser(manager, executive), false);
   assert.equal(roles.canManageUser(manager, admin), false);
   assert.equal(roles.canManageUser(admin, employee), true);
+  assert.equal(roles.canManageUser(admin, {role: 'client', clientType: 'organization', officeId: null}), true);
+  assert.equal(roles.canManageUser(admin, {role: 'client', officeId: null}), false);
   assert.equal(roles.canManageUser(manager, employee), false);
   assert.equal(roles.canManageUser(admin, { ...employee, officeId: 2 }), false);
   assert.equal(roles.canManageUser({ role: 'admin' }, employee), false);

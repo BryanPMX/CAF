@@ -7,9 +7,10 @@ JWTs identify users; cookies and hidden navigation items are not authorization.
 | --- | --- | --- | --- |
 | Panel de Control | Organization totals; optional office filter | Organization totals; optional office filter | Assigned-office totals |
 | Cases, appointments, tasks and case documents | All offices | All offices | Assigned office, including direct IDs and mutations |
+| Maquilas and Constructoras | Shared catalog; all related records | Shared catalog; all related records | Shared catalog; office-scoped individual contacts/cases and services |
 | Internal calendar | All meetings | All meetings | Meetings whose organizer belongs to the assigned office |
 | Calendar invitations and employee selection | All employees | All employees | Assigned-office employees |
-| User details and role assignments | All users; can assign executive role | All offices except protected support account; can assign executive role | Assigned office; cannot modify executives or support |
+| User details and role assignments | All users; can assign executive role | All offices except protected support account; can assign executive role | Assigned office plus canonical shared company accounts; cannot modify executives or support |
 | Change an existing user's password | Allowed, including own account and CEO | Denied | Denied |
 | Office details | All offices; create, edit and delete | All offices; create, edit and delete | View and edit assigned office; cannot create or delete offices |
 | Archives and reports, including CSV exports | All offices | All offices | Assigned office |
@@ -182,16 +183,14 @@ removal explicitly sends an empty avatar URL and clears the shared avatar state.
 
 ## Client organizations
 
-Maquilas are shared across offices; Constructoras remain office-owned.
-Administradores and global roles can register/edit shared factory names.
-Factory client/case data and construction-company records retain office scope;
-other employees can read the shared factory catalog and authorized related
-records. Clients are denied.
-Factory case lists also apply existing case assignment/category restrictions.
-Construction companies have canonical client accounts and direct appointments
+Both catalogs are shared across offices and restricted to Administrador,
+Director Ejecutivo and Soporte Tecnico. Related individual clients and services
+retain their own access rules. Other employees use minimal selectors in existing
+workflows; they cannot browse either full directory. Clients are denied.
+Construction companies keep canonical client accounts and direct appointments
 without cases. Related calendar clients never become attendees or acquire
 calendar access. See [client organizations](CLIENT_ORGANIZATIONS.md) for the
-shared data contract, historical employment behavior and migration `0063`.
+shared data contract, historical employment behavior and migrations 0063–0067.
 
 
 ## Retired office-management role
@@ -206,3 +205,18 @@ an office remains blocked until CEO/support assigns its responsible office.
 Shared maquila metadata does not widen client/case visibility. Migration `0066`
 preserves every factory ID, membership and historical case reference while
 moving the catalog to global scope. See [client organizations](CLIENT_ORGANIZATIONS.md).
+
+
+## Shared organizations
+
+Maquilas and Constructoras pages and full directory APIs are restricted to
+Administrador, Director Ejecutivo and Soporte Tecnico. Other roles receive 403
+on direct API access and cannot open either page. Employee case/calendar forms
+retain minimal workflow selectors without access to legal registry details.
+
+Both registries are shared. Canonical company client accounts have no owning
+office; the same ID appears in Usuarios across offices. Individual contacts,
+cases and appointments retain their office boundaries, and event access follows
+its organizer/participants. Company metadata edits do not grant access to foreign
+individuals or service records. Migration 0067 preserves former company/account
+office IDs for audit and leaves all service IDs/history intact.

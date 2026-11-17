@@ -32,6 +32,9 @@ export interface OrganizationDetail {
   }[];
 }
 export const OrganizationService = {
+  async factories(q = "", id?: number) {
+    return (await apiClient.get<{data: Pick<Organization, "id" | "name">[]}>("/maquila-options", {params: {q, id}})).data.data;
+  },
   async list(
     kind: OrganizationKind,
     q = "",

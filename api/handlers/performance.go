@@ -14,6 +14,7 @@ import (
 
 	"github.com/BryanPMX/CAF/api/middleware"
 	"github.com/BryanPMX/CAF/api/models"
+	"github.com/BryanPMX/CAF/api/services"
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis/v8"
 	"gorm.io/gorm"
@@ -481,7 +482,7 @@ func (h *PerformanceOptimizedHandler) buildOptimizedUsersQuery(params Pagination
 		Where("deleted_at IS NULL")
 
 	// Apply access control
-	query = h.applyAccessControl(query, c)
+	query = scopedUserRecords(query, c)
 
 	// Apply search
 	if params.Search != "" {
@@ -505,7 +506,12 @@ func (h *PerformanceOptimizedHandler) buildOptimizedUsersQuery(params Pagination
 			}
 		case "office_id":
 			if officeID, ok := value.(string); ok && officeID != "" {
-				query = query.Where("office_id = ?", officeID)
+				parsed, err := strconv.ParseUint(officeID, 10, 32)
+				if err != nil || parsed == 0 {
+					query = query.Where("1 = 0")
+				} else {
+					query = services.OfficeClientUsers(query, uint(parsed))
+				}
 			}
 		case "is_active":
 			if isActive, ok := value.(bool); ok {

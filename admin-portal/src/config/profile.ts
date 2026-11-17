@@ -10,6 +10,7 @@ export const PROFILE_TEXT = {
   globalScope: 'Acceso a todas las oficinas',
   officeScope: 'Acceso según su oficina y funciones',
   clientScope: 'Cuenta de cliente',
+  companyScope: 'Registro de constructora compartido entre oficinas',
   specialtyHint: 'Área profesional de atención. Solo aplica a abogacía y psicología.',
   account: 'Cuenta',
   email: 'Correo electrónico',

@@ -11,6 +11,7 @@ import (
 
 	"github.com/BryanPMX/CAF/api/config"
 	"github.com/BryanPMX/CAF/api/models"
+	"github.com/BryanPMX/CAF/api/services"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -92,6 +93,18 @@ func officeScopedQuery(query *gorm.DB, c *gin.Context, column string) *gorm.DB {
 	return query.Where("1 = 0")
 }
 
+func scopedUserRecords(query *gorm.DB, c *gin.Context) *gorm.DB {
+	if config.CanAccessAllOffices(c.GetString("userRole")) {
+		return query
+	}
+	if office, ok := c.Get("officeScopeID"); ok {
+		if id, ok := office.(uint); ok {
+			return services.OfficeClientUsers(query, id)
+		}
+	}
+	return query.Where("1 = 0")
+}
+
 func authorizeUserChange(c *gin.Context, existing *models.User, role string, officeID **uint) bool {
 	value, _ := c.Get("currentUser")
 	actor, ok := value.(models.User)
@@ -104,6 +117,13 @@ func authorizeUserChange(c *gin.Context, existing *models.User, role string, off
 		(existing != nil && existing.Role == config.RoleTechnicalSupport && role != existing.Role) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "The technical support account is protected"})
 		return false
+	}
+	if existing != nil && existing.ClientType == models.ClientOrganization {
+		if !config.IsManagementRole(actor.Role) || (!config.CanAccessAllOffices(actor.Role) && (actor.OfficeID == nil || *actor.OfficeID == 0)) || role != "client" || *officeID != nil {
+			c.JSON(http.StatusForbidden, gin.H{"error": "La cuenta compartida de la constructora conserva su rol y no tiene oficina"})
+			return false
+		}
+		return true
 	}
 	if config.CanAccessAllOffices(actor.Role) {
 		if config.CanAccessAllOffices(role) {

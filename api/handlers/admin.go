@@ -217,17 +217,8 @@ func GetUsers(db *gorm.DB) gin.HandlerFunc {
 		query := db.Preload("Office").Preload("OrganizationMemberships.Organization").Order("users.created_at desc")
 		countQ := db.Model(&models.User{})
 
-		// Restrict to requester's office for non-admin roles when office scope is available
-		if roleVal, exists := c.Get("userRole"); exists {
-			if role, ok := roleVal.(string); ok && !config.CanAccessAllOffices(role) {
-				if officeScopeVal, ok2 := c.Get("officeScopeID"); ok2 {
-					if officeID, ok3 := officeScopeVal.(uint); ok3 {
-						query = query.Where("office_id = ?", officeID)
-						countQ = countQ.Where("office_id = ?", officeID)
-					}
-				}
-			}
-		}
+		query = scopedUserRecords(query, c)
+		countQ = scopedUserRecords(countQ, c)
 
 		// Filter by role if specified
 		if role := c.Query("role"); role != "" {
@@ -238,8 +229,8 @@ func GetUsers(db *gorm.DB) gin.HandlerFunc {
 		// Optional filter by officeId (primarily for admin; for non-admin it will still remain within their scoped office)
 		if officeIDParam := c.Query("officeId"); officeIDParam != "" {
 			if officeIDUint, err := strconv.ParseUint(officeIDParam, 10, 32); err == nil && officeIDUint > 0 {
-				query = query.Where("office_id = ?", uint(officeIDUint))
-				countQ = countQ.Where("office_id = ?", uint(officeIDUint))
+				query = services.OfficeClientUsers(query, uint(officeIDUint))
+				countQ = services.OfficeClientUsers(countQ, uint(officeIDUint))
 			}
 		}
 
@@ -520,7 +511,7 @@ func GetUserByID(db *gorm.DB) gin.HandlerFunc {
 		var user models.User
 
 		// Use Preload to efficiently load user with office and case assignments
-		query := officeScopedQuery(db.Preload("Office").Preload("OrganizationMemberships.Organization"), c, "users.office_id").Where("id = ? AND deleted_at IS NULL", userID)
+		query := scopedUserRecords(db.Preload("Office").Preload("OrganizationMemberships.Organization"), c).Where("id = ? AND deleted_at IS NULL", userID)
 
 		if err := query.First(&user).Error; err != nil {
 			if err == gorm.ErrRecordNotFound {

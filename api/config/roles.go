@@ -257,3 +257,6 @@ func CanManageAccount(actorRole, targetRole string) bool {
 	}
 	return actorRole == RoleAdmin
 }
+
+// CanAccessOrganizationDirectory is shared by both management-only registries.
+func CanAccessOrganizationDirectory(role string) bool { return IsManagementRole(role) }

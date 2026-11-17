@@ -197,3 +197,5 @@ If your environment restricts the default Go cache path, you can use a workspace
 mkdir -p .gocache
 GOCACHE=$(pwd)/.gocache go test ./...
 ```
+
+Maquilas/Constructoras full directory APIs require Administrador, Director Ejecutivo or Soporte Tecnico. Both catalogs and canonical company client accounts are shared across offices; contacts and services retain their independent access boundaries. `GET /maquila-options` and existing employee workflow selectors expose minimal data. See [organization contracts and migration 0067](../docs/CLIENT_ORGANIZATIONS.md).

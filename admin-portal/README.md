@@ -100,7 +100,7 @@ The protected root route (`/`) is a role-aware operations dashboard backed exclu
 - Every non-client employee role can create cases and appointments. Creation requests use the role-specific API group and employees other than Soporte Tecnico/Director Ejecutivo are restricted to clients, staff, cases, and offices within their assigned office.
 - Summary cards link to the corresponding workflows and distribution charts visualize current case and appointment states without mock data.
 - Operational alerts are derived from pending tasks, today's appointments, and unread notifications.
-- Soporte Tecnico/Director Ejecutivo office filtering is applied server-side and includes an explicit "Todas las oficinas" option. Administrador and office-manager scope remains enforced by the API.
+- Soporte Tecnico/Director Ejecutivo office filtering is applied server-side and includes an explicit "Todas las oficinas" option. Administrador scope remains enforced by the API.
 - Data refreshes every 30 seconds and can be refreshed manually. The UI differentiates initial loading from background synchronization.
 - Reusable dashboard components keep presentation, data access, normalization, and alert derivation separate.
 
@@ -311,3 +311,5 @@ CMD ["npm", "start"]
 ```
 
 This frontend architecture provides a scalable, maintainable, and performant foundation for the CAF administrative interface, with strong emphasis on developer experience, security, and user experience.
+
+Maquilas and Constructoras are shared catalogs restricted to Administrador, Director Ejecutivo and Soporte Tecnico. Direct pages and API requests enforce this policy. Company client accounts are shared across offices; appointments select their responsible office independently. Individual contacts and service records retain existing office boundaries. See [organization contracts and migration 0067](../docs/CLIENT_ORGANIZATIONS.md).

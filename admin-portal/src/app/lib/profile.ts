@@ -11,6 +11,7 @@ export interface ProfileOrganizationInfo {
 }
 
 export interface UserProfile {
+  clientType?: "person" | "organization";
   organizationInfo?: ProfileOrganizationInfo;
   organizationMemberships?: OrganizationMembership[];
   firstName: string;

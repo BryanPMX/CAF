@@ -12,7 +12,7 @@ export const ORGANIZATION_TEXT = {
     singular: "Constructora",
     add: "Registrar constructora",
     description:
-      "Datos de las empresas, contactos y citas sin necesidad de abrir un expediente.",
+      "Directorio compartido de empresas. Contactos y citas según su oficina responsable.",
   },
   viewAppointments: "Ver citas",
   createEvent: "Crear evento",
@@ -27,6 +27,11 @@ export const ORGANIZATION_TEXT = {
   sharedCatalog: "Directorio compartido por todas las oficinas",
   sharedFactoryHint:
     "La maquila no pertenece a una oficina. Cada cliente y expediente conserva su oficina responsable.",
+  sharedCompanyHint:
+    "La constructora no pertenece a una oficina. Cada contacto, cita y evento conserva su alcance de acceso.",
+  sharedCompany: "Todas las oficinas",
+  denied: "No tiene acceso a este directorio.",
+  deniedHint: "Disponible para Administradores, Director Ejecutivo y Soporte Tecnico.",
   assignedClientHint:
     "El cliente debe tener una oficina responsable. Vincular una maquila no cambia esa oficina.",
   officeRequired:

@@ -11,14 +11,14 @@ import {
   Input,
   Modal,
   Popconfirm,
-  Select,
+  Result,
   Table,
   Tabs,
   Tag,
 } from "antd";
 import dayjs from "dayjs";
 import { useAuth } from "@/context/AuthContext";
-import { isManagementRole, canAccessAllOffices } from "@/config/roles";
+import { canAccessOrganizationDirectory, canAccessAllOffices } from "@/config/roles";
 import {
   ORGANIZATION_TEXT as text,
   type OrganizationKind,
@@ -28,10 +28,6 @@ import {
   type OrganizationClientRow,
   type OrganizationDetail,
 } from "@/services/organizationService";
-import {
-  WorkflowService,
-  type WorkflowOffice,
-} from "@/services/workflowService";
 import { getCaseStatusDisplayName } from "@/config/statuses";
 import { CalendarService } from "@/services/calendarService";
 import type { CalendarStaffMember } from "@/app/lib/calendar";
@@ -64,7 +60,6 @@ export default function OrganizationDirectory({
   const [form] = Form.useForm();
   const [linkForm] = Form.useForm();
   const [records, setRecords] = useState<Organization[]>([]);
-  const [offices, setOffices] = useState<WorkflowOffice[]>([]);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [q, setQ] = useState("");
@@ -89,10 +84,10 @@ export default function OrganizationDirectory({
   const [eventClients, setEventClients] = useState<ClientOption[] | null>(null);
   const [calendarStaff, setCalendarStaff] = useState<CalendarStaffMember[]>([]);
   const [eventDate] = useState(() => dayjs());
-  const canEdit = Boolean(user && isManagementRole(user.role));
+  const canEdit = Boolean(user && canAccessOrganizationDirectory(user.role));
 
   useEffect(() => {
-    if (!user || user.role === "client") return;
+    if (!canEdit) return;
     let active = true;
     const timer = setTimeout(() => {
       setLoading(true);
@@ -115,10 +110,10 @@ export default function OrganizationDirectory({
       active = false;
       clearTimeout(timer);
     };
-  }, [kind, q, page, revision, user]);
+  }, [kind, q, page, revision, canEdit]);
 
   useEffect(() => {
-    if (!selectedId) {
+    if (!canEdit || !selectedId) {
       setDetail(null);
       return;
     }
@@ -140,7 +135,7 @@ export default function OrganizationDirectory({
     return () => {
       active = false;
     };
-  }, [selectedId, revision, kind, clientPage, casePage]);
+  }, [selectedId, revision, kind, clientPage, casePage, canEdit]);
 
   useEffect(() => {
     const id = Number(
@@ -148,18 +143,6 @@ export default function OrganizationDirectory({
     );
     if (Number.isInteger(id) && id > 0) setSelectedId(id);
   }, []);
-  useEffect(() => {
-    if (!user || !canEdit) return;
-    let active = true;
-    WorkflowService.listOffices(user.role)
-      .then((rows) => {
-        if (active) setOffices(rows);
-      })
-      .catch(() => {});
-    return () => {
-      active = false;
-    };
-  }, [user, canEdit]);
   useEffect(() => {
     if (eventClients === null) return;
     let active = true;
@@ -183,10 +166,6 @@ export default function OrganizationDirectory({
         : undefined;
     form.setFieldsValue({
       ...record,
-      officeId:
-        kind === "constructora"
-          ? record?.officeId || user?.officeId
-          : undefined,
       email: account?.email || "",
       phone: account?.phone || "",
     });
@@ -200,7 +179,7 @@ export default function OrganizationDirectory({
         {
           ...values,
           kind,
-          officeId: kind === "constructora" ? values.officeId : undefined,
+          officeId: undefined,
         },
         editor?.record?.id,
       );
@@ -302,6 +281,8 @@ export default function OrganizationDirectory({
     </div>
   );
 
+  if (!canEdit) return <Result status="403" title={text.denied} subTitle={text.deniedHint} />;
+
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -362,23 +343,10 @@ export default function OrganizationDirectory({
                 >
                   {record.name}
                 </Button>
-                {kind === "maquila" && (
-                  <span className="ml-3 text-xs text-slate-400">
-                    #{record.id}
-                  </span>
-                )}
+                <span className="ml-3 text-xs text-slate-400">#{record.id}</span>
               </>
             ),
           },
-          ...(kind === "constructora"
-            ? [
-                {
-                  title: text.office,
-                  dataIndex: ["office", "name"],
-                  key: "office",
-                },
-              ]
-            : []),
         ]}
         locale={{ emptyText: text.empty }}
       />
@@ -433,12 +401,8 @@ export default function OrganizationDirectory({
                       items={[
                         {
                           key: "office",
-                          label:
-                            kind === "constructora" ? text.office : text.scope,
-                          children:
-                            kind === "constructora"
-                              ? detail.organization.office?.name
-                              : text.sharedFactoryHint,
+                          label: text.scope,
+                          children: kind === "constructora" ? text.sharedCompanyHint : text.sharedFactoryHint,
                         },
                         ...(kind === "constructora"
                           ? [
@@ -499,13 +463,12 @@ export default function OrganizationDirectory({
                             </>
                           ),
                         },
-                        ...(kind === "maquila" &&
-                        canAccessAllOffices(user?.role || "")
+                        ...(canAccessAllOffices(user?.role || "")
                           ? [
                               {
                                 key: "office",
                                 title: text.office,
-                                dataIndex: ["client", "office", "name"],
+                                render: (_: unknown, row: OrganizationClientRow) => row.client.clientType === "organization" ? text.sharedCompany : row.client.office?.name || "—",
                               },
                             ]
                           : []),
@@ -649,26 +612,6 @@ export default function OrganizationDirectory({
           {kind === "constructora" && (
             <>
               <Form.Item
-                name="officeId"
-                label={text.office}
-                rules={[{ required: true, message: text.required }]}
-              >
-                <Select
-                  disabled={
-                    Boolean(editor?.record) ||
-                    !canAccessAllOffices(user?.role || "")
-                  }
-                  options={offices.map((office) => ({
-                    value: office.id,
-                    label: office.name,
-                  }))}
-                />
-              </Form.Item>
-            </>
-          )}
-          {kind === "constructora" && (
-            <>
-              <Form.Item
                 name="legalRepresentative"
                 label={text.legalRepresentative}
                 rules={[{ required: true, message: text.required }]}
@@ -735,7 +678,6 @@ export default function OrganizationDirectory({
             rules={[{ required: true, message: text.required }]}
           >
             <ClientSelect
-              officeId={detail?.organization.officeId || undefined}
               clientType="person"
             />
           </Form.Item>

@@ -1,5 +1,7 @@
 "use client";
 import Link from "next/link";
+import { useAuth } from "@/context/AuthContext";
+import { canAccessOrganizationDirectory } from "@/config/roles";
 import { Descriptions, Tag } from "antd";
 import type {
   OrganizationMembership,
@@ -14,6 +16,8 @@ export function EmploymentSummary({
   employment: Partial<EmploymentInput>;
   maquila?: Pick<Organization, "id" | "name">;
 }) {
+  const { user } = useAuth();
+  const canBrowse = canAccessOrganizationDirectory(user?.role || "");
   if (!employment.maquilaId) return null;
   return (
     <section
@@ -28,13 +32,13 @@ export function EmploymentSummary({
           {
             key: "maquila",
             label: text.maquila.singular,
-            children: (
+            children: canBrowse ? (
               <Link
                 href={`/app/maquilas?organizationId=${employment.maquilaId}`}
               >
                 {maquila?.name || text.maquila.singular}
               </Link>
-            ),
+            ) : (maquila?.name || text.maquila.singular),
           },
           {
             key: "employee",
@@ -65,6 +69,8 @@ export default function OrganizationLinks({
 }: {
   memberships?: OrganizationMembership[];
 }) {
+  const { user } = useAuth();
+  const canBrowse = canAccessOrganizationDirectory(user?.role || "");
   if (!memberships?.length) return null;
   return (
     <section
@@ -80,11 +86,11 @@ export default function OrganizationLinks({
             member.organization && (
               <div key={member.id}>
                 <Tag>
-                  <Link
+                  {canBrowse ? <Link
                     href={`/app/${member.organization.kind === "maquila" ? "maquilas" : "constructoras"}?organizationId=${member.organizationId}`}
                   >
                     {member.organization.name}
-                  </Link>
+                  </Link> : member.organization.name}
                 </Tag>
                 {member.organization.kind === "maquila" && (
                   <p className="mt-2 text-sm text-slate-600">

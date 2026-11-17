@@ -34,36 +34,34 @@ type organizationClientRow struct {
 	Historical bool                       `json:"historical"`
 }
 
-func organizationActor(c *gin.Context, write bool) (models.User, bool) {
+func workflowClientActor(c *gin.Context) (models.User, bool) {
 	value, _ := c.Get("currentUser")
 	actor, ok := value.(models.User)
-	if !ok || actor.Role == "client" || (!config.CanAccessAllOffices(actor.Role) && (actor.OfficeID == nil || *actor.OfficeID == 0)) {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Sin acceso a este directorio"})
-		return actor, false
-	}
-	if write && !config.IsManagementRole(actor.Role) {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Solo el personal de administración puede modificar el directorio"})
+	if !ok || !config.IsValidRole(actor.Role) || actor.Role == "client" || (!config.CanAccessAllOffices(actor.Role) && (actor.OfficeID == nil || *actor.OfficeID == 0)) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Sin acceso a estos registros"})
 		return actor, false
 	}
 	return actor, true
 }
-func scopedOrganizations(db *gorm.DB, actor models.User) *gorm.DB {
-	if config.CanAccessAllOffices(actor.Role) {
-		return db
+func organizationActor(c *gin.Context) (models.User, bool) {
+	actor, ok := workflowClientActor(c)
+	if !ok {
+		return actor, false
 	}
-	if actor.OfficeID == nil {
-		return db.Where("1 = 0")
+	if !config.CanAccessOrganizationDirectory(actor.Role) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Sin acceso a este directorio"})
+		return actor, false
 	}
-	return db.Where("(organizations.kind = ? OR organizations.office_id = ?)", models.OrganizationMaquila, *actor.OfficeID)
+	return actor, true
 }
-func loadOrganization(db *gorm.DB, c *gin.Context, actor models.User) (models.Organization, bool) {
+func loadOrganization(db *gorm.DB, c *gin.Context) (models.Organization, bool) {
 	var organization models.Organization
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil || id == 0 {
 		c.JSON(400, gin.H{"error": "Registro no válido"})
 		return organization, false
 	}
-	if err := scopedOrganizations(db, actor).Preload("Office").First(&organization, uint(id)).Error; err != nil {
+	if err := db.Preload("Office").First(&organization, uint(id)).Error; err != nil {
 		c.JSON(404, gin.H{"error": "Registro no disponible"})
 		return organization, false
 	}
@@ -84,7 +82,7 @@ func organizationFailure(c *gin.Context, err error) {
 
 func ListOrganizations(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		actor, ok := organizationActor(c, false)
+		_, ok := organizationActor(c)
 		if !ok {
 			return
 		}
@@ -93,7 +91,7 @@ func ListOrganizations(db *gorm.DB) gin.HandlerFunc {
 			c.JSON(400, gin.H{"error": "Tipo de directorio no válido"})
 			return
 		}
-		query := scopedOrganizations(db, actor).Model(&models.Organization{}).Where("kind = ?", kind)
+		query := db.Model(&models.Organization{}).Where("kind = ?", kind)
 		if q := strings.TrimSpace(c.Query("q")); q != "" {
 			query = query.Where("LOWER(organizations.name) LIKE ?", "%"+strings.ToLower(q)+"%")
 		}
@@ -104,9 +102,6 @@ func ListOrganizations(db *gorm.DB) gin.HandlerFunc {
 				return
 			}
 			query = query.Where("organizations.id = ?", parsed)
-		}
-		if office := c.Query("officeId"); office != "" && kind == models.OrganizationContractor {
-			query = query.Where("organizations.office_id = ?", office)
 		}
 		page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 		if page < 1 {
@@ -138,14 +133,14 @@ func SaveOrganization(db *gorm.DB, create bool) gin.HandlerFunc {
 
 func saveOrganization(db *gorm.DB, create bool) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		actor, ok := organizationActor(c, true)
+		_, ok := organizationActor(c)
 		if !ok {
 			return
 		}
 		var existing models.Organization
 		if !create {
 			var available bool
-			existing, available = loadOrganization(db, c, actor)
+			existing, available = loadOrganization(db, c)
 			if !available {
 				return
 			}
@@ -169,33 +164,9 @@ func saveOrganization(db *gorm.DB, create bool) gin.HandlerFunc {
 			c.JSON(400, gin.H{"error": "Tipo no válido"})
 			return
 		}
-		if input.Kind == models.OrganizationMaquila {
-			if input.OfficeID != 0 {
-				c.JSON(400, gin.H{"error": "Las maquilas se comparten entre todas las oficinas"})
-				return
-			}
-		} else {
-			if !create && existing.OfficeID != nil {
-				if input.OfficeID == 0 {
-					input.OfficeID = *existing.OfficeID
-				}
-				if input.OfficeID != *existing.OfficeID {
-					c.JSON(400, gin.H{"error": "La oficina del registro no puede cambiarse"})
-					return
-				}
-			}
-			if !config.CanAccessAllOffices(actor.Role) {
-				if input.OfficeID != 0 && input.OfficeID != *actor.OfficeID {
-					c.JSON(403, gin.H{"error": "Oficina fuera de su alcance"})
-					return
-				}
-				input.OfficeID = *actor.OfficeID
-			}
-			var office models.Office
-			if input.OfficeID == 0 || db.First(&office, input.OfficeID).Error != nil {
-				c.JSON(400, gin.H{"error": "Oficina no disponible"})
-				return
-			}
+		if input.OfficeID != 0 {
+			c.JSON(400, gin.H{"error": "Los directorios se comparten entre todas las oficinas"})
+			return
 		}
 		for _, field := range []string{input.Name, input.LegalRepresentative, input.BoardPresident, input.Neighborhood, input.Phone} {
 			if utf8.RuneCountInString(field) > 255 {
@@ -220,21 +191,14 @@ func saveOrganization(db *gorm.DB, create bool) gin.HandlerFunc {
 			return
 		}
 		err := db.Transaction(func(tx *gorm.DB) error {
-			if input.Kind == models.OrganizationMaquila && (create || !strings.EqualFold(strings.TrimSpace(existing.Name), input.Name)) {
-				var count int64
-				if err := tx.Model(&models.Organization{}).Where("kind = ? AND LOWER(TRIM(name)) = LOWER(?) AND id <> ?", models.OrganizationMaquila, input.Name, existing.ID).Count(&count).Error; err != nil {
+			if create || !strings.EqualFold(strings.TrimSpace(existing.Name), input.Name) {
+				if err := services.EnsureOrganizationNameAvailable(tx, input.Kind, input.Name, existing.ID); err != nil {
 					return err
-				}
-				if count > 0 {
-					return gorm.ErrDuplicatedKey
 				}
 			}
 			record := existing
 			record.Kind = input.Kind
 			record.OfficeID = nil
-			if input.Kind == models.OrganizationContractor {
-				record.OfficeID = &input.OfficeID
-			}
 			record.Name = input.Name
 			record.LegalRepresentative = input.LegalRepresentative
 			record.LegalAddress = input.LegalAddress
@@ -245,7 +209,7 @@ func saveOrganization(db *gorm.DB, create bool) gin.HandlerFunc {
 				if err != nil {
 					return err
 				}
-				client := models.User{FirstName: input.Name, LastName: "", Email: input.Email, Phone: input.Phone, Role: "client", ClientType: models.ClientOrganization, OfficeID: &input.OfficeID, Password: hash, IsActive: true}
+				client := models.User{FirstName: input.Name, LastName: "", Email: input.Email, Phone: input.Phone, Role: "client", ClientType: models.ClientOrganization, Password: hash, IsActive: true}
 				if err := tx.Create(&client).Error; err != nil {
 					return err
 				}
@@ -281,11 +245,11 @@ func saveOrganization(db *gorm.DB, create bool) gin.HandlerFunc {
 
 func GetOrganization(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		actor, ok := organizationActor(c, false)
+		actor, ok := organizationActor(c)
 		if !ok {
 			return
 		}
-		organization, ok := loadOrganization(db, c, actor)
+		organization, ok := loadOrganization(db, c)
 		if !ok {
 			return
 		}
@@ -313,11 +277,8 @@ func GetOrganization(db *gorm.DB) gin.HandlerFunc {
 		}
 		memberIDs := db.Model(&models.OrganizationClient{}).Select("client_id").Where("organization_id = ?", organization.ID)
 		clientQuery := db.Model(&models.User{}).Where("role = ?", "client")
-		if organization.Kind == models.OrganizationContractor {
-			clientQuery = clientQuery.Where("office_id = ?", organization.OfficeID)
-		}
 		if !config.CanAccessAllOffices(actor.Role) {
-			clientQuery = clientQuery.Where("office_id = ?", *actor.OfficeID)
+			clientQuery = services.OfficeClientUsers(clientQuery, *actor.OfficeID)
 		}
 		if organization.Kind == models.OrganizationMaquila {
 			historical := caseQuery.Session(&gorm.Session{}).Select("cases.client_id")
@@ -361,7 +322,7 @@ func GetOrganization(db *gorm.DB) gin.HandlerFunc {
 		var account *models.User
 		if organization.AccountClientID != nil {
 			var user models.User
-			if err := db.Where("id = ? AND office_id = ?", *organization.AccountClientID, organization.OfficeID).First(&user).Error; err == nil {
+			if err := db.Where("id = ? AND role = ? AND client_type = ? AND office_id IS NULL", *organization.AccountClientID, "client", models.ClientOrganization).First(&user).Error; err == nil {
 				account = &user
 			}
 		}
@@ -371,11 +332,11 @@ func GetOrganization(db *gorm.DB) gin.HandlerFunc {
 
 func LinkOrganizationClient(db *gorm.DB, remove bool) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		actor, ok := organizationActor(c, true)
+		actor, ok := organizationActor(c)
 		if !ok {
 			return
 		}
-		organization, ok := loadOrganization(db, c, actor)
+		organization, ok := loadOrganization(db, c)
 		if !ok {
 			return
 		}
@@ -401,17 +362,17 @@ func LinkOrganizationClient(db *gorm.DB, remove bool) gin.HandlerFunc {
 		err := db.Transaction(func(tx *gorm.DB) error {
 			var client models.User
 			query := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ? AND role = ? AND is_active = ?", input.ClientID, "client", true)
-			if organization.Kind == models.OrganizationContractor {
-				query = query.Where("office_id = ?", organization.OfficeID)
-			}
 			if !config.CanAccessAllOffices(actor.Role) {
-				query = query.Where("office_id = ?", *actor.OfficeID)
+				query = services.OfficeClientUsers(query, *actor.OfficeID)
 			}
 			if err := query.First(&client).Error; err != nil {
 				return services.InvalidOrganization("Cliente no disponible en esta oficina")
 			}
 			if client.ClientType == models.ClientOrganization {
 				return services.InvalidOrganization("Vincule una persona; la cuenta de una constructora ya tiene su propio registro")
+			}
+			if !remove && (client.OfficeID == nil || *client.OfficeID == 0) {
+				return services.InvalidOrganization("Asigne una oficina responsable al cliente antes de vincularlo")
 			}
 			if remove {
 				return tx.Where("organization_id = ? AND client_id = ?", organization.ID, client.ID).Delete(&models.OrganizationClient{}).Error
@@ -431,21 +392,25 @@ func LinkOrganizationClient(db *gorm.DB, remove bool) gin.HandlerFunc {
 
 func GetClientOrganizations(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		actor, ok := organizationActor(c, false)
+		actor, ok := workflowClientActor(c)
 		if !ok {
 			return
 		}
 		var client models.User
 		query := db.Where("id = ? AND role = ?", c.Param("clientId"), "client")
 		if !config.CanAccessAllOffices(actor.Role) {
-			query = query.Where("office_id = ?", *actor.OfficeID)
+			query = services.OfficeClientUsers(query, *actor.OfficeID)
 		}
 		if err := query.First(&client).Error; err != nil {
 			c.JSON(404, gin.H{"error": "Cliente no disponible"})
 			return
 		}
 		memberships := []models.OrganizationClient{}
-		if err := db.Preload("Organization").Where("client_id = ?", client.ID).Find(&memberships).Error; err != nil {
+		membershipQuery := db.Preload("Organization")
+		if !config.CanAccessOrganizationDirectory(actor.Role) {
+			membershipQuery = db.Preload("Organization", func(query *gorm.DB) *gorm.DB { return query.Select("id, kind, name") }).Where("organization_id IN (?)", db.Model(&models.Organization{}).Select("id").Where("kind = ?", models.OrganizationMaquila))
+		}
+		if err := membershipQuery.Where("client_id = ?", client.ID).Find(&memberships).Error; err != nil {
 			c.JSON(500, gin.H{"error": "No se pudieron cargar las relaciones"})
 			return
 		}
@@ -457,16 +422,21 @@ func GetClientOrganizations(db *gorm.DB) gin.HandlerFunc {
 // appointment and calendar forms. Client credentials and addresses are excluded.
 func ClientOptions(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		actor, ok := organizationActor(c, false)
+		actor, ok := workflowClientActor(c)
 		if !ok {
 			return
 		}
 		query := db.Model(&models.User{}).Where("role = ? AND is_active = ?", "client", true)
 		if !config.CanAccessAllOffices(actor.Role) {
-			query = query.Where("office_id = ?", *actor.OfficeID)
+			query = services.OfficeClientUsers(query, *actor.OfficeID)
 		}
 		if office := c.Query("officeId"); office != "" {
-			query = query.Where("office_id = ?", office)
+			officeID, err := strconv.ParseUint(office, 10, 32)
+			if err != nil || officeID == 0 {
+				c.JSON(400, gin.H{"error": "Oficina no válida"})
+				return
+			}
+			query = services.OfficeClientUsers(query, uint(officeID))
 		}
 		if kind := c.Query("clientType"); kind != "" {
 			if kind != models.ClientPerson && kind != models.ClientOrganization {
@@ -496,5 +466,36 @@ func ClientOptions(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 		c.JSON(200, gin.H{"data": users})
+	}
+}
+
+// FactoryOptions exposes only names/IDs needed by existing case forms, never
+// directory details, memberships, totals or other offices' client data.
+func FactoryOptions(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if _, ok := workflowClientActor(c); !ok {
+			return
+		}
+		query := db.Model(&models.Organization{}).Where("kind = ?", models.OrganizationMaquila)
+		if q := strings.TrimSpace(c.Query("q")); q != "" {
+			query = query.Where("LOWER(name) LIKE ?", "%"+strings.ToLower(q)+"%")
+		}
+		if id := c.Query("id"); id != "" {
+			parsed, err := strconv.ParseUint(id, 10, 32)
+			if err != nil || parsed == 0 {
+				c.JSON(400, gin.H{"error": "Maquila no válida"})
+				return
+			}
+			query = query.Where("id = ?", parsed)
+		}
+		records := []struct {
+			ID   uint   `json:"id"`
+			Name string `json:"name"`
+		}{}
+		if err := query.Select("id, name").Order("name ASC").Limit(100).Scan(&records).Error; err != nil {
+			c.JSON(500, gin.H{"error": "No se pudieron cargar las maquilas"})
+			return
+		}
+		c.JSON(200, gin.H{"data": records})
 	}
 }

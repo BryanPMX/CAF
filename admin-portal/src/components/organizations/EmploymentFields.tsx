@@ -11,16 +11,16 @@ export default function EmploymentFields({
 }) {
   const form = Form.useFormInstance();
   const maquilaId = Form.useWatch(["employment", "maquilaId"], form);
-  const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [organizations, setOrganizations] = useState<Pick<Organization, "id" | "name">[]>([]);
   const [selectedOrganization, setSelectedOrganization] =
-    useState<Organization>();
+    useState<Pick<Organization, "id" | "name">>();
   const [search, setSearch] = useState("");
   useEffect(() => {
     let current = true;
     const timer = setTimeout(() => {
-      OrganizationService.list("maquila", search, 1, 100)
+      OrganizationService.factories(search)
         .then((result) => {
-          if (current) setOrganizations(result.data);
+          if (current) setOrganizations(result);
         })
         .catch(() => {
           if (current) setOrganizations([]);
@@ -37,9 +37,9 @@ export default function EmploymentFields({
       return;
     }
     let current = true;
-    OrganizationService.list("maquila", "", 1, 1, undefined, maquilaId)
+    OrganizationService.factories("", maquilaId)
       .then((result) => {
-        if (current) setSelectedOrganization(result.data[0]);
+        if (current) setSelectedOrganization(result[0]);
       })
       .catch(() => {
         if (current) setSelectedOrganization(undefined);

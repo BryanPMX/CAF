@@ -6,6 +6,7 @@ import (
 
 	"github.com/BryanPMX/CAF/api/config"
 	"github.com/BryanPMX/CAF/api/models"
+	"github.com/BryanPMX/CAF/api/services"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -39,7 +40,7 @@ func AdminOfficeAccess(db *gorm.DB) gin.HandlerFunc {
 				id = c.Param("clientId")
 			}
 			if id != "" {
-				query = db.Unscoped().Model(&models.User{}).Where("id = ? AND office_id = ? AND role NOT IN ?", id, *actor.OfficeID, []string{config.RoleExecutiveDirector, config.RoleTechnicalSupport})
+				query = services.OfficeClientUsers(db.Unscoped().Model(&models.User{}), *actor.OfficeID).Where("users.id = ? AND role NOT IN ?", id, []string{config.RoleExecutiveDirector, config.RoleTechnicalSupport})
 			}
 		case "offices":
 			if c.Request.Method == http.MethodPost || c.Request.Method == http.MethodDelete {

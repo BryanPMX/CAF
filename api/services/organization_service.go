@@ -143,34 +143,37 @@ func SyncOrganizationClient(tx *gorm.DB, user *models.User) error {
 	if user.ClientType != models.ClientOrganization {
 		return nil
 	}
-	if user.Role != "client" || user.LastName != "" || user.OfficeID == nil {
-		return InvalidOrganization("La cuenta de una constructora conserva su tipo, rol y oficina")
+	if user.Role != "client" || user.LastName != "" || user.OfficeID != nil {
+		return InvalidOrganization("La cuenta compartida de una constructora conserva su tipo y rol, sin oficina")
 	}
 	var organization models.Organization
 	if err := tx.Where("account_client_id = ?", user.ID).First(&organization).Error; err != nil {
 		return fmt.Errorf("constructora no disponible: %w", err)
 	}
-	if organization.OfficeID == nil || *organization.OfficeID != *user.OfficeID {
+	if organization.OfficeID != nil {
 		return InvalidOrganization("La oficina de la constructora no puede cambiarse desde Usuarios")
+	}
+	if !strings.EqualFold(strings.TrimSpace(organization.Name), strings.TrimSpace(user.FirstName)) {
+		if err := EnsureOrganizationNameAvailable(tx, models.OrganizationContractor, user.FirstName, organization.ID); err != nil {
+			return err
+		}
 	}
 	return tx.Model(&organization).Update("name", strings.TrimSpace(user.FirstName)).Error
 }
 
-// Memberships remain client records in the same office even when edited through Users.
+// Shared memberships follow the individual client's responsible office. Company
+// identities are global; changing a linked individual's role/removing their office
+// still requires unlinking, but authorized office transfers preserve relationships.
 func ValidateClientOrganizations(tx *gorm.DB, client models.User) error {
+	if client.Role == "client" && (client.ClientType == models.ClientOrganization || (client.OfficeID != nil && *client.OfficeID != 0)) {
+		return nil
+	}
 	var count int64
-	query := tx.Model(&models.OrganizationClient{}).Where("client_id = ?", client.ID)
-	if client.Role != "client" || client.OfficeID == nil {
-		if err := query.Count(&count).Error; err != nil {
-			return err
-		}
-	} else {
-		if err := query.Where("organization_id IN (?)", tx.Model(&models.Organization{}).Select("id").Where("kind = ? AND office_id <> ?", models.OrganizationContractor, *client.OfficeID)).Count(&count).Error; err != nil {
-			return err
-		}
+	if err := tx.Model(&models.OrganizationClient{}).Where("client_id = ?", client.ID).Count(&count).Error; err != nil {
+		return err
 	}
 	if count > 0 {
-		return InvalidOrganization("Desvincule las organizaciones antes de cambiar el rol o la oficina del cliente")
+		return InvalidOrganization("Desvincule las organizaciones antes de cambiar el rol o quitar la oficina del cliente")
 	}
 	return nil
 }
@@ -189,4 +192,26 @@ func SyncUserOrganizations(tx *gorm.DB, actor models.User, user *models.User, em
 		return err
 	}
 	return ValidateClientOrganizations(tx, *user)
+}
+
+// OfficeClientUsers includes only canonical shared company identities alongside
+// records assigned to this office. Service records must retain their own office filters.
+func OfficeClientUsers(query *gorm.DB, officeID uint) *gorm.DB {
+	if officeID == 0 {
+		return query.Where("1 = 0")
+	}
+	companies := query.Session(&gorm.Session{NewDB: true}).Model(&models.Organization{}).Select("account_client_id").Where("kind = ? AND office_id IS NULL", models.OrganizationContractor)
+	return query.Where("(users.office_id = ? OR (users.office_id IS NULL AND users.role = ? AND users.client_type = ? AND users.id IN (?)))", officeID, "client", models.ClientOrganization, companies)
+}
+
+// Call inside the user-mutation lock and transaction used by registry/Usuarios.
+func EnsureOrganizationNameAvailable(tx *gorm.DB, kind, name string, excludeID uint) error {
+	var count int64
+	if err := tx.Model(&models.Organization{}).Where("kind = ? AND LOWER(TRIM(name)) = LOWER(?) AND id <> ?", kind, strings.TrimSpace(name), excludeID).Count(&count).Error; err != nil {
+		return err
+	}
+	if count > 0 {
+		return gorm.ErrDuplicatedKey
+	}
+	return nil
 }

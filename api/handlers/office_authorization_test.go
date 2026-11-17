@@ -85,6 +85,7 @@ func authorizationSetup(t *testing.T) authorizationFixture {
 	client.PATCH("/profile", UpdateProfile(db))
 
 	base.GET("/client-options", ClientOptions(db))
+	base.GET("/maquila-options", FactoryOptions(db))
 	base.GET("/organizations", ListOrganizations(db))
 	base.POST("/organizations", SaveOrganization(db, true))
 	base.GET("/organizations/:id", GetOrganization(db))

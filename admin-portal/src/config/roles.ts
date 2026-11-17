@@ -50,6 +50,7 @@ export const isManagementRole = (role: string): boolean => {
 interface UserManagementSubject {
   role: string;
   officeId?: number | null;
+  clientType?: string;
 }
 
 export const USER_MANAGEMENT_DENIED_MESSAGE = 'No tiene permisos para modificar esta cuenta.';
@@ -64,8 +65,10 @@ export const canManageUser = (
   if (target.role === USER_ROLES.TECHNICAL_SUPPORT) return actor.role === USER_ROLES.TECHNICAL_SUPPORT;
   if (canAccessAllOffices(actor.role)) return true;
   if (target.role === USER_ROLES.EXECUTIVE_DIRECTOR) return false;
-  return Boolean(actor.officeId && target.officeId === actor.officeId);
+  return Boolean(actor.officeId && (target.officeId === actor.officeId || (target.role === USER_ROLES.CLIENT && target.clientType === 'organization' && target.officeId == null)));
 };
+
+export const canAccessOrganizationDirectory = (role: string): boolean => isManagementRole(role);
 
 export const isProfessionalRole = (role: string): boolean => {
   return role === USER_ROLES.LAWYER || role === USER_ROLES.PSYCHOLOGIST;
@@ -193,7 +196,7 @@ export const getNavigationItemsForRole = (role: string) => {
     ...(role !== USER_ROLES.CLIENT
       ? [{ key: 'calendar', label: 'Calendario', path: '/app/calendar', icon: 'ScheduleOutlined' }]
       : []),
-    ...(role !== USER_ROLES.CLIENT ? [
+    ...(canAccessOrganizationDirectory(role) ? [
       { key: 'maquilas', label: ORGANIZATION_TEXT.maquila.title, path: '/app/maquilas', icon: 'BuildOutlined' },
       { key: 'constructoras', label: ORGANIZATION_TEXT.constructora.title, path: '/app/constructoras', icon: 'ToolOutlined' },
     ] : []),

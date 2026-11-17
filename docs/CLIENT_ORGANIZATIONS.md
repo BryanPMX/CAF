@@ -2,24 +2,27 @@
 
 Both directories live in **Trabajo**, after Expedientes, Citas and Calendario.
 They use existing client IDs throughout Usuarios, cases, appointments and events.
-Maquilas form one shared factory catalog across all CAF offices. Constructoras
-retain a responsible office. Clients and cases always retain their own office
-assignments; a factory relationship never grants access to another office.
+Both organization catalogs are shared across CAF offices. Individual clients,
+cases and appointments retain their responsible offices. Calendar events retain
+their organizer/participant access rules. Organization links never grant access
+to another office’s service records.
 
 ## Access
 
-Soporte Tecnico and Director Ejecutivo see and manage all records. Administrador
-is the only office-management role; it manages clients, cases and construction
-companies within its assigned office. Employees can read the shared factory
-catalog, while a factory's client/case lists, counts and mutations follow their
-existing office and case access rules. Clients cannot access these directories.
+Only Soporte Tecnico, Director Ejecutivo and Administrador can see either
+sidebar entry, open its page or use the full directory API (including direct
+record IDs). These roles can register/edit organization metadata and link
+contacts. No organization deletion is exposed. An Administrador needs an
+assigned office and sees only that office's individual contacts and factory
+cases; global roles see all. Shared company identities are visible in all offices.
 
-Administradores, CEO and support can register/edit shared factory names. Other
-staff cannot modify catalog metadata or client links. No organization deletion
-is exposed. Factory metadata is shared; client information is not. The global
-roles see all related offices, while each Administrador sees only authorized
-clients/cases. Filters, pagination, direct IDs and employment mutations enforce
-this in the API, independently of navigation.
+Other staff cannot browse either directory or edit its metadata/links. Existing
+case forms retain a minimal factory-name/ID selector (`GET /maquila-options`),
+and scoped current factory employment. Appointment/calendar selectors expose
+minimal company identities alongside office-authorized individual clients. These
+workflow endpoints do not expose company legal details or directory totals.
+Clients cannot use either directory or these employee selectors. The API
+independently enforces all permissions.
 
 ## Factory clients and case history
 
@@ -46,9 +49,11 @@ edits affect only that case. Inline creation of a new client and case saves the
 client's current employment and the case snapshot in one transaction.
 
 An individual can be a contact for multiple construction companies while
-retaining their current factory relationship. A client's role/office cannot
-change while incompatible organization links remain. Unlink those records
-first; historical case snapshots remain intact and follow case access rules.
+retaining their current factory relationship. Authorized office transfers keep
+these relationships and existing case history. Changing a linked individual's
+role or removing their responsible office requires unlinking first. A contact
+link never associates all of that person's cases with the construction company;
+there is no company-case collection or fabricated company case.
 
 ## Construction companies
 
@@ -59,9 +64,11 @@ Each company owns one canonical `users` record with role `client` and
 personal names. Existing users default to `clientType: "person"`.
 
 The company account appears in Usuarios and cannot be deleted separately from
-the registry, converted into a person, assigned another role or moved to a
-different office. Edits to its name/email/phone stay synchronized between
+the registry, converted into a person, assigned another role or given an owning
+office. Edits to its name/email/phone stay synchronized between
 Usuarios and Constructoras. Legal information stays in Constructoras. Its
+Usuarios office cell says **Todas las oficinas**; individual contacts keep their
+own office. Its
 initial password is random; no credentials are displayed or emailed. Blank
 emails cannot sign in. All supplied emails remain unique, including deleted
 accounts; the database permits multiple company records without email.
@@ -73,8 +80,11 @@ organization deletion is intentionally not exposed.
 
 **Agendar cita** in the registry and **Cita para constructora** in Citas share
 the same form and availability picker. They save `clientId` with a NULL
-`case_id`, without creating a case. The API validates the company, assigned
-staff, office, working hours and conflicts. Company appointment edits preserve
+`case_id`, without creating a case. The form selects a responsible office
+independently of the shared company;
+Administradores use their assigned office and global roles can select any.
+The API validates the company, assigned staff, office, working hours and
+conflicts. Company appointment edits preserve
 the office boundary and check conflicts again when staff/time changes. Company
 names are included in normal appointments, calendar, dashboard, archives and
 appointment reports. Individual case workflows continue to use real cases;
@@ -93,13 +103,14 @@ All routes require a current employee JWT and backend office authorization:
 
 | Route | Behavior |
 | --- | --- |
-| `GET /api/v1/organizations?kind=maquila|constructora` | Scoped registry list; `q`, constructor-only `officeId`, scoped `id`, `page`, `pageSize` (default 20, max 100) |
-| `POST /api/v1/organizations` | Administrator/global-role registration; `kind`, `name`; only companies use `officeId` and legal fields |
+| `GET /api/v1/organizations?kind=maquila|constructora` | Management-only shared registry list; `q`, `id`, `page`, `pageSize` (default 20, max 100) |
+| `POST /api/v1/organizations` | Administrator/global-role registration; `kind`, `name`; neither kind accepts office ownership; companies require legal fields |
 | `GET /api/v1/organizations/:id` | Organization, `accountClient`, paginated `clients`/`cases`, `clientTotal`/`caseTotal`; `clientPage`, `casePage`, `clientQ` |
 | `PATCH /api/v1/organizations/:id` | Management-only full registry form update |
 | `POST /api/v1/organizations/:id/clients` | Link `clientId`; maquilas also require employment fields |
 | `DELETE /api/v1/organizations/:id/clients/:clientId` | Remove current relationship; preserves historical cases |
 | `GET /api/v1/client-organizations/:clientId` | Scoped current memberships in `data` |
+| `GET /api/v1/maquila-options` | Minimal factory `id`/`name` selector for employees; `q`, `id`, max 100 |
 | `GET /api/v1/client-options` | Minimal scoped selector data; `q`, `officeId`, `clientType`, max 50 |
 
 User create/update and case create/update accept nested
@@ -153,9 +164,25 @@ It does not merge or delete organizations, memberships or cases, or rewrite case
 references or employment snapshots. Existing factories with identical names
 remain separate records, identified by their record IDs in the catalog and
 selectors. New duplicate names are rejected by serialized API mutations.
-Constructoras retain their existing office ownership and uniqueness rules.
+The following company upgrade supersedes the former office-owned Constructoras model.
 
 Factory create/update requests omit `officeId`; nonzero factory office ownership
 is rejected. Case/user employment still requires the record's responsible office
 to be authorized. Existing role/office guards continue to protect users, cases,
 appointments, calendar clients, archives and reports.
+
+
+## Shared company upgrade and restricted directories
+
+Migration `0067_shared_constructoras.sql` removes company office ownership and
+clears only their canonical client accounts’ owning office. It preserves former
+registry/account offices in database-only audit columns. It preserves all IDs,
+credentials, account status, contacts, appointments, calendar links, individual
+client offices and case history; it never merges duplicate companies. Existing
+duplicate names remain identifiable by record ID, and serialized API writes
+reject new duplicate names within each kind, including renames from Usuarios.
+The migration is repeatable and verified on PostgreSQL 15.
+
+Deploy API and portal together. Company appointments keep their original office;
+new ones explicitly choose the office responsible for that appointment. Sharing
+the company identity never broadens appointment, event, archive or report access.
