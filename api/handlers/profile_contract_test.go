@@ -105,3 +105,49 @@ func TestAvatarURLUpdateAndRemovalOnlyAffectCurrentUser(t *testing.T) {
 		}
 	}
 }
+
+func TestProfileDisplayMetadataMatchesUserDetailAndSpecialtyUpdates(t *testing.T) {
+	f := authorizationSetup(t)
+	department, specialty := "legal", "general_practice"
+	f.db.Model(&models.User{}).Where("id = ?", f.support.ID).Updates(map[string]interface{}{"department": department, "specialty": specialty})
+	own := f.request(t, f.support, "GET", "/api/v1/profile", "")
+	detail := f.request(t, f.support, "GET", fmt.Sprintf("/api/v1/admin/users/%d", f.support.ID), "")
+	var self struct {
+		Info config.ProfileOrganization `json:"organizationInfo"`
+	}
+	var target struct {
+		Info config.ProfileOrganization `json:"organizationInfo"`
+	}
+	json.Unmarshal(own.Body.Bytes(), &self)
+	json.Unmarshal(detail.Body.Bytes(), &target)
+	if own.Code != 200 || detail.Code != 200 || self.Info.Department == nil || target.Info.Department == nil || *self.Info.Department != *target.Info.Department || *self.Info.Department != "Tecnologías de la Información (IT)" || self.Info.Specialty != nil || target.Info.Specialty != nil {
+		t.Fatalf("profile metadata differs: %s %s", own.Body.String(), detail.Body.String())
+	}
+	var practitioner models.User
+	response := f.request(t, f.admin, "POST", "/api/v1/admin/users", `{"firstName":"Professional","lastName":"Test","email":"specialty@example.test","phone":"6561234567","role":"lawyer","officeId":1,"password":"Synthetic-E2E-Password123!","specialty":"derecho_aduanero"}`)
+	if response.Code != 201 {
+		t.Fatalf("create practitioner: %s", response.Body.String())
+	}
+	json.Unmarshal(response.Body.Bytes(), &practitioner)
+	if practitioner.Specialty == nil || *practitioner.Specialty != "derecho_aduanero" || practitioner.Department != nil {
+		t.Fatal("practitioner organization fields not saved")
+	}
+	body := fmt.Sprintf(`{"firstName":"Professional","lastName":"Test","email":"specialty@example.test","phone":"6561234567","role":"psychologist","officeId":1}`)
+	response = f.request(t, f.admin, "PATCH", fmt.Sprintf("/api/v1/admin/users/%d", practitioner.ID), body)
+	if response.Code != 200 {
+		t.Fatalf("change professional role: %s", response.Body.String())
+	}
+	f.db.First(&practitioner, practitioner.ID)
+	if practitioner.Specialty != nil || practitioner.Department != nil {
+		t.Fatal("role change retained unrelated professional metadata")
+	}
+	response = f.request(t, f.admin, "POST", "/api/v1/admin/users", `{"firstName":"Invalid","lastName":"Specialty","email":"bad-specialty@example.test","phone":"6561234567","role":"receptionist","officeId":1,"password":"Synthetic-E2E-Password123!","specialty":"clinical_psychology"}`)
+	if response.Code != 400 {
+		t.Fatalf("irrelevant specialty accepted: %d", response.Code)
+	}
+	var count int64
+	f.db.Model(&models.User{}).Where("email = ?", "bad-specialty@example.test").Count(&count)
+	if count != 0 {
+		t.Fatal("invalid specialty left a partial user")
+	}
+}

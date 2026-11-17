@@ -147,9 +147,35 @@ responses are private and not cacheable. Reading a profile never updates
 `last_login`; successful sign-in remains its source of truth. Password hashes,
 credential versions, payment identifiers and personal addresses are excluded.
 
-The portal reuses `ProfileCard`, its profile types/helpers, and `PROFILE_TEXT`
-for Mi perfil and the user detail view. Contact/office fields and compact account
-dates are shown; optional department/specialty fields appear only when populated.
+The portal reuses `ProfileLayout`, `ProfileCard`, its section/field components,
+profile types/date helpers, one scoped stylesheet and `PROFILE_TEXT` for both
+Mi perfil and user details. The shared layout uses a compact identity/photo
+panel beside contact, organization and account cards on a neutral background;
+small screens stack the same sections. Photo controls remain expandable.
+
+Both self-profile routes and user detail return the same `organizationInfo`
+display metadata from the API. Known legacy codes are translated into readable
+Spanish names; custom identifier separators are formatted and migration
+placeholders are hidden. Raw department keys remain available for existing
+assignment/access-control consumers. Clients do not display staff department
+or specialty defaults. Existing staff department assignments are retained;
+missing departments fall back to the role's configured department.
+
+Soporte Tecnico always belongs to **Tecnologías de la Información (IT)** and
+has no professional specialty. Migration `0064` corrects the stored department
+and clears inherited specialty defaults only for technical support accounts,
+preserving their identity, credentials and active/deleted status. Fresh bootstrap
+accounts start in `IT`. Redeploy the API image to apply this correction; no
+manual SQL or password reset is required.
+
+Especialidad is optional professional information for lawyers and psychologists,
+such as Derecho familiar or Psicología clínica. It is omitted for management,
+support, reception, events and clients. Authorized user managers can maintain it
+in Usuarios; known specialty codes/labels must match the practitioner role.
+Changing roles clears the previous specialty unless a compatible new one is
+explicitly supplied. Department labels and role fallbacks are display metadata;
+existing assignment keys used for access filtering are preserved. Changes retain
+the existing user/office and protected-account authorization rules.
 Personal addresses, activity feeds, case counters and permission matrices are
 intentionally omitted to keep the view focused. Existing user-detail API scope
 and edit permissions still apply. Photo controls are expandable and available

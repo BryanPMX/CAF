@@ -34,21 +34,22 @@ func isSafeAvatarURL(s string) bool {
 // ProfileResponse is the shared, explicit self-profile contract for staff and clients.
 // Credential, payment and private address fields are intentionally excluded.
 type ProfileResponse struct {
-	UserID       string         `json:"userID"`
-	Role         string         `json:"role"`
-	FirstName    string         `json:"firstName"`
-	LastName     string         `json:"lastName"`
-	Email        string         `json:"email"`
-	Phone        string         `json:"phone"`
-	Department   *string        `json:"department"`
-	Specialty    *string        `json:"specialty"`
-	Office       *models.Office `json:"office"`
-	OfficeID     *uint          `json:"officeId"`
-	AvatarURL    string         `json:"avatarUrl"`
-	IsActive     bool           `json:"isActive"`
-	CreatedAt    time.Time      `json:"createdAt"`
-	LastLogin    *time.Time     `json:"lastLogin"`
-	AvatarPolicy struct {
+	OrganizationInfo config.ProfileOrganization `json:"organizationInfo"`
+	UserID           string                     `json:"userID"`
+	Role             string                     `json:"role"`
+	FirstName        string                     `json:"firstName"`
+	LastName         string                     `json:"lastName"`
+	Email            string                     `json:"email"`
+	Phone            string                     `json:"phone"`
+	Department       *string                    `json:"department"`
+	Specialty        *string                    `json:"specialty"`
+	Office           *models.Office             `json:"office"`
+	OfficeID         *uint                      `json:"officeId"`
+	AvatarURL        string                     `json:"avatarUrl"`
+	IsActive         bool                       `json:"isActive"`
+	CreatedAt        time.Time                  `json:"createdAt"`
+	LastLogin        *time.Time                 `json:"lastLogin"`
+	AvatarPolicy     struct {
 		MaxBytes         int64    `json:"maxBytes"`
 		MaxURLBytes      int      `json:"maxURLBytes"`
 		AllowedMIMETypes []string `json:"allowedMimeTypes"`
@@ -66,7 +67,8 @@ func GetProfile(baseURL string, avatarPaths ...string) gin.HandlerFunc {
 			return
 		}
 		response := ProfileResponse{
-			UserID: strconv.FormatUint(uint64(user.ID), 10), Role: user.Role,
+			OrganizationInfo: config.ProfileOrganizationFor(user.Role, user.Department, user.Specialty),
+			UserID:           strconv.FormatUint(uint64(user.ID), 10), Role: user.Role,
 			FirstName: user.FirstName, LastName: user.LastName, Email: user.Email, Phone: user.Phone,
 			Department: user.Department, Specialty: user.Specialty,
 			Office: user.Office, OfficeID: user.OfficeID,

@@ -53,13 +53,15 @@ func BootstrapAdmin(database *gorm.DB, rawEmail, password string) (bool, error) 
 	if err != nil {
 		return false, err
 	}
+	department := config.DepartmentIT
 	support := models.User{
-		FirstName: "System",
-		LastName:  "Support",
-		Email:     email,
-		Password:  hash,
-		Role:      config.RoleTechnicalSupport,
-		IsActive:  true,
+		FirstName:  "System",
+		LastName:   "Support",
+		Email:      email,
+		Password:   hash,
+		Role:       config.RoleTechnicalSupport,
+		Department: &department,
+		IsActive:   true,
 	}
 	if err := database.Create(&support).Error; err != nil {
 		return false, fmt.Errorf("create bootstrap administrator: %w", err)

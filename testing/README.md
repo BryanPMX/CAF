@@ -470,3 +470,27 @@ appointments, no fabricated cases, conflicts and event relationships. Containers
 and temporary storage are removed after the run. `go test -race ./...` inside
 `api` covers further case/contact scope, atomic failures, calendar link privacy,
 hidden-link preservation and direct appointment editing.
+
+
+### Profile metadata and responsive redesign
+
+The profile browser suite now reproduces the legacy `legal`/`general_practice`
+values, checks readable labels and correct IT support information, and verifies
+that only practitioner roles display a specialty. It exercises both self-profile
+and user-detail screens at 360, 768 and 1440 pixels, checks horizontal overflow,
+maintains a specialty through Usuarios and keeps the existing photo regressions.
+Screenshots include `support-360.png`, `support-768.png`, `support-1440.png` and
+matching practitioner user-detail views in `/tmp/caf-profile-e2e`.
+
+For production API/database checks, build the current image and run:
+
+```bash
+docker build --platform linux/amd64 -t caf-api:profile-organization-review ./api
+CAF_TEST_API_IMAGE=caf-api:profile-organization-review python3 testing/technical-support-docker.py
+```
+
+The isolated PostgreSQL script also verifies IT bootstrap, the shared localized
+profile metadata, migration `0064` replay against legacy support values and
+preservation of other users and credentials. Go tests cover known role/specialty
+compatibility, custom labels, placeholders, atomic validation failures and
+clearing unrelated professional data when roles change.

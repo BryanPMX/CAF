@@ -5,11 +5,12 @@ import { useParams, useRouter } from 'next/navigation';
 import { Alert, Button, Card, Spin, Table } from 'antd';
 import { ArrowLeftOutlined, FormOutlined } from '@ant-design/icons';
 import { apiClient } from '@/app/lib/api';
-import type { ProfileOffice, UserProfile } from '@/app/lib/profile';
+import { formatProfileDate, type ProfileOffice, type UserProfile } from '@/app/lib/profile';
 import { useAuth } from '@/context/AuthContext';
 import { canManageUser } from '@/config/roles';
 import { PROFILE_TEXT as text } from '@/config/profile';
 import OrganizationLinks from '@/components/organizations/OrganizationLinks';
+import ProfileLayout from '@/components/profile/ProfileLayout';
 import ProfileCard from '@/components/profile/ProfileCard';
 
 interface ContactSubmission {
@@ -19,6 +20,7 @@ interface ContactSubmission {
 }
 interface UserDetailResponse {
   user: UserProfile;
+  organizationInfo?: UserProfile['organizationInfo'];
   office: ProfileOffice;
   contactSubmissions?: ContactSubmission[];
 }
@@ -47,15 +49,13 @@ export default function UserProfilePage() {
     return () => controller.abort();
   }, [userID, base, revision]);
 
-  const profile = data ? { ...data.user, office: data.user.office || data.office } : null;
+  const profile = data ? { ...data.user, organizationInfo: data.organizationInfo, office: data.user.office || data.office } : null;
   const messages = data?.contactSubmissions ?? [];
   return (
-    <div className="mx-auto max-w-3xl space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <Button type="text" icon={<ArrowLeftOutlined />} onClick={() => router.push('/app/users')}>{text.back}</Button>
-        {profile && canManageUser(user, profile) && <Button aria-label={text.edit} icon={<FormOutlined />} onClick={() => router.push(`/app/users?edit=${userID}`)}>{text.edit}</Button>}
-      </div>
-      <h1 className="text-2xl font-semibold tracking-tight text-slate-900">{text.userTitle}</h1>
+    <ProfileLayout title={text.userTitle} actions={<>
+      <Button type="text" icon={<ArrowLeftOutlined />} onClick={() => router.push('/app/users')}>{text.back}</Button>
+      {profile && canManageUser(user, profile) && <Button type="primary" aria-label={text.edit} icon={<FormOutlined />} onClick={() => router.push(`/app/users?edit=${userID}`)}>{text.edit}</Button>}
+    </>}>
       {!userID && <Alert type="error" message={text.invalidId} showIcon />}
       {error && <Alert type="error" message={text.loadError} showIcon action={<Button size="small" onClick={() => setRevision(value => value + 1)}>{text.retry}</Button>} />}
       {userID && loading && <div role="status" aria-label={text.loading} className="flex min-h-64 items-center justify-center"><Spin size="large" /></div>}
@@ -63,11 +63,11 @@ export default function UserProfilePage() {
       {profile?.role === 'client' && messages.length > 0 && (
         <Card title={text.messages.title}>
           <Table dataSource={messages} rowKey="id" pagination={{ pageSize: 5, hideOnSinglePage: true }} size="small" columns={[
-            { title: text.messages.date, dataIndex: 'createdAt', key: 'createdAt', width: 150, render: (value: string) => new Date(value).toLocaleString('es-MX') },
+            { title: text.messages.date, dataIndex: 'createdAt', key: 'createdAt', width: 150, render: (value: string) => formatProfileDate(value, true) || text.missing },
             { title: text.messages.message, dataIndex: 'message', key: 'message', ellipsis: true },
           ]} />
         </Card>
       )}
-    </div>
+    </ProfileLayout>
   );
 }

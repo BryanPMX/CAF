@@ -124,6 +124,9 @@ test('office administrator: factories, historical cases, contractors, contacts, 
     modal = page.getByRole('dialog').filter({ hasText: 'Cita para constructora' });
     await modal.getByLabel('Título de la cita', { exact: true }).fill(`Reunión ${suffix}`);
     await select(page, modal.getByLabel('Asignar a', { exact: true }), 'Admin A CAF');
+    // Select a future working date, independent of the test machine's clock.
+    await modal.getByRole('button', { name: 'Mes siguiente', exact: true }).click();
+    await modal.locator('.ant-picker-calendar .ant-picker-cell-in-view:not(.ant-picker-cell-disabled)').first().click();
     await modal.getByRole('group', { name: 'Horarios disponibles', exact: true }).getByRole('button').first().click();
     const appointmentSaved = page.waitForResponse(r => r.url().endsWith('/admin/appointments') && r.request().method() === 'POST');
     await modal.getByRole('button', { name: 'Guardar', exact: true }).click();

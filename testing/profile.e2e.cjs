@@ -34,8 +34,13 @@ for (const role of roles) {
       const global = ['technical_support', 'executive_director'].includes(role);
       assert.equal(await contact.getByText('Oficina', { exact: true }).count(), global ? 0 : 1);
       if (!global) await contact.getByText('Office A', { exact: true }).waitFor();
-      assert.equal(await contact.getByText('Departamento', { exact: true }).count(), role === 'lawyer' ? 1 : 0);
-      assert.equal(await contact.getByText('Especialidad', { exact: true }).count(), role === 'lawyer' ? 1 : 0);
+      assert.equal(await contact.getByText('Departamento', { exact: true }).count(), role === 'client' ? 0 : 1);
+      assert.equal(await contact.getByText('Especialidad', { exact: true }).count(), ['lawyer', 'psychologist'].includes(role) ? 1 : 0);
+      assert.equal(await page.getByText('legal', { exact: true }).count(), 0);
+      assert.equal(await page.getByText('general_practice', { exact: true }).count(), 0);
+      if (role === 'technical_support') await contact.getByText('Tecnologías de la Información (IT)', { exact: true }).waitFor();
+      if (role === 'lawyer') await contact.getByText('Derecho familiar', { exact: true }).waitFor();
+      if (role === 'psychologist') await contact.getByText('Psicología clínica', { exact: true }).waitFor();
       const account = page.getByRole('region', { name: 'Cuenta', exact: true });
       await account.getByText('Miembro desde', { exact: true }).waitFor();
       await account.getByText('Último inicio de sesión', { exact: true }).waitFor();
@@ -101,5 +106,60 @@ test('photo controls validate links, persist changes and clear the avatar', { ti
     const token = await page.evaluate(() => localStorage.getItem('authToken'));
     const persisted = await page.request.get(`${api}/profile`, { headers: { Authorization: `Bearer ${token}` } });
     assert.equal((await persisted.json()).avatarUrl, '');
+  } finally { await browser.close(); }
+});
+
+
+test('shared self and user profiles fit phone, tablet and desktop and allow professional details to be maintained', { timeout: 120000 }, async () => {
+  const browser = await chromium.launch({ headless: true });
+  const page = await browser.newPage();
+  try {
+    await login(page, 'technical_support');
+    const token = await page.evaluate(() => localStorage.getItem('authToken'));
+    const created = await page.request.post(`${api}/admin/users`, { headers: { Authorization: `Bearer ${token}` }, data: {
+      firstName: 'Profile', lastName: 'lawyer', email: `profile-layout-${Date.now()}@example.test`,
+      phone: '6561234567', role: 'lawyer', officeId: 1, specialty: 'family_law', password: 'Synthetic-E2E-Password123!',
+    } });
+    assert.equal(created.status(), 201);
+    const targetId = (await created.json()).id;
+
+    await fs.mkdir(artifacts, { recursive: true });
+    for (const width of [360, 768, 1440]) {
+      await page.setViewportSize({ width, height: 1000 });
+      await page.goto(`${portal}/app/profile`);
+      await page.getByRole('region', { name: 'Organización', exact: true }).getByText('Tecnologías de la Información (IT)', { exact: true }).waitFor();
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
+      await page.screenshot({ path: path.join(artifacts, `support-${width}.png`), fullPage: true, animations: 'disabled' });
+      if (width === 360) {
+        await page.getByText('Cambiar foto de perfil', { exact: true }).click();
+        await page.getByLabel('Enlace de la foto', { exact: true }).waitFor();
+        assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
+        await page.screenshot({ path: path.join(artifacts, 'support-photo-360.png'), fullPage: true, animations: 'disabled' });
+      }
+
+      await page.goto(`${portal}/app/users/${targetId}`);
+      await page.getByRole('heading', { name: 'Profile lawyer', exact: true }).waitFor();
+      await page.getByRole('region', { name: 'Organización', exact: true }).getByText('Derecho familiar', { exact: true }).waitFor();
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
+      await page.screenshot({ path: path.join(artifacts, `lawyer-detail-${width}.png`), fullPage: true, animations: 'disabled' });
+    }
+    await page.getByRole('button', { name: 'Editar datos', exact: true }).click();
+    const editor = page.getByRole('dialog');
+    const specialty = editor.getByLabel('Especialidad', { exact: true });
+    assert.equal(await specialty.inputValue(), 'Derecho familiar');
+    await specialty.fill('Derecho aduanero');
+    const saved = page.waitForResponse(r => r.url().endsWith(`/admin/users/${targetId}`) && r.request().method() === 'PATCH');
+    await editor.getByRole('button', { name: 'OK', exact: true }).click();
+    assert.equal((await saved).status(), 200);
+    await editor.waitFor({ state: 'hidden' });
+    await page.goto(`${portal}/app/users/${targetId}`);
+    await page.getByText('Derecho aduanero', { exact: true }).waitFor();
+    await page.getByRole('button', { name: 'Editar datos', exact: true }).click();
+    await editor.getByLabel('Rol', { exact: true }).focus();
+    await editor.getByLabel('Rol', { exact: true }).press('ArrowDown');
+    await page.locator('.ant-select-dropdown:visible .ant-select-item-option-content').filter({ hasText: /^Psicólogo\/a$/ }).click();
+    assert.equal(await editor.getByLabel('Especialidad', { exact: true }).inputValue(), '');
+    await editor.getByRole('button', { name: 'Cancel', exact: true }).click();
+
   } finally { await browser.close(); }
 });

@@ -184,10 +184,15 @@ func TestOfficeAuthorizationPreview(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Reproduce production's historical migration defaults on every role.
+	f.db.Model(&models.User{}).Where("id IN ?", []uint{1, 18, f.admin.ID}).Updates(map[string]interface{}{"department": "legal", "specialty": "general_practice"})
 	for i, role := range []string{config.RoleOfficeManager, config.RoleLawyer, config.RolePsychologist, config.RoleReceptionist, config.RoleEventCoordinator, "client"} {
 		member := models.User{ID: uint(6 + i), FirstName: "Profile", LastName: role, Email: role + "@example.test", Role: role, IsActive: true, OfficeID: f.admin.OfficeID}
-		if role == config.RoleLawyer {
-			department, specialty := "Legal", "Derecho familiar"
+		if role == config.RoleLawyer || role == config.RolePsychologist {
+			department, specialty := "legal", "family_law"
+			if role == config.RolePsychologist {
+				department, specialty = "psychology", "clinical_psychology"
+			}
 			member.Department = &department
 			member.Specialty = &specialty
 		}
@@ -363,12 +368,14 @@ func TestReportExportsAndArchiveStatsStayInOffice(t *testing.T) {
 
 func TestDashboardAndReportFiltersCannotWidenOfficeScope(t *testing.T) {
 	f := authorizationSetup(t)
+	// This test checks scope, not the current local/UTC day boundary.
+	window := "?dateFrom=" + time.Now().UTC().Add(-24*time.Hour).Format(time.RFC3339) + "&dateTo=" + time.Now().UTC().Add(24*time.Hour).Format(time.RFC3339)
 	for _, tc := range []struct {
 		path, field string
 		want        float64
 	}{
 		{"/dashboard-summary?officeId=2", "totalCases", 1},
-		{"/admin/reports/summary-report", "totalAppointments", 1},
+		{"/admin/reports/summary-report" + window, "totalAppointments", 1},
 	} {
 		w := f.request(t, f.admin, "GET", "/api/v1"+tc.path, "")
 		if w.Code != 200 {
@@ -382,7 +389,7 @@ func TestDashboardAndReportFiltersCannotWidenOfficeScope(t *testing.T) {
 			t.Errorf("%s %s: got %v want %v", tc.path, tc.field, payload[tc.field], tc.want)
 		}
 	}
-	w := f.request(t, f.admin, "GET", "/api/v1/admin/reports/appointments-report?officeId=2", "")
+	w := f.request(t, f.admin, "GET", "/api/v1/admin/reports/appointments-report"+window+"&officeId=2", "")
 	if w.Code != 200 {
 		t.Fatalf("appointments report: %d %s", w.Code, w.Body.String())
 	}

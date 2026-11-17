@@ -9,6 +9,8 @@ import type { OwnProfile } from '@/app/lib/profile';
 import { useAuth } from '@/context/AuthContext';
 import { canManageUser } from '@/config/roles';
 import { PROFILE_TEXT as text } from '@/config/profile';
+import ProfileLayout from '@/components/profile/ProfileLayout';
+import styles from '@/components/profile/ProfileLayout.module.css';
 import ProfileCard from '@/components/profile/ProfileCard';
 import ProfilePhotoEditor from '@/components/profile/ProfilePhotoEditor';
 
@@ -45,22 +47,13 @@ export default function ProfilePage() {
 
   const retry = () => setRevision(value => value + 1);
   return (
-    <div className="mx-auto max-w-3xl space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="mb-1 text-2xl font-semibold tracking-tight text-slate-900">{text.ownTitle}</h1>
-          <p className="m-0 text-sm text-slate-500">{text.description}</p>
-        </div>
-        {profile && canManageUser(user, profile) && <Button aria-label={text.edit} icon={<FormOutlined />} onClick={() => router.push(`/app/users?edit=${profile.userID}`)}>{text.edit}</Button>}
-      </div>
+    <ProfileLayout title={text.ownTitle} actions={profile && canManageUser(user, profile) ? <Button type="primary" aria-label={text.edit} icon={<FormOutlined />} onClick={() => router.push(`/app/users?edit=${profile.userID}`)}>{text.edit}</Button> : undefined}>
       {error && <Alert type="error" showIcon message={text.loadError} action={<Button size="small" onClick={retry}>{text.retry}</Button>} />}
       {loading && !profile && <div role="status" aria-label={text.loading} className="flex min-h-64 items-center justify-center"><Spin size="large" /></div>}
       {profile && (
-        <ProfileCard profile={profile} avatarUrl={profile.avatarUrl}>
-          {profile.avatarPolicy && <ProfilePhotoEditor endpoint={endpoint} policy={profile.avatarPolicy} hasPhoto={Boolean(profile.avatarUrl)} onUpdated={retry} />}
-        </ProfileCard>
+        <ProfileCard profile={profile} avatarUrl={profile.avatarUrl} photoEditor={profile.avatarPolicy ? <ProfilePhotoEditor endpoint={endpoint} policy={profile.avatarPolicy} hasPhoto={Boolean(profile.avatarUrl)} onUpdated={retry} /> : undefined} />
       )}
-      {profile && !canManageUser(user, profile) && <p className="text-sm leading-6 text-slate-500">{text.supportHint}</p>}
-    </div>
+      {profile && !canManageUser(user, profile) && <p className={styles.notice}>{text.supportHint}</p>}
+    </ProfileLayout>
   );
 }

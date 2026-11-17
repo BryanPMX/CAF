@@ -33,7 +33,7 @@ var STAFF_ROLES = map[string]StaffRole{
 		Key:         RoleTechnicalSupport,
 		SpanishName: "Soporte Tecnico",
 		EnglishName: "Technical Support",
-		Department:  "Support",
+		Department:  DepartmentIT,
 		Description: "Protected system support with organization-wide access and credential management",
 	},
 	RoleExecutiveDirector: {

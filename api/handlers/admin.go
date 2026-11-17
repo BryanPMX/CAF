@@ -20,6 +20,7 @@ import (
 // CreateUserInput defines the structure for an admin creating a new user.
 // Email is optional for staff - it will be auto-generated if not provided.
 type CreateUserInput struct {
+	Specialty       *string                   `json:"specialty"`
 	Employment      *services.EmploymentInput `json:"employment"`
 	FirstName       string                    `json:"firstName" binding:"required"`
 	LastName        string                    `json:"lastName" binding:"required"`
@@ -134,6 +135,7 @@ func createUser(db *gorm.DB) gin.HandlerFunc {
 					return
 				}
 				// Reactivate the soft-deleted user
+				previousRole := existingUser.Role
 				existingUser.FirstName = input.FirstName
 				existingUser.LastName = input.LastName
 				existingUser.Password = hashedPassword
@@ -143,6 +145,10 @@ func createUser(db *gorm.DB) gin.HandlerFunc {
 				existingUser.PersonalAddress = input.PersonalAddress
 				existingUser.DeletedAt = gorm.DeletedAt{} // Clear the soft delete
 
+				if err := services.ApplyUserOrganization(&existingUser, previousRole, input.Specialty); err != nil {
+					organizationFailure(c, err)
+					return
+				}
 				if err := db.Transaction(func(tx *gorm.DB) error {
 					if err := tx.Unscoped().Save(&existingUser).Error; err != nil {
 						return err
@@ -161,6 +167,10 @@ func createUser(db *gorm.DB) gin.HandlerFunc {
 			}
 		}
 
+		if err := services.ApplyUserOrganization(&user, "", input.Specialty); err != nil {
+			organizationFailure(c, err)
+			return
+		}
 		// Save the new user to the database.
 		if err := db.Transaction(func(tx *gorm.DB) error {
 			if err := tx.Create(&user).Error; err != nil {
@@ -316,6 +326,7 @@ func GetUsers(db *gorm.DB) gin.HandlerFunc {
 
 // UpdateUserInput defines the structure for updating a user's details.
 type UpdateUserInput struct {
+	Specialty       *string                   `json:"specialty"`
 	Employment      *services.EmploymentInput `json:"employment"`
 	Password        *string                   `json:"password"`
 	FirstName       string                    `json:"firstName" binding:"required"`
@@ -400,6 +411,7 @@ func updateUser(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		// Update the user model with the new data from the input.
+		previousRole := user.Role
 		user.FirstName = input.FirstName
 		user.LastName = input.LastName
 		user.Email = input.Email
@@ -408,6 +420,10 @@ func updateUser(db *gorm.DB) gin.HandlerFunc {
 		user.Phone = strings.TrimSpace(input.Phone)
 		user.PersonalAddress = input.PersonalAddress
 
+		if err := services.ApplyUserOrganization(&user, previousRole, input.Specialty); err != nil {
+			organizationFailure(c, err)
+			return
+		}
 		// Save the changes to the database.
 		if err := db.Transaction(func(tx *gorm.DB) error {
 			if err := tx.Save(&user).Error; err != nil {
@@ -535,7 +551,8 @@ func GetUserByID(db *gorm.DB) gin.HandlerFunc {
 
 		// Build response with all associated data
 		response := gin.H{
-			"user": user,
+			"user":             user,
+			"organizationInfo": config.ProfileOrganizationFor(user.Role, user.Department, user.Specialty),
 			"office": func() gin.H {
 				if user.Office != nil {
 					return gin.H{

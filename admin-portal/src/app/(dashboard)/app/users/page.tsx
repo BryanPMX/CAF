@@ -12,11 +12,13 @@ import { useAuth } from '@/context/AuthContext';
 import { apiClient } from '@/app/lib/api';
 import Link from 'next/link';
 import { ORGANIZATION_TEXT } from '@/config/organizations';
+import type { ProfileOrganizationInfo } from '@/app/lib/profile';
 import type { OrganizationMembership } from '@/app/lib/organizations';
 import UserModal from './components/UserModal'; // Import our reusable modal
 
 // Define the TypeScript interface for a User object to ensure type safety.
 interface User {
+  organizationInfo?: ProfileOrganizationInfo;
   clientType?: string;
   organizationMemberships?: OrganizationMembership[];
   id: number;
@@ -196,7 +198,7 @@ const UserManagementPage = () => {
     const base = user.role === 'office_manager' ? '/manager' : '/admin';
     try {
       const res = await apiClient.get(`${base}/users/${userId}`);
-      const target = res.data?.user;
+      const target = res.data?.user ? { ...res.data.user, organizationInfo: res.data.organizationInfo } : undefined;
       if (!canManageUser(user, target)) {
         setUserManagementError(USER_MANAGEMENT_DENIED_MESSAGE);
         return;

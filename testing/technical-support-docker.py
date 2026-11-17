@@ -126,6 +126,8 @@ try:
     assert profile['userID'] == '1' and profile['email'] == 'support@example.test'
     assert profile['role'] == 'technical_support' and profile['office'] is None and profile['officeId'] is None
     assert profile['createdAt'] and profile['lastLogin'] and profile['isActive']
+    assert profile['department'] == 'IT' and profile['organizationInfo']['department'] == 'Tecnologías de la Información (IT)'
+    assert profile['organizationInfo']['specialty'] is None
     assert profile['avatarPolicy']['maxBytes'] == 10 * 1024 * 1024
     assert not {'password', 'tokenVersion', 'personalAddress', 'stripeCustomerId'}.intersection(profile)
     assert sql('SELECT last_login FROM users WHERE id=1;') == last_login_before
@@ -201,6 +203,14 @@ try:
     request('GET', '/api/v1/organizations?kind=constructora', token=client_token, expected=403)
     assert sql("SELECT count(*) FROM migrations WHERE version='0063';") == '1'
     print('PASS: PostgreSQL organization migration/replay, scoped directories, leading-zero IDs, overnight shifts, case history, shared company accounts, direct appointments and calendar links')
+    support_profile_migration = (ROOT / 'api/db/migrations/0064_support_it_department.sql').read_text()
+    sql("UPDATE users SET department='legal', specialty='general_practice' WHERE id=1;")
+    sql(f"UPDATE users SET department='legal', specialty='family_law' WHERE id={admin['id']};")
+    sql(support_profile_migration + support_profile_migration)
+    assert sql("SELECT department || ':' || (specialty IS NULL)::text FROM users WHERE id=1;") == 'IT:true'
+    assert sql(f"SELECT department || ':' || specialty FROM users WHERE id={admin['id']};") == 'legal:family_law'
+    assert sql("SELECT count(*) FROM migrations WHERE version='0064';") == '1'
+    print('PASS: IT support bootstrap, localized profile metadata and repeatable legacy profile correction preserve other users')
     credential_before = sql('SELECT password FROM users WHERE id=1;')
     docker('restart', API)
     base = 'http://' + docker('port', API, '8080/tcp').splitlines()[0]

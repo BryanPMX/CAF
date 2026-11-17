@@ -5,7 +5,13 @@ export interface ProfileOffice {
 }
 
 // Fields shared by /profile, /client/profile and the user in /admin/users/:id.
+export interface ProfileOrganizationInfo {
+  department?: string | null;
+  specialty?: string | null;
+}
+
 export interface UserProfile {
+  organizationInfo?: ProfileOrganizationInfo;
   organizationMemberships?: OrganizationMembership[];
   firstName: string;
   lastName: string;

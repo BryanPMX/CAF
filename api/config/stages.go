@@ -1,6 +1,8 @@
 // api/config/stages.go
 package config
 
+import "strings"
+
 // CaseStages defines the ordered, canonical list of stages in a case's lifecycle.
 // This is the default set for non-legal cases.
 var CaseStages = []string{
@@ -74,11 +76,25 @@ var UserRoleLabels = map[string]string{
 
 // DepartmentLabels provides Spanish (Mexico) localization for departments
 var DepartmentLabels = map[string]string{
-	"legal":          "Legal",
-	"psychology":     "Psicología",
-	"social":         "Asistencia Social",
-	"administration": "Administración",
-	"general":        "General",
+	"it":                     "Tecnologías de la Información (IT)",
+	"support":                "Tecnologías de la Información (IT)",
+	"information_technology": "Tecnologías de la Información (IT)",
+	"management":             "Dirección",
+	"events":                 "Eventos",
+	"legal_services":         "Legal",
+	"psychological":          "Psicología",
+	"psychological_services": "Psicología",
+	"social_work":            "Trabajo social",
+	"social_services":        "Trabajo social",
+	"familiar":               "Familiar",
+	"civil":                  "Civil",
+	"psicologia":             "Psicología",
+	"recursos":               "Recursos",
+	"legal":                  "Legal",
+	"psychology":             "Psicología",
+	"social":                 "Asistencia Social",
+	"administration":         "Administración",
+	"general":                "General",
 }
 
 // TaskStatusLabels provides Spanish (Mexico) localization for task statuses
@@ -170,7 +186,7 @@ func GetUserRoleLabel(role string) string {
 
 // GetDepartmentLabel returns the Spanish label for a given department
 func GetDepartmentLabel(department string) string {
-	if label, exists := DepartmentLabels[department]; exists {
+	if label, exists := DepartmentLabels[strings.ReplaceAll(strings.ToLower(strings.TrimSpace(department)), " ", "_")]; exists {
 		return label
 	}
 	return department

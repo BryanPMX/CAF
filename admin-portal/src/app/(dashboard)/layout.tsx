@@ -85,6 +85,7 @@ const NAVIGATION_GROUPS = [
 export default function DashboardLayout({ children }: { children: React.ReactNode; }) {
   const router = useRouter();
   const pathname = usePathname();
+  const isProfileSurface = pathname === '/app/profile' || /^\/app\/users\/[^/]+$/.test(pathname);
 
   // Prevent hydration issues by ensuring we're on the client side
   const [isHydrated, setIsHydrated] = useState(false);
@@ -338,7 +339,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </div>
           </Header>
           
-          <Content style={{ margin: '12px', background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)', borderRadius: '12px', padding: '16px', boxShadow: '0 2px 12px rgba(0, 0, 0, 0.08)' }} className="dashboard-content">
+          <Content style={{ margin: '12px', background: isProfileSurface ? 'transparent' : 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)', borderRadius: '12px', padding: '16px', boxShadow: isProfileSurface ? 'none' : '0 2px 12px rgba(0, 0, 0, 0.08)' }} className="dashboard-content">
             {profileError && (
               <Alert
                 message="Profile Error"

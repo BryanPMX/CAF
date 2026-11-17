@@ -35,7 +35,7 @@ func TestBootstrapCreatesSupportOnceWithoutOverwritingAccounts(t *testing.T) {
 	}
 	var support models.User
 	database.First(&support)
-	if support.Role != config.RoleTechnicalSupport || support.OfficeID != nil || support.Email != "support@example.test" || bcrypt.CompareHashAndPassword([]byte(support.Password), []byte(password)) != nil {
+	if support.Department == nil || *support.Department != config.DepartmentIT || support.Specialty != nil || support.Role != config.RoleTechnicalSupport || support.OfficeID != nil || support.Email != "support@example.test" || bcrypt.CompareHashAndPassword([]byte(support.Password), []byte(password)) != nil {
 		t.Fatal("invalid bootstrap account")
 	}
 	created, err = BootstrapAdmin(database, "another@example.test", "Synthetic-Other-Password456!")

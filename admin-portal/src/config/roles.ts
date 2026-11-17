@@ -99,7 +99,7 @@ export type StaffRoleKey = UserRole;
 
 // Additional exports for backward compatibility
 export const STAFF_ROLES = {
-  [USER_ROLES.TECHNICAL_SUPPORT]: { key: USER_ROLES.TECHNICAL_SUPPORT, displayName: ROLE_DISPLAY_NAMES[USER_ROLES.TECHNICAL_SUPPORT], department: 'Support' },
+  [USER_ROLES.TECHNICAL_SUPPORT]: { key: USER_ROLES.TECHNICAL_SUPPORT, displayName: ROLE_DISPLAY_NAMES[USER_ROLES.TECHNICAL_SUPPORT], department: 'IT' },
   [USER_ROLES.EXECUTIVE_DIRECTOR]: {
     key: USER_ROLES.EXECUTIVE_DIRECTOR,
     displayName: ROLE_DISPLAY_NAMES[USER_ROLES.EXECUTIVE_DIRECTOR],
@@ -265,3 +265,7 @@ export const getAssignableRoles = (actorRole: string, targetRole?: string) => {
     (canAccessAllOffices(actorRole) || (value !== USER_ROLES.EXECUTIVE_DIRECTOR &&
       (actorRole !== USER_ROLES.OFFICE_MANAGER || value !== USER_ROLES.ADMIN))));
 };
+
+// Only practitioner roles have a professional specialty.
+export const supportsProfessionalSpecialty = (role: string): boolean =>
+  role === USER_ROLES.LAWYER || role === USER_ROLES.PSYCHOLOGIST;

@@ -6,9 +6,11 @@ import { Alert, Modal, Form, Input, Select, message, Row, Col } from 'antd';
 import { UserOutlined, MailOutlined, PhoneOutlined } from '@ant-design/icons';
 import { apiClient } from '@/app/lib/api';
 import { useAuth } from '@/context/AuthContext';
-import { requiresOffice, getAssignableRoles, canResetPasswords, USER_ROLES, type StaffRoleKey, canManageUser, canAccessAllOffices, isManagementRole, USER_MANAGEMENT_DENIED_MESSAGE } from '@/config/roles';
+import { supportsProfessionalSpecialty, requiresOffice, getAssignableRoles, canResetPasswords, USER_ROLES, type StaffRoleKey, canManageUser, canAccessAllOffices, isManagementRole, USER_MANAGEMENT_DENIED_MESSAGE } from '@/config/roles';
 import EmploymentFields from '@/components/organizations/EmploymentFields';
 import { employmentFromMemberships, type OrganizationMembership } from '@/app/lib/organizations';
+import type { ProfileOrganizationInfo } from '@/app/lib/profile';
+import { PROFILE_TEXT } from '@/config/profile';
 import { ORGANIZATION_TEXT } from '@/config/organizations';
 import { createPhoneFormRule, createStrongPasswordFormRule } from '@/core/validation';
 
@@ -20,6 +22,8 @@ interface Office {
   name: string;
 }
 interface User {
+  organizationInfo?: ProfileOrganizationInfo;
+  specialty?: string | null;
   clientType?: string;
   organizationMemberships?: OrganizationMembership[];
   id: number;
@@ -80,6 +84,7 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
       if (isEditing) {
         form.setFieldsValue({
           ...user,
+          specialty: user.organizationInfo?.specialty || user.specialty || '',
           employment: employmentFromMemberships(user.organizationMemberships),
           officeId: user.officeId,
           phone: user.phone ?? '',
@@ -107,6 +112,7 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
       setSubmitError(null);
       const values = await form.validateFields();
       if (values.role !== USER_ROLES.CLIENT || user?.clientType === 'organization') delete values.employment;
+      if (!supportsProfessionalSpecialty(values.role)) delete values.specialty;
       if (isEditing && !values.password) delete values.password;
       setLoading(true);
       message.loading({ content: 'Guardando...', key: messageKey });
@@ -162,6 +168,7 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
 
   // Handle role selection change
   const handleRoleChange = (roleValue: string) => {
+    if (roleValue !== selectedRole) form.setFieldValue('specialty', '');
     setSelectedRole(roleValue);
     if (canAccessAllOffices(roleValue)) {
       form.setFieldsValue({ officeId: undefined });
@@ -305,6 +312,11 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
           )}
         </Row>
 
+        {supportsProfessionalSpecialty(selectedRole || '') && (
+          <Form.Item name="specialty" label={PROFILE_TEXT.specialty} extra={PROFILE_TEXT.specialtyHint}>
+            <Input maxLength={100} />
+          </Form.Item>
+        )}
         {selectedRole === USER_ROLES.CLIENT && user?.clientType !== 'organization' && <EmploymentFields officeId={selectedOfficeId} />}
         {user?.clientType === 'organization' && <p className="text-sm text-slate-500">{ORGANIZATION_TEXT.companyHint}</p>}
         {currentUserRole === 'office_manager' && selectedRole && selectedRole !== USER_ROLES.CLIENT && (
