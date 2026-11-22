@@ -1,0 +1,51 @@
+.modal {
+  top: 24px;
+  padding-bottom: 24px;
+}
+
+.modal :global(.ant-modal-body) {
+  max-height: calc(100dvh - 180px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 16px 8px 0;
+  scrollbar-gutter: stable;
+}
+
+.modal :global(.ant-modal-footer) {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.intro {
+  margin: 0 0 24px;
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.mode {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin-bottom: 16px;
+}
+
+.fullWidth {
+  width: 100%;
+}
+
+.employment {
+  margin-bottom: 24px;
+}
+
+@media (max-width: 575px) {
+  .modal {
+    top: 0;
+    padding-bottom: 16px;
+  }
+
+  .modal :global(.ant-modal-body) {
+    max-height: calc(100dvh - 180px);
+  }
+}

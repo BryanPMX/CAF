@@ -164,9 +164,19 @@ Run slot boundary tests with `node --test testing/appointment-availability.test.
 - Consistent error handling patterns
 
 **Form Management**:
-- React Hook Form for complex forms
-- Zod schema validation
-- Real-time validation feedback
+- Ant Design `Form` owns field values, validation and inline feedback.
+- `components/forms/FormSection` supplies named, accessible field groups with a
+  shared heading, optional marker, spacing and helper text. Use the existing
+  Ant Design `Row`/`Col` grid for related fields; stack them on narrow screens.
+- `Crear Nuevo Caso` groups client selection, maquila employment, case details
+  and optional administrative data. Its bounded scroll area keeps the modal
+  actions visible. It uses the same controls and field grid as Usuarios and Oficinas.
+- `EmploymentFields` shares this presentation across case creation/editing,
+  Usuarios and factory contact linking. Employee numbers remain text; paired
+  shift hours support overnight work. Case edits retain an independent snapshot.
+- Client search requires an explicit selection. Switching clients clears the old
+  employment data, and failed employment/office loads provide retry actions.
+  Save errors stay in the dialog while preserving entered values.
 
 ### 5. State Management Strategy
 

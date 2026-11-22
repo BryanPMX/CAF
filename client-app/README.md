@@ -127,12 +127,38 @@ The app listens for Stripe return URLs and routes the user back to `Pagos/Recibo
 
 ### Platform Configuration
 
-This repo currently does **not** include `android/` or `ios/` folders, so native deep-link manifests are not versioned here yet.
+Both `android/` and `ios/` are versioned in this repository.
 
-- Android (when generated): add an `intent-filter` for your scheme/host (e.g. `cafclient://payments/*`) and/or App Links for `caf-mexico.com` / `www.caf-mexico.com`.
-- Android: generated and versioned in this repo; configure `intent-filter` for `cafclient://payments/*` (and App Links if desired).
-- iOS (when generated): register URL Types (`cafclient`) and optionally Universal Links (`caf-mexico.com` / `www.caf-mexico.com`).
+- Android already has an `intent-filter` for `cafclient://payments`.
+- iOS already registers the `cafclient` URL scheme.
+- HTTPS App Links / Universal Links still require platform and domain association
+  configuration; recognizing a URL in Dart does not establish native routing.
 - Your marketing success/cancel pages can redirect to the app scheme for a direct mobile return UX.
+
+## Release readiness (reviewed November 22, 2026)
+
+This is an implemented client portal, not a staff/admin mobile application.
+`flutter analyze --no-pub` passes. This review did not build or distribute a
+signed Android/iOS release or verify behavior on physical devices.
+
+Before a pilot or store release:
+
+- Replace the template Android application ID and iOS bundle identifier
+  (`com.example.*`) with CAF-owned identifiers and configure release signing.
+  Android currently uses the debug signing configuration for release builds;
+  the iOS project has no versioned development-team setting.
+- Add Internet permission to the Android main/release manifest. It is currently
+  present only in the debug/profile manifests.
+- Validate production HTTPS configuration, secure-storage/session behavior,
+  document downloads and checkout return/webhook reconciliation on both platforms.
+- Add meaningful Flutter widget/integration coverage and physical-device QA.
+  No Dart test suite is versioned; the native iOS test is a template placeholder.
+- Complete store account setup, metadata, privacy disclosures and beta distribution.
+- Add FCM/APNs if background push delivery is part of the release scope. Current
+  notifications use WebSockets and are not a substitute for background push.
+
+Release references: [Flutter Android deployment](https://docs.flutter.dev/deployment/android)
+and [Flutter iOS deployment](https://docs.flutter.dev/deployment/ios).
 
 ## Development Commands
 

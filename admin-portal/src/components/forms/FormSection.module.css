@@ -1,0 +1,40 @@
+.section {
+  min-inline-size: 0;
+  margin: 0 0 24px;
+  padding: 0;
+  border: 0;
+}
+
+.section:last-child {
+  margin-bottom: 0;
+}
+
+.section > :global(.ant-form-item:last-child),
+.section > :global(.ant-row:last-child) :global(.ant-form-item) {
+  margin-bottom: 0;
+}
+
+.section > .legend {
+  width: 100%;
+  margin-bottom: 16px;
+  padding: 0 0 10px;
+  border-bottom: 1px solid #f0f0f0;
+  color: #1f2937;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.6;
+}
+
+.optional {
+  margin-inline-start: 8px;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.description {
+  margin: -4px 0 16px;
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.6;
+}

@@ -1,13 +1,18 @@
 "use client";
 import { useEffect, useState } from "react";
-import { AutoComplete, Form, Input, Select } from "antd";
+import { AutoComplete, Col, Form, Input, Row, Select } from "antd";
+import FormSection from "@/components/forms/FormSection";
 import { OrganizationService } from "@/services/organizationService";
 import type { Organization } from "@/app/lib/organizations";
 import { ORGANIZATION_TEXT as text } from "@/config/organizations";
 export default function EmploymentFields({
   fixedMaquila,
+  description = text.employmentHint,
+  disabled = false,
 }: {
   fixedMaquila?: number;
+  description?: string;
+  disabled?: boolean;
 }) {
   const form = Form.useFormInstance();
   const maquilaId = Form.useWatch(["employment", "maquilaId"], form);
@@ -58,15 +63,14 @@ export default function EmploymentFields({
   ];
   const selected = Boolean(fixedMaquila || maquilaId);
   return (
-    <fieldset className="mb-4 rounded-lg border border-slate-200 p-4">
-      <legend className="px-1 text-sm font-semibold">{text.employment}</legend>
+    <FormSection title={text.employment} description={description} optional={!fixedMaquila}>
       {!fixedMaquila && (
         <Form.Item
           name={["employment", "maquilaId"]}
           label={text.maquila.singular}
         >
           <Select
-            aria-label={text.maquila.singular}
+            disabled={disabled}
             allowClear
             showSearch
             filterOption={false}
@@ -90,60 +94,72 @@ export default function EmploymentFields({
       )}
       {selected && (
         <>
-          <div className="grid gap-x-4 sm:grid-cols-2">
-            <Form.Item
-              name={["employment", "employeeNumber"]}
-              label={text.employeeNumber}
-              rules={[{ required: true, message: text.required }]}
-            >
-              <Input maxLength={100} />
-            </Form.Item>
-            <Form.Item
-              name={["employment", "shiftName"]}
-              label={text.shiftName}
-              rules={[{ required: true, message: text.required }]}
-            >
-              <AutoComplete
-                options={text.shiftNames.map((value) => ({ value }))}
-                maxLength={100}
-              />
-            </Form.Item>
-          </div>
-          <div className="grid gap-x-4 sm:grid-cols-2">
-            <Form.Item
-              name={["employment", "shiftStart"]}
-              label={text.shiftStart}
-              rules={[
-                ({ getFieldValue }) => ({
-                  validator: (_, value) =>
-                    (!value && !getFieldValue(["employment", "shiftEnd"])) ||
-                    /^([01]\d|2[0-3]):[0-5]\d$/.test(value || "")
-                      ? Promise.resolve()
-                      : Promise.reject(new Error(text.required)),
-                }),
-              ]}
-            >
-              <Input type="time" />
-            </Form.Item>
-            <Form.Item
-              name={["employment", "shiftEnd"]}
-              label={text.shiftEnd}
-              rules={[
-                ({ getFieldValue }) => ({
-                  validator: (_, value) =>
-                    (!value && !getFieldValue(["employment", "shiftStart"])) ||
-                    /^([01]\d|2[0-3]):[0-5]\d$/.test(value || "")
-                      ? Promise.resolve()
-                      : Promise.reject(new Error(text.required)),
-                }),
-              ]}
-            >
-              <Input type="time" />
-            </Form.Item>
-          </div>
+          <Row gutter={16}>
+            <Col xs={24} sm={12}>
+              <Form.Item
+                name={["employment", "employeeNumber"]}
+                label={text.employeeNumber}
+                rules={[{ required: true, message: text.required }]}
+              >
+                <Input maxLength={100} disabled={disabled} placeholder="Ej. 000042" />
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={12}>
+              <Form.Item
+                name={["employment", "shiftName"]}
+                label={text.shiftName}
+                rules={[{ required: true, message: text.required }]}
+              >
+                <AutoComplete
+                  options={text.shiftNames.map((value) => ({ value }))}
+                  maxLength={100}
+                  disabled={disabled}
+                  placeholder="Seleccione o escriba el turno"
+                />
+              </Form.Item>
+            </Col>
+          </Row>
+          <Row gutter={16}>
+            <Col xs={24} sm={12}>
+              <Form.Item
+                name={["employment", "shiftStart"]}
+                label={text.shiftStart}
+                dependencies={[["employment", "shiftEnd"]]}
+                rules={[
+                  ({ getFieldValue }) => ({
+                    validator: (_, value) =>
+                      (!value && !getFieldValue(["employment", "shiftEnd"])) ||
+                      /^([01]\d|2[0-3]):[0-5]\d$/.test(value || "")
+                        ? Promise.resolve()
+                        : Promise.reject(new Error(text.required)),
+                  }),
+                ]}
+              >
+                <Input type="time" disabled={disabled} />
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={12}>
+              <Form.Item
+                name={["employment", "shiftEnd"]}
+                label={text.shiftEnd}
+                dependencies={[["employment", "shiftStart"]]}
+                rules={[
+                  ({ getFieldValue }) => ({
+                    validator: (_, value) =>
+                      (!value && !getFieldValue(["employment", "shiftStart"])) ||
+                      /^([01]\d|2[0-3]):[0-5]\d$/.test(value || "")
+                        ? Promise.resolve()
+                        : Promise.reject(new Error(text.required)),
+                  }),
+                ]}
+              >
+                <Input type="time" disabled={disabled} />
+              </Form.Item>
+            </Col>
+          </Row>
           <p className="text-xs text-slate-500">{text.shiftHoursHint}</p>
         </>
       )}
-    </fieldset>
+    </FormSection>
   );
 }

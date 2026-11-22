@@ -1,7 +1,8 @@
 # CAF Flutter Mobile App - Current Design & Implementation Status
 
-**Document version:** 2.0  
-**Date:** February 25, 2026  
+**Document version:** 2.1
+
+**Date:** November 22, 2026
 **Scope:** Actual implemented Flutter client app (client-facing) + backend contracts used by the app.
 
 ---
@@ -125,7 +126,10 @@ The current codebase now reflects a more pragmatic, production-focused first rel
 ### Near-Term (Production Hardening)
 
 1. Add push notifications (FCM/APNs) in addition to websocket notifications.
-2. Add platform-level deep link / universal link config in this repo when `android/` and `ios/` folders are added.
+2. Finish native release configuration. Both `android/` and `ios/` now exist and
+   register the `cafclient` scheme. HTTPS App Links / Universal Links, CAF-owned
+   application identifiers, signing and Android release Internet permission still
+   need verification/configuration. See the current [release-readiness review](../client-app/README.md#release-readiness-reviewed-november-22-2026).
 3. Add richer payment reconciliation states (refund disputes, chargebacks, settlement exports) if accounting requires it.
 
 ### Product Enhancements

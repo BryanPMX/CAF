@@ -444,6 +444,7 @@ npm run test:roles
 npm run test:e2e:roles
 npm run test:e2e:profiles
 npm run test:e2e:organizations
+npm run test:e2e:case-form
 ```
 
 The organization browser suite registers a factory, links an individual with a
@@ -454,6 +455,15 @@ company appointment through live availability and creates a related-client
 event without inviting that client. It checks the normal Usuarios/Citas views,
 management-only directory access (including direct URLs/API calls) and narrow-screen layout. Screenshots go to
 `/tmp/caf-organizations-e2e` or `CAF_E2E_ARTIFACT_DIR`.
+
+The case-form suite exercises the redesigned form at 320, 390, 768 and 1440
+pixels, including stacked employment fields, horizontal overflow and visible
+save actions. It covers inline client creation, required employment fields,
+paired optional hours, overnight shifts, leading-zero employee numbers, case
+snapshots without changing existing client employment, stale selection clearing,
+load failure/retry, persistent save errors and reopening reset. Screenshots go
+to `/tmp/caf-case-form-e2e` or `CAF_CASE_FORM_ARTIFACT_DIR`. These checks use only
+synthetic records on loopback; do not expose the fixture API through a tunnel.
 
 Production database/image verification includes these workflows:
 
