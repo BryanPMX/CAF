@@ -2,6 +2,13 @@
 
 This directory contains the comprehensive automated testing suite for the Centro de Apoyo para la Familia (CAF) system, providing multiple types of testing to ensure system reliability and functionality.
 
+## Mobile validation
+
+Flutter unit/widget tests live in `client-app/test`, and native integration tests
+in `client-app/integration_test`. Run `flutter analyze` and `flutter test` from
+`client-app`. Native tests require the isolated loopback fixture; see the
+[mobile testing instructions](../docs/FLUTTER_MOBILE_APP_DESIGN.md#validation-and-local-native-tests).
+
 ## Testing Architecture
 
 The testing suite implements a layered testing approach:

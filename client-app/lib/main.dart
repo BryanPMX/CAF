@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'src/app_shell.dart';
 import 'src/app_state.dart';
 import 'src/auth_pages.dart';
 import 'src/brand.dart';
+import 'src/portal/employee_shell.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -35,7 +37,10 @@ class CafClientApp extends StatelessWidget {
     return ChangeNotifierProvider(
       create: (_) => AppState()..bootstrap(),
       child: MaterialApp(
-        title: 'CAF Cliente',
+        title: 'CAF',
+        locale: const Locale('es', 'MX'),
+        supportedLocales: const [Locale('es', 'MX')],
+        localizationsDelegates: GlobalMaterialLocalizations.delegates,
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
           useMaterial3: true,
@@ -99,16 +104,20 @@ class CafClientApp extends StatelessWidget {
               borderRadius: BorderRadius.circular(13),
               borderSide: const BorderSide(color: CafBrand.blue, width: 1.4),
             ),
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 15),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 14,
+              vertical: 15,
+            ),
             labelStyle: const TextStyle(color: Color(0xFF486188)),
           ),
           navigationRailTheme: const NavigationRailThemeData(
             backgroundColor: Colors.transparent,
             indicatorColor: Color(0x332563EB),
             selectedIconTheme: IconThemeData(color: Colors.white),
-            selectedLabelTextStyle:
-                TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+            selectedLabelTextStyle: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
+            ),
             unselectedIconTheme: IconThemeData(color: Color(0xFFCBD5E1)),
             unselectedLabelTextStyle: TextStyle(color: Color(0xFFE2E8F0)),
           ),
@@ -128,8 +137,16 @@ class CafClientApp extends StatelessWidget {
   }
 }
 
-class _RootGate extends StatelessWidget {
+class _RootGate extends StatefulWidget {
   const _RootGate();
+
+  @override
+  State<_RootGate> createState() => _RootGateState();
+}
+
+class _RootGateState extends State<_RootGate> {
+  GlobalKey<NavigatorState> _navigator = GlobalKey<NavigatorState>();
+  String? _identity;
 
   @override
   Widget build(BuildContext context) {
@@ -140,10 +157,28 @@ class _RootGate extends StatelessWidget {
     }
 
     if (!state.isAuthenticated) {
+      _identity = null;
       return const AuthEntryPage();
     }
 
-    return const ClientAppShell();
+    final identity = '${state.authUser?.id}:${state.role?.value}';
+    if (_identity != identity) {
+      _identity = identity;
+      _navigator = GlobalKey<NavigatorState>();
+    }
+    // A session owns its entire navigation stack. Signing out or changing roles
+    // disposes detail/edit routes, preventing the next account seeing old data.
+    return NavigatorPopHandler<Object?>(
+      onPopWithResult: (_) => _navigator.currentState?.pop(),
+      child: Navigator(
+        key: _navigator,
+        onGenerateRoute: (_) => MaterialPageRoute<void>(
+          builder: (_) => state.role?.isEmployee == true
+              ? const EmployeeAppShell()
+              : const ClientAppShell(),
+        ),
+      ),
+    );
   }
 }
 
@@ -154,9 +189,7 @@ class _SplashScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: BoxDecoration(
-          gradient: CafBrand.authBackgroundGradient,
-        ),
+        decoration: BoxDecoration(gradient: CafBrand.authBackgroundGradient),
         child: Stack(
           children: [
             Positioned(
@@ -193,9 +226,7 @@ class _SplashScreen extends StatelessWidget {
                     padding: const EdgeInsets.all(11),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(24),
-                      border: Border.all(
-                        color: const Color(0x70FFFFFF),
-                      ),
+                      border: Border.all(color: const Color(0x70FFFFFF)),
                       gradient: const LinearGradient(
                         colors: [Color(0xF7FFFFFF), Color(0xDFF4FAFF)],
                       ),
@@ -214,7 +245,7 @@ class _SplashScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 14),
                   const Text(
-                    'CAF Cliente',
+                    'CAF',
                     style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
                   ),
                   const SizedBox(height: 6),
@@ -250,10 +281,7 @@ class _GlowOrb extends StatelessWidget {
       child: Container(
         width: size,
         height: size,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: color,
-        ),
+        decoration: BoxDecoration(shape: BoxShape.circle, color: color),
       ),
     );
   }

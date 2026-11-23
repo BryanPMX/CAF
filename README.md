@@ -108,18 +108,21 @@ admin-portal/src/
 - **Notifications**: Actionable inbox for contact inquiries, client messages, assigned tasks, and payments, with search, filters, WebSocket refresh, a header popover, and a persistent left-navigation entry; routine case and appointment edits stay in their own timelines
 - **CMS Image Upload**: Local file upload to server for "Sitio Web" gallery management
 
-### Mobile Application (Flutter) - Client Portal
+### Mobile Application (Flutter) - Clients and Employees
 
-**Current Flutter Mobile Architecture (Client-Facing):**
+**Current Flutter Mobile Architecture:**
 
 ```
 client-app/lib/
 ├── main.dart                    # Bootstrap + provider + auth gate
 └── src/
     ├── app_state.dart           # API client, secure storage, websocket, app state
-    ├── auth_pages.dart          # Login-only UX (client role; accounts provisioned by CAF)
-    └── app_shell.dart           # Dashboard, Notificaciones, Mi Caso, Citas, Pagos, Contacto
+    ├── auth_pages.dart          # Login-only UX for supported CAF roles
+    ├── app_shell.dart           # Existing client dashboard, cases, appointments and payments
+    └── portal/                 # Role policy, repositories, controllers and employee screens
 ```
+
+The mobile app provides role-scoped client, staff and administration workflows, with shared responsive forms and CAF design. Cases, tasks/documents, scheduling/calendar, directories, reports/archives, content and profiles are covered in the [mobile implementation and release guide](docs/FLUTTER_MOBILE_APP_DESIGN.md). Store signing and physical-device validation remain release requirements.
 
 **Key Features:**
 - **Provider + ChangeNotifier**: Centralized state management
