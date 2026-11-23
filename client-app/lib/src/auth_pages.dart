@@ -108,7 +108,7 @@ class AuthEntryPage extends StatelessWidget {
                                           CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          'CAF Cliente',
+                                          'CAF',
                                           style: Theme.of(context)
                                               .textTheme
                                               .titleLarge

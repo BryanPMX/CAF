@@ -1,12 +1,15 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 	"testing"
 	"time"
 
@@ -15,6 +18,7 @@ import (
 	"github.com/BryanPMX/CAF/api/models"
 	"github.com/BryanPMX/CAF/api/repositories"
 	"github.com/BryanPMX/CAF/api/security"
+	"github.com/BryanPMX/CAF/api/storage"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -83,6 +87,24 @@ func authorizationSetup(t *testing.T) authorizationFixture {
 	client := r.Group("/api/v1/client", middleware.EnhancedJWTAuth(authorizationTestSecret), middleware.RoleAuth(db, "client"), middleware.DataAccessControl(db))
 	client.GET("/profile", GetProfile("", "/api/v1/client/avatar"))
 	client.PATCH("/profile", UpdateProfile(db))
+	client.GET("/cases", GetCasesEnhanced(db))
+	client.GET("/cases/:id", GetClientCaseByID(db))
+	client.GET("/appointments", GetClientAppointments(db))
+	client.GET("/notifications", GetNotifications(db))
+	client.POST("/notifications/mark-read", MarkNotificationsAsRead(db))
+	client.GET("/offices", GetPublicOffices(repositories.NewOfficeRepository(db)))
+	client.GET("/payments/receipts", func(c *gin.Context) {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Pagos desactivados en el entorno sintético."})
+	})
+	base.GET("/staff/dashboard-summary", middleware.DenyClients(), GetStaffDashboardSummary(db))
+	base.POST("/notifications/mark-read", MarkNotificationsAsRead(db))
+	base.POST("/cases/:id/comments", middleware.DenyClients(), middleware.CaseAccessControl(db), CreateComment(db))
+	staff := r.Group("/api/v1/staff", middleware.EnhancedJWTAuth(authorizationTestSecret), middleware.RoleAuth(db, "staff"), middleware.DataAccessControl(db))
+	staff.GET("/cases", middleware.CaseAccessControl(db), GetCasesEnhanced(db))
+	staff.GET("/cases/:id", middleware.CaseAccessControl(db), GetCaseByIDEnhanced(db))
+	staff.POST("/cases", middleware.CaseAccessControl(db), CreateCaseEnhanced(db))
+	staff.PUT("/cases/:id", middleware.CaseAccessControl(db), UpdateCaseEnhanced(db))
+	staff.GET("/appointments/my", middleware.AppointmentAccessControl(db), GetMyAppointments(db))
 
 	base.GET("/client-options", ClientOptions(db))
 	base.GET("/maquila-options", FactoryOptions(db))
@@ -129,7 +151,62 @@ func authorizationSetup(t *testing.T) authorizationFixture {
 	admin.GET("/reports/summary-report", NewReportsHandler(db).GetSummaryReport())
 	admin.GET("/reports/appointments-report", NewReportsHandler(db).GetAppointmentsReport())
 	admin.GET("/reports/export", NewReportsHandler(db).ExportReport())
-	admin.GET("/site-content", func(c *gin.Context) { c.JSON(http.StatusOK, gin.H{"ok": true}) })
+	admin.GET("/site-content", GetAllSiteContent(db))
+	// Mobile workflow preview uses the same handlers and authorization as production.
+	if err := db.AutoMigrate(&models.SiteContent{}, &models.SiteEvent{}, &models.SiteImage{}, &models.UserNote{}); err != nil {
+		t.Fatal(err)
+	}
+	base.GET("/tasks", middleware.DenyClients(), middleware.TaskAccessControl(db), GetTasks(db))
+	base.GET("/tasks/:id", middleware.DenyClients(), middleware.TaskAccessControl(db), GetTaskByID(db))
+	base.POST("/tasks", middleware.DenyClients(), middleware.TaskAccessControl(db), CreateTaskEnhanced(db))
+	base.PUT("/tasks/:id", middleware.DenyClients(), middleware.TaskAccessControl(db), UpdateTaskEnhanced(db))
+	base.DELETE("/tasks/:id", middleware.DenyClients(), middleware.TaskAccessControl(db), DeleteTaskEnhanced(db))
+	base.POST("/tasks/:id/comments", middleware.DenyClients(), middleware.TaskAccessControl(db), CreateTaskComment(db))
+	base.PUT("/tasks/:id/comments/:commentId", middleware.DenyClients(), middleware.TaskAccessControl(db), UpdateTaskComment(db))
+	base.DELETE("/tasks/:id/comments/:commentId", middleware.DenyClients(), middleware.TaskAccessControl(db), DeleteTaskComment(db))
+	base.PUT("/cases/comments/:eventId", middleware.DenyClients(), UpdateComment(db))
+	base.DELETE("/cases/comments/:eventId", middleware.DenyClients(), DeleteComment(db))
+	base.POST("/cases/:id/documents", middleware.DenyClients(), middleware.CaseAccessControl(db), UploadDocument(db))
+	base.PUT("/cases/documents/:eventId", middleware.DenyClients(), UpdateDocument(db))
+	base.DELETE("/cases/documents/:eventId", middleware.DenyClients(), DeleteDocument(db))
+	base.GET("/documents/:eventId", middleware.DenyClients(), GetDocument(db))
+	base.PATCH("/calendar/events/:id/response", middleware.DenyClients(), RespondToCalendarEvent(db))
+	base.POST("/notes", middleware.DenyClients(), CreateUserNote(db))
+	base.PATCH("/notes/:id", middleware.DenyClients(), UpdateUserNote(db))
+	base.DELETE("/notes/:id", middleware.DenyClients(), DeleteUserNote(db))
+	client.POST("/profile/avatar", UploadProfileAvatar(db, "", "/api/v1/client/avatar"))
+	client.GET("/avatar", GetProfileAvatar(db))
+	staff.GET("/appointments", middleware.AppointmentAccessControl(db), GetAppointmentsEnhanced(db))
+	staff.GET("/appointments/:id", middleware.AppointmentAccessControl(db), GetAppointmentByIDEnhanced(db))
+	staff.POST("/appointments", CreateAppointmentSmart(db))
+	staff.PUT("/appointments/:id", middleware.AppointmentAccessControl(db), UpdateAppointmentEnhanced(db))
+	staff.DELETE("/appointments/:id", middleware.AppointmentAccessControl(db), DeleteAppointmentEnhanced(db))
+	staff.GET("/clients/:clientId/cases-for-appointment", GetClientCasesForAppointmentScoped(db))
+	admin.GET("/clients/:clientId/cases-for-appointment", GetClientCasesForAppointment(db))
+	admin.PATCH("/cases/:id/stage", UpdateCaseStage(db))
+	admin.POST("/cases/:id/assign", AssignStaffToCase(db))
+	admin.POST("/cases/:id/complete", CompleteCase(db))
+	admin.DELETE("/cases/:id", DeleteCase(db))
+	admin.GET("/appointments/:id", GetAppointmentByIDAdmin(db))
+	admin.DELETE("/appointments/:id", DeleteAppointmentAdmin(db))
+	admin.POST("/offices", CreateOffice(repositories.NewOfficeRepository(db)))
+	admin.PATCH("/offices/:id", UpdateOffice(repositories.NewOfficeRepository(db)))
+	admin.DELETE("/offices/:id", DeleteOffice(repositories.NewOfficeRepository(db)))
+	admin.POST("/records/appointments/:id/restore", RestoreAppointment(db))
+	admin.DELETE("/records/cases/:id", PermanentlyDeleteCase(db))
+	admin.DELETE("/records/appointments/:id", PermanentlyDeleteAppointment(db))
+	admin.GET("/reports/cases-report", NewReportsHandler(db).GetCasesReport())
+	admin.POST("/site-content", UpsertSiteContent(db))
+	admin.DELETE("/site-content/:id", DeleteSiteContent(db))
+	admin.GET("/site-events", GetAllSiteEvents(db))
+	admin.POST("/site-events", CreateSiteEvent(db))
+	admin.PATCH("/site-events/:id", UpdateSiteEvent(db))
+	admin.DELETE("/site-events/:id", DeleteSiteEvent(db))
+	admin.GET("/site-images", GetAllSiteImages(db))
+	admin.POST("/site-images", CreateSiteImage(db))
+	admin.PATCH("/site-images/:id", UpdateSiteImage(db))
+	admin.DELETE("/site-images/:id", DeleteSiteImage(db))
+	admin.POST("/site-images/upload", UploadSiteImage(db))
 	f.router = r
 	return f
 }
@@ -176,6 +253,12 @@ func TestOfficeAuthorizationPreview(t *testing.T) {
 		t.Skip("Enabled only for local role E2E checks")
 	}
 	f := authorizationSetup(t)
+	store, storeErr := storage.NewLocalStorage(t.TempDir())
+	if storeErr != nil {
+		t.Fatal(storeErr)
+	}
+	storage.SetActiveStorage(store)
+	t.Cleanup(func() { storage.SetActiveStorage(nil) })
 	// Match a promoted administrator: the executive retains an old office ID,
 	// so office-local user lists contain this protected account.
 	if err := f.db.Model(&models.User{}).Where("id = ?", f.director.ID).Updates(map[string]interface{}{"id": 18, "office_id": *f.admin.OfficeID}).Error; err != nil {
@@ -212,9 +295,25 @@ func TestOfficeAuthorizationPreview(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Log("Synthetic role preview listening on 127.0.0.1:8080")
-	if err := http.ListenAndServe("127.0.0.1:8080", f.router); err != nil {
-		t.Fatal(err)
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
+	defer signal.Stop(stop)
+	server := &http.Server{Addr: "127.0.0.1:8080", Handler: f.router, ReadHeaderTimeout: 5 * time.Second}
+	failures := make(chan error, 1)
+	go func() { failures <- server.ListenAndServe() }()
+	select {
+	case <-stop:
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := server.Shutdown(ctx); err != nil {
+			t.Fatal(err)
+		}
+	case err := <-failures:
+		if err != nil && err != http.ErrServerClosed {
+			t.Fatal(err)
+		}
 	}
+
 }
 
 func (f authorizationFixture) request(t *testing.T, actor models.User, method, path, body string) *httptest.ResponseRecorder {

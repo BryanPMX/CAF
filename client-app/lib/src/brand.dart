@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
 class CafBrand {
-  static const Color navyStrong = Color(0xFF0F172A);
-  static const Color navySoft = Color(0xFF111C36);
-  static const Color blue = Color(0xFF2563EB);
-  static const Color blueDeep = Color(0xFF1F5EB3);
+  static const Color navyStrong = Color(0xFF0B1728);
+  static const Color navySoft = Color(0xFF10253C);
+  static const Color blue = Color(0xFF0F766E);
+  static const Color blueDeep = Color(0xFF0369A1);
   static const Color cyan = Color(0xFF0891B2);
   static const Color teal = Color(0xFF17B7A5);
   static const Color purple = Color(0xFF6F63CC);

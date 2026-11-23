@@ -1,16 +1,19 @@
 # client-app/pubspec.yaml
 name: client_app
-description: "Client-facing app for Centro de Apoyo para la Familia."
+description: "Mobile portal for CAF clients, staff and administrators."
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 
 version: 1.0.0+1
 
 environment:
-  sdk: '>=3.3.0 <4.0.0'
+  sdk: '>=3.9.0 <4.0.0'
+  flutter: '>=3.35.0'
 
 # Application Dependencies
 dependencies:
   flutter:
+    sdk: flutter
+  flutter_localizations:
     sdk: flutter
   
   # For making HTTP requests to our Go API.
@@ -28,9 +31,12 @@ dependencies:
   open_filex: ^4.7.0
 
   cupertino_icons: ^1.0.6
+  file_selector: ^1.1.0
 
 # Development-only Dependencies
 dev_dependencies:
+  integration_test:
+    sdk: flutter
   flutter_test:
     sdk: flutter
   flutter_lints: ^3.0.0

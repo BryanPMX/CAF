@@ -1,8 +1,26 @@
-# CAF Client App (Flutter)
+# CAF Mobile App (Flutter)
 
-Flutter mobile app for **CAF clients** (not staff/admin). It consumes the CAF Go API and the new client-safe route group under `/api/v1/client`.
+Flutter application for Android and iOS, with role-aware client, staff and
+administration workspaces. CAF's desktop design is adapted to phone/tablet layouts
+through shared responsive sections, editors, selectors and navigation.
 
-## Current Scope (Implemented)
+See the [workflow coverage, architecture, test guide and release requirements](../docs/FLUTTER_MOBILE_APP_DESIGN.md).
+
+## Employee workflows
+
+- Scoped dashboard, agenda, case list/detail/create/edit, Maquila snapshots,
+  assignments, stages, completion/archive and permitted deletion.
+- Task management/discussion and authenticated document upload/opening/actions.
+- Appointment creation, rescheduling/status/cancellation, company appointments,
+  availability checks, calendar meetings and participant responses.
+- Permitted user/office/organization directories and relationship management;
+  archives, reports/CSV, notes, announcements and website content/gallery.
+- Shared employee/client profile and photo controls; foreground notifications,
+  internal action links and resume refresh.
+- Session-bound requests, independent route disposal, retained values on errors,
+  retries, keyboard/large-text support and confirmed destructive operations.
+
+## Existing Client Scope (Preserved)
 
 - Authentication (login only; client account is provisioned by CAF)
 - Minimalist dashboard
@@ -17,7 +35,7 @@ Flutter mobile app for **CAF clients** (not staff/admin). It consumes the CAF Go
 
 ## Architecture (Current)
 
-The app uses a lightweight, production-oriented Flutter architecture with `provider` and a centralized state object.
+The app reuses Provider for session state. Employee workflows separate repository interfaces, HTTP services, controllers and widgets in `lib/src/portal/`; see the design document for the module map.
 
 ```text
 lib/
@@ -25,7 +43,8 @@ lib/
 └── src/
     ├── app_state.dart     # Config, API client, secure token storage, realtime, app state
     ├── auth_pages.dart    # Login-only UX (CAF-provisioned accounts)
-    └── app_shell.dart     # Section shell (Dashboard, Notificaciones, Mi Caso, Citas, Pagos, Contacto)
+    ├── app_shell.dart     # Existing client section shell
+    └── portal/           # Employee policy, repositories, controllers and screens
 ```
 
 ## Security Notes
@@ -137,22 +156,22 @@ Both `android/` and `ios/` are versioned in this repository.
 
 ## Release readiness (reviewed November 22, 2026)
 
-This is an implemented client portal, not a staff/admin mobile application.
-`flutter analyze --no-pub` passes. This review did not build or distribute a
-signed Android/iOS release or verify behavior on physical devices.
+Client and employee workflows are implemented. Flutter analyzer/unit/widget
+checks, Android debug compilation and native iPhone/Android emulator integration
+tests cover these workflows. Store-signed releases and physical-device behavior remain
+unverified. Flutter 3.35+/Dart 3.9+ and iOS 15+ are required.
 
 Before a pilot or store release:
 
 - Replace the template Android application ID and iOS bundle identifier
   (`com.example.*`) with CAF-owned identifiers and configure release signing.
-  Android currently uses the debug signing configuration for release builds;
-  the iOS project has no versioned development-team setting.
-- Add Internet permission to the Android main/release manifest. It is currently
-  present only in the debug/profile manifests.
+  Android release tasks require the signing environment variables documented in
+  the design guide and never fall back to debug signing. The iOS project has no
+  versioned development-team setting.
+- Android main/release Internet permission is configured. Verify production HTTPS configuration on both platforms.
 - Validate production HTTPS configuration, secure-storage/session behavior,
   document downloads and checkout return/webhook reconciliation on both platforms.
-- Add meaningful Flutter widget/integration coverage and physical-device QA.
-  No Dart test suite is versioned; the native iOS test is a template placeholder.
+- Extend the versioned unit/widget/native integration suites as desktop parity grows, and complete physical-device QA. The native RunnerTests file is still a template; the actual app tests live in `test/` and `integration_test/`.
 - Complete store account setup, metadata, privacy disclosures and beta distribution.
 - Add FCM/APNs if background push delivery is part of the release scope. Current
   notifications use WebSockets and are not a substitute for background push.
@@ -166,6 +185,7 @@ and [Flutter iOS deployment](https://docs.flutter.dev/deployment/ios).
 cd client-app
 flutter pub get
 flutter analyze
+flutter test
 flutter run --dart-define=CAF_API_BASE_URL=http://localhost:8080/api/v1 --dart-define=CAF_WS_BASE_URL=ws://localhost:8080/ws --dart-define=CAF_PAYMENT_RETURN_SCHEME=cafclient
 ```
 

@@ -5,6 +5,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:web_socket_channel/web_socket_channel.dart';
+import 'portal/access.dart';
+import 'portal/private_files.dart';
 
 enum StripeCheckoutReturnStatus { success, cancel }
 
@@ -33,7 +35,8 @@ class AppConfig {
   static Uri apiUri(String path) {
     final normalizedPath = path.startsWith('/') ? path : '/$path';
     return Uri.parse(
-        '${apiBaseUrl.replaceAll(RegExp(r'/+$'), '')}$normalizedPath');
+      '${apiBaseUrl.replaceAll(RegExp(r'/+$'), '')}$normalizedPath',
+    );
   }
 
   static Uri websocketUri() {
@@ -125,10 +128,7 @@ class ApiException implements Exception {
 }
 
 class ApiBinaryResponse {
-  ApiBinaryResponse({
-    required this.bytes,
-    required this.headers,
-  });
+  ApiBinaryResponse({required this.bytes, required this.headers});
 
   final Uint8List bytes;
   final Map<String, String> headers;
@@ -154,8 +154,28 @@ class TokenStorage {
 
 class ApiClient {
   ApiClient({TokenStorage? tokenStorage, http.Client? httpClient})
-      : _tokenStorage = tokenStorage ?? TokenStorage(),
-        _httpClient = httpClient ?? http.Client();
+    : _tokenStorage = tokenStorage ?? TokenStorage(),
+      _httpClient = httpClient ?? http.Client(),
+      _sessionCurrent = null,
+      _ownsClient = true;
+
+  ApiClient._session(this._tokenStorage, this._httpClient, this._sessionCurrent)
+    : _ownsClient = false;
+  final bool Function()? _sessionCurrent;
+  final bool _ownsClient;
+  ApiClient forSession(bool Function() current) => ApiClient._session(
+    _tokenStorage,
+    _httpClient,
+    () => current() && (_sessionCurrent?.call() ?? true),
+  );
+  void _assertCurrent() {
+    if (_sessionCurrent?.call() == false) {
+      throw ApiException(
+        'La sesión cambió. Inicie la operación nuevamente.',
+        statusCode: 401,
+      );
+    }
+  }
 
   final TokenStorage _tokenStorage;
   final http.Client _httpClient;
@@ -198,11 +218,71 @@ class ApiClient {
     );
   }
 
+  Future<dynamic> put(String path, {Object? body}) =>
+      _send('PUT', path, body: body);
+
+  Future<dynamic> delete(String path, {Object? body}) =>
+      _send('DELETE', path, body: body);
+
+  Future<dynamic> upload(
+    String path, {
+    required String field,
+    required String filename,
+    required Uint8List bytes,
+    Map<String, String> fields = const {},
+  }) async {
+    final token = await _tokenStorage.readToken();
+    if (token == null || token.isEmpty) {
+      throw ApiException('Sesión no disponible', statusCode: 401);
+    }
+    _assertCurrent();
+    final request = http.MultipartRequest('POST', AppConfig.apiUri(path))
+      ..followRedirects = false
+      ..headers['Authorization'] = 'Bearer $token'
+      ..fields.addAll(fields)
+      ..files.add(
+        http.MultipartFile.fromBytes(field, bytes, filename: filename),
+      );
+    try {
+      final streamed = await _httpClient
+          .send(request)
+          .timeout(const Duration(seconds: 60));
+      final response = await http.Response.fromStream(
+        streamed,
+      ).timeout(const Duration(seconds: 60));
+      _assertCurrent();
+      dynamic data;
+      if (response.bodyBytes.isNotEmpty) {
+        try {
+          data = jsonDecode(utf8.decode(response.bodyBytes));
+        } catch (_) {
+          data = null;
+        }
+      }
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        throw ApiException(
+          data is Map
+              ? '${data['error'] ?? 'No fue posible subir el archivo.'}'
+              : 'No fue posible subir el archivo.',
+          statusCode: response.statusCode,
+        );
+      }
+      return data;
+    } on ApiException {
+      rethrow;
+    } catch (_) {
+      throw ApiException(
+        'No fue posible subir el archivo. Intente nuevamente.',
+      );
+    }
+  }
+
   Future<ApiBinaryResponse> getBytes(
     String path, {
     bool authenticated = true,
     Map<String, String>? headers,
   }) async {
+    _assertCurrent();
     final uri = AppConfig.apiUri(path);
     final requestHeaders = <String, String>{
       'Accept': '*/*',
@@ -217,6 +297,7 @@ class ApiClient {
       if (token == null || token.isEmpty) {
         throw ApiException('Sesión no disponible', statusCode: 401);
       }
+      _assertCurrent();
       requestHeaders['Authorization'] = 'Bearer $token';
     }
 
@@ -252,6 +333,7 @@ class ApiClient {
       );
     }
 
+    _assertCurrent();
     return ApiBinaryResponse(
       bytes: response.bodyBytes,
       headers: response.headers,
@@ -265,6 +347,7 @@ class ApiClient {
     Object? body,
     Map<String, String>? headers,
   }) async {
+    _assertCurrent();
     final uri = AppConfig.apiUri(path);
     final requestHeaders = <String, String>{
       'Accept': 'application/json',
@@ -279,6 +362,7 @@ class ApiClient {
       if (token == null || token.isEmpty) {
         throw ApiException('Sesión no disponible', statusCode: 401);
       }
+      _assertCurrent();
       requestHeaders['Authorization'] = 'Bearer $token';
     }
 
@@ -292,16 +376,38 @@ class ApiClient {
           break;
         case 'POST':
           response = await _httpClient
-              .post(uri,
-                  headers: requestHeaders,
-                  body: body == null ? null : jsonEncode(body))
+              .post(
+                uri,
+                headers: requestHeaders,
+                body: body == null ? null : jsonEncode(body),
+              )
               .timeout(const Duration(seconds: 20));
           break;
         case 'PATCH':
           response = await _httpClient
-              .patch(uri,
-                  headers: requestHeaders,
-                  body: body == null ? null : jsonEncode(body))
+              .patch(
+                uri,
+                headers: requestHeaders,
+                body: body == null ? null : jsonEncode(body),
+              )
+              .timeout(const Duration(seconds: 20));
+          break;
+        case 'PUT':
+          response = await _httpClient
+              .put(
+                uri,
+                headers: requestHeaders,
+                body: body == null ? null : jsonEncode(body),
+              )
+              .timeout(const Duration(seconds: 20));
+          break;
+        case 'DELETE':
+          response = await _httpClient
+              .delete(
+                uri,
+                headers: requestHeaders,
+                body: body == null ? null : jsonEncode(body),
+              )
               .timeout(const Duration(seconds: 20));
           break;
         default:
@@ -309,7 +415,8 @@ class ApiClient {
       }
     } on TimeoutException {
       throw ApiException(
-          'Tiempo de espera agotado al conectar con el servidor');
+        'Tiempo de espera agotado al conectar con el servidor',
+      );
     } on http.ClientException {
       throw ApiException('No fue posible conectar con el servidor');
     } on Exception {
@@ -317,6 +424,7 @@ class ApiClient {
     }
 
     dynamic data;
+    _assertCurrent();
     final bodyText = response.body;
     if (bodyText.isNotEmpty) {
       try {
@@ -352,7 +460,7 @@ class ApiClient {
   }
 
   void close() {
-    _httpClient.close();
+    if (_ownsClient) _httpClient.close();
   }
 }
 
@@ -360,11 +468,17 @@ class RealtimeService {
   RealtimeService({
     required this.onNotificationMessage,
     required this.onConnectionChanged,
-  });
+    WebSocketChannel Function(Uri, List<String>)? channelFactory,
+  }) : _channelFactory =
+           channelFactory ??
+           ((uri, protocols) =>
+               WebSocketChannel.connect(uri, protocols: protocols));
 
   final void Function(Map<String, dynamic> message) onNotificationMessage;
   final void Function(bool connected) onConnectionChanged;
 
+  final WebSocketChannel Function(Uri, List<String>) _channelFactory;
+  int _connectionRevision = 0;
   WebSocketChannel? _channel;
   StreamSubscription? _subscription;
   Timer? _reconnectTimer;
@@ -382,20 +496,19 @@ class RealtimeService {
     _open();
   }
 
-  void _open() {
+  Future<void> _open() async {
+    final revision = ++_connectionRevision;
     final token = _token;
     if (token == null || token.isEmpty) return;
 
     _subscription?.cancel();
     try {
       final uri = AppConfig.websocketUri();
-      _channel = WebSocketChannel.connect(
-        uri,
-        protocols: <String>['caf.jwt.$token'],
-      );
-      _setConnected(true);
+      final channel = _channelFactory(uri, <String>['caf.jwt.$token']);
+      _channel = channel;
       _subscription = _channel!.stream.listen(
         (event) {
+          if (_manuallyDisconnected || revision != _connectionRevision) return;
           if (event is String) {
             try {
               final decoded = jsonDecode(event);
@@ -412,12 +525,24 @@ class RealtimeService {
           }
           _reconnectAttempts = 0;
         },
-        onError: (_) => _handleDisconnect(),
-        onDone: _handleDisconnect,
+        onError: (_) {
+          if (revision == _connectionRevision) _handleDisconnect();
+        },
+        onDone: () {
+          if (revision == _connectionRevision) _handleDisconnect();
+        },
         cancelOnError: true,
       );
+      // A failed asynchronous handshake must be observed separately from stream
+      // errors. Report connected only after the server has accepted the socket.
+      await channel.ready.timeout(const Duration(seconds: 15));
+      if (_manuallyDisconnected || revision != _connectionRevision) {
+        await channel.sink.close();
+        return;
+      }
+      _setConnected(true);
     } catch (_) {
-      _handleDisconnect();
+      if (revision == _connectionRevision) _handleDisconnect();
     }
   }
 
@@ -437,12 +562,14 @@ class RealtimeService {
   }
 
   void disconnect() {
+    _connectionRevision++;
     _manuallyDisconnected = true;
     _reconnectTimer?.cancel();
     _reconnectTimer = null;
     _subscription?.cancel();
     _subscription = null;
-    _channel?.sink.close();
+    final channel = _channel;
+    if (channel != null) unawaited(channel.sink.close().catchError((_) {}));
     _channel = null;
     _setConnected(false);
   }
@@ -717,8 +844,10 @@ class AppointmentItem {
       startTime: _asDate(json['startTime']),
       endTime: _asDate(json['endTime']),
       staffName: _fullName(staffMap),
-      officeName: _asString(officeMap['name'],
-          fallback: _asString(_asMap(caseMap['office'])['name'])),
+      officeName: _asString(
+        officeMap['name'],
+        fallback: _asString(_asMap(caseMap['office'])['name']),
+      ),
     );
   }
 }
@@ -906,12 +1035,12 @@ class CaseDetail {
     final officeMap = _asMap(json['office']);
     return CaseDetail(
       summary: CaseSummary.fromJson(json),
-      events: _asMapList(json['caseEvents'])
-          .map(CaseTimelineEvent.fromJson)
-          .toList(growable: false),
-      appointments: _asMapList(json['appointments'])
-          .map(AppointmentItem.fromJson)
-          .toList(growable: false),
+      events: _asMapList(
+        json['caseEvents'],
+      ).map(CaseTimelineEvent.fromJson).toList(growable: false),
+      appointments: _asMapList(
+        json['appointments'],
+      ).map(AppointmentItem.fromJson).toList(growable: false),
       primaryStaff: primaryStaffMap.isEmpty
           ? null
           : StaffContact.fromJson(primaryStaffMap),
@@ -921,17 +1050,23 @@ class CaseDetail {
 }
 
 class AppState extends ChangeNotifier {
-  AppState({ApiClient? apiClient, TokenStorage? tokenStorage})
-      : _tokenStorage = tokenStorage ?? TokenStorage(),
-        _api = apiClient ??
-            ApiClient(tokenStorage: tokenStorage ?? TokenStorage()) {
-    _realtime = RealtimeService(
-      onNotificationMessage: _handleRealtimeMessage,
-      onConnectionChanged: (connected) {
-        _isRealtimeConnected = connected;
-        notifyListeners();
-      },
-    );
+  AppState({
+    ApiClient? apiClient,
+    TokenStorage? tokenStorage,
+    RealtimeService? realtimeService,
+  }) : _tokenStorage = tokenStorage ?? TokenStorage(),
+       _api =
+           apiClient ??
+           ApiClient(tokenStorage: tokenStorage ?? TokenStorage()) {
+    _realtime =
+        realtimeService ??
+        RealtimeService(
+          onNotificationMessage: _handleRealtimeMessage,
+          onConnectionChanged: (connected) {
+            _isRealtimeConnected = connected;
+            notifyListeners();
+          },
+        );
   }
 
   final TokenStorage _tokenStorage;
@@ -978,6 +1113,22 @@ class AppState extends ChangeNotifier {
   CaseDetail? get selectedCaseDetail => _selectedCaseDetail;
   int? get selectedCaseId => _selectedCaseId;
   DateTime? get lastSyncAt => _lastSyncAt;
+  int _employeeRevision = 0;
+  int get employeeRevision => _employeeRevision;
+  int _sessionEpoch = 0;
+  int _clientDetailRevision = 0;
+  ApiClient get _sessionDataApi {
+    final epoch = _sessionEpoch;
+    return _api.forSession(() => epoch == _sessionEpoch);
+  }
+
+  ApiClient get apiClient {
+    final epoch = _sessionEpoch;
+    return _api.forSession(() => _isAuthenticated && epoch == _sessionEpoch);
+  }
+
+  PortalRole? get role =>
+      PortalRole.parse(_profile?.role ?? _authUser?.role ?? '');
 
   AppointmentItem? get nextAppointment {
     final now = DateTime.now();
@@ -1008,8 +1159,9 @@ class AppState extends ChangeNotifier {
         return;
       }
 
-      _isAuthenticated = true;
+      await loadProfile(silent: true);
       await _loadSessionData(initialLoad: true);
+      _isAuthenticated = true;
       _realtime.connect(token);
     } on ApiException catch (e) {
       await _forceLogout(localOnly: true);
@@ -1046,20 +1198,25 @@ class AppState extends ChangeNotifier {
       if (token.isEmpty) {
         throw ApiException('Respuesta inválida del servidor');
       }
-      if (user.role != 'client') {
-        throw ApiException('Esta app es exclusiva para clientes.');
+      if (PortalRole.parse(user.role) == null) {
+        throw ApiException(
+          'Su rol no está disponible. Contacte a Soporte Tecnico.',
+        );
       }
 
       await _tokenStorage.writeToken(token);
       _authUser = user;
-      _isAuthenticated = true;
+      await loadProfile(silent: true);
       await _loadSessionData(initialLoad: true);
+      _isAuthenticated = true;
       _realtime.connect(token);
       return null;
     } on ApiException catch (e) {
+      await _forceLogout(localOnly: true);
       _errorMessage = e.message;
       return e.message;
     } catch (_) {
+      await _forceLogout(localOnly: true);
       _errorMessage = 'Error inesperado al iniciar sesión';
       return _errorMessage;
     } finally {
@@ -1074,7 +1231,14 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> _forceLogout({required bool localOnly}) async {
+    _sessionEpoch++;
+    _clientDetailRevision++;
     _realtime.disconnect();
+    try {
+      await PrivateFiles.clear();
+    } catch (_) {
+      /* Credentials are still cleared if the cache is unavailable. */
+    }
     if (!localOnly) {
       try {
         await _api.post('/logout', body: const {}, authenticated: true);
@@ -1113,6 +1277,10 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> _loadSessionData({required bool initialLoad}) async {
+    if (role?.isEmployee == true) {
+      _lastSyncAt = DateTime.now();
+      return;
+    }
     await Future.wait<void>([
       loadProfile(silent: true),
       loadNotifications(silent: true),
@@ -1138,10 +1306,31 @@ class AppState extends ChangeNotifier {
 
   Future<void> loadProfile({bool silent = false}) async {
     try {
-      final raw = await _api.get('/client/profile');
+      dynamic raw;
+      if (_authUser == null) {
+        // The stored token contains no trusted role. Each endpoint validates
+        // the current database role; only a forbidden client route may fall
+        // through to the employee profile route during session restoration.
+        try {
+          raw = await _sessionDataApi.get('/client/profile');
+        } on ApiException catch (error) {
+          if (error.statusCode != 403) rethrow;
+          raw = await _sessionDataApi.get('/profile');
+        }
+      } else {
+        raw = await _sessionDataApi.get(
+          _authUser!.role == 'client' ? '/client/profile' : '/profile',
+        );
+      }
       final data = _asMap(raw);
       _profile = ClientProfile.fromJson(data);
-      _authUser ??= AuthUser(
+      if (PortalRole.parse(_profile!.role) == null) {
+        throw ApiException(
+          'Su rol no está disponible. Contacte a Soporte Tecnico.',
+          statusCode: 403,
+        );
+      }
+      _authUser = AuthUser(
         id: _profile!.userId,
         email: _profile!.email,
         role: _profile!.role,
@@ -1159,12 +1348,13 @@ class AppState extends ChangeNotifier {
 
   Future<void> loadNotifications({bool silent = false}) async {
     try {
-      final raw = await _api.get('/client/notifications');
+      final raw = await _sessionDataApi.get('/client/notifications');
       final data = _asMap(raw);
-      _notifications = _asMapList(data['notifications'])
-          .map(AppNotificationItem.fromJson)
-          .toList(growable: false);
-      _unreadNotifications = _asInt(data['unread_count']) ??
+      _notifications = _asMapList(
+        data['notifications'],
+      ).map(AppNotificationItem.fromJson).toList(growable: false);
+      _unreadNotifications =
+          _asInt(data['unread_count']) ??
           _notifications.where((n) => !n.isRead).length;
       if (!silent) notifyListeners();
     } on ApiException catch (e) {
@@ -1176,18 +1366,38 @@ class AppState extends ChangeNotifier {
     }
   }
 
+  Future<List<Map<String, dynamic>>> _clientPages(
+    String path,
+    String sizeKey,
+  ) async {
+    final epoch = _sessionEpoch;
+    final api = _api.forSession(() => epoch == _sessionEpoch);
+    final rows = <Map<String, dynamic>>[];
+    for (var page = 1; ; page++) {
+      final raw = _asMap(await api.get('$path?page=$page&$sizeKey=100'));
+      if (raw['data'] is! List) {
+        throw ApiException('No fue posible verificar la lista de registros.');
+      }
+      final next = _asMapList(raw['data']);
+      rows.addAll(next);
+      final total = _asInt(_asMap(raw['pagination'])['total']) ?? rows.length;
+      if (rows.length >= total || next.isEmpty) break;
+    }
+    return rows;
+  }
+
   Future<void> loadCases({bool silent = false}) async {
     try {
-      final raw = await _api.get('/client/cases');
-      final data = _asMap(raw);
-      _cases = _asMapList(data['data'])
-          .map(CaseSummary.fromJson)
-          .toList(growable: false);
+      final rows = await _clientPages('/client/cases', 'limit');
+      _cases = rows.map(CaseSummary.fromJson).toList(growable: false);
       if (_cases.isEmpty) {
+        _clientDetailRevision++;
         _selectedCaseId = null;
         _selectedCaseDetail = null;
       } else if (_selectedCaseId == null ||
           !_cases.any((c) => c.id == _selectedCaseId)) {
+        _clientDetailRevision++;
+        _selectedCaseDetail = null;
         _selectedCaseId = _cases.first.id;
       }
       if (!silent) notifyListeners();
@@ -1201,19 +1411,23 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> selectCase(int caseId) async {
+    if (_selectedCaseId != caseId) _selectedCaseDetail = null;
     _selectedCaseId = caseId;
     notifyListeners();
     await loadCaseDetail(caseId);
   }
 
   Future<void> loadCaseDetail(int caseId, {bool silent = false}) async {
+    final revision = ++_clientDetailRevision;
     try {
-      final raw = await _api.get('/client/cases/$caseId');
+      final raw = await _sessionDataApi.get('/client/cases/$caseId');
+      if (revision != _clientDetailRevision) return;
       final data = _asMap(raw);
       _selectedCaseDetail = CaseDetail.fromJson(data);
       _selectedCaseId = caseId;
       if (!silent) notifyListeners();
     } on ApiException catch (e) {
+      if (revision != _clientDetailRevision) return;
       if (!silent) {
         _errorMessage = e.message;
         notifyListeners();
@@ -1224,9 +1438,8 @@ class AppState extends ChangeNotifier {
 
   Future<void> loadAppointments({bool silent = false}) async {
     try {
-      final raw = await _api.get('/client/appointments');
-      final data = _asMap(raw);
-      _appointments = _asMapList(data['data'])
+      final rows = await _clientPages('/client/appointments', 'pageSize');
+      _appointments = rows
           .map(AppointmentItem.fromJson)
           .toList(growable: false);
       if (!silent) notifyListeners();
@@ -1241,11 +1454,11 @@ class AppState extends ChangeNotifier {
 
   Future<void> loadPaymentReceipts({bool silent = false}) async {
     try {
-      final raw = await _api.get('/client/payments/receipts');
+      final raw = await _sessionDataApi.get('/client/payments/receipts');
       final data = _asMap(raw);
-      _paymentReceipts = _asMapList(data['receipts'])
-          .map(PaymentReceipt.fromJson)
-          .toList(growable: false);
+      _paymentReceipts = _asMapList(
+        data['receipts'],
+      ).map(PaymentReceipt.fromJson).toList(growable: false);
       _paymentsConfigured = true;
       _paymentsMessage = null;
       if (!silent) notifyListeners();
@@ -1267,15 +1480,15 @@ class AppState extends ChangeNotifier {
 
   Future<void> loadOffices({bool silent = false}) async {
     try {
-      final raw = await _api.get('/client/offices');
+      final raw = await _sessionDataApi.get('/client/offices');
       if (raw is List) {
         _offices = raw
             .map((e) => OfficeContact.fromJson(_asMap(e)))
             .toList(growable: false);
       } else {
-        _offices = _asMapList(_asMap(raw)['data'])
-            .map(OfficeContact.fromJson)
-            .toList(growable: false);
+        _offices = _asMapList(
+          _asMap(raw)['data'],
+        ).map(OfficeContact.fromJson).toList(growable: false);
       }
       if (!silent) notifyListeners();
     } on ApiException catch (e) {
@@ -1299,7 +1512,7 @@ class AppState extends ChangeNotifier {
     notifyListeners();
 
     try {
-      await _api.post(
+      await _sessionDataApi.post(
         '/client/notifications/mark-read',
         body: {
           'notificationIds': [notificationId],
@@ -1326,7 +1539,7 @@ class AppState extends ChangeNotifier {
     notifyListeners();
 
     try {
-      await _api.post(
+      await _sessionDataApi.post(
         '/client/notifications/mark-read',
         body: {'notificationIds': ids},
       );
@@ -1347,7 +1560,7 @@ class AppState extends ChangeNotifier {
     }
 
     try {
-      await _api.post(
+      await _sessionDataApi.post(
         '/client/cases/$caseId/comments',
         body: {'comment': trimmed},
       );
@@ -1370,16 +1583,17 @@ class AppState extends ChangeNotifier {
     bool download = false,
   }) async {
     try {
-      final response = await _api.getBytes(
+      final response = await _sessionDataApi.getBytes(
         '/client/documents/$eventId?mode=${download ? 'download' : 'preview'}',
       );
-      final headerFileName =
-          _filenameFromContentDisposition(response.contentDisposition);
+      final headerFileName = _filenameFromContentDisposition(
+        response.contentDisposition,
+      );
       final resolvedName = headerFileName.isNotEmpty
           ? headerFileName
           : (fallbackFileName.trim().isNotEmpty
-              ? fallbackFileName.trim()
-              : 'documento_$eventId');
+                ? fallbackFileName.trim()
+                : 'documento_$eventId');
       _errorMessage = null;
       notifyListeners();
       return ClientDocumentFile(
@@ -1396,7 +1610,7 @@ class AppState extends ChangeNotifier {
 
   Future<String?> createCheckoutForCase(int caseId) async {
     try {
-      final raw = await _api.post(
+      final raw = await _sessionDataApi.post(
         '/client/payments/checkout-session',
         body: {'caseId': caseId},
       );
@@ -1434,7 +1648,9 @@ class AppState extends ChangeNotifier {
       ]);
       if (caseId != null && caseId > 0) {
         if (_selectedCaseId == caseId) {
-          await loadCaseDetail(caseId, silent: true);
+          if (_selectedCaseId == caseId) {
+            await loadCaseDetail(caseId, silent: true);
+          }
         }
       } else if (_selectedCaseId != null) {
         await loadCaseDetail(_selectedCaseId!, silent: true);
@@ -1459,8 +1675,9 @@ class AppState extends ChangeNotifier {
     }
   }
 
-  Future<void> refreshPaymentsAfterExternalCheckout(
-      {bool silent = false}) async {
+  Future<void> refreshPaymentsAfterExternalCheckout({
+    bool silent = false,
+  }) async {
     try {
       await loadPaymentReceipts(silent: true);
       await loadNotifications(silent: true);
@@ -1474,25 +1691,35 @@ class AppState extends ChangeNotifier {
     }
   }
 
+  void _background(Future<void> work) {
+    unawaited(work.catchError((_) {}));
+  }
+
   void _handleRealtimeMessage(Map<String, dynamic> message) {
+    if (role?.isEmployee == true) {
+      _employeeRevision++;
+      notifyListeners();
+      return;
+    }
     final type = _asString(message['type']);
     if (type == 'notification') {
-      unawaited(loadNotifications(silent: true));
+      _background(loadNotifications(silent: true));
       final notificationPayload = _asMap(message['notification']);
       final entityType = _asString(notificationPayload['entityType']);
       if (entityType == 'payment') {
-        unawaited(loadPaymentReceipts(silent: true));
+        _background(loadPaymentReceipts(silent: true));
       }
       if (entityType == 'case' && _selectedCaseId != null) {
-        unawaited(loadCaseDetail(_selectedCaseId!, silent: true));
+        _background(loadCaseDetail(_selectedCaseId!, silent: true));
       }
-      unawaited(loadAppointments(silent: true));
+      _background(loadAppointments(silent: true));
       notifyListeners();
     }
   }
 
   @override
   void dispose() {
+    _sessionEpoch++;
     _realtime.dispose();
     _api.close();
     super.dispose();

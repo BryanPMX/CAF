@@ -10,6 +10,8 @@ import 'package:url_launcher/url_launcher.dart';
 
 import 'app_state.dart';
 import 'brand.dart';
+import 'portal/profile_screen.dart';
+import 'portal/workspace_repository.dart';
 
 enum ClientSection {
   dashboard,
@@ -18,6 +20,7 @@ enum ClientSection {
   appointments,
   payments,
   contact,
+  profile,
 }
 
 extension ClientSectionX on ClientSection {
@@ -35,6 +38,8 @@ extension ClientSectionX on ClientSection {
         return 'Pagos';
       case ClientSection.contact:
         return 'Contacto';
+      case ClientSection.profile:
+        return 'Mi perfil';
     }
   }
 
@@ -52,6 +57,8 @@ extension ClientSectionX on ClientSection {
         return Icons.receipt_long_outlined;
       case ClientSection.contact:
         return Icons.support_agent_outlined;
+      case ClientSection.profile:
+        return Icons.person_outline;
     }
   }
 }
@@ -314,6 +321,8 @@ class _ClientAppShellState extends State<ClientAppShell>
         return _PaymentsSection(state: state);
       case ClientSection.contact:
         return _ContactSection(state: state);
+      case ClientSection.profile:
+        return ProfileScreen(repository: HttpWorkspaceRepository(state.apiClient, state.role!));
     }
   }
 }
