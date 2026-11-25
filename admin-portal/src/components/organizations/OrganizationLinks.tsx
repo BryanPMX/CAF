@@ -8,7 +8,10 @@ import type {
   EmploymentInput,
   Organization,
 } from "@/app/lib/organizations";
-import { ORGANIZATION_TEXT as text } from "@/config/organizations";
+import {
+  ORGANIZATION_TEXT as text,
+  CONTRACTOR_ROLES,
+} from "@/config/organizations";
 export function EmploymentSummary({
   employment,
   maquila,
@@ -38,7 +41,9 @@ export function EmploymentSummary({
               >
                 {maquila?.name || text.maquila.singular}
               </Link>
-            ) : (maquila?.name || text.maquila.singular),
+            ) : (
+              maquila?.name || text.maquila.singular
+            ),
           },
           {
             key: "employee",
@@ -86,12 +91,31 @@ export default function OrganizationLinks({
             member.organization && (
               <div key={member.id}>
                 <Tag>
-                  {canBrowse ? <Link
-                    href={`/app/${member.organization.kind === "maquila" ? "maquilas" : "constructoras"}?organizationId=${member.organizationId}`}
-                  >
-                    {member.organization.name}
-                  </Link> : member.organization.name}
+                  {canBrowse ? (
+                    <Link
+                      href={`/app/${member.organization.kind === "maquila" ? "maquilas" : "constructoras"}?organizationId=${member.organizationId}`}
+                    >
+                      {member.organization.name}
+                    </Link>
+                  ) : (
+                    member.organization.name
+                  )}
                 </Tag>
+                {member.organization.kind === "constructora" && (
+                  <div className="mt-2">
+                    {member.relationshipRoles?.map((role) => (
+                      <Tag key={role}>
+                        {CONTRACTOR_ROLES.find((item) => item.value === role)
+                          ?.label || role}
+                      </Tag>
+                    ))}
+                    {member.relationshipNotes && (
+                      <p className="text-sm text-slate-600">
+                        {member.relationshipNotes}
+                      </p>
+                    )}
+                  </div>
+                )}
                 {member.organization.kind === "maquila" && (
                   <p className="mt-2 text-sm text-slate-600">
                     {text.employeeNumber}: {member.employeeNumber} ·{" "}

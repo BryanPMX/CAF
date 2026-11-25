@@ -12,15 +12,20 @@ import {
   Modal,
   Popconfirm,
   Result,
+  Select,
   Table,
   Tabs,
   Tag,
 } from "antd";
 import dayjs from "dayjs";
 import { useAuth } from "@/context/AuthContext";
-import { canAccessOrganizationDirectory, canAccessAllOffices } from "@/config/roles";
+import {
+  canAccessOrganizationDirectory,
+  canAccessAllOffices,
+} from "@/config/roles";
 import {
   ORGANIZATION_TEXT as text,
+  CONTRACTOR_ROLES,
   type OrganizationKind,
 } from "@/config/organizations";
 import {
@@ -39,6 +44,7 @@ import {
 } from "@/app/lib/organizations";
 import CreateCaseModal from "@/app/(dashboard)/app/cases/components/CreateCaseModal";
 import CalendarEventModal from "@/app/(dashboard)/app/calendar/components/CalendarEventModal";
+import PropertyArchive from "@/components/properties/PropertyArchive";
 import ClientSelect from "./ClientSelect";
 import EmploymentFields from "./EmploymentFields";
 import DirectClientAppointmentModal from "./DirectClientAppointmentModal";
@@ -201,6 +207,12 @@ export default function OrganizationDirectory({
         detail.organization.id,
         values.clientId,
         values.employment,
+        kind === "constructora"
+          ? {
+              relationshipRoles: values.relationshipRoles || [],
+              relationshipNotes: values.relationshipNotes || "",
+            }
+          : undefined,
       );
       setLinking(false);
       refresh();
@@ -214,6 +226,24 @@ export default function OrganizationDirectory({
   const companyAccount = detail?.accountClient;
   const clientActions = (row: OrganizationClientRow) => (
     <div className="flex flex-wrap gap-1">
+      {kind === "constructora" &&
+        row.client.id !== detail?.organization.accountClientId && (
+          <Button
+            size="small"
+            onClick={() => {
+              setError(null);
+              linkForm.resetFields();
+              linkForm.setFieldsValue({
+                clientId: row.client.id,
+                relationshipRoles: row.membership?.relationshipRoles || [],
+                relationshipNotes: row.membership?.relationshipNotes || "",
+              });
+              setLinking(true);
+            }}
+          >
+            Editar relación
+          </Button>
+        )}
       {canEdit && (
         <Button
           size="small"
@@ -281,7 +311,10 @@ export default function OrganizationDirectory({
     </div>
   );
 
-  if (!canEdit) return <Result status="403" title={text.denied} subTitle={text.deniedHint} />;
+  if (!canEdit)
+    return (
+      <Result status="403" title={text.denied} subTitle={text.deniedHint} />
+    );
 
   return (
     <div className="space-y-5">
@@ -343,7 +376,9 @@ export default function OrganizationDirectory({
                 >
                   {record.name}
                 </Button>
-                <span className="ml-3 text-xs text-slate-400">#{record.id}</span>
+                <span className="ml-3 text-xs text-slate-400">
+                  #{record.id}
+                </span>
               </>
             ),
           },
@@ -402,10 +437,23 @@ export default function OrganizationDirectory({
                         {
                           key: "office",
                           label: text.scope,
-                          children: kind === "constructora" ? text.sharedCompanyHint : text.sharedFactoryHint,
+                          children:
+                            kind === "constructora"
+                              ? text.sharedCompanyHint
+                              : text.sharedFactoryHint,
                         },
                         ...(kind === "constructora"
                           ? [
+                              {
+                                key: "legalName",
+                                label: "Razón social",
+                                children: detail.organization.legalName || "—",
+                              },
+                              {
+                                key: "tradeName",
+                                label: "Nombre comercial",
+                                children: detail.organization.tradeName || "—",
+                              },
                               {
                                 key: "representative",
                                 label: text.legalRepresentative,
@@ -468,7 +516,42 @@ export default function OrganizationDirectory({
                               {
                                 key: "office",
                                 title: text.office,
-                                render: (_: unknown, row: OrganizationClientRow) => row.client.clientType === "organization" ? text.sharedCompany : row.client.office?.name || "—",
+                                render: (
+                                  _: unknown,
+                                  row: OrganizationClientRow,
+                                ) =>
+                                  row.client.clientType === "organization"
+                                    ? text.sharedCompany
+                                    : row.client.office?.name || "—",
+                              },
+                            ]
+                          : []),
+                        ...(kind === "constructora"
+                          ? [
+                              {
+                                key: "relationship",
+                                title: "Relación con la empresa",
+                                render: (
+                                  _: unknown,
+                                  row: OrganizationClientRow,
+                                ) => (
+                                  <>
+                                    {(
+                                      row.membership?.relationshipRoles || []
+                                    ).map((role) => (
+                                      <Tag key={role}>
+                                        {CONTRACTOR_ROLES.find(
+                                          (option) => option.value === role,
+                                        )?.label || role}
+                                      </Tag>
+                                    ))}
+                                    {row.membership?.relationshipNotes && (
+                                      <p className="text-sm text-slate-500">
+                                        {row.membership.relationshipNotes}
+                                      </p>
+                                    )}
+                                  </>
+                                ),
                               },
                             ]
                           : []),
@@ -505,6 +588,21 @@ export default function OrganizationDirectory({
                     />
                   ),
                 },
+                ...(kind === "constructora"
+                  ? [
+                      {
+                        key: "properties",
+                        label: "Propiedades",
+                        children: (
+                          <PropertyArchive
+                            organizationId={detail.organization.id}
+                            initialOrganization={detail.organization}
+                            embedded
+                          />
+                        ),
+                      },
+                    ]
+                  : []),
                 ...(kind === "maquila"
                   ? [
                       {
@@ -611,32 +709,28 @@ export default function OrganizationDirectory({
           </Form.Item>
           {kind === "constructora" && (
             <>
+              <Form.Item name="legalName" label="Razón social (si se conoce)">
+                <Input maxLength={255} />
+              </Form.Item>
+              <Form.Item
+                name="tradeName"
+                label="Nombre comercial (si se conoce)"
+              >
+                <Input maxLength={255} />
+              </Form.Item>
               <Form.Item
                 name="legalRepresentative"
                 label={text.legalRepresentative}
-                rules={[{ required: true, message: text.required }]}
               >
                 <Input maxLength={255} />
               </Form.Item>
-              <Form.Item
-                name="legalAddress"
-                label={text.legalAddress}
-                rules={[{ required: true, message: text.required }]}
-              >
+              <Form.Item name="legalAddress" label={text.legalAddress}>
                 <Input.TextArea rows={2} maxLength={1000} />
               </Form.Item>
-              <Form.Item
-                name="boardPresident"
-                label={text.boardPresident}
-                rules={[{ required: true, message: text.required }]}
-              >
+              <Form.Item name="boardPresident" label={text.boardPresident}>
                 <Input maxLength={255} />
               </Form.Item>
-              <Form.Item
-                name="neighborhood"
-                label={text.neighborhood}
-                rules={[{ required: true, message: text.required }]}
-              >
+              <Form.Item name="neighborhood" label={text.neighborhood}>
                 <Input maxLength={255} />
               </Form.Item>
               <Form.Item
@@ -679,12 +773,33 @@ export default function OrganizationDirectory({
           >
             <ClientSelect
               clientType="person"
+              initialClients={
+                detail?.clients
+                  .map((row) => row.client)
+                  .filter((client) => client.clientType !== "organization") ||
+                []
+              }
             />
           </Form.Item>
+          {kind === "constructora" && (
+            <>
+              <Form.Item
+                name="relationshipRoles"
+                label="Relación con la empresa"
+              >
+                <Select
+                  mode="multiple"
+                  options={CONTRACTOR_ROLES}
+                  placeholder="Seleccione las relaciones que apliquen"
+                />
+              </Form.Item>
+              <Form.Item name="relationshipNotes" label="Aclaración (opcional)">
+                <Input.TextArea rows={2} maxLength={2000} />
+              </Form.Item>
+            </>
+          )}
           {kind === "maquila" && detail && (
-            <EmploymentFields
-              fixedMaquila={detail.organization.id}
-            />
+            <EmploymentFields fixedMaquila={detail.organization.id} />
           )}
         </Form>
       </Modal>

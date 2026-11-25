@@ -104,3 +104,11 @@ export const ORGANIZATION_TEXT = {
   companyHint:
     "La cuenta de la empresa aparece en Usuarios. Sus datos legales se administran en Constructoras.",
 } as const;
+
+export const CONTRACTOR_ROLES = [
+ {value:'owner',label:'Propietario de la empresa'},
+ {value:'partner',label:'Socio'},
+ {value:'sole_trader',label:'Trabaja por su cuenta con nombre comercial'},
+ {value:'legal_representative',label:'Representante legal'},
+ {value:'contact',label:'Contacto'},
+];

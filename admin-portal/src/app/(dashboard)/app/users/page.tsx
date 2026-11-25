@@ -30,6 +30,7 @@ interface User {
   office?: { name: string };
   phone?: string;
   personalAddress?: string;
+  birthDate?: string;
 }
 
 interface Office { id: number; name: string; }

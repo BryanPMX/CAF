@@ -24,6 +24,7 @@ type User struct {
 
 	// Contact and address
 	Phone           string  `gorm:"size:50" json:"phone"`
+	BirthDate       *Date   `gorm:"type:date" json:"birthDate,omitempty"`
 	PersonalAddress *string `gorm:"type:text" json:"personalAddress,omitempty"`
 
 	// Profile image: URL (external or local storage reference)

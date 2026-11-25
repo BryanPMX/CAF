@@ -13,6 +13,7 @@ import AuthAvatar from "@/app/(dashboard)/components/AuthAvatar";
 import {
   formatProfileDate,
   getProfileInitials,
+  ageFromBirthDate,
   getProfileName,
   type UserProfile,
 } from "@/app/lib/profile";
@@ -101,6 +102,7 @@ export default function ProfileCard({
   photoEditor?: ReactNode;
   children?: ReactNode;
 }) {
+  const age = ageFromBirthDate(profile.birthDate);
   const memberSince = formatProfileDate(profile.createdAt);
   const lastLogin = formatProfileDate(profile.lastLogin, true);
   const global = canAccessAllOffices(profile.role);
@@ -158,6 +160,8 @@ export default function ProfileCard({
             <ProfileField label={text.phone}>
               {profile.phone?.trim() || text.missing}
             </ProfileField>
+            {profile.personalAddress && <ProfileField label="Domicilio personal">{profile.personalAddress}</ProfileField>}
+            {age !== null && profile.clientType !== "organization" && <ProfileField label="Edad">{age} años</ProfileField>}
           </ProfileSection>
           {hasOrganization && (
             <ProfileSection

@@ -20,6 +20,8 @@ type Organization struct {
 	Kind                string         `gorm:"size:20;not null;index" json:"kind"`
 	OfficeID            *uint          `gorm:"index" json:"officeId"`
 	Office              *Office        `gorm:"foreignKey:OfficeID" json:"office,omitempty"`
+	LegalName           string         `gorm:"size:255" json:"legalName"`
+	TradeName           string         `gorm:"size:255" json:"tradeName"`
 	Name                string         `gorm:"size:255;not null" json:"name"`
 	LegalRepresentative string         `gorm:"size:255" json:"legalRepresentative"`
 	LegalAddress        string         `gorm:"size:1000" json:"legalAddress"`
@@ -46,6 +48,8 @@ type OrganizationClient struct {
 	Organization      *Organization `gorm:"foreignKey:OrganizationID" json:"organization,omitempty"`
 	ClientID          uint          `gorm:"not null;uniqueIndex:idx_organization_client;index" json:"clientId"`
 	EmploymentDetails `gorm:"embedded"`
+	RelationshipRoles []string  `gorm:"serializer:json;type:text;not null;default:'[]'" json:"relationshipRoles"`
+	RelationshipNotes string    `gorm:"size:2000" json:"relationshipNotes"`
 	CreatedAt         time.Time `json:"createdAt"`
 	UpdatedAt         time.Time `json:"updatedAt"`
 }

@@ -552,3 +552,48 @@ a shared company used by two offices, and the global appointment office picker.
 docker build --platform linux/amd64 -t caf-api:shared-constructoras-review ./api
 CAF_TEST_API_IMAGE=caf-api:shared-constructoras-review python3 testing/technical-support-docker.py
 ```
+
+## Property archive validation
+
+Use synthetic data; never point E2E or Docker tests at production.
+
+```sh
+cd api
+go test ./...
+CAF_RBAC_PREVIEW=1 go test ./handlers -run '^TestOfficeAuthorizationPreview$' -v -count=1 -timeout=30m
+```
+
+The isolated fixture serves on `127.0.0.1:8080`. In another shell, build the
+portal with the API URL fixed at build time and serve the production bundle:
+
+```sh
+NEXT_PUBLIC_API_URL=http://localhost:8080/api/v1 npm --prefix admin-portal run build
+npm --prefix admin-portal run start -- --port 3100 --hostname 127.0.0.1
+node --test testing/portal-roles.test.cjs testing/appointment-availability.test.cjs
+node --test testing/properties.e2e.cjs
+node --test testing/organizations.e2e.cjs testing/profile.e2e.cjs
+```
+
+The property E2E covers property creation, registry identifiers with leading
+zeroes, owner capture, document upload, person-profile address/age, search, a
+390-pixel mobile viewport, mobile editor, keyboard cancellation with unsaved-edit
+protection, readable preselected owner names, required-field validation in Spanish
+and denied lawyer access. Its API interception blocks
+requests outside loopback. Screenshots default to a unique `caf-properties-e2e-*` temporary directory (printed by the test).
+
+For production-image and PostgreSQL migration/restart checks:
+
+```sh
+docker build -t caf-api:property-archive-review api
+CAF_TEST_API_IMAGE=caf-api:property-archive-review python3 testing/technical-support-docker.py
+```
+
+The Docker suite creates isolated containers with synthetic data, replays 0068,
+checks PostgreSQL date serialization, ownership history and office isolation,
+and removes its containers/network afterward. It respects production login
+rate limits with bounded retries rather than disabling the limiter.
+
+For tunnel verification, expose only the synthetic fixture temporarily:
+`cloudflared tunnel --no-autoupdate --url http://127.0.0.1:8080`. Verify that
+anonymous `/api/v1/properties` returns 401 and a synthetic authenticated request
+returns 200. Close the tunnel after validation; it is not a production deployment.

@@ -199,6 +199,7 @@ export const getNavigationItemsForRole = (role: string) => {
     ...(canAccessOrganizationDirectory(role) ? [
       { key: 'maquilas', label: ORGANIZATION_TEXT.maquila.title, path: '/app/maquilas', icon: 'BuildOutlined' },
       { key: 'constructoras', label: ORGANIZATION_TEXT.constructora.title, path: '/app/constructoras', icon: 'ToolOutlined' },
+      { key: 'properties', label: 'Propiedades', path: '/app/properties', icon: 'HomeOutlined' },
     ] : []),
     { key: 'notifications', label: 'Notificaciones', path: '/app/notifications', icon: 'BellOutlined' },
   ];

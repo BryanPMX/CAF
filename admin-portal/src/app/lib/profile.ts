@@ -19,6 +19,8 @@ export interface UserProfile {
   email: string;
   role: string;
   phone?: string | null;
+  personalAddress?: string | null;
+  birthDate?: string | null;
   officeId?: number | null;
   office?: ProfileOffice | null;
   department?: string | null;
@@ -65,4 +67,14 @@ export function isValidProfilePhotoURL(value: string): boolean {
   } catch {
     return false;
   }
+}
+
+export function ageFromBirthDate(value?:string|null, now=new Date()):number|null {
+ if(!value)return null;
+ const parts=value.slice(0,10).split('-').map(Number);
+ if(parts.length!==3||parts.some(part=>!Number.isInteger(part)))return null;
+ const [year,month,day]=parts;
+ const date=new Date(year,month-1,day);
+ if(date.getFullYear()!==year||date.getMonth()!==month-1||date.getDate()!==day||date>now)return null;
+ return now.getFullYear()-year-((now.getMonth()+1<month||now.getMonth()+1===month&&now.getDate()<day)?1:0);
 }

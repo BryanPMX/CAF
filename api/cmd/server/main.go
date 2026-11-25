@@ -312,6 +312,7 @@ func main() {
 		// Office-scoped factory and contractor registries share existing clients.
 		protected.GET("/client-options", handlers.ClientOptions(database))
 		protected.GET("/maquila-options", handlers.FactoryOptions(database))
+		handlers.RegisterPropertyRoutes(protected, database)
 		protected.GET("/organizations", handlers.ListOrganizations(database))
 		protected.POST("/organizations", handlers.SaveOrganization(database, true))
 		protected.GET("/organizations/:id", handlers.GetOrganization(database))

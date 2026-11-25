@@ -208,3 +208,5 @@ When deploying to production:
   - Created comprehensive initial schema
   - Added audit trail and session management
   - Implemented proper indexing and performance optimization
+
+- **0068_property_archive.sql**: Office-scoped property archive, ownership history, repeatable registry entries, authenticated property documents, company legal/trade names, person-company roles and optional client birth dates. See [workflow and deployment](../../../docs/PROPERTY_ARCHIVE.md).

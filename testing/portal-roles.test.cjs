@@ -25,7 +25,7 @@ test('executives and technical support have organization and website access', ()
     assert.equal(roles.canManageWebContent(role), executive, role);
     assert.equal(roles.getNavigationItemsForRole(role).some(item => item.key === 'web-content'), executive, role);
     assert.equal(roles.PERMISSIONS[role].includes('*'), executive, role);
-    for (const key of ['maquilas', 'constructoras']) {
+    for (const key of ['maquilas', 'constructoras', 'properties']) {
       assert.equal(roles.getNavigationItemsForRole(role).some(item => item.key === key), ['admin','executive_director','technical_support'].includes(role), role);
     }
   }
@@ -113,4 +113,15 @@ test('profile helpers handle missing dates, names and safe photo links', () => {
   assert.ok(profile.formatProfileDate('2024-03-15T12:00:00Z').includes('2024'));
   for (const url of ['javascript:alert(1)', 'data:image/png;base64,AAA', 'https://', '/api/avatar']) assert.equal(profile.isValidProfilePhotoURL(url), false);
   for (const url of ['https://example.test/photo.png', 'http://a.co']) assert.equal(profile.isValidProfilePhotoURL(url), true);
+});
+
+test('client age changes on the birthday and rejects impossible or future dates',()=>{
+ const {ageFromBirthDate}=load('app/lib/profile.ts');
+ const now=new Date(2026,10,24,12);
+ assert.equal(ageFromBirthDate('1980-11-24',now),46);
+ assert.equal(ageFromBirthDate('1980-11-25',now),45);
+ assert.equal(ageFromBirthDate('1980-11-23',now),46);
+ assert.equal(ageFromBirthDate('2000-02-29',new Date(2025,1,28,12)),24);
+ assert.equal(ageFromBirthDate('2000-02-29',new Date(2025,2,1,12)),25);
+ for(const value of [null,undefined,'','invalid','2026-02-31','2999-01-01'])assert.equal(ageFromBirthDate(value,now),null);
 });

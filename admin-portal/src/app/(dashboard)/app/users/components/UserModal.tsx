@@ -34,6 +34,7 @@ interface User {
   officeId?: number;
   phone?: string;
   personalAddress?: string;
+  birthDate?: string;
 }
 
 // Define the props (properties) that this component accepts from its parent.
@@ -89,6 +90,7 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
           officeId: user.officeId,
           phone: user.phone ?? '',
           personalAddress: user.personalAddress ?? '',
+          birthDate: user.birthDate?.slice(0,10) ?? '',
         });
         setSelectedRole(user.role);
       } else {
@@ -249,6 +251,8 @@ const UserModal: React.FC<UserModalProps> = ({ visible, onClose, onSuccess, user
         >
           <Input prefix={<PhoneOutlined style={{ color: '#bfbfbf' }} />} placeholder="+52 656 123 4567" />
         </Form.Item>
+
+        {selectedRole === USER_ROLES.CLIENT && user?.clientType !== 'organization' && <Form.Item name="birthDate" label="Fecha de nacimiento (opcional)" extra="La edad se calcula automáticamente."><Input type="date" max={new Date().toLocaleDateString('en-CA')}/></Form.Item>}
 
         <Form.Item
           name="personalAddress"

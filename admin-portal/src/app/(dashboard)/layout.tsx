@@ -67,7 +67,7 @@ const NAVIGATION_GROUPS = [
   {
     key: 'workspace',
     label: 'Trabajo',
-    itemKeys: ['dashboard', 'cases', 'appointments', 'calendar', 'maquilas', 'constructoras'],
+    itemKeys: ['dashboard', 'cases', 'appointments', 'calendar', 'maquilas', 'constructoras', 'properties'],
   },
   {
     key: 'management',
@@ -114,6 +114,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (pathname.startsWith('/app/users')) return 'users';
     if (pathname.startsWith('/app/maquilas')) return 'maquilas';
     if (pathname.startsWith('/app/constructoras')) return 'constructoras';
+    if (pathname.startsWith('/app/properties')) return 'properties';
     if (pathname.startsWith('/app/offices')) return 'offices';
     if (pathname.startsWith('/app/web-content')) return 'web-content';
     if (pathname.startsWith('/app/reports')) return 'reports';
