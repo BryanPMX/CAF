@@ -29,6 +29,7 @@ type CreateUserInput struct {
 	Role            string                    `json:"role" binding:"required"`
 	OfficeID        *uint                     `json:"officeId"`
 	Phone           string                    `json:"phone" binding:"required"`
+	BirthDate       *string                   `json:"birthDate"`
 	PersonalAddress *string                   `json:"personalAddress"`
 }
 
@@ -61,6 +62,11 @@ func createUser(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 		normalizeCreateUserInput(&input)
+		birthDate, birthErr := services.NormalizeBirthDate(input.BirthDate)
+		if birthErr != nil {
+			organizationFailure(c, birthErr)
+			return
+		}
 		if !authorizeUserChange(c, nil, input.Role, &input.OfficeID) {
 			return
 		}
@@ -124,6 +130,7 @@ func createUser(db *gorm.DB) gin.HandlerFunc {
 			OfficeID:        input.OfficeID,
 			Phone:           strings.TrimSpace(input.Phone),
 			PersonalAddress: input.PersonalAddress,
+			BirthDate:       birthDate,
 		}
 
 		// Check if a soft-deleted user with the same email exists
@@ -143,6 +150,9 @@ func createUser(db *gorm.DB) gin.HandlerFunc {
 				existingUser.OfficeID = input.OfficeID
 				existingUser.Phone = strings.TrimSpace(input.Phone)
 				existingUser.PersonalAddress = input.PersonalAddress
+				if input.BirthDate != nil {
+					existingUser.BirthDate = birthDate
+				}
 				existingUser.DeletedAt = gorm.DeletedAt{} // Clear the soft delete
 
 				if err := services.ApplyUserOrganization(&existingUser, previousRole, input.Specialty); err != nil {
@@ -320,6 +330,7 @@ type UpdateUserInput struct {
 	Role            string                    `json:"role" binding:"required"`
 	OfficeID        *uint                     `json:"officeId"`
 	Phone           string                    `json:"phone"`
+	BirthDate       *string                   `json:"birthDate"`
 	PersonalAddress *string                   `json:"personalAddress"`
 }
 
@@ -404,6 +415,18 @@ func updateUser(db *gorm.DB) gin.HandlerFunc {
 		user.OfficeID = input.OfficeID
 		user.Phone = strings.TrimSpace(input.Phone)
 		user.PersonalAddress = input.PersonalAddress
+		if input.BirthDate != nil {
+			birthDate, err := services.NormalizeBirthDate(input.BirthDate)
+			if err != nil {
+				organizationFailure(c, err)
+				return
+			}
+			if user.ClientType == models.ClientOrganization && birthDate != nil {
+				c.JSON(400, gin.H{"error": "La fecha de nacimiento corresponde a una persona"})
+				return
+			}
+			user.BirthDate = birthDate
+		}
 
 		if err := services.ApplyUserOrganization(&user, previousRole, input.Specialty); err != nil {
 			organizationFailure(c, err)
@@ -597,6 +620,14 @@ func permanentDeleteUser(db *gorm.DB) gin.HandlerFunc {
 				c.JSON(http.StatusForbidden, gin.H{"error": "Cannot permanently delete the last executive director user."})
 				return
 			}
+		}
+
+		if referenced, err := services.HasPropertyUserReferences(db, user.ID); err != nil {
+			c.JSON(500, gin.H{"error": "No fue posible verificar el historial de propiedades"})
+			return
+		} else if referenced {
+			c.JSON(409, gin.H{"error": "El usuario tiene historial en el archivo de propiedades. Desactive la cuenta para conservarlo."})
+			return
 		}
 
 		// Perform a hard delete using Unscoped()

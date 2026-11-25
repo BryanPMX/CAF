@@ -81,10 +81,11 @@ export const OrganizationService = {
       })
     ).data.data;
   },
-  async link(id: number, clientId: number, employment?: EmploymentDetails) {
+  async link(id: number, clientId: number, employment?: EmploymentDetails, relationship?: {relationshipRoles?:string[];relationshipNotes?:string}) {
     await apiClient.post(`/organizations/${id}/clients`, {
       clientId,
       ...employment,
+      ...relationship,
     });
   },
   async unlink(id: number, clientId: number) {

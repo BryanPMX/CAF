@@ -57,8 +57,12 @@ there is no company-case collection or fabricated company case.
 
 ## Construction companies
 
-All five registry fields are required: Nombre, Apoderado legal, Domicilio legal,
-Presidente del Consejo and Nombre de la colonia. Email and phone are optional.
+Nombre identifies the company in the directory and remains required. Razón social,
+Nombre comercial, Apoderado legal, Domicilio legal, Presidente del Consejo and
+Nombre de la colonia can be completed later. Email and phone are optional.
+A development name belongs to its property records; it does not establish a
+company legal identity. See [property archive](PROPERTY_ARCHIVE.md) for migration
+0068, explicit person-company roles, property ownership history and registry records.
 Each company owns one canonical `users` record with role `client` and
 `clientType: "organization"`, using the company name rather than invented
 personal names. Existing users default to `clientType: "person"`.
@@ -73,8 +77,10 @@ initial password is random; no credentials are displayed or emailed. Blank
 emails cannot sign in. All supplied emails remain unique, including deleted
 accounts; the database permits multiple company records without email.
 
-Link existing individual clients as contacts without merging identities or
-creating cases. Each construction company keeps its own account as a permanent
+Link existing individual clients without merging identities or creating cases.
+Record one or more explicit company roles and an optional relationship note.
+A company role never establishes land ownership. Re-linking with omitted role or
+note fields preserves their existing values. Each construction company keeps its own account as a permanent
 relationship. The directory supports registration, editing and contact links;
 organization deletion is intentionally not exposed.
 

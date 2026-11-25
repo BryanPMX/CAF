@@ -215,3 +215,19 @@ func EnsureOrganizationNameAvailable(tx *gorm.DB, kind, name string, excludeID u
 	}
 	return nil
 }
+
+// Roles describe a person-company relationship, never land ownership.
+func NormalizeContractorRoles(values []string) ([]string, error) {
+	roles := []string{}
+	seen := map[string]bool{}
+	for _, v := range values {
+		if v != "owner" && v != "partner" && v != "legal_representative" && v != "contact" && v != "sole_trader" {
+			return nil, InvalidOrganization("Relación con la constructora no válida")
+		}
+		if !seen[v] {
+			roles = append(roles, v)
+			seen[v] = true
+		}
+	}
+	return roles, nil
+}

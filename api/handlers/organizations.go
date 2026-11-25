@@ -17,15 +17,17 @@ import (
 )
 
 type organizationInput struct {
-	Kind                string `json:"kind"`
-	OfficeID            uint   `json:"officeId"`
-	Name                string `json:"name"`
-	LegalRepresentative string `json:"legalRepresentative"`
-	LegalAddress        string `json:"legalAddress"`
-	BoardPresident      string `json:"boardPresident"`
-	Neighborhood        string `json:"neighborhood"`
-	Email               string `json:"email" binding:"omitempty,email"`
-	Phone               string `json:"phone"`
+	Kind                string  `json:"kind"`
+	OfficeID            uint    `json:"officeId"`
+	LegalName           *string `json:"legalName"`
+	TradeName           *string `json:"tradeName"`
+	Name                string  `json:"name"`
+	LegalRepresentative string  `json:"legalRepresentative"`
+	LegalAddress        string  `json:"legalAddress"`
+	BoardPresident      string  `json:"boardPresident"`
+	Neighborhood        string  `json:"neighborhood"`
+	Email               string  `json:"email" binding:"omitempty,email"`
+	Phone               string  `json:"phone"`
 }
 
 type organizationClientRow struct {
@@ -93,7 +95,7 @@ func ListOrganizations(db *gorm.DB) gin.HandlerFunc {
 		}
 		query := db.Model(&models.Organization{}).Where("kind = ?", kind)
 		if q := strings.TrimSpace(c.Query("q")); q != "" {
-			query = query.Where("LOWER(organizations.name) LIKE ?", "%"+strings.ToLower(q)+"%")
+			query = query.Where("(LOWER(organizations.name) LIKE ? OR LOWER(organizations.legal_name) LIKE ? OR LOWER(organizations.trade_name) LIKE ?)", "%"+strings.ToLower(q)+"%", "%"+strings.ToLower(q)+"%", "%"+strings.ToLower(q)+"%")
 		}
 		if id := c.Query("id"); id != "" {
 			parsed, err := strconv.ParseUint(id, 10, 32)
@@ -151,6 +153,15 @@ func saveOrganization(db *gorm.DB, create bool) gin.HandlerFunc {
 			return
 		}
 		input.Name = strings.TrimSpace(input.Name)
+		for _, alias := range []*string{input.LegalName, input.TradeName} {
+			if alias != nil {
+				*alias = strings.TrimSpace(*alias)
+				if utf8.RuneCountInString(*alias) > 255 {
+					c.JSON(400, gin.H{"error": "Los nombres admiten hasta 255 caracteres"})
+					return
+				}
+			}
+		}
 		input.LegalRepresentative = strings.TrimSpace(input.LegalRepresentative)
 		input.LegalAddress = strings.TrimSpace(input.LegalAddress)
 		input.BoardPresident = strings.TrimSpace(input.BoardPresident)
@@ -178,10 +189,7 @@ func saveOrganization(db *gorm.DB, create bool) gin.HandlerFunc {
 			c.JSON(400, gin.H{"error": "Nombre y domicilio no válidos"})
 			return
 		}
-		if input.Kind == models.OrganizationContractor && (input.LegalRepresentative == "" || input.LegalAddress == "" || input.BoardPresident == "" || input.Neighborhood == "") {
-			c.JSON(400, gin.H{"error": "Complete los cinco datos de la constructora"})
-			return
-		}
+
 		if len(input.Email) > 255 {
 			c.JSON(400, gin.H{"error": "El correo admite hasta 255 caracteres"})
 			return
@@ -200,6 +208,12 @@ func saveOrganization(db *gorm.DB, create bool) gin.HandlerFunc {
 			record.Kind = input.Kind
 			record.OfficeID = nil
 			record.Name = input.Name
+			if input.LegalName != nil {
+				record.LegalName = *input.LegalName
+			}
+			if input.TradeName != nil {
+				record.TradeName = *input.TradeName
+			}
 			record.LegalRepresentative = input.LegalRepresentative
 			record.LegalAddress = input.LegalAddress
 			record.BoardPresident = input.BoardPresident
@@ -341,7 +355,9 @@ func LinkOrganizationClient(db *gorm.DB, remove bool) gin.HandlerFunc {
 			return
 		}
 		var input struct {
-			ClientID uint `json:"clientId"`
+			ClientID          uint      `json:"clientId"`
+			RelationshipRoles *[]string `json:"relationshipRoles"`
+			RelationshipNotes *string   `json:"relationshipNotes"`
 			models.EmploymentDetails
 		}
 		if remove {
@@ -380,7 +396,28 @@ func LinkOrganizationClient(db *gorm.DB, remove bool) gin.HandlerFunc {
 			if organization.Kind == models.OrganizationMaquila {
 				return services.SaveClientEmployment(tx, actor, &client, &services.EmploymentInput{MaquilaID: &organization.ID, EmploymentDetails: input.EmploymentDetails})
 			}
-			return tx.Clauses(clause.OnConflict{DoNothing: true}).Create(&models.OrganizationClient{OrganizationID: organization.ID, ClientID: client.ID}).Error
+			var membership models.OrganizationClient
+			err := tx.Where("organization_id = ? AND client_id = ?", organization.ID, client.ID).First(&membership).Error
+			if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+				return err
+			}
+			membership.OrganizationID = organization.ID
+			membership.ClientID = client.ID
+			if input.RelationshipRoles != nil {
+				roles, err := services.NormalizeContractorRoles(*input.RelationshipRoles)
+				if err != nil {
+					return err
+				}
+				membership.RelationshipRoles = roles
+			}
+			if input.RelationshipNotes != nil {
+				value := strings.TrimSpace(*input.RelationshipNotes)
+				if utf8.RuneCountInString(value) > 2000 {
+					return services.InvalidOrganization("La aclaración admite hasta 2,000 caracteres")
+				}
+				membership.RelationshipNotes = value
+			}
+			return tx.Omit(clause.Associations).Save(&membership).Error
 		})
 		if err != nil {
 			organizationFailure(c, err)

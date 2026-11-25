@@ -14,6 +14,8 @@ export interface Organization {
   officeId?: number | null;
   office?: { id: number; name: string };
   name: string;
+  legalName?: string;
+  tradeName?: string;
   legalRepresentative: string;
   legalAddress: string;
   boardPresident: string;
@@ -21,6 +23,8 @@ export interface Organization {
   accountClientId?: number | null;
 }
 export interface OrganizationMembership extends EmploymentDetails {
+  relationshipRoles?: string[];
+  relationshipNotes?: string;
   id: number;
   organizationId: number;
   clientId: number;

@@ -105,6 +105,7 @@ admin-portal/src/
 - **Profile**: Account view at `/app/profile` with circular avatar (initials), name, email, role, and office in a clear layout; reached through the sidebar account panel or notification links
 - **Dashboard**: Role-aware operational dashboard with live summary cards, a shared calendar-first workspace for non-management staff, accessible case/appointment distribution graphs, explicit office filtering, quick actions, and alerts derived from real tasks, appointments, and notifications
 - **Employee Calendar**: Unified personal agenda for every employee, combining assigned client appointments with participant-scoped internal meetings, invitation responses, and notification-driven updates
+- **Property Archive**: Office-scoped terrenos, manzanas and lotes with ownership history, Public Property Registry identifiers, source documents and explicit person-company relationships. See [workflow and deployment](docs/PROPERTY_ARCHIVE.md) and [the director's requirements](docs/requirements/CONSTRUCTORAS_2026-11-24.md).
 - **Notifications**: Actionable inbox for contact inquiries, client messages, assigned tasks, and payments, with search, filters, WebSocket refresh, a header popover, and a persistent left-navigation entry; routine case and appointment edits stay in their own timelines
 - **CMS Image Upload**: Local file upload to server for "Sitio Web" gallery management
 

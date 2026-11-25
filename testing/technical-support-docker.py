@@ -37,7 +37,7 @@ def sql(statement):
     return docker('exec', '-i', DATABASE, 'psql', '-X', '-v', 'ON_ERROR_STOP=1', '-U', 'caf_test', '-d', 'caf_test', '-At', input=statement)
 
 
-def request(method, path, data=None, token=None, expected=200):
+def request(method, path, data=None, token=None, expected=200, retry_budget=2):
     headers = {'Content-Type': 'application/json'}
     if token:
         headers['Authorization'] = 'Bearer ' + token
@@ -48,6 +48,11 @@ def request(method, path, data=None, token=None, expected=200):
             status, body = response.status, response.read().decode()
     except urllib.error.HTTPError as response:
         status, body = response.code, response.read().decode()
+    if status == 429 and retry_budget > 0:
+        delay = min(60, max(1, int(json.loads(body).get('retry_after', 1))))
+        print(f'Waiting {delay}s for the production login rate limit before retrying.', flush=True)
+        time.sleep(delay)
+        return request(method, path, data, token, expected, retry_budget - 1)
     assert status == expected, f'{method} {path}: {status}, expected {expected}: {body}'
     if not body:
         return None
@@ -333,6 +338,41 @@ try:
     assert sql(f"SELECT department || ':' || specialty FROM users WHERE id={admin['id']};") == 'legal:family_law'
     assert sql("SELECT count(*) FROM migrations WHERE version='0064';") == '1'
     print('PASS: IT support bootstrap, localized profile metadata and repeatable legacy profile correction preserve other users')
+    # Property archive: production PostgreSQL types, repeatable migration and office boundaries.
+    property_migration = (ROOT / 'api/db/migrations/0068_property_archive.sql').read_text()
+    sql(property_migration + property_migration)
+    assert sql("SELECT count(*) FROM migrations WHERE version='0068';") == '1'
+    owner = create_user('PropertyOwner', 'client', offices[0])
+    birth_payload = {key: owner[key] for key in ['firstName', 'lastName', 'email', 'role', 'phone', 'officeId']}
+    birth_payload['birthDate'] = '1980-11-24'
+    request('PATCH', f"/api/v1/admin/users/{owner['id']}", birth_payload, token)
+    assert request('GET', f"/api/v1/admin/users/{owner['id']}", token=token)['user']['birthDate'] == '1980-11-24'
+    property_record = request('POST', '/api/v1/properties', {'name':'Synthetic registry property', 'kind':'land', 'areaM2':33600,
+        'officeId':offices[0], 'initialOwnerId':owner['id']}, admin_token, 201)
+    property_path = f"/api/v1/properties/{property_record['id']}"
+    assert property_record['owners'][0]['status'] == 'reported'
+    entry = {'realFolio':'00002178269','inscription':'00777','folio':'00144','book':'01064',
+             'instrumentDate':'1978-03-05','registrationDate':'1978-07-07'}
+    registered = request('POST', property_path + '/registry', entry, admin_token)
+    assert registered['registryEntries'][0]['realFolio'] == entry['realFolio']
+    assert registered['registryEntries'][0]['instrumentDate'] == entry['instrumentDate']
+    assert request('GET', '/api/v1/properties?q=00777', token=admin_token)['total'] == 1
+    request('POST', property_path + '/owners', {'clientId':owner['id'],'status':'historical','startDate':'1978-03-05','endDate':'1990-01-01'}, admin_token)
+    request('POST', property_path + '/owners', {'clientId':owner['id'],'status':'current','sharePercent':100}, admin_token)
+    assert len(request('GET', property_path, token=token)['owners']) == 3
+    request('POST', property_path + '/owners', {'clientId':client['id'],'status':'reported'}, admin_token, 400)
+    foreign_admin = create_user('PropertyForeignAdmin', 'admin', offices[1])
+    foreign_token = request('POST','/api/v1/login',{'email':foreign_admin['email'],'password':PASSWORD})['token']
+    request('GET', property_path, token=foreign_token, expected=404)
+    assert request('GET', '/api/v1/properties?q=00777', token=foreign_token)['total'] == 0
+    request('GET', property_path, token=client_token, expected=403)
+    fresh_company = request('POST','/api/v1/organizations', {'kind':'constructora','name':'Synthetic incomplete company',
+        'legalName':'Synthetic legal identity','tradeName':'Synthetic trade name'}, admin_token, 201)
+    request('POST', f"/api/v1/organizations/{fresh_company['id']}/clients", {'clientId':owner['id'],
+        'relationshipRoles':['sole_trader','legal_representative']}, admin_token)
+    roles = request('GET', f"/api/v1/client-organizations/{owner['id']}", token=admin_token)['data'][0]['relationshipRoles']
+    assert roles == ['sole_trader','legal_representative']
+    print('PASS: property migration replay, PostgreSQL date-only values, leading-zero registry IDs, ownership history, role metadata and office isolation')
     credential_before = sql('SELECT password FROM users WHERE id=1;')
     docker('restart', API)
     base = 'http://' + docker('port', API, '8080/tcp').splitlines()[0]

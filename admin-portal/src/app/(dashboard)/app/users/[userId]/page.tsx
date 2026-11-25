@@ -9,6 +9,7 @@ import { formatProfileDate, type ProfileOffice, type UserProfile } from '@/app/l
 import { useAuth } from '@/context/AuthContext';
 import { canManageUser } from '@/config/roles';
 import { PROFILE_TEXT as text } from '@/config/profile';
+import PropertyArchive from '@/components/properties/PropertyArchive';
 import OrganizationLinks from '@/components/organizations/OrganizationLinks';
 import ProfileLayout from '@/components/profile/ProfileLayout';
 import ProfileCard from '@/components/profile/ProfileCard';
@@ -60,6 +61,7 @@ export default function UserProfilePage() {
       {error && <Alert type="error" message={text.loadError} showIcon action={<Button size="small" onClick={() => setRevision(value => value + 1)}>{text.retry}</Button>} />}
       {userID && loading && <div role="status" aria-label={text.loading} className="flex min-h-64 items-center justify-center"><Spin size="large" /></div>}
       {profile && <ProfileCard profile={profile}><OrganizationLinks memberships={profile.organizationMemberships}/></ProfileCard>}
+      {profile?.role === 'client' && profile.clientType !== 'organization' && <Card title="Propiedades relacionadas" className="mb-5"><PropertyArchive clientId={Number(userID)} initialOfficeId={profile.officeId || undefined} initialClient={{id:Number(userID),firstName:profile.firstName,lastName:profile.lastName,email:profile.email,officeId:profile.officeId}} embedded/></Card>}
       {profile?.role === 'client' && messages.length > 0 && (
         <Card title={text.messages.title}>
           <Table dataSource={messages} rowKey="id" pagination={{ pageSize: 5, hideOnSinglePage: true }} size="small" columns={[
