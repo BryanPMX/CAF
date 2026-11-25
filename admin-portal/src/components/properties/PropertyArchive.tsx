@@ -30,6 +30,7 @@ import {
 import { apiClient } from "@/app/lib/api";
 import { OrganizationService } from "@/services/organizationService";
 import ClientSelect from "@/components/organizations/ClientSelect";
+import styles from "./PropertyArchive.module.css";
 import {
   clientLabel,
   type ClientOption,
@@ -834,7 +835,7 @@ export default function PropertyArchive({
         onCancel={() => closeForm(() => setEditor(null))}
         onOk={() => void save()}
         confirmLoading={saving}
-        styles={{ body: { maxHeight: "65vh", overflowY: "auto" } }}
+        className={styles.formModal}
         cancelButtonProps={{ disabled: saving }}
         closable={!saving}
         keyboard={!saving}
@@ -1014,7 +1015,7 @@ export default function PropertyArchive({
         onCancel={() => closeForm(() => setOwnerEditor(null))}
         onOk={() => void saveOwner()}
         confirmLoading={saving}
-        styles={{ body: { maxHeight: "65vh", overflowY: "auto" } }}
+        className={styles.formModal}
         cancelButtonProps={{ disabled: saving }}
         closable={!saving}
         keyboard={!saving}
@@ -1097,7 +1098,7 @@ export default function PropertyArchive({
         onCancel={() => closeForm(() => setRegistryEditor(null))}
         onOk={() => void saveRegistry()}
         confirmLoading={saving}
-        styles={{ body: { maxHeight: "65vh", overflowY: "auto" } }}
+        className={styles.formModal}
         cancelButtonProps={{ disabled: saving }}
         closable={!saving}
         keyboard={!saving}

@@ -1,0 +1,26 @@
+.formModal {
+  top: 24px;
+  padding-bottom: 24px;
+}
+
+.formModal :global(.ant-modal-body) {
+  max-height: calc(100dvh - 180px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  /* Absorb the grid's negative gutters and leave space beside the scrollbar. */
+  padding: 16px 8px 0;
+  scrollbar-gutter: stable;
+}
+
+.formModal :global(.ant-modal-footer) {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #f0f0f0;
+}
+
+@media (max-width: 575px) {
+  .formModal {
+    top: 0;
+    padding-bottom: 16px;
+  }
+}

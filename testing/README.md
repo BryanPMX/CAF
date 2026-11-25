@@ -579,7 +579,9 @@ zeroes, owner capture, document upload, person-profile address/age, search, a
 390-pixel mobile viewport, mobile editor, keyboard cancellation with unsaved-edit
 protection, readable preselected owner names, required-field validation in Spanish
 and denied lawyer access. Its API interception blocks
-requests outside loopback. Screenshots default to a unique `caf-properties-e2e-*` temporary directory (printed by the test).
+requests outside loopback. Form layout checks cover horizontal overflow and
+visible actions on desktop, short desktop viewports and mobile. Screenshots
+default to a unique `caf-properties-e2e-*` temporary directory (printed by the test).
 
 For production-image and PostgreSQL migration/restart checks:
 
