@@ -3,9 +3,17 @@ const { test } = require("node:test");
 const assert = require("node:assert/strict");
 const { chromium } = require("playwright");
 const fs = require("node:fs/promises");
+const os = require("node:os");
+const path = require("node:path");
 const portal = "http://127.0.0.1:3100";
 const api = "http://localhost:8080/api/v1";
-const artifacts = process.env.CAF_E2E_ARTIFACT_DIR || "/tmp/caf-properties-e2e";
+async function createArtifactDirectory() {
+  if (process.env.CAF_E2E_ARTIFACT_DIR) {
+    await fs.mkdir(process.env.CAF_E2E_ARTIFACT_DIR, { recursive: true });
+    return process.env.CAF_E2E_ARTIFACT_DIR;
+  }
+  return fs.mkdtemp(path.join(os.tmpdir(), "caf-properties-e2e-"));
+}
 async function login(page, email = "a@example.test") {
   await page.route("**/api/v1/**", (route) => {
     const host = new URL(route.request().url()).hostname;
@@ -46,6 +54,8 @@ test(
     const page = await browser.newPage({
       viewport: { width: 1440, height: 1000 },
     });
+    const artifacts = await createArtifactDirectory();
+    console.log("Property browser artifacts:", artifacts);
     const errors = [];
     page.on("pageerror", (error) => errors.push(error.message));
     try {
@@ -111,7 +121,6 @@ test(
         `/properties/${property.id}/registry`,
       );
       await drawer.getByText("0002178269", { exact: true }).waitFor();
-      await fs.mkdir(artifacts, { recursive: true });
       await page.screenshot({
         path: artifacts + "/property-registry-desktop.png",
         fullPage: true,
@@ -148,7 +157,6 @@ test(
       });
       assert.equal((await uploaded).status(), 201);
       await drawer.getByText("escritura.txt", { exact: true }).waitFor();
-      await fs.mkdir(artifacts, { recursive: true });
       await page.screenshot({
         path: artifacts + "/property-documents.png",
         fullPage: true,
@@ -255,7 +263,6 @@ test(
         .waitFor({ state: "hidden" });
       assert.deepEqual(errors, []);
     } catch (error) {
-      await fs.mkdir(artifacts, { recursive: true });
       await page.screenshot({
         path: artifacts + "/failure.png",
         fullPage: true,
