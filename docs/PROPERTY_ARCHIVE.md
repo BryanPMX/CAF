@@ -134,7 +134,10 @@ formatted for `es-MX` without shifting the stored calendar day.
 
 Forms protect unsaved edits when canceled and cannot be dismissed while a save
 is in progress. Mobile forms use the same controls and stack fields vertically;
-wide record tables scroll within their containers. The browser suite checks the
+wide record tables scroll within their containers. Form bodies reserve space for
+the grid gutters and vertical scrollbar, with a separated action footer and
+height based on the available viewport; fields do not scroll horizontally.
+The browser suite checks the
 mobile editor, keyboard cancellation, owner preselection, registry-tab retention
 and field-level validation in addition to the normal capture workflow.
 

@@ -46,6 +46,31 @@ async function saveModal(page, modal, method, url) {
   return response.json();
 }
 
+async function assertFormLayout(modal) {
+  await modal.evaluate((element) =>
+    Promise.all(
+      element.getAnimations().map((animation) => animation.finished.catch(() => {})),
+    ),
+  );
+  const layout = await modal.evaluate((element) => {
+    const body = element.querySelector(".ant-modal-body");
+    const footer = element.querySelector(".ant-modal-footer");
+    const bounds = element.getBoundingClientRect();
+    return {
+      contentWidth: body.clientWidth,
+      scrollWidth: body.scrollWidth,
+      fitsViewport: bounds.left >= 0 && bounds.right <= window.innerWidth,
+      footerVisible: footer.getBoundingClientRect().bottom <= window.innerHeight,
+    };
+  });
+  assert.ok(
+    layout.scrollWidth <= layout.contentWidth,
+    `Form overflows horizontally: ${JSON.stringify(layout)}`,
+  );
+  assert.ok(layout.fitsViewport, "Form must fit the viewport width");
+  assert.ok(layout.footerVisible, "Form actions must remain visible");
+}
+
 test(
   "property archive: create, register, history, source document, search and mobile layout",
   { timeout: 180000 },
@@ -82,6 +107,20 @@ test(
         .getByRole("button", { name: "Registrar propiedad", exact: true })
         .click();
       let modal = page.locator(".ant-modal:visible");
+      for (const viewport of [
+        { width: 1440, height: 1000 },
+        { width: 1024, height: 650 },
+        { width: 390, height: 844 },
+      ]) {
+        await page.setViewportSize(viewport);
+        await assertFormLayout(modal);
+      }
+      await page.setViewportSize({ width: 1440, height: 1000 });
+      await page.screenshot({
+        path: artifacts + "/property-form-desktop.png",
+        fullPage: true,
+        animations: "disabled",
+      });
       const name = "Terreno sintético " + suffix;
       // Required fields report in Spanish without sending an invalid request.
       await modal
@@ -108,6 +147,7 @@ test(
         .click();
       modal = page.locator(".ant-modal:visible");
       await modal.getByLabel("Folio Real", { exact: true }).fill("0002178269");
+      await assertFormLayout(modal);
       await modal.getByLabel("Inscripción", { exact: true }).fill("00777");
       await modal.getByLabel("Folio", { exact: true }).fill("00144");
       await modal.getByLabel("Libro", { exact: true }).fill("01064");
@@ -136,6 +176,7 @@ test(
       await modal
         .getByLabel("Persona o empresa propietaria", { exact: true })
         .fill(person.email);
+      await assertFormLayout(modal);
       await page
         .locator(".ant-select-dropdown:visible .ant-select-item-option-content")
         .filter({ hasText: "Propietaria Prueba " + suffix })
@@ -224,6 +265,7 @@ test(
       await modal
         .getByLabel("Nombre para identificar la propiedad", { exact: true })
         .fill("Cambio sin guardar");
+      await assertFormLayout(modal);
       assert.equal(
         await page.evaluate(
           () => document.documentElement.scrollWidth <= window.innerWidth,
